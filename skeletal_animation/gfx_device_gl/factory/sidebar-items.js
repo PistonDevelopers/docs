@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Factory","GL resource factory."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ElementBuilder","An Element Builder, building `Element`s from `Event`s as produced by `Parser`"]],"enum":[["BuilderError","The structure returned for errors encountered while building an `Element`"]]});

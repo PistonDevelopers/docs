@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["FactoryExt","Factory extension trait"],["RenderFactory","Factory extension that allows creating new renderers."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Adler32","An Implementation of the Adler-32 checksum"],["Crc32","An Implementation of the Crc-32 checksum"]]});

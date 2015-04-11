@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["device","Device extensions Device extension. Allows creating a renderer or converting into a single-threaded wrapper."],["factory","Factory extensions Factory extension. Provides resource construction shortcuts."],["shade","Shader extensions Shader source extension"]]});

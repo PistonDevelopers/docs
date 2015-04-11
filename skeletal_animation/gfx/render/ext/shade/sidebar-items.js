@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ProgramError","Program linking error"]],"struct":[["ShaderSource","A type storing shader source for different graphics APIs and versions."]]});

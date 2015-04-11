@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["Action","Automatically implemented through the `ActOn` trait."]]});
