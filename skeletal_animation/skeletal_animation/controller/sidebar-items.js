@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Operator",""]],"struct":[["AnimationController",""],["AnimationControllerDef",""],["AnimationState",""],["AnimationStateDef",""],["AnimationTransition",""],["TransitionCondition",""]]});
+initSidebarItems({"struct":[["AnimationController",""],["AnimationControllerDef",""],["AnimationState",""],["AnimationStateDef",""],["AnimationTransition",""],["TransitionCondition",""]],"enum":[["Operator",""]]});

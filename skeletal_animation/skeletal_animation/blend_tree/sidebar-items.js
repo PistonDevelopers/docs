@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["BlendTreeNode",""],["BlendTreeNodeDef",""]],"type":[["ClipId",""],["ParamId",""]]});
+initSidebarItems({"type":[["ClipId",""],["ParamId",""]],"enum":[["BlendTreeNode",""],["BlendTreeNodeDef",""]]});
