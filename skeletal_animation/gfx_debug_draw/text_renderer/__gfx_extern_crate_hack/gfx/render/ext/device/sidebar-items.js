@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["DeviceExt","Backend extension trait for convenience methods"]],"struct":[["Graphics","A convenient wrapper suitable for single-threaded operation."]]});
+initSidebarItems({"struct":[["Graphics","A convenient wrapper suitable for single-threaded operation."]],"trait":[["DeviceExt","Backend extension trait for convenience methods"]]});

@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["EaseFunction",""]],"trait":[["Ease",""]]});
+initSidebarItems({"trait":[["Ease",""]],"enum":[["EaseFunction",""]]});
