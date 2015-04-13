@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ActionMenuItem",""],["Menu",""],["SliderMenuItem",""]],"enum":[["MenuItem",""]]});
+initSidebarItems({"enum":[["MenuItem",""]],"struct":[["ActionMenuItem",""],["Menu",""],["SliderMenuItem",""]]});
