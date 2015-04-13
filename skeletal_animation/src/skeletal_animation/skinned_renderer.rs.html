@@ -342,6 +342,8 @@
 <span id="300">300</span>
 <span id="301">301</span>
 <span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>default</span>::<span class='ident'>Default</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>path</span>::<span class='ident'>Path</span>;
@@ -364,21 +366,20 @@
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>SkinnedRenderer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>gfx</span>::<span class='ident'>Resources</span><span class='op'>&gt;</span> {
     <span class='ident'>skeleton</span>: <span class='ident'>Skeleton</span>, <span class='comment'>// TODO Should this be a ref? Should this just be the joints?</span>
     <span class='ident'>render_batches</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>SkinnedRenderBatch</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>context</span>: <span class='ident'>gfx</span>::<span class='ident'>render</span>::<span class='ident'>batch</span>::<span class='ident'>Context</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>gfx</span>::<span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>SkinnedRenderer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_collada</span><span class='op'>&lt;</span>
-        <span class='ident'>C</span>: <span class='ident'>gfx</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
         <span class='ident'>F</span>: <span class='ident'>gfx</span>::<span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
-        <span class='ident'>D</span>: <span class='ident'>Device</span><span class='op'>&lt;</span><span class='ident'>Resources</span> <span class='op'>=</span> <span class='ident'>R</span>, <span class='ident'>CommandBuffer</span> <span class='op'>=</span> <span class='ident'>C</span><span class='op'>&gt;</span>,
     <span class='op'>&gt;</span> (
-        <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>gfx</span>::<span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>D</span>, <span class='ident'>F</span><span class='op'>&gt;</span>,
+        <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
         <span class='ident'>collada_document</span>: <span class='ident'>collada</span>::<span class='ident'>document</span>::<span class='ident'>ColladaDocument</span>,
         <span class='ident'>texture_paths</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>str</span><span class='op'>&gt;</span>, <span class='comment'>// TODO - read from the COLLADA document (if available)</span>
     ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>SkinnedRenderer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>gfx</span>::<span class='ident'>ProgramError</span><span class='op'>&gt;</span> {
 
-        <span class='kw'>let</span> <span class='ident'>program</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>graphics</span>.<span class='ident'>factory</span>.<span class='ident'>link_program</span>(<span class='ident'>SKINNED_VERTEX_SHADER</span>.<span class='ident'>clone</span>(), <span class='ident'>SKINNED_FRAGMENT_SHADER</span>.<span class='ident'>clone</span>()) {
+        <span class='kw'>let</span> <span class='ident'>program</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>factory</span>.<span class='ident'>link_program</span>(<span class='ident'>SKINNED_VERTEX_SHADER</span>.<span class='ident'>clone</span>(), <span class='ident'>SKINNED_FRAGMENT_SHADER</span>.<span class='ident'>clone</span>()) {
             <span class='prelude-val'>Ok</span>(<span class='ident'>program_handle</span>) <span class='op'>=&gt;</span> <span class='ident'>program_handle</span>,
             <span class='prelude-val'>Err</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>e</span>),
         };
@@ -391,6 +392,8 @@
 
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>render_batches</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
 
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>render</span>::<span class='ident'>batch</span>::<span class='ident'>Context</span>::<span class='ident'>new</span>();
+
         <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>object</span>) <span class='kw'>in</span> <span class='ident'>obj_set</span>.<span class='ident'>objects</span>.<span class='ident'>iter</span>().<span class='ident'>enumerate</span>().<span class='ident'>take</span>(<span class='number'>6</span>) {
 
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>vertex_data</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>SkinnedVertex</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
@@ -399,28 +402,28 @@
 
             <span class='ident'>get_vertex_index_data</span>(<span class='kw-2'>&amp;</span><span class='ident'>object</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>vertex_data</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>index_data</span>);
 
-            <span class='kw'>let</span> <span class='ident'>mesh</span> <span class='op'>=</span> <span class='ident'>graphics</span>.<span class='ident'>factory</span>.<span class='ident'>create_mesh</span>(<span class='ident'>vertex_data</span>.<span class='ident'>as_slice</span>());
+            <span class='kw'>let</span> <span class='ident'>mesh</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_mesh</span>(<span class='ident'>vertex_data</span>.<span class='ident'>as_slice</span>());
 
             <span class='kw'>let</span> <span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>DrawState</span>::<span class='ident'>new</span>().<span class='ident'>depth</span>(<span class='ident'>gfx</span>::<span class='ident'>state</span>::<span class='ident'>Comparison</span>::<span class='ident'>LessEqual</span>, <span class='boolval'>true</span>);
 
-            <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='ident'>graphics</span>.<span class='ident'>factory</span>
+            <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='ident'>factory</span>
                 .<span class='ident'>create_buffer_index</span>::<span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>(<span class='ident'>index_data</span>.<span class='ident'>as_slice</span>())
                 .<span class='ident'>to_slice</span>(<span class='ident'>gfx</span>::<span class='ident'>PrimitiveType</span>::<span class='ident'>TriangleList</span>);
 
-            <span class='kw'>let</span> <span class='ident'>skinning_transforms_buffer</span> <span class='op'>=</span> <span class='ident'>graphics</span>.<span class='ident'>factory</span>.<span class='ident'>create_buffer</span>::<span class='op'>&lt;</span>[[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>]<span class='op'>&gt;</span>(<span class='ident'>MAX_JOINTS</span>, <span class='ident'>gfx</span>::<span class='ident'>BufferUsage</span>::<span class='ident'>Dynamic</span>);
+            <span class='kw'>let</span> <span class='ident'>skinning_transforms_buffer</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer</span>::<span class='op'>&lt;</span>[[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>]<span class='op'>&gt;</span>(<span class='ident'>MAX_JOINTS</span>, <span class='ident'>gfx</span>::<span class='ident'>BufferUsage</span>::<span class='ident'>Dynamic</span>);
 
             <span class='kw'>let</span> <span class='ident'>texture</span> <span class='op'>=</span> <span class='ident'>gfx_texture</span>::<span class='ident'>Texture</span>::<span class='ident'>from_path</span>(
-                <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>graphics</span>.<span class='ident'>factory</span>,
+                <span class='ident'>factory</span>,
                 <span class='kw-2'>&amp;</span><span class='ident'>Path</span>::<span class='ident'>new</span>(<span class='kw-2'>&amp;</span><span class='ident'>texture_paths</span>[<span class='ident'>i</span>]),
                 <span class='kw-2'>&amp;</span><span class='ident'>gfx_texture</span>::<span class='ident'>Settings</span>::<span class='ident'>new</span>()
             ).<span class='ident'>unwrap</span>();
 
-            <span class='kw'>let</span> <span class='ident'>sampler</span> <span class='op'>=</span> <span class='ident'>graphics</span>.<span class='ident'>factory</span>.<span class='ident'>create_sampler</span>(
+            <span class='kw'>let</span> <span class='ident'>sampler</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_sampler</span>(
                 <span class='ident'>gfx</span>::<span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span>::<span class='ident'>new</span>(
                     <span class='ident'>gfx</span>::<span class='ident'>tex</span>::<span class='ident'>FilterMethod</span>::<span class='ident'>Trilinear</span>,
                     <span class='ident'>gfx</span>::<span class='ident'>tex</span>::<span class='ident'>WrapMode</span>::<span class='ident'>Clamp</span>
-                    )
-                );
+                )
+            );
 
             <span class='kw'>let</span> <span class='ident'>shader_params</span> <span class='op'>=</span> <span class='ident'>SkinnedShaderParams</span> {
                 <span class='ident'>u_model_view_proj</span>: <span class='ident'>mat4_id</span>(),
@@ -429,7 +432,7 @@
                 <span class='ident'>u_texture</span>: (<span class='ident'>texture</span>.<span class='ident'>handle</span>, <span class='prelude-val'>Some</span>(<span class='ident'>sampler</span>)),
             };
 
-            <span class='kw'>let</span> <span class='ident'>batch</span>: <span class='ident'>gfx</span>::<span class='ident'>batch</span>::<span class='ident'>RefBatch</span><span class='op'>&lt;</span><span class='ident'>SkinnedShaderParams</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='op'>=</span> <span class='ident'>graphics</span>.<span class='ident'>make_batch</span>(<span class='kw-2'>&amp;</span><span class='ident'>program</span>, <span class='ident'>shader_params</span>, <span class='kw-2'>&amp;</span><span class='ident'>mesh</span>, <span class='ident'>slice</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>).<span class='ident'>unwrap</span>();
+            <span class='kw'>let</span> <span class='ident'>batch</span>: <span class='ident'>gfx</span>::<span class='ident'>batch</span>::<span class='ident'>RefBatch</span><span class='op'>&lt;</span><span class='ident'>SkinnedShaderParams</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='op'>=</span> <span class='ident'>context</span>.<span class='ident'>make_batch</span>(<span class='kw-2'>&amp;</span><span class='ident'>program</span>, <span class='ident'>shader_params</span>, <span class='kw-2'>&amp;</span><span class='ident'>mesh</span>, <span class='ident'>slice</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>).<span class='ident'>unwrap</span>();
 
             <span class='ident'>render_batches</span>.<span class='ident'>push</span>(<span class='ident'>SkinnedRenderBatch</span> {
                 <span class='ident'>batch</span>: <span class='ident'>batch</span>,
@@ -441,17 +444,18 @@
         <span class='prelude-val'>Ok</span>(<span class='ident'>SkinnedRenderer</span> {
             <span class='ident'>render_batches</span>: <span class='ident'>render_batches</span>,
             <span class='ident'>skeleton</span>: <span class='ident'>skeleton</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>context</span>: <span class='ident'>context</span>,
         })
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>render</span><span class='op'>&lt;</span>
         <span class='ident'>C</span>: <span class='ident'>gfx</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
         <span class='ident'>F</span>: <span class='ident'>gfx</span>::<span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
-        <span class='ident'>D</span>: <span class='ident'>Device</span><span class='op'>&lt;</span><span class='ident'>Resources</span> <span class='op'>=</span> <span class='ident'>R</span>, <span class='ident'>CommandBuffer</span> <span class='op'>=</span> <span class='ident'>C</span><span class='op'>&gt;</span>,
         <span class='ident'>O</span>: <span class='ident'>gfx</span>::<span class='ident'>render</span>::<span class='ident'>target</span>::<span class='ident'>Output</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
     <span class='op'>&gt;</span>(
         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-        <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>gfx</span>::<span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>D</span>, <span class='ident'>F</span><span class='op'>&gt;</span>,
+        <span class='ident'>renderer</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>gfx</span>::<span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span>,
+        <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
         <span class='ident'>output</span>: <span class='kw-2'>&amp;</span><span class='ident'>O</span>,
         <span class='ident'>view</span>: [[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>],
         <span class='ident'>projection</span>: [[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>],
@@ -465,9 +469,9 @@
             <span class='ident'>material</span>.<span class='ident'>batch</span>.<span class='ident'>params</span>.<span class='ident'>u_model_view_proj</span> <span class='op'>=</span> <span class='ident'>projection</span>;
 
             <span class='comment'>// FIXME -- should all be able to share the same buffer</span>
-            <span class='ident'>graphics</span>.<span class='ident'>factory</span>.<span class='ident'>update_buffer</span>(<span class='kw-2'>&amp;</span><span class='ident'>material</span>.<span class='ident'>skinning_transforms_buffer</span>, <span class='kw-2'>&amp;</span><span class='ident'>skinning_transforms</span>[..], <span class='number'>0</span>);
+            <span class='ident'>factory</span>.<span class='ident'>update_buffer</span>(<span class='kw-2'>&amp;</span><span class='ident'>material</span>.<span class='ident'>skinning_transforms_buffer</span>, <span class='kw-2'>&amp;</span><span class='ident'>skinning_transforms</span>[..], <span class='number'>0</span>);
 
-            <span class='ident'>graphics</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='ident'>material</span>.<span class='ident'>batch</span>, <span class='ident'>output</span>).<span class='ident'>unwrap</span>();
+            <span class='ident'>renderer</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span>(<span class='kw-2'>&amp;</span><span class='ident'>material</span>.<span class='ident'>batch</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>context</span>), <span class='ident'>output</span>).<span class='ident'>unwrap</span>();
         }
     }
 
