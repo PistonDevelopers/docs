@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Command","Serialized device command."]],"struct":[["CommandBuffer",""]]});
+initSidebarItems({"struct":[["CommandBuffer",""]],"enum":[["Command","Serialized device command."]]});

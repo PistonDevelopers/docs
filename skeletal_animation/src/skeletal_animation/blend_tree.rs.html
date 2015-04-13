@@ -174,26 +174,25 @@
 <span id="132">132</span>
 <span id="133">133</span>
 <span id="134">134</span>
+<span id="135">135</span>
 </pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>RefCell</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::<span class='ident'>File</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Read</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>rc</span>::<span class='ident'>Rc</span>;
 
 <span class='kw'>use</span> <span class='ident'>interpolation</span>;
-<span class='kw'>use</span> <span class='ident'>rustc_serialize</span>::{<span class='ident'>Decodable</span>, <span class='ident'>Decoder</span>, <span class='ident'>json</span>};
+<span class='kw'>use</span> <span class='ident'>rustc_serialize</span>::{<span class='ident'>Decodable</span>, <span class='ident'>Decoder</span>};
 
-<span class='kw'>use</span> <span class='ident'>animation</span>::{<span class='ident'>AnimationClip</span>, <span class='ident'>SQT</span>};
+<span class='kw'>use</span> <span class='ident'>animation</span>::{<span class='ident'>AnimationClip</span>, <span class='ident'>Transform</span>};
 <span class='kw'>use</span> <span class='ident'>math</span>;
 
+<span class='doccomment'>/// Identifier for an AnimationClip within a BlendTreeNodeDef</span>
 <span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>ClipId</span> <span class='op'>=</span> <span class='ident'>String</span>;
+
+<span class='doccomment'>/// Identifier for animation controller parameter, within a LerpNode</span>
 <span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>ParamId</span> <span class='op'>=</span> <span class='ident'>String</span>;
 
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Definition of a blend tree, to be converted to BlendTreeNode</span>
-<span class='doccomment'>/// at runtime</span>
-<span class='doccomment'>///</span>
+<span class='doccomment'>/// Definition of a blend tree, to be converted to BlendTreeNode when used by an</span>
+<span class='doccomment'>/// AnimationController</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>BlendTreeNodeDef</span> {
     <span class='ident'>LerpNode</span>(<span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>BlendTreeNodeDef</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>BlendTreeNodeDef</span><span class='op'>&gt;</span>, <span class='ident'>ParamId</span>),
@@ -233,32 +232,30 @@
     }
 }
 
-<span class='doccomment'>///</span>
 <span class='doccomment'>/// Runtime representation of a blend tree.</span>
-<span class='doccomment'>///</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>BlendTreeNode</span> {
-    <span class='doccomment'>///</span>
+
     <span class='doccomment'>/// Pose output is linearly blend between the output of</span>
     <span class='doccomment'>/// two child BlendTreeNodes, with blend factor according</span>
     <span class='doccomment'>/// the paramater value for name ParamId</span>
-    <span class='doccomment'>///</span>
     <span class='ident'>LerpNode</span>(<span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>BlendTreeNode</span><span class='op'>&gt;</span>, <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>BlendTreeNode</span><span class='op'>&gt;</span>, <span class='ident'>ParamId</span>),
 
-    <span class='doccomment'>///</span>
     <span class='doccomment'>/// Pose output is from an AnimationClip</span>
-    <span class='doccomment'>///</span>
-    <span class='ident'>ClipNode</span>(<span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&gt;&gt;</span>),
+    <span class='ident'>ClipNode</span>(<span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&gt;</span>),
 }
 
 <span class='kw'>impl</span> <span class='ident'>BlendTreeNode</span> {
 
-    <span class='doccomment'>///</span>
     <span class='doccomment'>/// Initialize a new BlendTreeNode from a BlendTreeNodeDef and</span>
     <span class='doccomment'>/// a mapping from animation names to AnimationClip</span>
     <span class='doccomment'>///</span>
+    <span class='doccomment'>/// # Arguments</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// * `def` - The root BlendTreeNodeDef</span>
+    <span class='doccomment'>/// * `animations` - A mapping from ClipIds to shared AnimationClip instances</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_def</span>(
         <span class='ident'>def</span>: <span class='ident'>BlendTreeNodeDef</span>,
-        <span class='ident'>animations</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>ClipId</span>, <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>
+        <span class='ident'>animations</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>ClipId</span>, <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&gt;&gt;</span>
     ) <span class='op'>-&gt;</span> <span class='ident'>BlendTreeNode</span> {
 
         <span class='kw'>match</span> <span class='ident'>def</span> {
@@ -278,19 +275,24 @@
         }
     }
 
-    <span class='doccomment'>///</span>
     <span class='doccomment'>/// Get the output skeletal pose for this node and the given time and parameters</span>
     <span class='doccomment'>///</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_output_pose</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>elapsed_time</span>: <span class='ident'>f32</span>, <span class='ident'>params</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>f32</span><span class='op'>&gt;</span>, <span class='ident'>output_poses</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>SQT</span>]) {
+    <span class='doccomment'>/// # Arguments</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// * `time` - The time to sample from any AnimationClips</span>
+    <span class='doccomment'>/// * `params` - A mapping from ParamIds to their current parameter values</span>
+    <span class='doccomment'>/// * `output_poses` - The output array slice of joint transforms that will be populated</span>
+    <span class='doccomment'>///                    according to the defined output for this BlendTreeNode</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_output_pose</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>time</span>: <span class='ident'>f32</span>, <span class='ident'>params</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>f32</span><span class='op'>&gt;</span>, <span class='ident'>output_poses</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>Transform</span>]) {
         <span class='kw'>match</span> <span class='self'>self</span> {
             <span class='kw-2'>&amp;</span><span class='ident'>BlendTreeNode</span>::<span class='ident'>LerpNode</span>(<span class='kw-2'>ref</span> <span class='ident'>input_1</span>, <span class='kw-2'>ref</span> <span class='ident'>input_2</span>, <span class='kw-2'>ref</span> <span class='ident'>param_name</span>) <span class='op'>=&gt;</span> {
 
-                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>input_poses</span> <span class='op'>=</span> [ <span class='ident'>SQT</span> { <span class='ident'>translation</span>: [<span class='number'>0.0</span>, <span class='number'>0.0</span>, <span class='number'>0.0</span>], <span class='ident'>scale</span>: <span class='number'>0.0</span>, <span class='ident'>rotation</span>: (<span class='number'>0.0</span>, [<span class='number'>0.0</span>, <span class='number'>0.0</span>, <span class='number'>0.0</span>]) }; <span class='number'>64</span> ];
+                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>input_poses</span> <span class='op'>=</span> [ <span class='ident'>Transform</span> { <span class='ident'>translation</span>: [<span class='number'>0.0</span>, <span class='number'>0.0</span>, <span class='number'>0.0</span>], <span class='ident'>scale</span>: <span class='number'>0.0</span>, <span class='ident'>rotation</span>: (<span class='number'>0.0</span>, [<span class='number'>0.0</span>, <span class='number'>0.0</span>, <span class='number'>0.0</span>]) }; <span class='number'>64</span> ];
 
                 <span class='kw'>let</span> <span class='ident'>sample_count</span> <span class='op'>=</span> <span class='ident'>output_poses</span>.<span class='ident'>len</span>();
 
-                <span class='ident'>input_1</span>.<span class='ident'>get_output_pose</span>(<span class='ident'>elapsed_time</span>, <span class='ident'>params</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>input_poses</span>[<span class='number'>0</span> .. <span class='ident'>sample_count</span>]);
-                <span class='ident'>input_2</span>.<span class='ident'>get_output_pose</span>(<span class='ident'>elapsed_time</span>, <span class='ident'>params</span>, <span class='ident'>output_poses</span>);
+                <span class='ident'>input_1</span>.<span class='ident'>get_output_pose</span>(<span class='ident'>time</span>, <span class='ident'>params</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>input_poses</span>[<span class='number'>0</span> .. <span class='ident'>sample_count</span>]);
+                <span class='ident'>input_2</span>.<span class='ident'>get_output_pose</span>(<span class='ident'>time</span>, <span class='ident'>params</span>, <span class='ident'>output_poses</span>);
 
                 <span class='kw'>let</span> <span class='ident'>blend_parameter</span> <span class='op'>=</span> <span class='ident'>params</span>[<span class='kw-2'>&amp;</span><span class='ident'>param_name</span>[..]];
 
@@ -304,7 +306,7 @@
 
             }
             <span class='kw-2'>&amp;</span><span class='ident'>BlendTreeNode</span>::<span class='ident'>ClipNode</span>(<span class='kw-2'>ref</span> <span class='ident'>clip</span>) <span class='op'>=&gt;</span> {
-                <span class='ident'>clip</span>.<span class='ident'>borrow</span>().<span class='ident'>get_interpolated_poses_at_time</span>(<span class='ident'>elapsed_time</span>, <span class='ident'>output_poses</span>);
+                <span class='ident'>clip</span>.<span class='ident'>get_pose_at_time</span>(<span class='ident'>time</span>, <span class='ident'>output_poses</span>);
             }
         }
     }

@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Joint",""],["Skeleton",""]],"constant":[["ROOT_JOINT_PARENT_INDEX",""]],"type":[["JointIndex",""]]});
+initSidebarItems({"type":[["JointIndex",""]],"constant":[["ROOT_JOINT_PARENT_INDEX",""]],"struct":[["Joint",""],["Skeleton",""]]});

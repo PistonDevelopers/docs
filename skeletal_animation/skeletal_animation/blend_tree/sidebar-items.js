@@ -1,1 +1,1 @@
-initSidebarItems({"type":[["ClipId",""],["ParamId",""]],"enum":[["BlendTreeNode",""],["BlendTreeNodeDef",""]]});
+initSidebarItems({"enum":[["BlendTreeNode","Runtime representation of a blend tree."],["BlendTreeNodeDef","Definition of a blend tree, to be converted to BlendTreeNode when used by an AnimationController"]],"type":[["ClipId","Identifier for an AnimationClip within a BlendTreeNodeDef"],["ParamId","Identifier for animation controller parameter, within a LerpNode"]]});
