@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["shader_param",""],["vertex_format",""]],"fn":[["registrar","Entry point for the plugin phase"]]});
