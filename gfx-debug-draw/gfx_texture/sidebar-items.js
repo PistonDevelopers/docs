@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["ImageSize","Implemented by all images to be used with generic algorithms."]],"struct":[["Settings","Texture creation parameters."],["Texture","Represents a texture."]]});
