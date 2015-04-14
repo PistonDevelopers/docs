@@ -1,7 +1,7 @@
 # docs
 Documentation for piston's projects.
 
-[Documentation Index](http://www.piston.rs/docs/)
+[Documentation Index](http://docs.piston.rs)
 
 ## Adding New Projects
 
