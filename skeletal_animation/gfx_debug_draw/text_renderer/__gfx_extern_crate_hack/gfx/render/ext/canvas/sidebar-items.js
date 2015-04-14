@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Canvas","A canvas with everything you need to draw on it."]],"trait":[["IntoCanvas","Something that can be transformed into `Canvas`."],["Window","Generic output window."]]});
+initSidebarItems({"trait":[["IntoCanvas","Something that can be transformed into `Canvas`."],["Window","Generic output window."]],"struct":[["Canvas","A canvas with everything you need to draw on it."]]});
