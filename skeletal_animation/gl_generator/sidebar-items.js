@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["generators",""],["registry",""]],"fn":[["generate_bindings","Public function that generates Rust source code."]]});
+initSidebarItems({"fn":[["generate_bindings","Public function that generates Rust source code."]],"mod":[["generators",""],["registry",""]]});
