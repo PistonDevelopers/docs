@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["alpha","Returns a semi-transparent white color"],["grey","Returns a grey color"],["hex","Converts from hexadecimal color format"]],"constant":[["BLACK",""],["TRANSPARENT",""],["WHITE",""]]});
