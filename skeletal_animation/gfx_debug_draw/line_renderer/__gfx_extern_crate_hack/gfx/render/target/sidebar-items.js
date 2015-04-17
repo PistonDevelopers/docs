@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Frame","A complete `Frame`, which is the result of rendering."]],"enum":[["Plane","A single buffer that can be bound to a render target."]],"trait":[["Output","A generic rendering output, consisting of multiple planes."]]});
+initSidebarItems({"enum":[["Plane","A single buffer that can be bound to a render target."]],"trait":[["Output","A generic rendering output, consisting of multiple planes."]],"struct":[["Frame","A complete `Frame`, which is the result of rendering."]]});
