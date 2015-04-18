@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Line","A line."],["Point","A point in the Cartesian plane."],["Rect","A rectangle."],["Size","The size of a shape."]]});

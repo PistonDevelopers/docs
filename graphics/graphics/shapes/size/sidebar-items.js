@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Size","The size of a shape."]]});
