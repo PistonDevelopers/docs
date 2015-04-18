@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["config","Contains emitter configuration structure."],["events",""]],"type":[["EventWriterResult",""]],"struct":[["EventWriter",""]]});
+initSidebarItems({"mod":[["config","Contains emitter configuration structure."],["events",""]],"struct":[["EventWriter",""]],"type":[["EventWriterResult",""]]});
