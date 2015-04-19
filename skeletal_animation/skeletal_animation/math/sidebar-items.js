@@ -1,1 +1,1 @@
-initSidebarItems({"type":[["Matrix4",""],["Quaternion",""],["Vector3",""]],"fn":[["mat4_id","Constructs identity matrix."],["row_mat4_mul","Multiplies two matrices."],["row_mat4_transform","Transforms a 4D vector through a matrix."]]});
+initSidebarItems({"fn":[["mat4_id","Constructs identity matrix."],["row_mat4_mul","Multiplies two matrices."],["row_mat4_transform","Transforms a 4D vector through a matrix."]],"type":[["Matrix4",""],["Quaternion",""],["Vector3",""]]});
