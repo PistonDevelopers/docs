@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["ByteOrder","Byte order of the TIFF file."]],"struct":[["TIFFDecoder","The representation of a PNG decoder"]]});

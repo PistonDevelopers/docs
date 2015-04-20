@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["Cast","Casts into another type."],["One","Number 1."],["Radians","Useful constants for radians."],["Sqrt","Square root."],["Zero","Number 0."]]});
