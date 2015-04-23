@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["Get","Automatically implemented through the `GetFrom` trait."]]});

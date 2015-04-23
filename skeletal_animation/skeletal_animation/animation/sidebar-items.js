@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["AnimationClip","A sequence of skeletal pose samples at some sample rate"],["AnimationSample","A single skeletal pose"],["Transform","Transformation represented by separate scaling, translation, and rotation factors."]]});
+initSidebarItems({"struct":[["AnimationClip","A sequence of skeletal pose samples at some sample rate"],["AnimationClipDef",""],["AnimationSample","A single skeletal pose"],["ClipInstance","An instance of an AnimationClip which tracks playback parameters"],["DifferenceClipDef",""]]});

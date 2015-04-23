@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["animation",""],["blend_tree",""],["controller",""],["manager",""],["skeleton",""],["skinned_renderer",""]]});
+initSidebarItems({"mod":[["animation",""],["blend_tree",""],["controller",""],["manager",""],["skeleton",""],["skinned_renderer",""]],"struct":[["Transform","Transformation represented by separate scaling, translation, and rotation factors."]]});

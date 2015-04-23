@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["AssetManager",""]]});
+initSidebarItems({"struct":[["AssetDefs","A collection of asset definitions, to be loaded from a JSON definition file"],["AssetManager",""]]});
