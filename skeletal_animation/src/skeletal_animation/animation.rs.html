@@ -306,18 +306,6 @@
 <span id="264">264</span>
 <span id="265">265</span>
 <span id="266">266</span>
-<span id="267">267</span>
-<span id="268">268</span>
-<span id="269">269</span>
-<span id="270">270</span>
-<span id="271">271</span>
-<span id="272">272</span>
-<span id="273">273</span>
-<span id="274">274</span>
-<span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>path</span>::<span class='ident'>Path</span>;
@@ -325,7 +313,6 @@
 
 <span class='kw'>use</span> <span class='ident'>collada</span>::<span class='ident'>document</span>::<span class='ident'>ColladaDocument</span>;
 <span class='kw'>use</span> <span class='ident'>collada</span>;
-<span class='kw'>use</span> <span class='ident'>interpolation</span>::{<span class='self'>self</span>, <span class='ident'>Spatial</span>};
 
 <span class='kw'>use</span> <span class='ident'>math</span>::<span class='op'>*</span>;
 <span class='kw'>use</span> <span class='ident'>skeleton</span>::<span class='ident'>Skeleton</span>;
@@ -333,21 +320,21 @@
 
 <span class='doccomment'>/// A single skeletal pose</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>AnimationSample</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>AnimationSample</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Transform</span><span class='op'>&gt;</span>
 {
 
     <span class='doccomment'>/// Local pose transforms for each joint in the targeted skeleton</span>
     <span class='doccomment'>/// (relative to parent joint)</span>
-    <span class='kw'>pub</span> <span class='ident'>local_poses</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Transform</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>local_poses</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>,
 
 }
 
 <span class='doccomment'>/// A sequence of skeletal pose samples at some sample rate</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>AnimationClip</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Transform</span><span class='op'>&gt;</span> {
 
     <span class='doccomment'>/// The sequence of skeletal poses</span>
-    <span class='kw'>pub</span> <span class='ident'>samples</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>AnimationSample</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>samples</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>AnimationSample</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
 
     <span class='doccomment'>/// Sample rate for the clip. Assumes a constant sample rate.</span>
     <span class='kw'>pub</span> <span class='ident'>samples_per_second</span>: <span class='ident'>f32</span>,
@@ -369,9 +356,9 @@
     <span class='kw'>pub</span> <span class='ident'>reference_clip</span>: <span class='ident'>String</span>,
 }
 
-<span class='kw'>impl</span> <span class='ident'>AnimationClip</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Transform</span><span class='op'>&gt;</span> <span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_def</span>(<span class='ident'>clip_def</span>: <span class='kw-2'>&amp;</span><span class='ident'>AnimationClipDef</span>) <span class='op'>-&gt;</span> <span class='ident'>AnimationClip</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_def</span>(<span class='ident'>clip_def</span>: <span class='kw-2'>&amp;</span><span class='ident'>AnimationClipDef</span>) <span class='op'>-&gt;</span> <span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
 
         <span class='comment'>// Wacky. Shouldn&#39;t it be an error if the struct field isn&#39;t present?</span>
         <span class='comment'>// FIXME - use an Option</span>
@@ -413,7 +400,7 @@
     <span class='doccomment'>/// * `time` - The time to sample with, relative to the start of the animation</span>
     <span class='doccomment'>/// * `blended_poses` - The output array slice of joint transforms that will be populated</span>
     <span class='doccomment'>///                     for each joint in the skeleton.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_pose_at_time</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>elapsed_time</span>: <span class='ident'>f32</span>, <span class='ident'>blended_poses</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>Transform</span>]) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_pose_at_time</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>elapsed_time</span>: <span class='ident'>f32</span>, <span class='ident'>blended_poses</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>T</span>]) {
 
         <span class='kw'>let</span> <span class='ident'>interpolated_index</span> <span class='op'>=</span> <span class='ident'>elapsed_time</span> <span class='op'>*</span> <span class='self'>self</span>.<span class='ident'>samples_per_second</span>;
 
@@ -431,20 +418,17 @@
 
         <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> (<span class='number'>0</span> .. <span class='ident'>sample_1</span>.<span class='ident'>local_poses</span>.<span class='ident'>len</span>()) {
 
-            <span class='kw'>let</span> <span class='ident'>pose_1</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>sample_1</span>.<span class='ident'>local_poses</span>[<span class='ident'>i</span>];
-            <span class='kw'>let</span> <span class='ident'>pose_2</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>sample_2</span>.<span class='ident'>local_poses</span>[<span class='ident'>i</span>];
+            <span class='kw'>let</span> <span class='ident'>pose_1</span> <span class='op'>=</span> <span class='ident'>sample_1</span>.<span class='ident'>local_poses</span>[<span class='ident'>i</span>];
+            <span class='kw'>let</span> <span class='ident'>pose_2</span> <span class='op'>=</span> <span class='ident'>sample_2</span>.<span class='ident'>local_poses</span>[<span class='ident'>i</span>];
 
             <span class='kw'>let</span> <span class='ident'>blended_pose</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>blended_poses</span>[<span class='ident'>i</span>];
-            <span class='ident'>blended_pose</span>.<span class='ident'>scale</span> <span class='op'>=</span> <span class='ident'>interpolation</span>::<span class='ident'>lerp</span>(<span class='kw-2'>&amp;</span><span class='ident'>pose_1</span>.<span class='ident'>scale</span>, <span class='kw-2'>&amp;</span><span class='ident'>pose_2</span>.<span class='ident'>scale</span>, <span class='kw-2'>&amp;</span><span class='ident'>blend_factor</span>);
-            <span class='ident'>blended_pose</span>.<span class='ident'>translation</span> <span class='op'>=</span> <span class='ident'>interpolation</span>::<span class='ident'>lerp</span>(<span class='kw-2'>&amp;</span><span class='ident'>pose_1</span>.<span class='ident'>translation</span>, <span class='kw-2'>&amp;</span><span class='ident'>pose_2</span>.<span class='ident'>translation</span>, <span class='kw-2'>&amp;</span><span class='ident'>blend_factor</span>);
-            <span class='ident'>blended_pose</span>.<span class='ident'>rotation</span> <span class='op'>=</span> <span class='ident'>lerp_quaternion</span>(<span class='kw-2'>&amp;</span><span class='ident'>pose_1</span>.<span class='ident'>rotation</span>, <span class='kw-2'>&amp;</span><span class='ident'>pose_2</span>.<span class='ident'>rotation</span>, <span class='kw-2'>&amp;</span><span class='ident'>blend_factor</span>);
-
+            <span class='op'>*</span><span class='ident'>blended_pose</span> <span class='op'>=</span> <span class='ident'>pose_1</span>.<span class='ident'>lerp</span>(<span class='ident'>pose_2</span>, <span class='ident'>blend_factor</span>);
         }
 
     }
 
     <span class='doccomment'>/// Create a difference clip from a source and reference clip for additive blending.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_difference_clip</span>(<span class='ident'>source_clip</span>: <span class='kw-2'>&amp;</span><span class='ident'>AnimationClip</span>, <span class='ident'>reference_clip</span>: <span class='kw-2'>&amp;</span><span class='ident'>AnimationClip</span>) <span class='op'>-&gt;</span> <span class='ident'>AnimationClip</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_difference_clip</span>(<span class='ident'>source_clip</span>: <span class='kw-2'>&amp;</span><span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>reference_clip</span>: <span class='kw-2'>&amp;</span><span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
 
         <span class='kw'>let</span> <span class='ident'>samples</span> <span class='op'>=</span> (<span class='number'>0</span> .. <span class='ident'>source_clip</span>.<span class='ident'>samples</span>.<span class='ident'>len</span>()).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>sample_index</span><span class='op'>|</span> {
 
@@ -455,8 +439,8 @@
 
             <span class='kw'>let</span> <span class='ident'>difference_poses</span> <span class='op'>=</span> (<span class='number'>0</span> .. <span class='ident'>source_sample</span>.<span class='ident'>local_poses</span>.<span class='ident'>len</span>()).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>joint_index</span><span class='op'>|</span> {
                 <span class='kw'>let</span> <span class='kw-2'>ref</span> <span class='ident'>source_pose</span> <span class='op'>=</span> <span class='ident'>source_sample</span>.<span class='ident'>local_poses</span>[<span class='ident'>joint_index</span>];
-                <span class='kw'>let</span> <span class='kw-2'>ref</span> <span class='ident'>reference_pose</span> <span class='op'>=</span> <span class='ident'>reference_sample</span>.<span class='ident'>local_poses</span>[<span class='ident'>joint_index</span>];
-                <span class='ident'>source_pose</span>.<span class='ident'>subtract</span>(<span class='ident'>reference_pose</span>.<span class='ident'>clone</span>())
+                <span class='kw'>let</span> <span class='ident'>reference_pose</span> <span class='op'>=</span> <span class='ident'>reference_sample</span>.<span class='ident'>local_poses</span>[<span class='ident'>joint_index</span>];
+                <span class='ident'>source_pose</span>.<span class='ident'>subtract</span>(<span class='ident'>reference_pose</span>)
             }).<span class='ident'>collect</span>();
 
             <span class='ident'>AnimationSample</span> {
@@ -481,7 +465,7 @@
     <span class='doccomment'>/// * `transform` - An offset transform to apply to the root pose of each animation sample,</span>
     <span class='doccomment'>///                 useful for applying rotation, translation, or scaling when loading an</span>
     <span class='doccomment'>///                 animation.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_collada</span>(<span class='ident'>skeleton</span>: <span class='kw-2'>&amp;</span><span class='ident'>Skeleton</span>, <span class='ident'>animations</span>: <span class='kw-2'>&amp;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>collada</span>::<span class='ident'>Animation</span><span class='op'>&gt;</span>, <span class='ident'>transform</span>: <span class='kw-2'>&amp;</span><span class='ident'>Matrix4</span><span class='op'>&lt;</span><span class='ident'>f32</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>AnimationClip</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_collada</span>(<span class='ident'>skeleton</span>: <span class='kw-2'>&amp;</span><span class='ident'>Skeleton</span>, <span class='ident'>animations</span>: <span class='kw-2'>&amp;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>collada</span>::<span class='ident'>Animation</span><span class='op'>&gt;</span>, <span class='ident'>transform</span>: <span class='kw-2'>&amp;</span><span class='ident'>Matrix4</span><span class='op'>&lt;</span><span class='ident'>f32</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>f32</span>::<span class='ident'>consts</span>::<span class='ident'>PI</span>;
 
         <span class='comment'>// Z-axis is &#39;up&#39; in COLLADA, so need to rotate root pose about x-axis so y-axis is &#39;up&#39;</span>
@@ -524,16 +508,8 @@
             }).<span class='ident'>collect</span>();
 
             <span class='comment'>// Convert local poses to Transforms (for interpolation)</span>
-            <span class='kw'>let</span> <span class='ident'>local_poses</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Transform</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>local_poses</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>pose_matrix</span><span class='op'>|</span> {
-                <span class='ident'>Transform</span> {
-                    <span class='ident'>translation</span>: [
-                        <span class='ident'>pose_matrix</span>[<span class='number'>0</span>][<span class='number'>3</span>],
-                        <span class='ident'>pose_matrix</span>[<span class='number'>1</span>][<span class='number'>3</span>],
-                        <span class='ident'>pose_matrix</span>[<span class='number'>2</span>][<span class='number'>3</span>],
-                    ],
-                    <span class='ident'>scale</span>: <span class='number'>1.0</span>, <span class='comment'>// TODO don&#39;t assume?</span>
-                    <span class='ident'>rotation</span>: <span class='ident'>matrix_to_quaternion</span>(<span class='ident'>pose_matrix</span>),
-                }
+            <span class='kw'>let</span> <span class='ident'>local_poses</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>local_poses</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>pose_matrix</span><span class='op'>|</span> {
+                <span class='ident'>T</span>::<span class='ident'>from_matrix</span>(<span class='op'>*</span><span class='ident'>pose_matrix</span>)
             }).<span class='ident'>collect</span>();
 
             <span class='ident'>AnimationSample</span> {
@@ -550,9 +526,9 @@
 }
 
 <span class='doccomment'>/// An instance of an AnimationClip which tracks playback parameters</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ClipInstance</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ClipInstance</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Transform</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Shared clip reference</span>
-    <span class='kw'>pub</span> <span class='ident'>clip</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>clip</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
 
     <span class='doccomment'>/// Controller clock time at animation start</span>
     <span class='kw'>pub</span> <span class='ident'>start_time</span>: <span class='ident'>f32</span>,
@@ -564,9 +540,9 @@
     <span class='kw'>pub</span> <span class='ident'>time_offset</span>: <span class='ident'>f32</span>,
 }
 
-<span class='kw'>impl</span> <span class='ident'>ClipInstance</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Transform</span><span class='op'>&gt;</span> <span class='ident'>ClipInstance</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>clip</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>ClipInstance</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>clip</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>AnimationClip</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>ClipInstance</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>ClipInstance</span> {
             <span class='ident'>clip</span>: <span class='ident'>clip</span>,
             <span class='ident'>start_time</span>: <span class='number'>0.0</span>,
@@ -585,7 +561,7 @@
         }
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_pose_at_time</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>global_time</span>: <span class='ident'>f32</span>, <span class='ident'>blended_poses</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>Transform</span>]) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_pose_at_time</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>global_time</span>: <span class='ident'>f32</span>, <span class='ident'>blended_poses</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>T</span>]) {
         <span class='self'>self</span>.<span class='ident'>clip</span>.<span class='ident'>get_pose_at_time</span>(<span class='self'>self</span>.<span class='ident'>get_local_time</span>(<span class='ident'>global_time</span>), <span class='ident'>blended_poses</span>);
     }
 

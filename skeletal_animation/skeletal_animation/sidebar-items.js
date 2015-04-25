@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["animation",""],["blend_tree",""],["controller",""],["manager",""],["skeleton",""],["skinned_renderer",""]],"struct":[["Transform","Transformation represented by separate scaling, translation, and rotation factors."]]});
+initSidebarItems({"mod":[["animation",""],["blend_tree",""],["controller",""],["manager",""],["math",""],["skeleton",""],["skinned_renderer",""]],"struct":[["QVTransform","Transformation represented by separate scaling, translation, and rotation factors."]],"trait":[["Transform",""]]});
