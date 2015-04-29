@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["SkinnedRenderBatch",""],["SkinnedRenderer",""]]});
+initSidebarItems({"struct":[["SkinnedRenderBatch",""],["SkinnedRenderer",""]],"trait":[["HasShaderSources",""]]});
