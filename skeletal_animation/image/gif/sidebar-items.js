@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ColorMode","The color mode the encoder will use to encode the image."]],"struct":[["GIFDecoder","A gif decoder"],["GIFEncoder","A GIF encoder."]]});
