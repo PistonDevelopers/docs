@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Slider","Linear value selection. If the slider's width is greater than it's height, it will automatically become a horizontal slider, otherwise it will be a vertical slider. Its reaction is triggered if the value is updated or if the mouse button is released while the cursor is above the rectangle."]]});

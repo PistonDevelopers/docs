@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["Custom","A trait to be implemented for Custom widget types."],["State","The state to be stored within the `Ui`s widget cache."]]});

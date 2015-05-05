@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["attribute_location","Creates a vertex buffer for an attribute from a program."],["compile_shader","Compiles a shader."]],"struct":[["DynamicAttribute","Describes a shader attribute."]]});

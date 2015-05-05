@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Deflater","A DEFLATE encoder (RFC 1951)."]]});

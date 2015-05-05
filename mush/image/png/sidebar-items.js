@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["deflate","A DEFLATE encoder (RFC 1951)."],["hash","This module provides implementations of common hashing algorithms."],["inflate","An Implementation of RFC 1951"],["zlib","An Implementation of RFC 1950"]],"struct":[["PNGDecoder","The representation of a PNG decoder"],["PNGEncoder","The representation of a PNG encoder"]]});

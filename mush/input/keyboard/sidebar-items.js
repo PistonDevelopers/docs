@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["ALT",""],["ALT_GUI",""],["CTRL",""],["CTRL_ALT",""],["CTRL_GUI",""],["CTRL_SHIFT",""],["CTRL_SHIFT_ALT",""],["CTRL_SHIFT_ALT_GUI",""],["CTRL_SHIFT_GUI",""],["GUI",""],["NO_MODIFIER",""],["SHIFT",""],["SHIFT_ALT",""],["SHIFT_ALT_GUI",""],["SHIFT_GUI",""]],"enum":[["Key","Represent a keyboard key."]],"struct":[["ModifierKey",""]]});

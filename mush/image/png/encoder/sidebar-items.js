@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["PNGEncoder","The representation of a PNG encoder"]]});

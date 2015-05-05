@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ButtonState","Represents the current state of a mouse button."]],"struct":[["Mouse","Represents the current state of the Mouse."]]});

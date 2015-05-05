@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Framing","To be used as a parameter for defining the aesthetic of the widget frame."]],"trait":[["Frameable","Widgets that may display a frame."]]});

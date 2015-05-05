@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Texture","Wraps OpenGL texture data. The texture gets deleted when running out of scope."]]});
