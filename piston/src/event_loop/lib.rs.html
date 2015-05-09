@@ -296,6 +296,42 @@
 <span id="254">254</span>
 <span id="255">255</span>
 <span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A generic event loop for games and interactive applications</span>
 
@@ -406,6 +442,7 @@
     <span class='ident'>dt_frame_in_ns</span>: <span class='ident'>u64</span>,
     <span class='ident'>dt</span>: <span class='ident'>f64</span>,
     <span class='ident'>swap_buffers</span>: <span class='ident'>bool</span>,
+    <span class='ident'>bench_mode</span>: <span class='ident'>bool</span>,
     <span class='ident'>_marker_e</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>,
 }
 
@@ -439,6 +476,7 @@
             <span class='ident'>dt_frame_in_ns</span>: <span class='ident'>BILLION</span> <span class='op'>/</span> <span class='ident'>max_frames_per_second</span>,
             <span class='ident'>dt</span>: <span class='number'>1.0</span> <span class='op'>/</span> <span class='ident'>updates_per_second</span> <span class='kw'>as</span> <span class='ident'>f64</span>,
             <span class='ident'>swap_buffers</span>: <span class='boolval'>true</span>,
+            <span class='ident'>bench_mode</span>: <span class='boolval'>false</span>,
             <span class='ident'>_marker_e</span>: <span class='ident'>PhantomData</span>,
         }
     }
@@ -468,6 +506,14 @@
         <span class='self'>self</span>.<span class='ident'>swap_buffers</span> <span class='op'>=</span> <span class='ident'>enable</span>;
         <span class='self'>self</span>
     }
+
+    <span class='doccomment'>/// Enable or disable benchmark mode.</span>
+    <span class='doccomment'>/// When enabled, it will render and update without sleep and ignore input.</span>
+    <span class='doccomment'>/// Used to test performance by playing through as fast as possible.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>bench_mode</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>enable</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='self'>self</span>.<span class='ident'>bench_mode</span> <span class='op'>=</span> <span class='ident'>enable</span>;
+        <span class='self'>self</span>
+    }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>WindowEvents</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>E</span><span class='op'>&gt;</span>
@@ -485,8 +531,13 @@
                     <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow</span>();
                     <span class='kw'>if</span> <span class='ident'>window</span>.<span class='ident'>should_close</span>() { <span class='kw'>return</span> <span class='prelude-val'>None</span>; }
 
-                    <span class='kw'>let</span> <span class='ident'>start_render</span> <span class='op'>=</span> <span class='ident'>clock_ticks</span>::<span class='ident'>precise_time_ns</span>();
-                    <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>=</span> <span class='ident'>start_render</span>;
+                    <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>bench_mode</span> {
+                        <span class='comment'>// In benchmark mode, pretend FPS is perfect.</span>
+                        <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>+=</span> <span class='self'>self</span>.<span class='ident'>dt_frame_in_ns</span>;
+                    } <span class='kw'>else</span> {
+                        <span class='comment'>// In normal mode, let the FPS slip if late.</span>
+                        <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>=</span> <span class='ident'>clock_ticks</span>::<span class='ident'>precise_time_ns</span>();
+                    }
 
                     <span class='kw'>let</span> <span class='ident'>size</span> <span class='op'>=</span> <span class='ident'>window</span>.<span class='ident'>size</span>();
                     <span class='kw'>let</span> <span class='ident'>draw_size</span> <span class='op'>=</span> <span class='ident'>window</span>.<span class='ident'>draw_size</span>();
@@ -495,7 +546,7 @@
                         <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>State</span>::<span class='ident'>SwapBuffers</span>;
                         <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>render</span>(<span class='ident'>RenderArgs</span> {
                             <span class='comment'>// Extrapolate time forward to allow smooth motion.</span>
-                            <span class='ident'>ext_dt</span>: (<span class='ident'>start_render</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>last_update</span>) <span class='kw'>as</span> <span class='ident'>f64</span>
+                            <span class='ident'>ext_dt</span>: (<span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>last_update</span>) <span class='kw'>as</span> <span class='ident'>f64</span>
                                     <span class='op'>/</span> <span class='ident'>BILLION</span> <span class='kw'>as</span> <span class='ident'>f64</span>,
                             <span class='ident'>width</span>: <span class='ident'>size</span>.<span class='ident'>width</span>,
                             <span class='ident'>height</span>: <span class='ident'>size</span>.<span class='ident'>height</span>,
@@ -516,32 +567,53 @@
                     }
                 }
                 <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>idle</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>current_time</span> <span class='op'>=</span> <span class='ident'>clock_ticks</span>::<span class='ident'>precise_time_ns</span>();
-                    <span class='kw'>let</span> <span class='ident'>next_frame</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>dt_frame_in_ns</span>;
-                    <span class='kw'>let</span> <span class='ident'>next_update</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>;
-                    <span class='kw'>let</span> <span class='ident'>next_event</span> <span class='op'>=</span> <span class='ident'>cmp</span>::<span class='ident'>min</span>(<span class='ident'>next_frame</span>, <span class='ident'>next_update</span>);
-                    <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>&gt;</span> <span class='ident'>current_time</span> {
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>poll_event</span>() {
-                            <span class='op'>*</span><span class='ident'>idle</span> <span class='op'>=</span> <span class='ident'>Idle</span>::<span class='ident'>No</span>;
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>input</span>(<span class='ident'>x</span>));
-                        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>idle</span> <span class='op'>==</span> <span class='ident'>Idle</span>::<span class='ident'>No</span> {
-                            <span class='op'>*</span><span class='ident'>idle</span> <span class='op'>=</span> <span class='ident'>Idle</span>::<span class='ident'>Yes</span>;
-                            <span class='kw'>let</span> <span class='ident'>seconds</span> <span class='op'>=</span> ((<span class='ident'>next_event</span> <span class='op'>-</span> <span class='ident'>current_time</span>) <span class='kw'>as</span> <span class='ident'>f64</span>) <span class='op'>/</span> (<span class='ident'>BILLION</span> <span class='kw'>as</span> <span class='ident'>f64</span>);
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>idle</span>(<span class='ident'>IdleArgs</span> { <span class='ident'>dt</span>: <span class='ident'>seconds</span> }))
+                    <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>bench_mode</span> {
+                        <span class='comment'>// In benchmark mode, pick the next event without sleep.</span>
+                        <span class='comment'>// Idle and input events are ignored.</span>
+                        <span class='kw'>let</span> <span class='ident'>next_frame</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>dt_frame_in_ns</span>;
+                        <span class='kw'>let</span> <span class='ident'>next_update</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>;
+                        <span class='kw'>let</span> <span class='ident'>next_event</span> <span class='op'>=</span> <span class='ident'>cmp</span>::<span class='ident'>min</span>(<span class='ident'>next_frame</span>, <span class='ident'>next_update</span>);
+                        <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
+                            <span class='ident'>State</span>::<span class='ident'>Render</span>
+                        } <span class='kw'>else</span> {
+                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
                         }
-                        <span class='ident'>sleep_ms</span>(<span class='ident'>ns_to_ms</span>(<span class='ident'>next_event</span> <span class='op'>-</span> <span class='ident'>current_time</span>));
-                        <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>::<span class='ident'>No</span>)
-                    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
-                        <span class='ident'>State</span>::<span class='ident'>Render</span>
                     } <span class='kw'>else</span> {
-                        <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
+                        <span class='kw'>let</span> <span class='ident'>current_time</span> <span class='op'>=</span> <span class='ident'>clock_ticks</span>::<span class='ident'>precise_time_ns</span>();
+                        <span class='kw'>let</span> <span class='ident'>next_frame</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>dt_frame_in_ns</span>;
+                        <span class='kw'>let</span> <span class='ident'>next_update</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>;
+                        <span class='kw'>let</span> <span class='ident'>next_event</span> <span class='op'>=</span> <span class='ident'>cmp</span>::<span class='ident'>min</span>(<span class='ident'>next_frame</span>, <span class='ident'>next_update</span>);
+                        <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>&gt;</span> <span class='ident'>current_time</span> {
+                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>poll_event</span>() {
+                                <span class='op'>*</span><span class='ident'>idle</span> <span class='op'>=</span> <span class='ident'>Idle</span>::<span class='ident'>No</span>;
+                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>input</span>(<span class='ident'>x</span>));
+                            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>idle</span> <span class='op'>==</span> <span class='ident'>Idle</span>::<span class='ident'>No</span> {
+                                <span class='op'>*</span><span class='ident'>idle</span> <span class='op'>=</span> <span class='ident'>Idle</span>::<span class='ident'>Yes</span>;
+                                <span class='kw'>let</span> <span class='ident'>seconds</span> <span class='op'>=</span> ((<span class='ident'>next_event</span> <span class='op'>-</span> <span class='ident'>current_time</span>) <span class='kw'>as</span> <span class='ident'>f64</span>) <span class='op'>/</span> (<span class='ident'>BILLION</span> <span class='kw'>as</span> <span class='ident'>f64</span>);
+                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>idle</span>(<span class='ident'>IdleArgs</span> { <span class='ident'>dt</span>: <span class='ident'>seconds</span> }))
+                            }
+                            <span class='ident'>sleep_ms</span>(<span class='ident'>ns_to_ms</span>(<span class='ident'>next_event</span> <span class='op'>-</span> <span class='ident'>current_time</span>));
+                            <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>::<span class='ident'>No</span>)
+                        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
+                            <span class='ident'>State</span>::<span class='ident'>Render</span>
+                        } <span class='kw'>else</span> {
+                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
+                        }
                     }
                 }
                 <span class='ident'>State</span>::<span class='ident'>HandleEvents</span> <span class='op'>=&gt;</span> {
-                    <span class='comment'>// Handle all events before updating.</span>
-                    <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>poll_event</span>() {
-                        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
-                        <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> { <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>input</span>(<span class='ident'>x</span>)); },
+                    <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>bench_mode</span> {
+                        <span class='comment'>// Ignore input to prevent it affecting the benchmark.</span>
+                        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>poll_event</span>() {
+                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
+                            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>,
+                        }
+                    } <span class='kw'>else</span> {
+                        <span class='comment'>// Handle all events before updating.</span>
+                        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>poll_event</span>() {
+                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
+                            <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> { <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>EventMap</span>::<span class='ident'>input</span>(<span class='ident'>x</span>)); },
+                        }
                     }
                 }
                 <span class='ident'>State</span>::<span class='ident'>Update</span> <span class='op'>=&gt;</span> {
