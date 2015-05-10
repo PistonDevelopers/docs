@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Button","Models different kinds of buttons."],["Input","Models input events."],["Key","Represent a keyboard key."],["Motion","Models different kinds of motion."],["MouseButton","Represent a mouse button."]],"mod":[["keyboard","Back-end agnostic keyboard keys."],["mouse","Back-end agnostic mouse buttons."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["TextBox","A widget for displaying and mutating a given one-line text `String`. It's reaction is triggered upon pressing of the `Enter`/`Return` key."]]});

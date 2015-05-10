@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Matrix","Draw a matrix of any rectangular widget type, where the matrix will provide a function with the widget number, it's `rows` and `cols` position, the width and height for the widget and the location at which the widget should be drawn."]]});

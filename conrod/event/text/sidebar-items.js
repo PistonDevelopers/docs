@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["TextEvent","When receiving text from user, such as typing a character"]]});

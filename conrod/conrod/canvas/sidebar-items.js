@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["split",""]],"struct":[["Canvas","The kind of Canvas."]],"type":[["CanvasId","Unique identifier for Canvasses."]]});
