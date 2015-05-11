@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["EntityMetadata","Entity Metadata Format"]]});

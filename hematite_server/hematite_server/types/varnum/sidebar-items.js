@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Var","Protocol Buffer varint."]]});

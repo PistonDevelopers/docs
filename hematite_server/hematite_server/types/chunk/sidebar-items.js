@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Chunk","Chunk is a group of 16x16x16 blocks."],["ChunkColumn","ChunkColumn is a set of 0-16 chunks, up to 16x256x16 blocks."]]});

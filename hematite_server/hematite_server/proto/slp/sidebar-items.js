@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["ping","Client-side ping request, optional"],["pong","Server-side pong response, optional"],["request","Client-side Server List request"],["response","Server-side Server List response"]],"struct":[["Description",""],["Players",""],["Response","Response sent to clients as JSON."],["Sample",""],["Version",""]]});
