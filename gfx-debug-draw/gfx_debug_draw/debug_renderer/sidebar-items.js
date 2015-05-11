@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["DebugRenderer",""]],"enum":[["DebugRendererError",""]]});
+initSidebarItems({"enum":[["DebugRendererError",""]],"struct":[["DebugRenderer",""]]});
