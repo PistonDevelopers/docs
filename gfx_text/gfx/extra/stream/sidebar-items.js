@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["OwnedStream","A stream that owns its components."]],"trait":[["Stream","Render stream abstraction."],["StreamFactory","A render factory extension that allows creating streams with new renderers."]]});
+initSidebarItems({"trait":[["Stream","Render stream abstraction."],["StreamFactory","A render factory extension that allows creating streams with new renderers."]],"struct":[["OwnedStream","A stream that owns its components."]]});
