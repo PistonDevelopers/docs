@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["ToFormat","A trait for getting the format out of vertex element types. Needed to implement `VertexFormat` with a macro."],["ToType","A helper trait for implementing ToFormat."]]});
