@@ -1,1 +1,1 @@
-initSidebarItems({"type":[["FtResult",""]],"enum":[["Error",""]]});
+initSidebarItems({"enum":[["Error",""]],"type":[["FtResult",""]]});
