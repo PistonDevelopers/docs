@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["BASE",""],["BITS",""]],"fn":[["from_doublebigdigit","Split one `DoubleBigDigit` into two `BigDigit`s."],["to_doublebigdigit","Join two `BigDigit`s into one `DoubleBigDigit`"]]});
+initSidebarItems({"fn":[["from_doublebigdigit","Split one `DoubleBigDigit` into two `BigDigit`s."],["to_doublebigdigit","Join two `BigDigit`s into one `DoubleBigDigit`"]],"constant":[["BASE",""],["BITS",""]]});
