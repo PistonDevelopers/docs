@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ContourIterator",""],["CurveIterator",""],["Outline",""]],"enum":[["Curve",""]]});
+initSidebarItems({"enum":[["Curve",""]],"struct":[["ContourIterator",""],["CurveIterator",""],["Outline",""]]});
