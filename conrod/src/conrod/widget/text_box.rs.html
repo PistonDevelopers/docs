@@ -690,19 +690,49 @@
 <span id="648">648</span>
 <span id="649">649</span>
 <span id="650">650</span>
+<span id="651">651</span>
+<span id="652">652</span>
+<span id="653">653</span>
+<span id="654">654</span>
+<span id="655">655</span>
+<span id="656">656</span>
+<span id="657">657</span>
+<span id="658">658</span>
+<span id="659">659</span>
+<span id="660">660</span>
+<span id="661">661</span>
+<span id="662">662</span>
+<span id="663">663</span>
+<span id="664">664</span>
+<span id="665">665</span>
+<span id="666">666</span>
+<span id="667">667</span>
+<span id="668">668</span>
+<span id="669">669</span>
+<span id="670">670</span>
+<span id="671">671</span>
+<span id="672">672</span>
+<span id="673">673</span>
+<span id="674">674</span>
+<span id="675">675</span>
+<span id="676">676</span>
+<span id="677">677</span>
+<span id="678">678</span>
+<span id="679">679</span>
 </pre><pre class='rust '>
 
+<span class='kw'>use</span> <span class='ident'>canvas</span>::<span class='ident'>CanvasId</span>;
 <span class='kw'>use</span> <span class='ident'>color</span>::{<span class='ident'>Color</span>, <span class='ident'>Colorable</span>};
 <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Element</span>;
 <span class='kw'>use</span> <span class='ident'>frame</span>::<span class='ident'>Frameable</span>;
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>character</span>::<span class='ident'>CharacterCache</span>;
-<span class='kw'>use</span> <span class='ident'>label</span>::{<span class='self'>self</span>, <span class='ident'>FontSize</span>};
+<span class='kw'>use</span> <span class='ident'>label</span>::<span class='ident'>FontSize</span>;
 <span class='kw'>use</span> <span class='ident'>mouse</span>::<span class='ident'>Mouse</span>;
 <span class='kw'>use</span> <span class='ident'>num</span>::<span class='ident'>Float</span>;
 <span class='kw'>use</span> <span class='ident'>piston</span>::<span class='ident'>input</span>::<span class='ident'>keyboard</span>::<span class='ident'>Key</span>::{<span class='ident'>Backspace</span>, <span class='ident'>Left</span>, <span class='ident'>Right</span>, <span class='ident'>Return</span>};
 <span class='kw'>use</span> <span class='ident'>position</span>::{<span class='self'>self</span>, <span class='ident'>Depth</span>, <span class='ident'>Dimensions</span>, <span class='ident'>HorizontalAlign</span>, <span class='ident'>Point</span>, <span class='ident'>Position</span>, <span class='ident'>VerticalAlign</span>};
 <span class='kw'>use</span> <span class='ident'>theme</span>::<span class='ident'>Theme</span>;
-<span class='kw'>use</span> <span class='ident'>ui</span>::{<span class='ident'>UiId</span>, <span class='ident'>Ui</span>};
+<span class='kw'>use</span> <span class='ident'>ui</span>::{<span class='ident'>GlyphCache</span>, <span class='ident'>UserInput</span>};
 <span class='kw'>use</span> <span class='ident'>vecmath</span>::<span class='ident'>vec2_sub</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
 
@@ -725,6 +755,7 @@
     <span class='ident'>maybe_react</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>,
     <span class='ident'>style</span>: <span class='ident'>Style</span>,
     <span class='ident'>enabled</span>: <span class='ident'>bool</span>,
+    <span class='ident'>maybe_canvas_id</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>CanvasId</span><span class='op'>&gt;</span>,
 }
 
 <span class='doccomment'>/// Styling for the TextBox, necessary for constructing its renderable Element.</span>
@@ -853,7 +884,7 @@
 <span class='comment'>// widget_fns!(TextBox, State, Kind::TextBox(State::Uncaptured(Uncaptured::Normal)));</span>
 
 <span class='doccomment'>/// Find the position of a character in a text box.</span>
-<span class='kw'>fn</span> <span class='ident'>cursor_position</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
+<span class='kw'>fn</span> <span class='ident'>cursor_position</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
                                       <span class='ident'>idx</span>: <span class='ident'>usize</span>,
                                       <span class='kw-2'>mut</span> <span class='ident'>text_start_x</span>: <span class='ident'>f64</span>,
                                       <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>,
@@ -865,13 +896,13 @@
 
     <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>ch</span>) <span class='kw'>in</span> <span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>enumerate</span>() {
         <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&gt;=</span> <span class='ident'>idx</span> { <span class='kw'>break</span>; }
-        <span class='ident'>text_start_x</span> <span class='op'>+=</span> <span class='ident'>ui</span>.<span class='ident'>get_character</span>(<span class='ident'>font_size</span>, <span class='ident'>ch</span>).<span class='ident'>width</span>();
+        <span class='ident'>text_start_x</span> <span class='op'>+=</span> <span class='ident'>glyph_cache</span>.<span class='ident'>char_width</span>(<span class='ident'>font_size</span>, <span class='ident'>ch</span>);
     }
     <span class='ident'>text_start_x</span>
 }
 
 <span class='doccomment'>/// Check if cursor is over the pad and if so, which</span>
-<span class='kw'>fn</span> <span class='ident'>over_elem</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
+<span class='kw'>fn</span> <span class='ident'>over_elem</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
                                 <span class='ident'>mouse_xy</span>: <span class='ident'>Point</span>,
                                 <span class='ident'>dim</span>: <span class='ident'>Dimensions</span>,
                                 <span class='ident'>pad_dim</span>: <span class='ident'>Dimensions</span>,
@@ -882,7 +913,7 @@
     <span class='kw'>use</span> <span class='ident'>utils</span>::<span class='ident'>is_over_rect</span>;
     <span class='kw'>if</span> <span class='ident'>is_over_rect</span>([<span class='number'>0.0</span>, <span class='number'>0.0</span>], <span class='ident'>mouse_xy</span>, <span class='ident'>dim</span>) {
         <span class='kw'>if</span> <span class='ident'>is_over_rect</span>([<span class='number'>0.0</span>, <span class='number'>0.0</span>], <span class='ident'>mouse_xy</span>, <span class='ident'>pad_dim</span>) {
-            <span class='kw'>let</span> (<span class='ident'>idx</span>, _) <span class='op'>=</span> <span class='ident'>closest_idx</span>(<span class='ident'>ui</span>, <span class='ident'>mouse_xy</span>, <span class='ident'>text_start_x</span>, <span class='ident'>text_w</span>, <span class='ident'>font_size</span>, <span class='ident'>text</span>);
+            <span class='kw'>let</span> (<span class='ident'>idx</span>, _) <span class='op'>=</span> <span class='ident'>closest_idx</span>(<span class='ident'>glyph_cache</span>, <span class='ident'>mouse_xy</span>, <span class='ident'>text_start_x</span>, <span class='ident'>text_w</span>, <span class='ident'>font_size</span>, <span class='ident'>text</span>);
             <span class='ident'>Elem</span>::<span class='ident'>Char</span>(<span class='ident'>idx</span>)
         } <span class='kw'>else</span> {
             <span class='ident'>Elem</span>::<span class='ident'>Rect</span>
@@ -893,7 +924,7 @@
 }
 
 <span class='doccomment'>/// Check which character is closest to the mouse cursor.</span>
-<span class='kw'>fn</span> <span class='ident'>closest_idx</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
+<span class='kw'>fn</span> <span class='ident'>closest_idx</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
                                   <span class='ident'>mouse_xy</span>: <span class='ident'>Point</span>,
                                   <span class='ident'>text_start_x</span>: <span class='ident'>f64</span>,
                                   <span class='ident'>text_w</span>: <span class='ident'>f64</span>,
@@ -904,8 +935,7 @@
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>left_x</span>;
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>prev_x</span> <span class='op'>=</span> <span class='ident'>x</span>;
     <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>ch</span>) <span class='kw'>in</span> <span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>enumerate</span>() {
-        <span class='kw'>let</span> <span class='ident'>character</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>get_character</span>(<span class='ident'>font_size</span>, <span class='ident'>ch</span>);
-        <span class='kw'>let</span> <span class='ident'>char_w</span> <span class='op'>=</span> <span class='ident'>character</span>.<span class='ident'>width</span>();
+        <span class='kw'>let</span> <span class='ident'>char_w</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='ident'>char_width</span>(<span class='ident'>font_size</span>, <span class='ident'>ch</span>);
         <span class='ident'>x</span> <span class='op'>+=</span> <span class='ident'>char_w</span>;
         <span class='kw'>let</span> <span class='ident'>right_x</span> <span class='op'>=</span> <span class='ident'>prev_x</span> <span class='op'>+</span> <span class='ident'>char_w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
         <span class='kw'>if</span> <span class='ident'>mouse_xy</span>[<span class='number'>0</span>] <span class='op'>&gt;</span> <span class='ident'>left_x</span> <span class='op'>&amp;&amp;</span> <span class='ident'>mouse_xy</span>[<span class='number'>0</span>] <span class='op'>&lt;=</span> <span class='ident'>right_x</span> { <span class='kw'>return</span> (<span class='ident'>i</span>, <span class='ident'>prev_x</span>) }
@@ -993,6 +1023,7 @@
             <span class='ident'>maybe_react</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>new</span>(),
             <span class='ident'>enabled</span>: <span class='boolval'>true</span>,
+            <span class='ident'>maybe_canvas_id</span>: <span class='prelude-val'>None</span>,
         }
     }
 
@@ -1015,6 +1046,13 @@
         <span class='self'>self</span>
     }
 
+    <span class='doccomment'>/// Set which Canvas to attach the Widget to. Note that you can also attach a widget to a</span>
+    <span class='doccomment'>/// Canvas by using the canvas placement `Positionable` methods.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>canvas</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>id</span>: <span class='ident'>CanvasId</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='self'>self</span>.<span class='ident'>maybe_canvas_id</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>);
+        <span class='self'>self</span>
+    }
+
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Widget</span> <span class='kw'>for</span> <span class='ident'>TextBox</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span>
@@ -1031,37 +1069,53 @@
         }
     }
     <span class='kw'>fn</span> <span class='ident'>style</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Style</span> { <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>clone</span>() }
+    <span class='kw'>fn</span> <span class='ident'>canvas_id</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>CanvasId</span><span class='op'>&gt;</span> { <span class='self'>self</span>.<span class='ident'>maybe_canvas_id</span> }
+
+    <span class='doccomment'>/// Capture the keyboard if the Interaction has become `Captured`.</span>
+    <span class='kw'>fn</span> <span class='ident'>capture_keyboard</span>(<span class='ident'>prev</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>, <span class='ident'>new</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>interaction</span>, <span class='ident'>new</span>.<span class='ident'>interaction</span>) {
+            (<span class='ident'>Interaction</span>::<span class='ident'>Uncaptured</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Captured</span>(_)) <span class='op'>=&gt;</span> <span class='boolval'>true</span>,
+            _ <span class='op'>=&gt;</span> <span class='boolval'>false</span>,
+        }
+    }
+
+    <span class='doccomment'>/// Uncapture the keyboard if the Interaction has become `Uncaptured`.</span>
+    <span class='kw'>fn</span> <span class='ident'>uncapture_keyboard</span>(<span class='ident'>prev</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>, <span class='ident'>new</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>interaction</span>, <span class='ident'>new</span>.<span class='ident'>interaction</span>) {
+            (<span class='ident'>Interaction</span>::<span class='ident'>Captured</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Uncaptured</span>(_)) <span class='op'>=&gt;</span> <span class='boolval'>true</span>,
+            _ <span class='op'>=&gt;</span> <span class='boolval'>false</span>,
+        }
+    }
 
     <span class='doccomment'>/// Update the state of the TextBox.</span>
-    <span class='kw'>fn</span> <span class='ident'>update</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>,
-                 <span class='ident'>prev_state</span>: <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&gt;</span>,
-                 <span class='ident'>style</span>: <span class='kw-2'>&amp;</span><span class='ident'>Style</span>,
-                 <span class='ident'>ui_id</span>: <span class='ident'>UiId</span>,
-                 <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>widget</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&gt;&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>update</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>,
+                     <span class='ident'>prev_state</span>: <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&gt;</span>,
+                     <span class='ident'>xy</span>: <span class='ident'>Point</span>,
+                     <span class='ident'>dim</span>: <span class='ident'>Dimensions</span>,
+                     <span class='ident'>input</span>: <span class='ident'>UserInput</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span><span class='op'>&gt;</span>,
+                     <span class='ident'>style</span>: <span class='kw-2'>&amp;</span><span class='ident'>Style</span>,
+                     <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>,
+                     <span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&gt;</span>
         <span class='kw'>where</span>
             <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
     {
 
         <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>State</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='ident'>prev_state</span>;
-        <span class='kw'>let</span> <span class='ident'>dim</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>dim</span>;
-        <span class='kw'>let</span> <span class='ident'>h_align</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_h_align</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>.<span class='ident'>align</span>.<span class='ident'>horizontal</span>);
-        <span class='kw'>let</span> <span class='ident'>v_align</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_v_align</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>.<span class='ident'>align</span>.<span class='ident'>vertical</span>);
-        <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>get_xy</span>(<span class='self'>self</span>.<span class='ident'>pos</span>, <span class='ident'>dim</span>, <span class='ident'>h_align</span>, <span class='ident'>v_align</span>);
-        <span class='kw'>let</span> <span class='ident'>mouse</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>get_mouse_state</span>(<span class='ident'>ui_id</span>).<span class='ident'>relative_to</span>(<span class='ident'>xy</span>);
-        <span class='kw'>let</span> <span class='ident'>frame</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>frame</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
-        <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
+        <span class='kw'>let</span> <span class='ident'>maybe_mouse</span> <span class='op'>=</span> <span class='ident'>input</span>.<span class='ident'>maybe_mouse</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>mouse</span><span class='op'>|</span> <span class='ident'>mouse</span>.<span class='ident'>relative_to</span>(<span class='ident'>xy</span>));
+        <span class='kw'>let</span> <span class='ident'>frame</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>frame</span>(<span class='ident'>theme</span>);
+        <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='ident'>theme</span>);
         <span class='kw'>let</span> <span class='ident'>pad_dim</span> <span class='op'>=</span> <span class='ident'>vec2_sub</span>(<span class='ident'>dim</span>, [<span class='ident'>frame</span> <span class='op'>*</span> <span class='number'>2.0</span>; <span class='number'>2</span>]);
-        <span class='kw'>let</span> <span class='ident'>text_w</span> <span class='op'>=</span> <span class='ident'>label</span>::<span class='ident'>width</span>(<span class='ident'>ui</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>);
+        <span class='kw'>let</span> <span class='ident'>text_w</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='ident'>width</span>(<span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>);
         <span class='kw'>let</span> <span class='ident'>text_x</span> <span class='op'>=</span> <span class='ident'>position</span>::<span class='ident'>align_left_of</span>(<span class='ident'>pad_dim</span>[<span class='number'>0</span>], <span class='ident'>text_w</span>) <span class='op'>+</span> <span class='ident'>TEXT_PADDING</span>;
         <span class='kw'>let</span> <span class='ident'>text_start_x</span> <span class='op'>=</span> <span class='ident'>text_x</span> <span class='op'>-</span> <span class='ident'>text_w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-        <span class='kw'>let</span> <span class='ident'>over_elem</span> <span class='op'>=</span> <span class='ident'>over_elem</span>(<span class='ident'>ui</span>, <span class='ident'>mouse</span>.<span class='ident'>xy</span>, <span class='ident'>dim</span>, <span class='ident'>pad_dim</span>, <span class='ident'>text_start_x</span>, <span class='ident'>text_w</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>);
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>new_interaction</span> <span class='op'>=</span> 
-            <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>enabled</span> {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>new_interaction</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='self'>self</span>.<span class='ident'>enabled</span>, <span class='ident'>maybe_mouse</span>) {
+            (<span class='boolval'>false</span>, _) <span class='op'>|</span> (<span class='boolval'>true</span>, <span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='ident'>Interaction</span>::<span class='ident'>Uncaptured</span>(<span class='ident'>Uncaptured</span>::<span class='ident'>Normal</span>),
+            (<span class='boolval'>true</span>, <span class='prelude-val'>Some</span>(<span class='ident'>mouse</span>)) <span class='op'>=&gt;</span> {
+                <span class='kw'>let</span> <span class='ident'>over_elem</span> <span class='op'>=</span> <span class='ident'>over_elem</span>(<span class='ident'>glyph_cache</span>, <span class='ident'>mouse</span>.<span class='ident'>xy</span>, <span class='ident'>dim</span>, <span class='ident'>pad_dim</span>, <span class='ident'>text_start_x</span>,
+                                          <span class='ident'>text_w</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>);
                 <span class='ident'>get_new_interaction</span>(<span class='ident'>over_elem</span>, <span class='ident'>state</span>.<span class='ident'>interaction</span>, <span class='ident'>mouse</span>)
-            } <span class='kw'>else</span> {
-                <span class='comment'>//TextBox is disabled, so pretend the interaction is normal</span>
-                <span class='ident'>Interaction</span>::<span class='ident'>Uncaptured</span>(<span class='ident'>Uncaptured</span>::<span class='ident'>Normal</span>)
-            };
+            },
+        };
 
         <span class='comment'>// Check cursor validity (and update new_interaction if necessary).</span>
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Interaction</span>::<span class='ident'>Captured</span>(<span class='ident'>view</span>) <span class='op'>=</span> <span class='ident'>new_interaction</span> {
@@ -1076,7 +1130,7 @@
                 <span class='ident'>Anchor</span>::<span class='ident'>End</span> <span class='op'>=&gt;</span> <span class='ident'>cursor</span>.<span class='ident'>start</span>,
                 <span class='ident'>Anchor</span>::<span class='ident'>Start</span> <span class='op'>|</span> <span class='ident'>Anchor</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>cursor</span>.<span class='ident'>end</span>,
             };
-            <span class='kw'>let</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='ident'>cursor_position</span>(<span class='ident'>ui</span>, <span class='ident'>cursor_idx</span>, <span class='ident'>text_start_x</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>);
+            <span class='kw'>let</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='ident'>cursor_position</span>(<span class='ident'>glyph_cache</span>, <span class='ident'>cursor_idx</span>, <span class='ident'>text_start_x</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>);
 
             <span class='kw'>if</span> <span class='ident'>cursor</span>.<span class='ident'>is_cursor</span>() <span class='op'>||</span> <span class='ident'>cursor</span>.<span class='ident'>anchor</span> <span class='op'>!=</span> <span class='ident'>Anchor</span>::<span class='prelude-val'>None</span> {
                 <span class='kw'>let</span> <span class='ident'>cursor_x_view</span> <span class='op'>=</span> <span class='ident'>cursor_x</span> <span class='op'>-</span> <span class='ident'>v_offset</span>;
@@ -1098,11 +1152,11 @@
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>captured</span>.<span class='ident'>cursor</span>;
 
             <span class='comment'>// Check for entered text.</span>
-            <span class='kw'>for</span> <span class='ident'>text</span> <span class='kw'>in</span> <span class='ident'>ui</span>.<span class='ident'>get_entered_text</span>(<span class='ident'>ui_id</span>).<span class='ident'>to_vec</span>().<span class='ident'>iter</span>() {
+            <span class='kw'>for</span> <span class='ident'>text</span> <span class='kw'>in</span> <span class='ident'>input</span>.<span class='ident'>entered_text</span>.<span class='ident'>to_vec</span>().<span class='ident'>iter</span>() {
                 <span class='kw'>if</span> <span class='ident'>text</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span> { <span class='kw'>continue</span>; }
 
                 <span class='kw'>let</span> <span class='ident'>max_w</span> <span class='op'>=</span> <span class='ident'>pad_dim</span>[<span class='number'>0</span>] <span class='op'>-</span> <span class='ident'>TEXT_PADDING</span> <span class='op'>*</span> <span class='number'>2.0</span>;
-                <span class='kw'>if</span> <span class='ident'>text_w</span> <span class='op'>+</span> <span class='ident'>label</span>::<span class='ident'>width</span>(<span class='ident'>ui</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>) <span class='op'>&gt;</span> <span class='ident'>max_w</span> { <span class='kw'>continue</span>; }
+                <span class='kw'>if</span> <span class='ident'>text_w</span> <span class='op'>+</span> <span class='ident'>glyph_cache</span>.<span class='ident'>width</span>(<span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>) <span class='op'>&gt;</span> <span class='ident'>max_w</span> { <span class='kw'>continue</span>; }
 
                 <span class='kw'>let</span> <span class='ident'>end</span>: <span class='ident'>String</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>skip</span>(<span class='ident'>cursor</span>.<span class='ident'>end</span>).<span class='ident'>collect</span>();
                 <span class='self'>self</span>.<span class='ident'>text</span>.<span class='ident'>truncate</span>(<span class='ident'>cursor</span>.<span class='ident'>start</span>);
@@ -1112,8 +1166,7 @@
             }
 
             <span class='comment'>// Check for control keys.</span>
-            <span class='kw'>let</span> <span class='ident'>pressed_keys</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>get_pressed_keys</span>(<span class='ident'>ui_id</span>);
-            <span class='kw'>for</span> <span class='ident'>key</span> <span class='kw'>in</span> <span class='ident'>pressed_keys</span>.<span class='ident'>iter</span>() {
+            <span class='kw'>for</span> <span class='ident'>key</span> <span class='kw'>in</span> <span class='ident'>input</span>.<span class='ident'>pressed_keys</span>.<span class='ident'>iter</span>() {
                 <span class='kw'>match</span> <span class='op'>*</span><span class='ident'>key</span> {
                     <span class='ident'>Backspace</span> <span class='op'>=&gt;</span> <span class='kw'>if</span> <span class='ident'>cursor</span>.<span class='ident'>is_cursor</span>() {
                         <span class='kw'>if</span> <span class='ident'>cursor</span>.<span class='ident'>start</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
@@ -1147,15 +1200,6 @@
             <span class='ident'>new_interaction</span> <span class='op'>=</span> <span class='ident'>Interaction</span>::<span class='ident'>Captured</span>(<span class='ident'>View</span> { <span class='ident'>cursor</span>: <span class='ident'>cursor</span>, .. <span class='ident'>captured</span> });
         }
 
-        <span class='comment'>// Check whether or not we need to capture or uncapture the keyboard.</span>
-        <span class='kw'>match</span> (<span class='ident'>state</span>.<span class='ident'>interaction</span>, <span class='ident'>new_interaction</span>) {
-            (<span class='ident'>Interaction</span>::<span class='ident'>Uncaptured</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Captured</span>(_)) <span class='op'>=&gt;</span>
-                <span class='ident'>ui</span>.<span class='ident'>keyboard_captured_by</span>(<span class='ident'>ui_id</span>),
-            (<span class='ident'>Interaction</span>::<span class='ident'>Captured</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Uncaptured</span>(_)) <span class='op'>=&gt;</span>
-                <span class='ident'>ui</span>.<span class='ident'>keyboard_uncaptured_by</span>(<span class='ident'>ui_id</span>),
-            _ <span class='op'>=&gt;</span> (),
-        }
-
         <span class='comment'>// Function for constructing a new state.</span>
         <span class='kw'>let</span> <span class='ident'>new_state</span> <span class='op'>=</span> <span class='op'>||</span> {
             <span class='ident'>State</span> {
@@ -1169,14 +1213,14 @@
             <span class='op'>||</span> <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>[..] <span class='op'>!=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>[..];
 
         <span class='comment'>// Construct the new state if there was a change.</span>
-        <span class='kw'>let</span> <span class='ident'>maybe_new_state</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>state_has_changed</span> { <span class='prelude-val'>Some</span>(<span class='ident'>new_state</span>()) } <span class='kw'>else</span> { <span class='prelude-val'>None</span> };
-
-        <span class='ident'>widget</span>::<span class='ident'>State</span> { <span class='ident'>state</span>: <span class='ident'>maybe_new_state</span>, <span class='ident'>dim</span>: <span class='ident'>dim</span>, <span class='ident'>xy</span>: <span class='ident'>xy</span>, <span class='ident'>depth</span>: <span class='self'>self</span>.<span class='ident'>depth</span> }
+        <span class='kw'>if</span> <span class='ident'>state_has_changed</span> { <span class='prelude-val'>Some</span>(<span class='ident'>new_state</span>()) } <span class='kw'>else</span> { <span class='prelude-val'>None</span> }
     }
 
-
     <span class='doccomment'>/// Construct an Element from the given TextBox State.</span>
-    <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>new_state</span>: <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&gt;</span>, <span class='ident'>style</span>: <span class='kw-2'>&amp;</span><span class='ident'>Style</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Element</span>
+    <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>new_state</span>: <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&gt;</span>,
+               <span class='ident'>style</span>: <span class='kw-2'>&amp;</span><span class='ident'>Style</span>,
+               <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>,
+               <span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Element</span>
         <span class='kw'>where</span>
             <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
     {
@@ -1186,14 +1230,14 @@
         <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>State</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, <span class='ident'>dim</span>, <span class='ident'>xy</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='ident'>new_state</span>;
 
         <span class='comment'>// Construct the frame and inner rectangle Forms.</span>
-        <span class='kw'>let</span> <span class='ident'>frame</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>frame</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
+        <span class='kw'>let</span> <span class='ident'>frame</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>frame</span>(<span class='ident'>theme</span>);
         <span class='kw'>let</span> <span class='ident'>pad_dim</span> <span class='op'>=</span> <span class='ident'>vec2_sub</span>(<span class='ident'>dim</span>, [<span class='ident'>frame</span> <span class='op'>*</span> <span class='number'>2.0</span>; <span class='number'>2</span>]);
-        <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>interaction</span>.<span class='ident'>color</span>(<span class='ident'>style</span>.<span class='ident'>color</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>));
-        <span class='kw'>let</span> <span class='ident'>frame_color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>frame_color</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
+        <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>interaction</span>.<span class='ident'>color</span>(<span class='ident'>style</span>.<span class='ident'>color</span>(<span class='ident'>theme</span>));
+        <span class='kw'>let</span> <span class='ident'>frame_color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>frame_color</span>(<span class='ident'>theme</span>);
         <span class='kw'>let</span> <span class='ident'>frame_form</span> <span class='op'>=</span> <span class='ident'>rect</span>(<span class='ident'>dim</span>[<span class='number'>0</span>], <span class='ident'>dim</span>[<span class='number'>1</span>]).<span class='ident'>filled</span>(<span class='ident'>frame_color</span>);
         <span class='kw'>let</span> <span class='ident'>inner_form</span> <span class='op'>=</span> <span class='ident'>rect</span>(<span class='ident'>pad_dim</span>[<span class='number'>0</span>], <span class='ident'>pad_dim</span>[<span class='number'>1</span>]).<span class='ident'>filled</span>(<span class='ident'>color</span>);
-        <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
-        <span class='kw'>let</span> <span class='ident'>text_w</span> <span class='op'>=</span> <span class='ident'>label</span>::<span class='ident'>width</span>(<span class='ident'>ui</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>[..]);
+        <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='ident'>theme</span>);
+        <span class='kw'>let</span> <span class='ident'>text_w</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='ident'>width</span>(<span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>[..]);
         <span class='kw'>let</span> <span class='ident'>text_x</span> <span class='op'>=</span> <span class='ident'>position</span>::<span class='ident'>align_left_of</span>(<span class='ident'>pad_dim</span>[<span class='number'>0</span>], <span class='ident'>text_w</span>) <span class='op'>+</span> <span class='ident'>TEXT_PADDING</span>;
         <span class='kw'>let</span> <span class='ident'>text_start_x</span> <span class='op'>=</span> <span class='ident'>text_x</span> <span class='op'>-</span> <span class='ident'>text_w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
 
@@ -1206,7 +1250,7 @@
                 <span class='ident'>Anchor</span>::<span class='ident'>End</span> <span class='op'>=&gt;</span> <span class='ident'>cursor</span>.<span class='ident'>start</span>,
                 <span class='ident'>Anchor</span>::<span class='ident'>Start</span> <span class='op'>|</span> <span class='ident'>Anchor</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>cursor</span>.<span class='ident'>end</span>,
             };
-            <span class='kw'>let</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='ident'>cursor_position</span>(<span class='ident'>ui</span>, <span class='ident'>cursor_idx</span>, <span class='ident'>text_start_x</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>);
+            <span class='kw'>let</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='ident'>cursor_position</span>(<span class='ident'>glyph_cache</span>, <span class='ident'>cursor_idx</span>, <span class='ident'>text_start_x</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>);
 
             <span class='kw'>let</span> <span class='ident'>cursor_form</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>cursor</span>.<span class='ident'>is_cursor</span>() {
                 <span class='kw'>let</span> <span class='ident'>half_pad_h</span> <span class='op'>=</span> <span class='ident'>pad_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
@@ -1216,9 +1260,9 @@
             } <span class='kw'>else</span> {
                 <span class='kw'>let</span> (<span class='ident'>block_xy</span>, <span class='ident'>dim</span>) <span class='op'>=</span> {
                     <span class='kw'>let</span> (<span class='ident'>start</span>, <span class='ident'>end</span>) <span class='op'>=</span> (<span class='ident'>cursor</span>.<span class='ident'>start</span>, <span class='ident'>cursor</span>.<span class='ident'>end</span>);
-                    <span class='kw'>let</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='ident'>cursor_position</span>(<span class='ident'>ui</span>, <span class='ident'>start</span>, <span class='ident'>text_start_x</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>);
+                    <span class='kw'>let</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='ident'>cursor_position</span>(<span class='ident'>glyph_cache</span>, <span class='ident'>start</span>, <span class='ident'>text_start_x</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>text</span>);
                     <span class='kw'>let</span> <span class='ident'>htext</span>: <span class='ident'>String</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>skip</span>(<span class='ident'>start</span>).<span class='ident'>take</span>(<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>start</span>).<span class='ident'>collect</span>();
-                    <span class='kw'>let</span> <span class='ident'>htext_w</span> <span class='op'>=</span> <span class='ident'>label</span>::<span class='ident'>width</span>(<span class='ident'>ui</span>, <span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>htext</span>);
+                    <span class='kw'>let</span> <span class='ident'>htext_w</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='ident'>width</span>(<span class='ident'>font_size</span>, <span class='kw-2'>&amp;</span><span class='ident'>htext</span>);
                     ([<span class='ident'>cursor_x</span> <span class='op'>+</span> <span class='ident'>htext_w</span> <span class='op'>/</span> <span class='number'>2.0</span>, <span class='number'>0.0</span>], [<span class='ident'>htext_w</span>, <span class='ident'>dim</span>[<span class='number'>1</span>]])
                 };
                 <span class='ident'>rect</span>(<span class='ident'>dim</span>[<span class='number'>0</span>], <span class='ident'>dim</span>[<span class='number'>1</span>] <span class='op'>-</span> <span class='ident'>frame</span> <span class='op'>*</span> <span class='number'>2.0</span>).<span class='ident'>filled</span>(<span class='ident'>color</span>.<span class='ident'>highlighted</span>())
@@ -1319,6 +1363,7 @@
         <span class='self'>self</span>.<span class='ident'>pos</span> <span class='op'>=</span> <span class='ident'>pos</span>;
         <span class='self'>self</span>
     }
+    <span class='kw'>fn</span> <span class='ident'>get_position</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Position</span> { <span class='self'>self</span>.<span class='ident'>pos</span> }
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>horizontal_align</span>(<span class='self'>self</span>, <span class='ident'>h_align</span>: <span class='ident'>HorizontalAlign</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
         <span class='ident'>TextBox</span> { <span class='ident'>maybe_h_align</span>: <span class='prelude-val'>Some</span>(<span class='ident'>h_align</span>), ..<span class='self'>self</span> }
@@ -1327,6 +1372,17 @@
     <span class='kw'>fn</span> <span class='ident'>vertical_align</span>(<span class='self'>self</span>, <span class='ident'>v_align</span>: <span class='ident'>VerticalAlign</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
         <span class='ident'>TextBox</span> { <span class='ident'>maybe_v_align</span>: <span class='prelude-val'>Some</span>(<span class='ident'>v_align</span>), ..<span class='self'>self</span> }
     }
+    <span class='kw'>fn</span> <span class='ident'>get_horizontal_align</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>) <span class='op'>-&gt;</span> <span class='ident'>HorizontalAlign</span> {
+        <span class='self'>self</span>.<span class='ident'>maybe_h_align</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>theme</span>.<span class='ident'>align</span>.<span class='ident'>horizontal</span>)
+    }
+    <span class='kw'>fn</span> <span class='ident'>get_vertical_align</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>) <span class='op'>-&gt;</span> <span class='ident'>VerticalAlign</span> {
+        <span class='self'>self</span>.<span class='ident'>maybe_v_align</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>theme</span>.<span class='ident'>align</span>.<span class='ident'>vertical</span>)
+    }
+    <span class='kw'>fn</span> <span class='ident'>depth</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>depth</span>: <span class='ident'>Depth</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='self'>self</span>.<span class='ident'>depth</span> <span class='op'>=</span> <span class='ident'>depth</span>;
+        <span class='self'>self</span>
+    }
+    <span class='kw'>fn</span> <span class='ident'>get_depth</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Depth</span> { <span class='self'>self</span>.<span class='ident'>depth</span> }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>position</span>::<span class='ident'>Sizeable</span> <span class='kw'>for</span> <span class='ident'>TextBox</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
@@ -1340,6 +1396,8 @@
         <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>dim</span>[<span class='number'>0</span>];
         <span class='ident'>TextBox</span> { <span class='ident'>dim</span>: [<span class='ident'>w</span>, <span class='ident'>h</span>], ..<span class='self'>self</span> }
     }
+    <span class='kw'>fn</span> <span class='ident'>get_width</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>_theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>f64</span> { <span class='self'>self</span>.<span class='ident'>dim</span>[<span class='number'>0</span>] }
+    <span class='kw'>fn</span> <span class='ident'>get_height</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>_theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>) <span class='op'>-&gt;</span> <span class='ident'>f64</span> { <span class='self'>self</span>.<span class='ident'>dim</span>[<span class='number'>1</span>] }
 }
 </pre>
 </section>
