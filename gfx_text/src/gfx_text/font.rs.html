@@ -336,9 +336,6 @@
 <span id="294">294</span>
 <span id="295">295</span>
 <span id="296">296</span>
-<span id="297">297</span>
-<span id="298">298</span>
-<span id="299">299</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Construct bitmap font using FreeType library.</span>
 <span class='doccomment'>//! Generates raw texture data for the given font and collects information</span>
@@ -378,6 +375,8 @@
 <span class='doccomment'>/// Represents possible errors that may occur during the font loading.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>FontError</span> {
+    <span class='doccomment'>/// Character set is empty</span>
+    <span class='ident'>EmptyFont</span>,
     <span class='doccomment'>/// FreeType library error</span>
     <span class='ident'>FreetypeError</span>(<span class='ident'>ft</span>::<span class='ident'>Error</span>),
 }
@@ -426,14 +425,9 @@
         <span class='kw'>let</span> <span class='ident'>needed_chars</span> <span class='op'>=</span> <span class='ident'>chars</span>
             .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>sl</span><span class='op'>|</span> <span class='ident'>HashSet</span>::<span class='ident'>from_iter</span>(<span class='ident'>sl</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>()))
             .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>Self</span>::<span class='ident'>get_all_face_chars</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>face</span>));
+        <span class='comment'>// Short-circuit.</span>
         <span class='kw'>if</span> <span class='ident'>needed_chars</span>.<span class='ident'>is_empty</span>() {
-            <span class='comment'>// Short-circuit.</span>
-            <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(<span class='ident'>BitmapFont</span> {
-                <span class='ident'>width</span>: <span class='number'>0</span>,
-                <span class='ident'>height</span>: <span class='number'>0</span>,
-                <span class='ident'>chars</span>: <span class='ident'>HashMap</span>::<span class='ident'>new</span>(),
-                <span class='ident'>image</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
-            })
+            <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>FontError</span>::<span class='ident'>EmptyFont</span>);
         }
 
         <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>face</span>.<span class='ident'>set_pixel_sizes</span>(<span class='number'>0</span>, <span class='ident'>font_size</span> <span class='kw'>as</span> <span class='ident'>u32</span>));
