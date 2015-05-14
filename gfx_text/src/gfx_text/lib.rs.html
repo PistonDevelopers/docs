@@ -533,6 +533,8 @@
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>deny</span>(<span class='ident'>missing_docs</span>)]</span>
 
 <span class='attribute'>#[<span class='ident'>macro_use</span>]</span>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log</span>;
+<span class='attribute'>#[<span class='ident'>macro_use</span>]</span>
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>gfx</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>freetype</span>;
 
@@ -701,20 +703,11 @@
             <span class='prelude-val'>None</span> <span class='op'>=&gt;</span>
                 <span class='ident'>BitmapFont</span>::<span class='ident'>from_bytes</span>(<span class='self'>self</span>.<span class='ident'>font_data</span>, <span class='self'>self</span>.<span class='ident'>font_size</span>, <span class='self'>self</span>.<span class='ident'>chars</span>),
         });
-        <span class='comment'>// FIXME(Kagami): Seems like blending R8 texture with RGBA8</span>
-        <span class='comment'>// user-specified font color cause artifacts, so converting to</span>
-        <span class='comment'>// full-component image as for now.</span>
-        <span class='kw'>let</span> <span class='ident'>image24</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>font_bitmap</span>.<span class='ident'>get_image</span>().<span class='ident'>iter</span>().<span class='ident'>flat_map</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>i</span><span class='op'>|</span>
-            <span class='prelude-val'>Some</span>(<span class='number'>0</span>).<span class='ident'>into_iter</span>()  <span class='comment'>// R</span>
-            .<span class='ident'>chain</span>(<span class='prelude-val'>Some</span>(<span class='number'>0</span>))      <span class='comment'>// G</span>
-            .<span class='ident'>chain</span>(<span class='prelude-val'>Some</span>(<span class='number'>0</span>))      <span class='comment'>// B</span>
-            .<span class='ident'>chain</span>(<span class='prelude-val'>Some</span>(<span class='ident'>i</span>))      <span class='comment'>// A</span>
-        ).<span class='ident'>collect</span>();
-        <span class='kw'>let</span> <span class='ident'>font_texture</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>create_texture_rgba8_static</span>(
+        <span class='kw'>let</span> <span class='ident'>font_texture</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>create_texture_r8_static</span>(
             <span class='self'>self</span>.<span class='ident'>factory</span>,
             <span class='ident'>font_bitmap</span>.<span class='ident'>get_width</span>(),
             <span class='ident'>font_bitmap</span>.<span class='ident'>get_height</span>(),
-            <span class='kw-2'>&amp;</span><span class='ident'>image24</span>,
+            <span class='ident'>font_bitmap</span>.<span class='ident'>get_image</span>(),
         ));
         <span class='kw'>let</span> <span class='ident'>sampler</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>factory</span>.<span class='ident'>create_sampler</span>(
             <span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span>::<span class='ident'>new</span>(<span class='ident'>tex</span>::<span class='ident'>FilterMethod</span>::<span class='ident'>Bilinear</span>,
@@ -928,13 +921,20 @@
     <span class='ident'>current_size</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>create_texture_rgba8_static</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(
+<span class='kw'>fn</span> <span class='ident'>create_texture_r8_static</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(
     <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
     <span class='ident'>width</span>: <span class='ident'>u16</span>,
     <span class='ident'>height</span>: <span class='ident'>u16</span>,
     <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]
 ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>TextureError</span><span class='op'>&gt;</span>{
-    <span class='kw'>let</span> <span class='ident'>texture</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>factory</span>.<span class='ident'>create_texture_rgba8</span>(<span class='ident'>width</span>, <span class='ident'>height</span>));
+    <span class='kw'>let</span> <span class='ident'>texture</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>factory</span>.<span class='ident'>create_texture</span>(<span class='ident'>tex</span>::<span class='ident'>TextureInfo</span> {
+        <span class='ident'>width</span>: <span class='ident'>width</span>,
+        <span class='ident'>height</span>: <span class='ident'>height</span>,
+        <span class='ident'>depth</span>: <span class='number'>1</span>,
+        <span class='ident'>levels</span>: <span class='number'>1</span>,
+        <span class='ident'>kind</span>: <span class='ident'>tex</span>::<span class='ident'>TextureKind</span>::<span class='ident'>Texture2D</span>,
+        <span class='ident'>format</span>: <span class='ident'>tex</span>::<span class='ident'>R8</span>,
+    }));
     <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>factory</span>.<span class='ident'>update_texture_raw</span>(
         <span class='kw-2'>&amp;</span><span class='ident'>texture</span>,
         <span class='kw-2'>&amp;</span><span class='ident'>texture</span>.<span class='ident'>get_info</span>().<span class='ident'>to_image_info</span>(),
@@ -1008,7 +1008,7 @@
 
     void main() {
         vec4 t_Font_Color = texture(t_Color, v_TexCoord);
-        o_Color = vec4(v_Color.rgb, t_Font_Color.a * v_Color.a);
+        o_Color = vec4(v_Color.rgb, t_Font_Color.r * v_Color.a);
     }
 &quot;</span>;
 </pre>
