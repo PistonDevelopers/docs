@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["ChildElements","An iterator returning filtered child `Element`s of another `Element`"],["Element","A struct representing an XML element"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["ImageSize","Implemented by all images to be used with generic algorithms."]]});
