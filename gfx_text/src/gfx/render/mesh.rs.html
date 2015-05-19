@@ -324,10 +324,6 @@
 <span id="282">282</span>
 <span id="283">283</span>
 <span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-<span id="288">288</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2014 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -351,7 +347,7 @@
 <span class='doccomment'>//! create a mesh is to use the `#[vertex_format]` attribute on a struct, upload them into a</span>
 <span class='doccomment'>//! `Buffer`, and then use `Mesh::from`.</span>
 
-<span class='kw'>use</span> <span class='ident'>device</span>::{<span class='ident'>PrimitiveType</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
+<span class='kw'>use</span> <span class='ident'>device</span>::{<span class='ident'>BufferRole</span>, <span class='ident'>Factory</span>, <span class='ident'>PrimitiveType</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
 <span class='kw'>use</span> <span class='ident'>device</span>::{<span class='ident'>attrib</span>, <span class='ident'>handle</span>, <span class='ident'>shade</span>};
 
 <span class='doccomment'>/// Describes a single attribute of a vertex buffer, including its type, name, etc.</span>
@@ -470,17 +466,23 @@
     <span class='doccomment'>/// the vertices will be identical, wasting space for the duplicated</span>
     <span class='doccomment'>/// attributes.  Instead, the `Mesh` can store 4 vertices and an</span>
     <span class='doccomment'>/// `Index8` can be used instead.</span>
-    <span class='ident'>Index8</span>(<span class='ident'>handle</span>::<span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>VertexCount</span>),
+    <span class='ident'>Index8</span>(<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>VertexCount</span>),
     <span class='doccomment'>/// As `Index8` but with `u16` indices</span>
-    <span class='ident'>Index16</span>(<span class='ident'>handle</span>::<span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u16</span><span class='op'>&gt;</span>, <span class='ident'>VertexCount</span>),
+    <span class='ident'>Index16</span>(<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u16</span><span class='op'>&gt;</span>, <span class='ident'>VertexCount</span>),
     <span class='doccomment'>/// As `Index8` but with `u32` indices</span>
-    <span class='ident'>Index32</span>(<span class='ident'>handle</span>::<span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u32</span><span class='op'>&gt;</span>, <span class='ident'>VertexCount</span>),
+    <span class='ident'>Index32</span>(<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u32</span><span class='op'>&gt;</span>, <span class='ident'>VertexCount</span>),
 }
 
-<span class='doccomment'>/// Helper methods for cleanly getting the slice of a type.</span>
+<span class='doccomment'>/// A helper trait for cleanly getting the slice of a type.</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>ToSlice</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get the slice of a type.</span>
     <span class='kw'>fn</span> <span class='ident'>to_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>pt</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+}
+
+<span class='doccomment'>/// A helper trait to build index slices from data.</span>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>ToIndexSlice</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Make an index slice.</span>
+    <span class='kw'>fn</span> <span class='ident'>to_slice</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='self'>self</span>, <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>, <span class='ident'>prim</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ToSlice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Mesh</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
@@ -495,41 +497,31 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ToSlice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>handle</span>::<span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u8</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Return an index slice of the whole buffer.</span>
-    <span class='kw'>fn</span> <span class='ident'>to_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ty</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>Slice</span> {
-            <span class='ident'>start</span>: <span class='number'>0</span>,
-            <span class='ident'>end</span>: <span class='self'>self</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>VertexCount</span>,
-            <span class='ident'>prim_type</span>: <span class='ident'>ty</span>,
-            <span class='ident'>kind</span>: <span class='ident'>SliceKind</span>::<span class='ident'>Index8</span>(<span class='self'>self</span>.<span class='ident'>clone</span>(), <span class='number'>0</span>)
+<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>impl_slice</span> {
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>:<span class='ident'>ty</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>index</span>:<span class='ident'>ident</span>) <span class='op'>=&gt;</span> (
+        <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ToSlice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span><span class='op'>&gt;</span> {
+            <span class='kw'>fn</span> <span class='ident'>to_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>prim</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+                <span class='ident'>Slice</span> {
+                    <span class='ident'>start</span>: <span class='number'>0</span>,
+                    <span class='ident'>end</span>: <span class='self'>self</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>VertexCount</span>,
+                    <span class='ident'>prim_type</span>: <span class='ident'>prim</span>,
+                    <span class='ident'>kind</span>: <span class='ident'>SliceKind</span>::<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>index</span>(<span class='self'>self</span>.<span class='ident'>clone</span>(), <span class='number'>0</span>)
+                }
+            }
         }
-    }
+        <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ToIndexSlice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>] {
+            <span class='kw'>fn</span> <span class='ident'>to_slice</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='self'>self</span>, <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>, <span class='ident'>prim</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+                <span class='comment'>//debug_assert!(self.len() &lt;= factory.get_capabilities().max_index_count);</span>
+                <span class='ident'>factory</span>.<span class='ident'>create_buffer_static</span>(<span class='self'>self</span>, <span class='ident'>BufferRole</span>::<span class='ident'>Index</span>).<span class='ident'>to_slice</span>(<span class='ident'>prim</span>)
+            }
+        }
+    )
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ToSlice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>handle</span>::<span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u16</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Return an index slice of the whole buffer.</span>
-    <span class='kw'>fn</span> <span class='ident'>to_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ty</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>Slice</span> {
-            <span class='ident'>start</span>: <span class='number'>0</span>,
-            <span class='ident'>end</span>: <span class='self'>self</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>VertexCount</span>,
-            <span class='ident'>prim_type</span>: <span class='ident'>ty</span>,
-            <span class='ident'>kind</span>: <span class='ident'>SliceKind</span>::<span class='ident'>Index16</span>(<span class='self'>self</span>.<span class='ident'>clone</span>(), <span class='number'>0</span>)
-        }
-    }
-}
+<span class='macro'>impl_slice</span><span class='macro'>!</span>(<span class='ident'>u8</span>, <span class='ident'>Index8</span>);
+<span class='macro'>impl_slice</span><span class='macro'>!</span>(<span class='ident'>u16</span>, <span class='ident'>Index16</span>);
+<span class='macro'>impl_slice</span><span class='macro'>!</span>(<span class='ident'>u32</span>, <span class='ident'>Index32</span>);
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ToSlice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>handle</span>::<span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u32</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Return an index slice of the whole buffer.</span>
-    <span class='kw'>fn</span> <span class='ident'>to_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ty</span>: <span class='ident'>PrimitiveType</span>) <span class='op'>-&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>Slice</span> {
-            <span class='ident'>start</span>: <span class='number'>0</span>,
-            <span class='ident'>end</span>: <span class='self'>self</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>VertexCount</span>,
-            <span class='ident'>prim_type</span>: <span class='ident'>ty</span>,
-            <span class='ident'>kind</span>: <span class='ident'>SliceKind</span>::<span class='ident'>Index32</span>(<span class='self'>self</span>.<span class='ident'>clone</span>(), <span class='number'>0</span>)
-        }
-    }
-}
 
 <span class='doccomment'>/// Index of a vertex attribute inside the mesh</span>
 <span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>AttributeIndex</span> <span class='op'>=</span> <span class='ident'>usize</span>;
