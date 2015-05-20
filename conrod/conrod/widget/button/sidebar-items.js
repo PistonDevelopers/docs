@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Button","A pressable button widget whose reaction is triggered upon release."]]});
+initSidebarItems({"struct":[["Button","A pressable button widget whose reaction is triggered upon release."],["Style","Styling for the Button, necessary for constructing its renderable Element."]]});

@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["TextBox","A widget for displaying and mutating a given one-line text `String`. It's reaction is triggered upon pressing of the `Enter`/`Return` key."]]});
+initSidebarItems({"struct":[["Style","Styling for the TextBox, necessary for constructing its renderable Element."],["TextBox","A widget for displaying and mutating a given one-line text `String`. It's reaction is triggered upon pressing of the `Enter`/`Return` key."]]});
