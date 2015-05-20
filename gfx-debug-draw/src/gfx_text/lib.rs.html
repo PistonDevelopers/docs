@@ -532,16 +532,6 @@
 <span id="490">490</span>
 <span id="491">491</span>
 <span id="492">492</span>
-<span id="493">493</span>
-<span id="494">494</span>
-<span id="495">495</span>
-<span id="496">496</span>
-<span id="497">497</span>
-<span id="498">498</span>
-<span id="499">499</span>
-<span id="500">500</span>
-<span id="501">501</span>
-<span id="502">502</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A library for drawing text for gfx-rs graphics API.</span>
 <span class='doccomment'>//! Uses freetype-rs underneath to former the font bitmap texture and collect</span>
@@ -556,9 +546,8 @@
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>freetype</span>;
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
-<span class='kw'>use</span> <span class='ident'>gfx</span>::{<span class='ident'>Resources</span>, <span class='ident'>Factory</span>, <span class='ident'>Output</span>};
-<span class='kw'>use</span> <span class='ident'>gfx</span>::{<span class='ident'>PrimitiveType</span>, <span class='ident'>ProgramError</span>, <span class='ident'>DrawError</span>};
-<span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>traits</span>::{<span class='ident'>FactoryExt</span>, <span class='ident'>ToSlice</span>, <span class='ident'>Stream</span>};
+<span class='kw'>use</span> <span class='ident'>gfx</span>::{<span class='ident'>Factory</span>, <span class='ident'>Resources</span>, <span class='ident'>PrimitiveType</span>, <span class='ident'>ProgramError</span>, <span class='ident'>DrawError</span>};
+<span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>traits</span>::{<span class='ident'>FactoryExt</span>, <span class='ident'>Output</span>, <span class='ident'>Stream</span>, <span class='ident'>ToIndexSlice</span>, <span class='ident'>ToSlice</span>};
 <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::{<span class='ident'>Program</span>, <span class='ident'>Buffer</span>, <span class='ident'>Texture</span>};
 <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>batch</span>::<span class='ident'>OwnedBatch</span>;
 <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>batch</span>::<span class='ident'>Error</span> <span class='kw'>as</span> <span class='ident'>BatchError</span>;
@@ -617,7 +606,8 @@
 <span class='kw'>type</span> <span class='ident'>IndexT</span> <span class='op'>=</span> <span class='ident'>u32</span>;
 
 <span class='doccomment'>/// Text renderer instance.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> {
+    <span class='ident'>factory</span>: <span class='ident'>F</span>,
     <span class='ident'>program</span>: <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
     <span class='ident'>draw_state</span>: <span class='ident'>gfx</span>::<span class='ident'>DrawState</span>,
     <span class='ident'>vertex_data</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Vertex</span><span class='op'>&gt;</span>,
@@ -629,8 +619,8 @@
 }
 
 <span class='doccomment'>/// Text renderer builder instance.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RendererBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='lifetime'>&#39;r</span><span class='op'>&gt;</span> {
-    <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;r</span> <span class='kw-2'>mut</span> <span class='ident'>F</span>,
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RendererBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> {
+    <span class='ident'>factory</span>: <span class='ident'>F</span>,
     <span class='ident'>font_size</span>: <span class='ident'>u8</span>,
     <span class='comment'>// NOTE(Kagami): Better to use `P: AsRef&lt;OsStr&gt;` but since we store path in</span>
     <span class='comment'>// the intermediate builder structure, Rust will unable to infer type</span>
@@ -649,13 +639,13 @@
 }
 
 <span class='doccomment'>/// Create a new text renderer builder. Alias for `RendererBuilder::new`.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;r</span> <span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>RendererBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='ident'>factory</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>RendererBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
     <span class='ident'>RendererBuilder</span>::<span class='ident'>new</span>(<span class='ident'>factory</span>)
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>RendererBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;r</span>, <span class='ident'>R</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Create a new text renderer builder.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;r</span> <span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>factory</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
         <span class='comment'>// Default renderer settings.</span>
         <span class='ident'>RendererBuilder</span> {
             <span class='ident'>factory</span>: <span class='ident'>factory</span>,
@@ -709,7 +699,7 @@
     }
 
     <span class='doccomment'>/// Build a new text renderer instance using current settings.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>F</span><span class='op'>&gt;</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>program</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>factory</span>.<span class='ident'>link_program</span>(<span class='ident'>VERTEX_SRC</span>, <span class='ident'>FRAGMENT_SRC</span>));
         <span class='kw'>let</span> <span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>DrawState</span>::<span class='ident'>new</span>().<span class='ident'>blend</span>(<span class='ident'>gfx</span>::<span class='ident'>BlendPreset</span>::<span class='ident'>Alpha</span>);
         <span class='kw'>let</span> <span class='ident'>vertex_buffer</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(
@@ -732,7 +722,7 @@
                 <span class='ident'>BitmapFont</span>::<span class='ident'>from_bytes</span>(<span class='self'>self</span>.<span class='ident'>font_data</span>, <span class='self'>self</span>.<span class='ident'>font_size</span>, <span class='self'>self</span>.<span class='ident'>chars</span>),
         });
         <span class='kw'>let</span> <span class='ident'>font_texture</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>create_texture_r8_static</span>(
-            <span class='self'>self</span>.<span class='ident'>factory</span>,
+            <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>factory</span>,
             <span class='ident'>font_bitmap</span>.<span class='ident'>get_width</span>(),
             <span class='ident'>font_bitmap</span>.<span class='ident'>get_height</span>(),
             <span class='ident'>font_bitmap</span>.<span class='ident'>get_image</span>(),
@@ -743,6 +733,7 @@
         );
 
         <span class='prelude-val'>Ok</span>(<span class='ident'>Renderer</span> {
+            <span class='ident'>factory</span>: <span class='self'>self</span>.<span class='ident'>factory</span>,
             <span class='ident'>program</span>: <span class='ident'>program</span>,
             <span class='ident'>draw_state</span>: <span class='ident'>state</span>,
             <span class='ident'>vertex_data</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
@@ -760,12 +751,12 @@
     }
 
     <span class='doccomment'>/// Just an alias for `builder.build().unwrap()`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>unwrap</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>unwrap</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>build</span>().<span class='ident'>unwrap</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Add some text to the current draw scene relative to the top left corner</span>
     <span class='doccomment'>/// of the screen using pixel coords.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>pos</span>: [<span class='ident'>i32</span>; <span class='number'>2</span>], <span class='ident'>color</span>: [<span class='ident'>f32</span>; <span class='number'>4</span>]) {
@@ -852,35 +843,30 @@
     }
 
     <span class='doccomment'>/// End with drawing, clear internal state and return resulting batch.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw_end</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>S</span>: <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(
-        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-        <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
-        <span class='ident'>stream</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>S</span>,
-    ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>draw_end_at</span>(<span class='ident'>factory</span>, <span class='ident'>stream</span>, <span class='ident'>DEFAULT_PROJECTION</span>)
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw_end</span><span class='op'>&lt;</span><span class='ident'>S</span>: <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>stream</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>S</span>)
+                    <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Error</span><span class='op'>&gt;</span>
+    {
+        <span class='self'>self</span>.<span class='ident'>draw_end_at</span>(<span class='ident'>stream</span>, <span class='ident'>DEFAULT_PROJECTION</span>)
     }
 
     <span class='doccomment'>/// End with drawing using provided projection matrix.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw_end_at</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>S</span>: <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(
-        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-        <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
-        <span class='ident'>stream</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>S</span>,
-        <span class='ident'>proj</span>: [[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>],
-    ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Error</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw_end_at</span><span class='op'>&lt;</span><span class='ident'>S</span>: <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>stream</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>S</span>,
+                       <span class='ident'>proj</span>: [[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>]) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Error</span><span class='op'>&gt;</span>
+    {
         <span class='kw'>let</span> <span class='ident'>ver_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>vertex_data</span>.<span class='ident'>len</span>();
         <span class='kw'>let</span> <span class='ident'>ver_buf_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>vertex_buffer</span>.<span class='ident'>len</span>();
         <span class='kw'>let</span> <span class='ident'>ind_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>index_data</span>.<span class='ident'>len</span>();
         <span class='kw'>let</span> <span class='ident'>ind_buf_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>index_buffer</span>.<span class='ident'>len</span>();
         <span class='comment'>// Reallocate buffers if there is no enough space for data.</span>
         <span class='kw'>if</span> <span class='ident'>ver_len</span> <span class='op'>&gt;</span> <span class='ident'>ver_buf_len</span> {
-            <span class='self'>self</span>.<span class='ident'>vertex_buffer</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(
+            <span class='self'>self</span>.<span class='ident'>vertex_buffer</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(
                 <span class='ident'>grow_buffer_size</span>(<span class='ident'>ver_buf_len</span>, <span class='ident'>ver_len</span>),
                 <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Vertex</span>
             );
         }
         <span class='kw'>if</span> <span class='ident'>ind_len</span> <span class='op'>&gt;</span> <span class='ident'>ind_buf_len</span> {
             <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>grow_buffer_size</span>(<span class='ident'>ind_buf_len</span>, <span class='ident'>ind_len</span>);
-            <span class='self'>self</span>.<span class='ident'>index_buffer</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(<span class='ident'>len</span>, <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Index</span>);
+            <span class='self'>self</span>.<span class='ident'>index_buffer</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(<span class='ident'>len</span>, <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Index</span>);
         }
         <span class='comment'>// Move vertex/index data.</span>
         {
@@ -911,24 +897,18 @@
     }
 
     <span class='doccomment'>/// End with drawing and former resulting batch.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_batch</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>O</span>: <span class='ident'>Output</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(
-        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-        <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
-        <span class='ident'>output</span>: <span class='kw-2'>&amp;</span><span class='ident'>O</span>,
-    ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>OwnedBatch</span><span class='op'>&lt;</span><span class='ident'>ShaderParams</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>get_batch_at</span>(<span class='ident'>factory</span>, <span class='ident'>output</span>, <span class='ident'>DEFAULT_PROJECTION</span>)
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_batch</span><span class='op'>&lt;</span><span class='ident'>O</span>: <span class='ident'>Output</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>output</span>: <span class='kw-2'>&amp;</span><span class='ident'>O</span>)
+                     <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>OwnedBatch</span><span class='op'>&lt;</span><span class='ident'>ShaderParams</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>, <span class='ident'>Error</span><span class='op'>&gt;</span>
+    {
+        <span class='self'>self</span>.<span class='ident'>get_batch_at</span>(<span class='ident'>output</span>, <span class='ident'>DEFAULT_PROJECTION</span>)
     }
 
     <span class='doccomment'>/// Return batch for the given projection matrix.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_batch_at</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>O</span>: <span class='ident'>Output</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(
-        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-        <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>,
-        <span class='ident'>output</span>: <span class='kw-2'>&amp;</span><span class='ident'>O</span>,
-        <span class='ident'>proj</span>: [[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>],
-    ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>OwnedBatch</span><span class='op'>&lt;</span><span class='ident'>ShaderParams</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>mesh</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_mesh</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>vertex_data</span>);
-        <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer_static</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_data</span>, <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Index</span>)
-                           .<span class='ident'>to_slice</span>(<span class='ident'>PrimitiveType</span>::<span class='ident'>TriangleList</span>);
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_batch_at</span><span class='op'>&lt;</span><span class='ident'>O</span>: <span class='ident'>Output</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>output</span>: <span class='kw-2'>&amp;</span><span class='ident'>O</span>, <span class='ident'>proj</span>: [[<span class='ident'>f32</span>; <span class='number'>4</span>]; <span class='number'>4</span>])
+                        <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>OwnedBatch</span><span class='op'>&lt;</span><span class='ident'>ShaderParams</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>mesh</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>factory</span>.<span class='ident'>create_mesh</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>vertex_data</span>);
+        <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>index_data</span>.<span class='ident'>to_slice</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>factory</span>,
+                                             <span class='ident'>PrimitiveType</span>::<span class='ident'>TriangleList</span>);
         <span class='self'>self</span>.<span class='ident'>vertex_data</span>.<span class='ident'>clear</span>();
         <span class='self'>self</span>.<span class='ident'>index_data</span>.<span class='ident'>clear</span>();
         <span class='self'>self</span>.<span class='ident'>params</span>.<span class='ident'>screen_size</span> <span class='op'>=</span> {
