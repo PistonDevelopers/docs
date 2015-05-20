@@ -227,6 +227,25 @@
 <span id="185">185</span>
 <span id="186">186</span>
 <span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
 </pre><pre class='rust '>
 
 <span class='kw'>use</span> <span class='ident'>color</span>::{<span class='ident'>black</span>, <span class='ident'>Color</span>};
@@ -237,6 +256,7 @@
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Text</span> {
     <span class='kw'>pub</span> <span class='ident'>sequence</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>TextUnit</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>position</span>: <span class='ident'>Position</span>,
 }
 
 
@@ -252,6 +272,14 @@
     <span class='ident'>Under</span>,
     <span class='ident'>Over</span>,
     <span class='ident'>Through</span>,
+}
+
+<span class='doccomment'>/// Text position relative to center point</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Position</span> {
+    <span class='ident'>Center</span>,
+    <span class='ident'>ToLeft</span>,
+    <span class='ident'>ToRight</span>
 }
 
 
@@ -300,7 +328,8 @@
     <span class='doccomment'>/// Convert a string into text which can be styled and displayed.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_string</span>(<span class='ident'>string</span>: <span class='ident'>String</span>) <span class='op'>-&gt;</span> <span class='ident'>Text</span> {
         <span class='ident'>Text</span> {
-            <span class='ident'>sequence</span>: <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>TextUnit</span> { <span class='ident'>string</span>: <span class='ident'>string</span>, <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>default</span>(), }]
+            <span class='ident'>sequence</span>: <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>TextUnit</span> { <span class='ident'>string</span>: <span class='ident'>string</span>, <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>default</span>(), }],
+            <span class='ident'>position</span>: <span class='ident'>Position</span>::<span class='ident'>Center</span>
         }
     }
 
@@ -318,10 +347,12 @@
 
     <span class='doccomment'>/// Put many chunks of text together.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>concat</span>(<span class='ident'>texts</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Text</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Text</span> {
+        <span class='kw'>let</span> <span class='ident'>position</span> <span class='op'>=</span> <span class='ident'>texts</span>.<span class='ident'>get</span>(<span class='number'>0</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>t</span><span class='op'>|</span> <span class='ident'>t</span>.<span class='ident'>position</span>).<span class='ident'>unwrap_or</span>(<span class='ident'>Position</span>::<span class='ident'>Center</span>);
         <span class='ident'>Text</span> {
             <span class='ident'>sequence</span>: <span class='ident'>texts</span>.<span class='ident'>into_iter</span>()
-                .<span class='ident'>flat_map</span>(<span class='op'>|</span><span class='ident'>Text</span> { <span class='ident'>sequence</span> }<span class='op'>|</span> <span class='ident'>sequence</span>.<span class='ident'>into_iter</span>())
-                .<span class='ident'>collect</span>()
+                .<span class='ident'>flat_map</span>(<span class='op'>|</span><span class='ident'>Text</span> { <span class='ident'>sequence</span>, <span class='ident'>position</span> }<span class='op'>|</span> <span class='ident'>sequence</span>.<span class='ident'>into_iter</span>())
+                .<span class='ident'>collect</span>(),
+            <span class='ident'>position</span>: <span class='ident'>position</span>
         }
     }
 
@@ -344,6 +375,7 @@
         }).<span class='ident'>collect</span>()).<span class='ident'>unwrap</span>();
         <span class='ident'>Text</span> {
             <span class='ident'>sequence</span>: <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>TextUnit</span> { <span class='ident'>string</span>: <span class='ident'>string</span>, <span class='ident'>style</span>: <span class='ident'>style</span> }],
+            ..<span class='self'>self</span>
         }
     }
 
@@ -413,6 +445,12 @@
         <span class='self'>self</span>
     }
 
+    <span class='doccomment'>/// Change the text position relative to it&#39;s center point</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>position</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>position</span>: <span class='ident'>Position</span>) <span class='op'>-&gt;</span> <span class='ident'>Text</span> {
+        <span class='self'>self</span>.<span class='ident'>position</span> <span class='op'>=</span> <span class='ident'>position</span>;
+        <span class='self'>self</span>
+    }
 }
 
 </pre>

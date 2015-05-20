@@ -805,18 +805,31 @@
 <span id="763">763</span>
 <span id="764">764</span>
 <span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
 </pre><pre class='rust '>
 
 <span class='kw'>use</span> <span class='ident'>canvas</span>::{<span class='self'>self</span>, <span class='ident'>Canvas</span>, <span class='ident'>CanvasId</span>};
 <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Element</span>;
-<span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>Graphics</span>;
+<span class='kw'>use</span> <span class='ident'>graphics</span>::{<span class='ident'>Context</span>, <span class='ident'>Graphics</span>};
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>character</span>::<span class='ident'>CharacterCache</span>;
 <span class='kw'>use</span> <span class='ident'>label</span>::<span class='ident'>FontSize</span>;
-<span class='kw'>use</span> <span class='ident'>mouse</span>::{<span class='ident'>ButtonState</span>, <span class='ident'>Mouse</span>};
+<span class='kw'>use</span> <span class='ident'>mouse</span>::{<span class='ident'>ButtonState</span>, <span class='ident'>Mouse</span>, <span class='ident'>Scroll</span>};
 <span class='kw'>use</span> <span class='ident'>piston</span>::<span class='ident'>input</span>;
 <span class='kw'>use</span> <span class='ident'>piston</span>::<span class='ident'>event</span>::{
     <span class='ident'>GenericEvent</span>,
     <span class='ident'>MouseCursorEvent</span>,
+    <span class='ident'>MouseScrollEvent</span>,
     <span class='ident'>PressEvent</span>,
     <span class='ident'>ReleaseEvent</span>,
     <span class='ident'>RenderEvent</span>,
@@ -903,6 +916,8 @@
     <span class='kw'>pub</span> <span class='ident'>released_keys</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>input</span>::<span class='ident'>keyboard</span>::<span class='ident'>Key</span>],
     <span class='doccomment'>/// Text entered since the last cycle.</span>
     <span class='kw'>pub</span> <span class='ident'>entered_text</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>String</span>],
+    <span class='doccomment'>/// Current dimensions of the window.</span>
+    <span class='kw'>pub</span> <span class='ident'>window_dim</span>: <span class='ident'>Dimensions</span>,
 }
 
 <span class='doccomment'>/// A wrapper over some CharacterCache, exposing it&#39;s functionality via a RefCell.</span>
@@ -976,6 +991,7 @@
             <span class='self'>self</span>.<span class='ident'>keys_just_pressed</span>.<span class='ident'>clear</span>();
             <span class='self'>self</span>.<span class='ident'>keys_just_released</span>.<span class='ident'>clear</span>();
             <span class='self'>self</span>.<span class='ident'>text_just_entered</span>.<span class='ident'>clear</span>();
+            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span> <span class='op'>=</span> <span class='ident'>Scroll</span> { <span class='ident'>x</span>: <span class='number'>0.0</span>, <span class='ident'>y</span>: <span class='number'>0.0</span> };
 
             <span class='self'>self</span>.<span class='ident'>maybe_prev_widget_id</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
             <span class='self'>self</span>.<span class='ident'>prev_event_was_render</span> <span class='op'>=</span> <span class='boolval'>false</span>;
@@ -997,6 +1013,11 @@
             <span class='comment'>// Convert mouse coords to (0, 0) origin.</span>
             <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span> <span class='op'>=</span> [<span class='ident'>x</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>/</span> <span class='number'>2.0</span>, <span class='op'>-</span>(<span class='ident'>y</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>/</span> <span class='number'>2.0</span>)];
             <span class='self'>self</span>.<span class='ident'>maybe_canvas_under_mouse</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>pick_canvas</span>(<span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>);
+        });
+
+        <span class='ident'>event</span>.<span class='ident'>mouse_scroll</span>(<span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span><span class='op'>|</span> {
+            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span>.<span class='ident'>x</span> <span class='op'>+=</span> <span class='ident'>x</span>;
+            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span>.<span class='ident'>y</span> <span class='op'>+=</span> <span class='ident'>y</span>;
         });
 
         <span class='ident'>event</span>.<span class='ident'>press</span>(<span class='op'>|</span><span class='ident'>button_type</span><span class='op'>|</span> {
@@ -1124,7 +1145,7 @@
     <span class='doccomment'>/// - Widgets are sorted by capturing and then render depth (depth first).</span>
     <span class='doccomment'>/// - Construct the elmesque `Renderer` for rendering the elm `Element`s.</span>
     <span class='doccomment'>/// - Render all widgets.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>G</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>)
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>G</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>context</span>: <span class='ident'>Context</span>, <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>)
         <span class='kw'>where</span>
             <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
             <span class='ident'>G</span>: <span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>Texture</span> <span class='op'>=</span> <span class='ident'>C</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
@@ -1135,7 +1156,6 @@
         <span class='kw'>let</span> <span class='ident'>Ui</span> {
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>canvas_cache</span>,
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>widget_cache</span>,
-            <span class='kw-2'>ref</span> <span class='ident'>win_w</span>, <span class='kw-2'>ref</span> <span class='ident'>win_h</span>,
             <span class='kw-2'>ref</span> <span class='ident'>glyph_cache</span>,
             ..
         } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
@@ -1184,7 +1204,7 @@
         <span class='comment'>// Construct the elmesque Renderer for rendering the Elements.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ref_mut_character_cache</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='number'>0</span>.<span class='ident'>borrow_mut</span>();
         <span class='kw'>let</span> <span class='ident'>character_cache</span> <span class='op'>=</span> <span class='ident'>ref_mut_character_cache</span>.<span class='ident'>deref_mut</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>renderer</span> <span class='op'>=</span> <span class='ident'>Renderer</span>::<span class='ident'>new</span>(<span class='op'>*</span><span class='ident'>win_w</span>, <span class='op'>*</span><span class='ident'>win_h</span>, <span class='ident'>graphics</span>).<span class='ident'>character_cache</span>(<span class='ident'>character_cache</span>);
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>renderer</span> <span class='op'>=</span> <span class='ident'>Renderer</span>::<span class='ident'>new</span>(<span class='ident'>context</span>, <span class='ident'>graphics</span>).<span class='ident'>character_cache</span>(<span class='ident'>character_cache</span>);
 
         <span class='comment'>// Collect references to the canvasses for sorting.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>canvasses</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>canvas_cache</span>.<span class='ident'>iter_mut</span>().<span class='ident'>enumerate</span>()
@@ -1201,7 +1221,8 @@
 
 
         <span class='comment'>// Print all the widgets that aren&#39;t attached to any canvas.</span>
-        <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> (_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>) <span class='kw'>in</span> <span class='ident'>widgets</span>.<span class='ident'>iter_mut</span>().<span class='ident'>filter</span>(<span class='op'>|</span><span class='op'>&amp;&amp;</span><span class='kw-2'>mut</span>(_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>)<span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>maybe_canvas_id</span> <span class='op'>==</span> <span class='prelude-val'>None</span>) {
+        <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> (_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>) <span class='kw'>in</span> <span class='ident'>widgets</span>.<span class='ident'>iter_mut</span>()
+            .<span class='ident'>filter</span>(<span class='op'>|</span><span class='op'>&amp;&amp;</span><span class='kw-2'>mut</span>(_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>)<span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>maybe_canvas_id</span> <span class='op'>==</span> <span class='prelude-val'>None</span>) {
             <span class='ident'>widget</span>.<span class='ident'>element</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>renderer</span>);
         }
 
@@ -1210,7 +1231,8 @@
             <span class='ident'>canvas</span>.<span class='ident'>element</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>renderer</span>);
 
             <span class='comment'>// Print each widget attached to the current canvas.</span>
-            <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> (_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>) <span class='kw'>in</span> <span class='ident'>widgets</span>.<span class='ident'>iter_mut</span>().<span class='ident'>filter</span>(<span class='op'>|</span><span class='op'>&amp;&amp;</span><span class='kw-2'>mut</span>(_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>)<span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>maybe_canvas_id</span> <span class='op'>==</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>)) {
+            <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> (_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>) <span class='kw'>in</span> <span class='ident'>widgets</span>.<span class='ident'>iter_mut</span>()
+                .<span class='ident'>filter</span>(<span class='op'>|</span><span class='op'>&amp;&amp;</span><span class='kw-2'>mut</span>(_, <span class='kw-2'>ref</span> <span class='ident'>widget</span>)<span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>maybe_canvas_id</span> <span class='op'>==</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>)) {
                 <span class='ident'>widget</span>.<span class='ident'>element</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>renderer</span>);
             }
 
@@ -1276,12 +1298,14 @@
         <span class='ident'>pressed_keys</span>: <span class='kw-2'>&amp;</span>[],
         <span class='ident'>released_keys</span>: <span class='kw-2'>&amp;</span>[],
         <span class='ident'>entered_text</span>: <span class='kw-2'>&amp;</span>[],
+        <span class='ident'>window_dim</span>: [<span class='ident'>ui</span>.<span class='ident'>win_w</span>, <span class='ident'>ui</span>.<span class='ident'>win_h</span>],
     };
     <span class='kw'>let</span> <span class='ident'>with_keys</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>UserInput</span> {
         <span class='ident'>maybe_mouse</span>: <span class='ident'>maybe_mouse</span>,
         <span class='ident'>pressed_keys</span>: <span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>keys_just_pressed</span>,
         <span class='ident'>released_keys</span>: <span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>keys_just_released</span>,
         <span class='ident'>entered_text</span>: <span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>text_just_entered</span>,
+        <span class='ident'>window_dim</span>: [<span class='ident'>ui</span>.<span class='ident'>win_w</span>, <span class='ident'>ui</span>.<span class='ident'>win_h</span>],
     };
     <span class='kw'>match</span> <span class='ident'>ui</span>.<span class='ident'>maybe_captured_keyboard</span> {
         <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>captured_ui_id</span>)) <span class='op'>=&gt;</span> <span class='kw'>if</span> <span class='ident'>ui_id</span> <span class='op'>==</span> <span class='ident'>captured_ui_id</span> {
