@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["FontError","Represents possible errors that may occur during the font loading."]]});
+initSidebarItems({"enum":[["FontError","Represents possible errors which may occur during the font loading."]]});
