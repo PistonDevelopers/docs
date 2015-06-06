@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Pointer","A pointer interface."],["PointerId","An opaque unique identifier to a pointer, can be tested for equality."]]});

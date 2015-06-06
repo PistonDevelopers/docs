@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Factory","GL resource factory."],["Output","A placeholder for a real `Output` implemented by your window."]]});

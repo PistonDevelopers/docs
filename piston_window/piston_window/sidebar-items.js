@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["OpenGL",""]],"fn":[["empty_app","Creates a new empty application."]],"struct":[["PistonWindow","Contains everything required for controlling window, graphics, event loop."]],"type":[["GfxStream","Actual gfx::Stream implementation carried by the window."]]});

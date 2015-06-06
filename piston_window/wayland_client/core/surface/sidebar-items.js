@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SurfaceId","An opaque unique identifier to a surface, can be tested for equality."],["WSurface","A wayland Surface."]],"trait":[["Surface","A trait representing whatever can be used a a surface. Protocol extentions surch as EGL can define their own kind of surfaces, but they wrap a `WSurface`."]]});

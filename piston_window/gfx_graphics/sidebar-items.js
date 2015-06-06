@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Gfx2d","The data used for drawing 2D graphics."],["GfxGraphics","Used for rendering 2D graphics."],["GlyphCache","A struct used for caching rendered font."],["Texture","Represents a texture."],["TextureSettings","Texture creation parameters."]]});
