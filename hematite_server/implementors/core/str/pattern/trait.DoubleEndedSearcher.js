@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors['hematite_server'] = [];
+implementors['regex_syntax'] = [];implementors['hematite_server'] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
