@@ -939,6 +939,19 @@
 <span id="897">897</span>
 <span id="898">898</span>
 <span id="899">899</span>
+<span id="900">900</span>
+<span id="901">901</span>
+<span id="902">902</span>
+<span id="903">903</span>
+<span id="904">904</span>
+<span id="905">905</span>
+<span id="906">906</span>
+<span id="907">907</span>
+<span id="908">908</span>
+<span id="909">909</span>
+<span id="910">910</span>
+<span id="911">911</span>
+<span id="912">912</span>
 </pre><pre class='rust '>
 
 <span class='kw'>use</span> <span class='ident'>canvas</span>::<span class='ident'>CanvasId</span>;
@@ -1341,8 +1354,10 @@
              <span class='ident'>pt</span>.<span class='ident'>get_curve</span>())
         }).<span class='ident'>collect</span>();
 
-        <span class='comment'>// Check for new state.</span>
-        <span class='kw'>let</span> <span class='ident'>new_interaction</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='self'>self</span>.<span class='ident'>enabled</span>, <span class='ident'>maybe_mouse</span>) {
+        <span class='comment'>// Check for a new interaction.</span>
+        <span class='comment'>// The reason we create the new interaction as mutable is because we may need to shift back</span>
+        <span class='comment'>// an index in the event that a point is removed.</span>
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>new_interaction</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='self'>self</span>.<span class='ident'>enabled</span>, <span class='ident'>maybe_mouse</span>) {
             (<span class='boolval'>false</span>, _) <span class='op'>|</span> (<span class='boolval'>true</span>, <span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='ident'>Interaction</span>::<span class='ident'>Normal</span>,
             (<span class='boolval'>true</span>, <span class='prelude-val'>Some</span>(<span class='ident'>mouse</span>)) <span class='op'>=&gt;</span> {
                 <span class='kw'>let</span> <span class='ident'>is_over_elem</span> <span class='op'>=</span> <span class='ident'>is_over_elem</span>(<span class='ident'>mouse</span>.<span class='ident'>xy</span>, <span class='ident'>dim</span>, <span class='ident'>pad_dim</span>, <span class='kw-2'>&amp;</span><span class='ident'>perc_env</span>[..], <span class='ident'>pt_radius</span>);
@@ -1393,6 +1408,17 @@
                             <span class='ident'>MouseButton</span>::<span class='ident'>Right</span> <span class='op'>=&gt;</span> {
                                 <span class='comment'>// Delete the point and trigger the reaction.</span>
                                 <span class='self'>self</span>.<span class='ident'>env</span>.<span class='ident'>remove</span>(<span class='ident'>idx</span>);
+                                <span class='comment'>// Check for whether or not the highlighted index is out of range</span>
+                                <span class='comment'>// now that a point has been removed from the envelope.</span>
+                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>elem</span>) <span class='op'>=</span> <span class='ident'>new_interaction</span> {
+                                    <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>env</span>.<span class='ident'>is_empty</span>() {
+                                        <span class='op'>*</span><span class='ident'>elem</span> <span class='op'>=</span> <span class='ident'>Elem</span>::<span class='ident'>Pad</span>;
+                                    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Elem</span>::<span class='ident'>EnvPoint</span>(<span class='ident'>p_idx</span>, <span class='ident'>p</span>) <span class='op'>=</span> <span class='op'>*</span><span class='ident'>elem</span> {
+                                        <span class='kw'>if</span> <span class='ident'>p_idx</span> <span class='op'>&gt;=</span> <span class='self'>self</span>.<span class='ident'>env</span>.<span class='ident'>len</span>() {
+                                            <span class='op'>*</span><span class='ident'>elem</span> <span class='op'>=</span> <span class='ident'>Elem</span>::<span class='ident'>EnvPoint</span>(<span class='self'>self</span>.<span class='ident'>env</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='number'>1</span>, <span class='ident'>p</span>);
+                                        }
+                                    }
+                                }
                                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>react</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_react</span> { <span class='ident'>react</span>(<span class='self'>self</span>.<span class='ident'>env</span>, <span class='ident'>idx</span>) }
                             },
                         }
@@ -1466,7 +1492,7 @@
 
         <span class='comment'>// Determine the closest point to the cursor.</span>
         <span class='kw'>let</span> <span class='ident'>maybe_closest_point</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>new_interaction</span> {
-            <span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(<span class='ident'>Elem</span>::<span class='ident'>EnvPoint</span>(<span class='ident'>idx</span>, <span class='ident'>p</span>), _) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>((<span class='ident'>idx</span>, <span class='ident'>p</span>)),
+            <span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(<span class='ident'>Elem</span>::<span class='ident'>EnvPoint</span>(<span class='ident'>idx</span>, <span class='ident'>p</span>), _)  <span class='op'>|</span>
             <span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(<span class='ident'>Elem</span>::<span class='ident'>EnvPoint</span>(<span class='ident'>idx</span>, <span class='ident'>p</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>((<span class='ident'>idx</span>, <span class='ident'>p</span>)),
             <span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_, _) <span class='op'>|</span> <span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(_) <span class='op'>=&gt;</span> {
                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>mouse</span>) <span class='op'>=</span> <span class='ident'>maybe_mouse</span> {
