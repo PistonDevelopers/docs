@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["NbtBlob","An object in the Named Binary Tag (NBT) file format."]]});
