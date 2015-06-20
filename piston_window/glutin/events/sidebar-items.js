@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["ElementState",""],["Event",""],["MouseButton",""],["VirtualKeyCode",""]],"type":[["ScanCode",""]]});
+initSidebarItems({"enum":[["ElementState",""],["Event",""],["MouseButton",""],["MouseScrollDelta",""],["VirtualKeyCode",""]],"type":[["ScanCode",""]]});

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.1.6/src/api/x11/window.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.2.0/src/api/x11/window.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>window.rs.html -- source</title>
@@ -849,6 +849,40 @@
 <span id="807">807</span>
 <span id="808">808</span>
 <span id="809">809</span>
+<span id="810">810</span>
+<span id="811">811</span>
+<span id="812">812</span>
+<span id="813">813</span>
+<span id="814">814</span>
+<span id="815">815</span>
+<span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
+<span id="821">821</span>
+<span id="822">822</span>
+<span id="823">823</span>
+<span id="824">824</span>
+<span id="825">825</span>
+<span id="826">826</span>
+<span id="827">827</span>
+<span id="828">828</span>
+<span id="829">829</span>
+<span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
+<span id="843">843</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {<span class='ident'>Event</span>, <span class='ident'>BuilderAttribs</span>, <span class='ident'>MouseCursor</span>};
 <span class='kw'>use</span> <span class='ident'>CreationError</span>;
@@ -861,6 +895,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::{<span class='ident'>Arc</span>, <span class='ident'>Mutex</span>};
 
 <span class='kw'>use</span> <span class='ident'>Api</span>;
+<span class='kw'>use</span> <span class='ident'>ContextError</span>;
 <span class='kw'>use</span> <span class='ident'>CursorState</span>;
 <span class='kw'>use</span> <span class='ident'>GlContext</span>;
 <span class='kw'>use</span> <span class='ident'>GlRequest</span>;
@@ -895,6 +930,7 @@
     <span class='ident'>xf86_desk_mode</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>ffi</span>::<span class='ident'>XF86VidModeModeInfo</span>,
     <span class='ident'>ic</span>: <span class='ident'>ffi</span>::<span class='ident'>XIC</span>,
     <span class='ident'>im</span>: <span class='ident'>ffi</span>::<span class='ident'>XIM</span>,
+    <span class='ident'>colormap</span>: <span class='ident'>ffi</span>::<span class='ident'>Colormap</span>,
 }
 
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Context</span> {
@@ -916,6 +952,8 @@
             <span class='comment'>// is still the current one</span>
             <span class='self'>self</span>.<span class='ident'>context</span> <span class='op'>=</span> <span class='ident'>Context</span>::<span class='prelude-val'>None</span>;
 
+            <span class='kw'>let</span> <span class='ident'>_lock</span> <span class='op'>=</span> <span class='ident'>GLOBAL_XOPENIM_LOCK</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
+
             <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>is_fullscreen</span> {
                 (<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>xf86vmode</span>.<span class='ident'>XF86VidModeSwitchToMode</span>)(<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>screen_id</span>, <span class='self'>self</span>.<span class='ident'>xf86_desk_mode</span>);
                 (<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>xf86vmode</span>.<span class='ident'>XF86VidModeSetViewPort</span>)(<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>screen_id</span>, <span class='number'>0</span>, <span class='number'>0</span>);
@@ -924,6 +962,7 @@
             (<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XDestroyIC</span>)(<span class='self'>self</span>.<span class='ident'>ic</span>);
             (<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XCloseIM</span>)(<span class='self'>self</span>.<span class='ident'>im</span>);
             (<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XDestroyWindow</span>)(<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>window</span>);
+            (<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XFreeColormap</span>)(<span class='self'>self</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>colormap</span>);
         }
     }
 }
@@ -1067,6 +1106,7 @@
                     <span class='kw'>use</span> <span class='ident'>events</span>::<span class='ident'>Event</span>::{<span class='ident'>MouseInput</span>, <span class='ident'>MouseWheel</span>};
                     <span class='kw'>use</span> <span class='ident'>events</span>::<span class='ident'>ElementState</span>::{<span class='ident'>Pressed</span>, <span class='ident'>Released</span>};
                     <span class='kw'>use</span> <span class='ident'>events</span>::<span class='ident'>MouseButton</span>::{<span class='ident'>Left</span>, <span class='ident'>Right</span>, <span class='ident'>Middle</span>};
+                    <span class='kw'>use</span> <span class='ident'>events</span>::<span class='ident'>MouseScrollDelta</span>::{<span class='ident'>LineDelta</span>};
 
                     <span class='kw'>let</span> <span class='ident'>event</span>: <span class='kw-2'>&amp;</span><span class='ident'>ffi</span>::<span class='ident'>XButtonEvent</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='kw-2'>&amp;</span><span class='ident'>xev</span>) };
 
@@ -1077,11 +1117,13 @@
                         <span class='ident'>ffi</span>::<span class='ident'>Button2</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Middle</span>),
                         <span class='ident'>ffi</span>::<span class='ident'>Button3</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Right</span>),
                         <span class='ident'>ffi</span>::<span class='ident'>Button4</span> <span class='op'>=&gt;</span> {
-                            <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>pending_events</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>().<span class='ident'>push_back</span>(<span class='ident'>MouseWheel</span>(<span class='number'>0.0</span>, <span class='number'>1.0</span>));
+                            <span class='kw'>let</span> <span class='ident'>delta</span> <span class='op'>=</span> <span class='ident'>LineDelta</span>(<span class='number'>0.0</span>, <span class='number'>1.0</span>);
+                            <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>pending_events</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>().<span class='ident'>push_back</span>(<span class='ident'>MouseWheel</span>(<span class='ident'>delta</span>));
                             <span class='prelude-val'>None</span>
                         }
                         <span class='ident'>ffi</span>::<span class='ident'>Button5</span> <span class='op'>=&gt;</span> {
-                            <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>pending_events</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>().<span class='ident'>push_back</span>(<span class='ident'>MouseWheel</span>(<span class='number'>0.0</span>, <span class='op'>-</span><span class='number'>1.0</span>));
+                            <span class='kw'>let</span> <span class='ident'>delta</span> <span class='op'>=</span> <span class='ident'>LineDelta</span>(<span class='number'>0.0</span>, <span class='op'>-</span><span class='number'>1.0</span>);
+                            <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>pending_events</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>().<span class='ident'>push_back</span>(<span class='ident'>MouseWheel</span>(<span class='ident'>delta</span>));
                             <span class='prelude-val'>None</span>
                         }
                         _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>
@@ -1108,9 +1150,10 @@
     <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>Event</span>;
 
     <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Event</span><span class='op'>&gt;</span> {
+        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>;
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
 
-        <span class='kw'>while</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>is_closed</span>() {
+        <span class='kw'>while</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>is_closed</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>) {
             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>ev</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>pending_events</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>().<span class='ident'>pop_front</span>() {
                 <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>ev</span>);
             }
@@ -1187,7 +1230,23 @@
             <span class='kw'>if</span> <span class='ident'>fb</span>.<span class='ident'>is_null</span>() {
                 <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>OsError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;glx::ChooseFBConfig failed&quot;</span>)));
             }
-            <span class='kw'>let</span> <span class='ident'>preferred_fb</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>fb</span>;     <span class='comment'>// TODO: choose more wisely</span>
+
+            <span class='kw'>let</span> <span class='ident'>preferred_fb</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>transparent</span> {
+                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>best_fbi_for_transparent</span> <span class='op'>=</span> <span class='number'>0isize</span>;
+
+                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0isize</span>..<span class='ident'>num_fb</span> <span class='kw'>as</span> <span class='ident'>isize</span> {
+                    <span class='kw'>let</span> <span class='ident'>vi</span> <span class='op'>=</span> <span class='ident'>display</span>.<span class='ident'>glx</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>().<span class='ident'>GetVisualFromFBConfig</span>(<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> _, <span class='op'>*</span><span class='ident'>fb</span>.<span class='ident'>offset</span>(<span class='ident'>i</span>));
+                    <span class='kw'>if</span> (<span class='op'>*</span><span class='ident'>vi</span>).<span class='ident'>depth</span> <span class='op'>==</span> <span class='number'>32</span> {
+                        <span class='ident'>best_fbi_for_transparent</span> <span class='op'>=</span> <span class='ident'>i</span>;
+                        <span class='kw'>break</span>;
+                    }
+                }
+
+                <span class='op'>*</span><span class='ident'>fb</span>.<span class='ident'>offset</span>(<span class='ident'>best_fbi_for_transparent</span>)
+            } <span class='kw'>else</span> {
+                <span class='op'>*</span><span class='ident'>fb</span> <span class='comment'>// TODO: choose more wisely</span>
+            };
+
             (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XFree</span>)(<span class='ident'>fb</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> _);
             <span class='ident'>preferred_fb</span>
         };
@@ -1273,11 +1332,19 @@
                 <span class='ident'>ffi</span>::<span class='ident'>KeyReleaseMask</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>ButtonPressMask</span> <span class='op'>|</span>
                 <span class='ident'>ffi</span>::<span class='ident'>ButtonReleaseMask</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>KeymapStateMask</span>;
             <span class='ident'>swa</span>.<span class='ident'>border_pixel</span> <span class='op'>=</span> <span class='number'>0</span>;
+            <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>transparent</span> {
+                <span class='ident'>swa</span>.<span class='ident'>background_pixel</span> <span class='op'>=</span> <span class='number'>0</span>;
+            }
             <span class='ident'>swa</span>.<span class='ident'>override_redirect</span> <span class='op'>=</span> <span class='number'>0</span>;
             <span class='ident'>swa</span>
         };
 
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>window_attributes</span> <span class='op'>=</span> <span class='ident'>ffi</span>::<span class='ident'>CWBorderPixel</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>CWColormap</span> <span class='op'>|</span> <span class='ident'>ffi</span>:: <span class='ident'>CWEventMask</span>;
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>window_attributes</span> <span class='op'>=</span> <span class='ident'>ffi</span>::<span class='ident'>CWBorderPixel</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>CWColormap</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>CWEventMask</span>;
+
+        <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>transparent</span> {
+            <span class='ident'>window_attributes</span> <span class='op'>|=</span> <span class='ident'>ffi</span>::<span class='ident'>CWBackPixel</span>;
+        }
+
         <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
             <span class='ident'>window_attributes</span> <span class='op'>|=</span> <span class='ident'>ffi</span>::<span class='ident'>CWOverrideRedirect</span>;
             <span class='kw'>unsafe</span> {
@@ -1403,6 +1470,7 @@
                 <span class='ident'>screen_id</span>: <span class='ident'>screen_id</span>,
                 <span class='ident'>is_fullscreen</span>: <span class='ident'>is_fullscreen</span>,
                 <span class='ident'>xf86_desk_mode</span>: <span class='ident'>xf86_desk_mode</span>,
+                <span class='ident'>colormap</span>: <span class='ident'>cmap</span>,
             }),
             <span class='ident'>is_closed</span>: <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>false</span>),
             <span class='ident'>wm_delete_window</span>: <span class='ident'>wm_delete_window</span>,
@@ -1414,11 +1482,6 @@
 
         <span class='comment'>// returning</span>
         <span class='prelude-val'>Ok</span>(<span class='ident'>window</span>)
-    }
-
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_closed</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>;
-        <span class='self'>self</span>.<span class='ident'>is_closed</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>)
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_title</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>title</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) {
@@ -1563,20 +1626,22 @@
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_cursor_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>state</span>: <span class='ident'>CursorState</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>String</span><span class='op'>&gt;</span> {
+        <span class='kw'>use</span> <span class='ident'>CursorState</span>::{ <span class='ident'>Grab</span>, <span class='ident'>Normal</span> };
+
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>cursor_state</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>cursor_state</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
 
         <span class='kw'>match</span> (<span class='ident'>state</span>, <span class='op'>*</span><span class='ident'>cursor_state</span>) {
-            (<span class='ident'>CursorState</span>::<span class='ident'>Normal</span>, <span class='ident'>CursorState</span>::<span class='ident'>Grab</span>) <span class='op'>=&gt;</span> {
+            (<span class='ident'>Normal</span>, <span class='ident'>Grab</span>) <span class='op'>=&gt;</span> {
                 <span class='kw'>unsafe</span> {
                     (<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XUngrabPointer</span>)(<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>ffi</span>::<span class='ident'>CurrentTime</span>);
-                    <span class='op'>*</span><span class='ident'>cursor_state</span> <span class='op'>=</span> <span class='ident'>CursorState</span>::<span class='ident'>Normal</span>;
+                    <span class='op'>*</span><span class='ident'>cursor_state</span> <span class='op'>=</span> <span class='ident'>Normal</span>;
                     <span class='prelude-val'>Ok</span>(())
                 }
             },
 
-            (<span class='ident'>CursorState</span>::<span class='ident'>Grab</span>, <span class='ident'>CursorState</span>::<span class='ident'>Normal</span>) <span class='op'>=&gt;</span> {
+            (<span class='ident'>Grab</span>, <span class='ident'>Normal</span>) <span class='op'>=&gt;</span> {
                 <span class='kw'>unsafe</span> {
-                    <span class='op'>*</span><span class='ident'>cursor_state</span> <span class='op'>=</span> <span class='ident'>CursorState</span>::<span class='ident'>Grab</span>;
+                    <span class='op'>*</span><span class='ident'>cursor_state</span> <span class='op'>=</span> <span class='ident'>Grab</span>;
 
                     <span class='kw'>match</span> (<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XGrabPointer</span>)(
                         <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>window</span>, <span class='ident'>ffi</span>::<span class='ident'>False</span>,
@@ -1597,6 +1662,9 @@
                 }
             },
 
+            <span class='comment'>// Nothing needs to change</span>
+            (<span class='ident'>Grab</span>, <span class='ident'>Grab</span>) <span class='op'>|</span> (<span class='ident'>Normal</span>, <span class='ident'>Normal</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Ok</span>(()),
+
             _ <span class='op'>=&gt;</span> <span class='macro'>unimplemented</span><span class='macro'>!</span>(),
         }
     }
@@ -1615,11 +1683,11 @@
 }
 
 <span class='kw'>impl</span> <span class='ident'>GlContext</span> <span class='kw'>for</span> <span class='ident'>Window</span> {
-    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>make_current</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>make_current</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>ContextError</span><span class='op'>&gt;</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>make_current</span>(),
             <span class='ident'>Context</span>::<span class='ident'>Egl</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>make_current</span>(),
-            <span class='ident'>Context</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {}
+            <span class='ident'>Context</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Ok</span>(())
         }
     }
 
@@ -1639,11 +1707,11 @@
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>swap_buffers</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+    <span class='kw'>fn</span> <span class='ident'>swap_buffers</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>ContextError</span><span class='op'>&gt;</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>swap_buffers</span>(),
             <span class='ident'>Context</span>::<span class='ident'>Egl</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>swap_buffers</span>(),
-            <span class='ident'>Context</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {}
+            <span class='ident'>Context</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Ok</span>(())
         }
     }
 
