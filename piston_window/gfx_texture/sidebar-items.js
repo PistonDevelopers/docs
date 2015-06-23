@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Settings","Texture creation parameters."],["Texture","Represents a texture."]],"trait":[["ImageSize","Implemented by all images to be used with generic algorithms."]]});
+initSidebarItems({"enum":[["Flip","Flip settings."]],"struct":[["Texture","Represents a texture."]]});
