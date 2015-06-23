@@ -199,23 +199,23 @@
 <span class='kw'>use</span> <span class='ident'>flate2</span>::<span class='ident'>write</span>::{<span class='ident'>GzEncoder</span>, <span class='ident'>ZlibEncoder</span>};
 
 <span class='kw'>use</span> <span class='ident'>error</span>::{<span class='ident'>Error</span>, <span class='prelude-ty'>Result</span>};
-<span class='kw'>use</span> <span class='ident'>value</span>::<span class='ident'>NbtValue</span>;
+<span class='kw'>use</span> <span class='ident'>value</span>::<span class='ident'>Value</span>;
 
-<span class='doccomment'>/// An object in the Named Binary Tag (NBT) file format.</span>
+<span class='doccomment'>/// A generic, complete object in Named Binary Tag format.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// This is essentially a map of names to `NbtValue`s, with an optional top-</span>
-<span class='doccomment'>/// level name of its own. It can be created in a similar way to a `HashMap`,</span>
-<span class='doccomment'>/// or read from an `io::Read` source, and its binary representation can be</span>
-<span class='doccomment'>/// written to an `io::Write` destination.</span>
+<span class='doccomment'>/// This is essentially a map of names to `Value`s, with an optional top-level</span>
+<span class='doccomment'>/// name of its own. It can be created in a similar way to a `HashMap`, or read</span>
+<span class='doccomment'>/// from an `io::Read` source, and its binary representation can be written to</span>
+<span class='doccomment'>/// an `io::Write` destination.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// These read and write methods support both uncompressed and compressed</span>
 <span class='doccomment'>/// (through Gzip or zlib compression) methods.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// ```rust</span>
-<span class='doccomment'>/// use nbt::{NbtBlob, NbtValue};</span>
+<span class='doccomment'>/// use nbt::{Blob, Value};</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// // Create a `NbtBlob` from key/value pairs.</span>
-<span class='doccomment'>/// let mut nbt = NbtBlob::new(&quot;&quot;.to_string());</span>
+<span class='doccomment'>/// // Create a `Blob` from key/value pairs.</span>
+<span class='doccomment'>/// let mut nbt = Blob::new(&quot;&quot;.to_string());</span>
 <span class='doccomment'>/// nbt.insert(&quot;name&quot;.to_string(), &quot;Herobrine&quot;).unwrap();</span>
 <span class='doccomment'>/// nbt.insert(&quot;health&quot;.to_string(), 100i8).unwrap();</span>
 <span class='doccomment'>/// nbt.insert(&quot;food&quot;.to_string(), 20.0f32).unwrap();</span>
@@ -225,78 +225,78 @@
 <span class='doccomment'>/// nbt.write_zlib(&amp;mut dst).unwrap();</span>
 <span class='doccomment'>/// ```</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>NbtBlob</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Blob</span> {
     <span class='ident'>title</span>: <span class='ident'>String</span>,
-    <span class='ident'>content</span>: <span class='ident'>NbtValue</span>
+    <span class='ident'>content</span>: <span class='ident'>Value</span>
 }
 
-<span class='kw'>impl</span> <span class='ident'>NbtBlob</span> {
+<span class='kw'>impl</span> <span class='ident'>Blob</span> {
     <span class='doccomment'>/// Create a new NBT file format representation with the given name.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>title</span>: <span class='ident'>String</span>) <span class='op'>-&gt;</span> <span class='ident'>NbtBlob</span> {
-        <span class='kw'>let</span> <span class='ident'>map</span>: <span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>NbtValue</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>HashMap</span>::<span class='ident'>new</span>();
-        <span class='ident'>NbtBlob</span> { <span class='ident'>title</span>: <span class='ident'>title</span>, <span class='ident'>content</span>: <span class='ident'>NbtValue</span>::<span class='ident'>Compound</span>(<span class='ident'>map</span>) }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>title</span>: <span class='ident'>String</span>) <span class='op'>-&gt;</span> <span class='ident'>Blob</span> {
+        <span class='kw'>let</span> <span class='ident'>map</span>: <span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>Value</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>HashMap</span>::<span class='ident'>new</span>();
+        <span class='ident'>Blob</span> { <span class='ident'>title</span>: <span class='ident'>title</span>, <span class='ident'>content</span>: <span class='ident'>Value</span>::<span class='ident'>Compound</span>(<span class='ident'>map</span>) }
     }
 
-    <span class='doccomment'>/// Extracts an `NbtBlob` object from an `io::Read` source.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_reader</span>(<span class='kw-2'>mut</span> <span class='ident'>src</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Read</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>NbtBlob</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>header</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>NbtValue</span>::<span class='ident'>read_header</span>(<span class='ident'>src</span>));
+    <span class='doccomment'>/// Extracts an `Blob` object from an `io::Read` source.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_reader</span>(<span class='kw-2'>mut</span> <span class='ident'>src</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Read</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Blob</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>header</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>Value</span>::<span class='ident'>read_header</span>(<span class='ident'>src</span>));
         <span class='comment'>// Although it would be possible to read NBT format files composed of</span>
         <span class='comment'>// arbitrary objects using the current API, by convention all files</span>
         <span class='comment'>// have a top-level Compound.</span>
         <span class='kw'>if</span> <span class='ident'>header</span>.<span class='number'>0</span> <span class='op'>!=</span> <span class='number'>0x0a</span> {
             <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>Error</span>::<span class='ident'>NoRootCompound</span>);
         }
-        <span class='kw'>let</span> <span class='ident'>content</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>NbtValue</span>::<span class='ident'>from_reader</span>(<span class='ident'>header</span>.<span class='number'>0</span>, <span class='ident'>src</span>));
-        <span class='prelude-val'>Ok</span>(<span class='ident'>NbtBlob</span> { <span class='ident'>title</span>: <span class='ident'>header</span>.<span class='number'>1</span>, <span class='ident'>content</span>: <span class='ident'>content</span> })
+        <span class='kw'>let</span> <span class='ident'>content</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>Value</span>::<span class='ident'>from_reader</span>(<span class='ident'>header</span>.<span class='number'>0</span>, <span class='ident'>src</span>));
+        <span class='prelude-val'>Ok</span>(<span class='ident'>Blob</span> { <span class='ident'>title</span>: <span class='ident'>header</span>.<span class='number'>1</span>, <span class='ident'>content</span>: <span class='ident'>content</span> })
     }
 
-    <span class='doccomment'>/// Extracts an `NbtBlob` object from an `io::Read` source that is</span>
+    <span class='doccomment'>/// Extracts an `Blob` object from an `io::Read` source that is</span>
     <span class='doccomment'>/// compressed using the Gzip format.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_gzip</span>(<span class='ident'>src</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Read</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>NbtBlob</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_gzip</span>(<span class='ident'>src</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Read</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Blob</span><span class='op'>&gt;</span> {
         <span class='comment'>// Reads the gzip header, and fails if it is incorrect.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>GzDecoder</span>::<span class='ident'>new</span>(<span class='ident'>src</span>));
-        <span class='ident'>NbtBlob</span>::<span class='ident'>from_reader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>data</span>)
+        <span class='ident'>Blob</span>::<span class='ident'>from_reader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>data</span>)
     }
 
-    <span class='doccomment'>/// Extracts an `NbtBlob` object from an `io::Read` source that is</span>
+    <span class='doccomment'>/// Extracts an `Blob` object from an `io::Read` source that is</span>
     <span class='doccomment'>/// compressed using the zlib format.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_zlib</span>(<span class='ident'>src</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Read</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>NbtBlob</span><span class='op'>&gt;</span> {
-        <span class='ident'>NbtBlob</span>::<span class='ident'>from_reader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ZlibDecoder</span>::<span class='ident'>new</span>(<span class='ident'>src</span>))
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_zlib</span>(<span class='ident'>src</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Read</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Blob</span><span class='op'>&gt;</span> {
+        <span class='ident'>Blob</span>::<span class='ident'>from_reader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ZlibDecoder</span>::<span class='ident'>new</span>(<span class='ident'>src</span>))
     }
 
-    <span class='doccomment'>/// Writes the binary representation of this `NbtBlob` to an `io::Write`</span>
+    <span class='doccomment'>/// Writes the binary representation of this `Blob` to an `io::Write`</span>
     <span class='doccomment'>/// destination.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Write</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
         <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>content</span>.<span class='ident'>write_header</span>(<span class='ident'>dst</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>title</span>));
         <span class='self'>self</span>.<span class='ident'>content</span>.<span class='ident'>write</span>(<span class='ident'>dst</span>)
     }
 
-    <span class='doccomment'>/// Writes the binary representation of this `NbtBlob`, compressed using</span>
+    <span class='doccomment'>/// Writes the binary representation of this `Blob`, compressed using</span>
     <span class='doccomment'>/// the Gzip format, to an `io::Write` destination.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>write_gzip</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Write</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>GzEncoder</span>::<span class='ident'>new</span>(<span class='ident'>dst</span>, <span class='ident'>Compression</span>::<span class='ident'>Default</span>))
     }
 
-    <span class='doccomment'>/// Writes the binary representation of this `NbtBlob`, compressed using</span>
+    <span class='doccomment'>/// Writes the binary representation of this `Blob`, compressed using</span>
     <span class='doccomment'>/// the Zlib format, to an `io::Write` dst.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>write_zlib</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>io</span>::<span class='ident'>Write</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ZlibEncoder</span>::<span class='ident'>new</span>(<span class='ident'>dst</span>, <span class='ident'>Compression</span>::<span class='ident'>Default</span>))
     }
 
-    <span class='doccomment'>/// Insert an `NbtValue` with a given name into this `NbtBlob` object. This</span>
+    <span class='doccomment'>/// Insert an `Value` with a given name into this `Blob` object. This</span>
     <span class='doccomment'>/// method is just a thin wrapper around the underlying `HashMap` method of</span>
     <span class='doccomment'>/// the same name.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This method will also return an error if a `NbtValue::List` with</span>
+    <span class='doccomment'>/// This method will also return an error if a `Value::List` with</span>
     <span class='doccomment'>/// heterogeneous elements is passed in, because this is illegal in the NBT</span>
     <span class='doccomment'>/// file format.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>insert</span><span class='op'>&lt;</span><span class='ident'>V</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>name</span>: <span class='ident'>String</span>, <span class='ident'>value</span>: <span class='ident'>V</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span>
-           <span class='kw'>where</span> <span class='ident'>V</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>NbtValue</span><span class='op'>&gt;</span> {
+           <span class='kw'>where</span> <span class='ident'>V</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Value</span><span class='op'>&gt;</span> {
         <span class='comment'>// The follow prevents `List`s with heterogeneous tags from being</span>
         <span class='comment'>// inserted into the file. It would be nicer to return an error, but</span>
         <span class='comment'>// this would depart from the `HashMap` API for `insert`.</span>
         <span class='kw'>let</span> <span class='ident'>nvalue</span> <span class='op'>=</span> <span class='ident'>value</span>.<span class='ident'>into</span>();
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>NbtValue</span>::<span class='ident'>List</span>(<span class='kw-2'>ref</span> <span class='ident'>vals</span>) <span class='op'>=</span> <span class='ident'>nvalue</span> {
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Value</span>::<span class='ident'>List</span>(<span class='kw-2'>ref</span> <span class='ident'>vals</span>) <span class='op'>=</span> <span class='ident'>nvalue</span> {
             <span class='kw'>if</span> <span class='ident'>vals</span>.<span class='ident'>len</span>() <span class='op'>!=</span> <span class='number'>0</span> {
                 <span class='kw'>let</span> <span class='ident'>first_id</span> <span class='op'>=</span> <span class='ident'>vals</span>[<span class='number'>0</span>].<span class='ident'>id</span>();
                 <span class='kw'>for</span> <span class='ident'>nbt</span> <span class='kw'>in</span> <span class='ident'>vals</span> {
@@ -306,7 +306,7 @@
                 }
             }
         }
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>NbtValue</span>::<span class='ident'>Compound</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>v</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>content</span> {
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Value</span>::<span class='ident'>Compound</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>v</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>content</span> {
             <span class='ident'>v</span>.<span class='ident'>insert</span>(<span class='ident'>name</span>, <span class='ident'>nvalue</span>);
         } <span class='kw'>else</span> {
             <span class='macro'>unreachable</span><span class='macro'>!</span>();
@@ -314,25 +314,25 @@
         <span class='prelude-val'>Ok</span>(())
     }
 
-    <span class='doccomment'>/// The uncompressed length of this `NbtBlob`, in bytes.</span>
+    <span class='doccomment'>/// The uncompressed length of this `Blob`, in bytes.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
         <span class='comment'>// tag + name + content</span>
         <span class='number'>1</span> <span class='op'>+</span> <span class='number'>2</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>title</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>content</span>.<span class='ident'>len</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Index</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>NbtBlob</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>NbtValue</span>;
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Index</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Blob</span> {
+    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>Value</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>index</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='self'>self</span>, <span class='ident'>s</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>NbtValue</span> {
+    <span class='kw'>fn</span> <span class='ident'>index</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='self'>self</span>, <span class='ident'>s</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>Value</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>content</span> {
-            <span class='ident'>NbtValue</span>::<span class='ident'>Compound</span>(<span class='kw-2'>ref</span> <span class='ident'>v</span>) <span class='op'>=&gt;</span> <span class='ident'>v</span>.<span class='ident'>get</span>(<span class='ident'>s</span>).<span class='ident'>unwrap</span>(),
+            <span class='ident'>Value</span>::<span class='ident'>Compound</span>(<span class='kw-2'>ref</span> <span class='ident'>v</span>) <span class='op'>=&gt;</span> <span class='ident'>v</span>.<span class='ident'>get</span>(<span class='ident'>s</span>).<span class='ident'>unwrap</span>(),
             _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>()
         }
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span> <span class='kw'>for</span> <span class='ident'>NbtBlob</span> {
+<span class='kw'>impl</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span> <span class='kw'>for</span> <span class='ident'>Blob</span> {
     <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
         <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;TAG_Compound(\&quot;{}\&quot;): {}&quot;</span>, <span class='self'>self</span>.<span class='ident'>title</span>, <span class='self'>self</span>.<span class='ident'>content</span>)
     }

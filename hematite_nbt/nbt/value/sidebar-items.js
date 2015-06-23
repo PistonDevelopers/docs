@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["NbtValue","A value which can be represented in the Named Binary Tag (NBT) file format."]]});
+initSidebarItems({"enum":[["Value","Values which can be represented in the Named Binary Tag format."]]});
