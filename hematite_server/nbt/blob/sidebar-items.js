@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Blob","A generic, complete object in Named Binary Tag format."]]});

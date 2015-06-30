@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error","Errors that may be encountered when constructing, parsing, or encoding `NbtValue` and `NbtBlob` objects."]],"type":[["Result","A convenient alias type for results when reading/writing the Named Binary Tag format."]]});

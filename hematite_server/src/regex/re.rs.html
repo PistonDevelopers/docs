@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/regex-0.1.33/src/re.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/regex-0.1.38/src/re.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>re.rs.html -- source</title>
@@ -1164,8 +1164,32 @@
 <span id="1122">1122</span>
 <span id="1123">1123</span>
 <span id="1124">1124</span>
+<span id="1125">1125</span>
+<span id="1126">1126</span>
+<span id="1127">1127</span>
+<span id="1128">1128</span>
+<span id="1129">1129</span>
+<span id="1130">1130</span>
+<span id="1131">1131</span>
+<span id="1132">1132</span>
+<span id="1133">1133</span>
+<span id="1134">1134</span>
+<span id="1135">1135</span>
+<span id="1136">1136</span>
+<span id="1137">1137</span>
+<span id="1138">1138</span>
+<span id="1139">1139</span>
+<span id="1140">1140</span>
+<span id="1141">1141</span>
+<span id="1142">1142</span>
+<span id="1143">1143</span>
+<span id="1144">1144</span>
+<span id="1145">1145</span>
+<span id="1146">1146</span>
+<span id="1147">1147</span>
+<span id="1148">1148</span>
 </pre><pre class='rust '>
-<span class='comment'>// Copyright 2014 The Rust Project Developers. See the COPYRIGHT</span>
+<span class='comment'>// Copyright 2014-2015 The Rust Project Developers. See the COPYRIGHT</span>
 <span class='comment'>// file at the top-level directory of this distribution and at</span>
 <span class='comment'>// http://rust-lang.org/COPYRIGHT.</span>
 <span class='comment'>//</span>
@@ -1183,14 +1207,21 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>str</span>::<span class='ident'>pattern</span>::{<span class='ident'>Pattern</span>, <span class='ident'>Searcher</span>, <span class='ident'>SearchStep</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>str</span>::<span class='ident'>FromStr</span>;
 
-<span class='kw'>use</span> <span class='ident'>compile</span>::<span class='ident'>Program</span>;
+<span class='kw'>use</span> <span class='ident'>program</span>::{<span class='ident'>Program</span>, <span class='ident'>MatchEngine</span>};
 <span class='kw'>use</span> <span class='ident'>syntax</span>;
-<span class='kw'>use</span> <span class='ident'>vm</span>;
-<span class='kw'>use</span> <span class='ident'>vm</span>::<span class='ident'>CaptureLocs</span>;
-<span class='kw'>use</span> <span class='ident'>vm</span>::<span class='ident'>MatchKind</span>::{<span class='self'>self</span>, <span class='ident'>Exists</span>, <span class='ident'>Location</span>, <span class='ident'>Submatches</span>};
 
-<span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>NamesIter</span>::<span class='op'>*</span>;
-<span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Regex</span>::<span class='op'>*</span>;
+<span class='kw'>const</span> <span class='ident'>REPLACE_EXPAND</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>r&quot;(?x)
+  (?P&lt;before&gt;^|\b|[^$]) # Ignore `$$name`.
+  \$
+  (?P&lt;name&gt; # Match the actual capture name. Can be...
+    [0-9]+  # A sequence of digits (for indexed captures), or...
+    |
+    [_a-zA-Z][_0-9a-zA-Z]* # A name for named captures.
+  )
+&quot;</span>;
+
+<span class='doccomment'>/// Type alias for representing capture indices.</span>
+<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>CaptureIdxs</span> <span class='op'>=</span> [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>];
 
 <span class='doccomment'>/// Escapes all regular expression meta characters in `text`.</span>
 <span class='doccomment'>///</span>
@@ -1333,18 +1364,9 @@
     <span class='comment'>// See the comments for the `program` module in `lib.rs` for a more</span>
     <span class='comment'>// detailed explanation for what `regex!` requires.</span>
     <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
-    <span class='ident'>Dynamic</span>(<span class='ident'>ExDynamic</span>),
+    <span class='ident'>Dynamic</span>(<span class='ident'>Program</span>),
     <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
     <span class='ident'>Native</span>(<span class='ident'>ExNative</span>),
-}
-
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
-<span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ExDynamic</span> {
-    <span class='ident'>original</span>: <span class='ident'>String</span>,
-    <span class='ident'>names</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>,
-    <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
-    <span class='kw'>pub</span> <span class='ident'>prog</span>: <span class='ident'>Program</span>
 }
 
 <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
@@ -1354,7 +1376,7 @@
     <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
     <span class='kw'>pub</span> <span class='ident'>names</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span><span class='op'>&gt;</span>],
     <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
-    <span class='kw'>pub</span> <span class='ident'>prog</span>: <span class='kw'>fn</span>(<span class='ident'>MatchKind</span>, <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>usize</span>, <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;&gt;</span>
+    <span class='kw'>pub</span> <span class='ident'>prog</span>: <span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>CaptureIdxs</span>, <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>,
 }
 
 <span class='kw'>impl</span> <span class='ident'>Copy</span> <span class='kw'>for</span> <span class='ident'>ExNative</span> {}
@@ -1417,13 +1439,29 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// The default size limit used in `new` is 10MB.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_size_limit</span>(<span class='ident'>size</span>: <span class='ident'>usize</span>, <span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Regex</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ast</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>syntax</span>::<span class='ident'>Expr</span>::<span class='ident'>parse</span>(<span class='ident'>re</span>));
-        <span class='kw'>let</span> (<span class='ident'>prog</span>, <span class='ident'>names</span>) <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>Program</span>::<span class='ident'>new</span>(<span class='ident'>ast</span>, <span class='ident'>size</span>));
-        <span class='prelude-val'>Ok</span>(<span class='ident'>Dynamic</span>(<span class='ident'>ExDynamic</span> {
-            <span class='ident'>original</span>: <span class='ident'>re</span>.<span class='ident'>to_string</span>(),
-            <span class='ident'>names</span>: <span class='ident'>names</span>,
-            <span class='ident'>prog</span>: <span class='ident'>prog</span>,
-        }))
+        <span class='ident'>Regex</span>::<span class='ident'>with_engine</span>(<span class='prelude-val'>None</span>, <span class='ident'>size</span>, <span class='ident'>re</span>)
+    }
+
+    <span class='doccomment'>/// Compiles a dynamic regular expression and uses given matching engine.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// This is exposed for use in testing and shouldn&#39;t be used by clients.</span>
+    <span class='doccomment'>/// Instead, the regex program should choose the correct matching engine</span>
+    <span class='doccomment'>/// to use automatically. (Based on the regex, the size of the input and</span>
+    <span class='doccomment'>/// the type of search.)</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A value of `None` means that the engine is automatically selected,</span>
+    <span class='doccomment'>/// which is the default behavior.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **WARNING**: Passing an unsuitable engine for the given regex/input</span>
+    <span class='doccomment'>/// could lead to bad things. (Not unsafe things, but panics, incorrect</span>
+    <span class='doccomment'>/// matches and large memory use are all things that could happen.)</span>
+    <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_engine</span>(
+        <span class='ident'>engine</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>MatchEngine</span><span class='op'>&gt;</span>,
+        <span class='ident'>size</span>: <span class='ident'>usize</span>,
+        <span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>,
+    ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Regex</span>, <span class='ident'>Error</span><span class='op'>&gt;</span> {
+        <span class='ident'>Program</span>::<span class='ident'>new</span>(<span class='ident'>engine</span>, <span class='ident'>size</span>, <span class='ident'>re</span>).<span class='ident'>map</span>(<span class='ident'>Regex</span>::<span class='ident'>Dynamic</span>)
     }
 
 
@@ -1438,12 +1476,11 @@
     <span class='doccomment'>/// # extern crate regex; use regex::Regex;</span>
     <span class='doccomment'>/// # fn main() {</span>
     <span class='doccomment'>/// let text = &quot;I categorically deny having triskaidekaphobia.&quot;;</span>
-    <span class='doccomment'>/// let matched = Regex::new(r&quot;\b\w{13}\b&quot;).unwrap().is_match(text);</span>
-    <span class='doccomment'>/// assert!(matched);</span>
+    <span class='doccomment'>/// assert!(Regex::new(r&quot;\b\w{13}\b&quot;).unwrap().is_match(text));</span>
     <span class='doccomment'>/// # }</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_match</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='ident'>has_match</span>(<span class='kw-2'>&amp;</span><span class='ident'>exec</span>(<span class='self'>self</span>, <span class='ident'>Exists</span>, <span class='ident'>text</span>))
+        <span class='ident'>exec</span>(<span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [], <span class='ident'>text</span>, <span class='number'>0</span>)
     }
 
     <span class='doccomment'>/// Returns the start and end byte range of the leftmost-first match in</span>
@@ -1467,8 +1504,8 @@
     <span class='doccomment'>/// # }</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>find</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>usize</span>, <span class='ident'>usize</span>)<span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>caps</span> <span class='op'>=</span> <span class='ident'>exec</span>(<span class='self'>self</span>, <span class='ident'>Location</span>, <span class='ident'>text</span>);
-        <span class='kw'>if</span> <span class='ident'>has_match</span>(<span class='kw-2'>&amp;</span><span class='ident'>caps</span>) {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>caps</span> <span class='op'>=</span> [<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>];
+        <span class='kw'>if</span> <span class='ident'>exec</span>(<span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>caps</span>, <span class='ident'>text</span>, <span class='number'>0</span>) {
             <span class='prelude-val'>Some</span>((<span class='ident'>caps</span>[<span class='number'>0</span>].<span class='ident'>unwrap</span>(), <span class='ident'>caps</span>[<span class='number'>1</span>].<span class='ident'>unwrap</span>()))
         } <span class='kw'>else</span> {
             <span class='prelude-val'>None</span>
@@ -1559,8 +1596,12 @@
     <span class='doccomment'>/// The `0`th capture group is always unnamed, so it must always be</span>
     <span class='doccomment'>/// accessed with `at(0)`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>captures</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;t</span> <span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Captures</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>caps</span> <span class='op'>=</span> <span class='ident'>exec</span>(<span class='self'>self</span>, <span class='ident'>Submatches</span>, <span class='ident'>text</span>);
-        <span class='ident'>Captures</span>::<span class='ident'>new</span>(<span class='self'>self</span>, <span class='ident'>text</span>, <span class='ident'>caps</span>)
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>caps</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>alloc_captures</span>();
+        <span class='kw'>if</span> <span class='ident'>exec</span>(<span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>caps</span>, <span class='ident'>text</span>, <span class='number'>0</span>) {
+            <span class='prelude-val'>Some</span>(<span class='ident'>Captures</span>::<span class='ident'>new</span>(<span class='self'>self</span>, <span class='ident'>text</span>, <span class='ident'>caps</span>))
+        } <span class='kw'>else</span> {
+            <span class='prelude-val'>None</span>
+        }
     }
 
     <span class='doccomment'>/// Returns an iterator over all the non-overlapping capture groups matched</span>
@@ -1746,50 +1787,68 @@
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>new</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>with_capacity</span>(<span class='ident'>text</span>.<span class='ident'>len</span>());
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>last_match</span> <span class='op'>=</span> <span class='number'>0</span>;
 
-        <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>cap</span>) <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>captures_iter</span>(<span class='ident'>text</span>).<span class='ident'>enumerate</span>() {
-            <span class='comment'>// It&#39;d be nicer to use the &#39;take&#39; iterator instead, but it seemed</span>
-            <span class='comment'>// awkward given that &#39;0&#39; =&gt; no limit.</span>
-            <span class='kw'>if</span> <span class='ident'>limit</span> <span class='op'>&gt;</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='ident'>i</span> <span class='op'>&gt;=</span> <span class='ident'>limit</span> {
-                <span class='kw'>break</span>
+        <span class='kw'>if</span> <span class='ident'>rep</span>.<span class='ident'>no_expand</span>().<span class='ident'>is_some</span>() {
+            <span class='comment'>// borrow checker pains. `rep` is borrowed mutably in the `else`</span>
+            <span class='comment'>// branch below.</span>
+            <span class='kw'>let</span> <span class='ident'>rep</span> <span class='op'>=</span> <span class='ident'>rep</span>.<span class='ident'>no_expand</span>().<span class='ident'>unwrap</span>();
+            <span class='kw'>for</span> (<span class='ident'>i</span>, (<span class='ident'>s</span>, <span class='ident'>e</span>)) <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>find_iter</span>(<span class='ident'>text</span>).<span class='ident'>enumerate</span>() {
+                <span class='kw'>if</span> <span class='ident'>limit</span> <span class='op'>&gt;</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='ident'>i</span> <span class='op'>&gt;=</span> <span class='ident'>limit</span> {
+                    <span class='kw'>break</span>
+                }
+                <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>last_match</span>..<span class='ident'>s</span>]);
+                <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>rep</span>);
+                <span class='ident'>last_match</span> <span class='op'>=</span> <span class='ident'>e</span>;
             }
-
-            <span class='kw'>let</span> (<span class='ident'>s</span>, <span class='ident'>e</span>) <span class='op'>=</span> <span class='ident'>cap</span>.<span class='ident'>pos</span>(<span class='number'>0</span>).<span class='ident'>unwrap</span>(); <span class='comment'>// captures only reports matches</span>
-            <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>last_match</span>..<span class='ident'>s</span>]);
-            <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>rep</span>.<span class='ident'>reg_replace</span>(<span class='kw-2'>&amp;</span><span class='ident'>cap</span>));
-            <span class='ident'>last_match</span> <span class='op'>=</span> <span class='ident'>e</span>;
+        } <span class='kw'>else</span> {
+            <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>cap</span>) <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>captures_iter</span>(<span class='ident'>text</span>).<span class='ident'>enumerate</span>() {
+                <span class='kw'>if</span> <span class='ident'>limit</span> <span class='op'>&gt;</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='ident'>i</span> <span class='op'>&gt;=</span> <span class='ident'>limit</span> {
+                    <span class='kw'>break</span>
+                }
+                <span class='comment'>// unwrap on 0 is OK because captures only reports matches</span>
+                <span class='kw'>let</span> (<span class='ident'>s</span>, <span class='ident'>e</span>) <span class='op'>=</span> <span class='ident'>cap</span>.<span class='ident'>pos</span>(<span class='number'>0</span>).<span class='ident'>unwrap</span>();
+                <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>last_match</span>..<span class='ident'>s</span>]);
+                <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>rep</span>.<span class='ident'>reg_replace</span>(<span class='kw-2'>&amp;</span><span class='ident'>cap</span>));
+                <span class='ident'>last_match</span> <span class='op'>=</span> <span class='ident'>e</span>;
+            }
         }
         <span class='ident'>new</span>.<span class='ident'>push_str</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>last_match</span>..]);
-        <span class='kw'>return</span> <span class='ident'>new</span>;
+        <span class='ident'>new</span>
     }
 
     <span class='doccomment'>/// Returns the original string of this regex.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_str</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>Dynamic</span>(<span class='ident'>ExDynamic</span> { <span class='kw-2'>ref</span> <span class='ident'>original</span>, .. }) <span class='op'>=&gt;</span> <span class='ident'>original</span>,
-            <span class='ident'>Native</span>(<span class='ident'>ExNative</span> { <span class='kw-2'>ref</span> <span class='ident'>original</span>, .. }) <span class='op'>=&gt;</span> <span class='ident'>original</span>,
+            <span class='ident'>Regex</span>::<span class='ident'>Dynamic</span>(<span class='ident'>Program</span> { <span class='kw-2'>ref</span> <span class='ident'>original</span>, .. }) <span class='op'>=&gt;</span> <span class='ident'>original</span>,
+            <span class='ident'>Regex</span>::<span class='ident'>Native</span>(<span class='ident'>ExNative</span> { <span class='kw-2'>ref</span> <span class='ident'>original</span>, .. }) <span class='op'>=&gt;</span> <span class='ident'>original</span>,
         }
     }
 
     <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>names_iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>NamesIter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>Native</span>(<span class='kw-2'>ref</span> <span class='ident'>n</span>) <span class='op'>=&gt;</span> <span class='ident'>NamesIterNative</span>(<span class='ident'>n</span>.<span class='ident'>names</span>.<span class='ident'>iter</span>()),
-            <span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='ident'>d</span>) <span class='op'>=&gt;</span> <span class='ident'>NamesIterDynamic</span>(<span class='ident'>d</span>.<span class='ident'>names</span>.<span class='ident'>iter</span>())
+            <span class='ident'>Regex</span>::<span class='ident'>Native</span>(<span class='kw-2'>ref</span> <span class='ident'>n</span>) <span class='op'>=&gt;</span> <span class='ident'>NamesIter</span>::<span class='ident'>Native</span>(<span class='ident'>n</span>.<span class='ident'>names</span>.<span class='ident'>iter</span>()),
+            <span class='ident'>Regex</span>::<span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='ident'>d</span>) <span class='op'>=&gt;</span> <span class='ident'>NamesIter</span>::<span class='ident'>Dynamic</span>(<span class='ident'>d</span>.<span class='ident'>cap_names</span>.<span class='ident'>iter</span>())
         }
     }
 
     <span class='kw'>fn</span> <span class='ident'>names_len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>Native</span>(<span class='kw-2'>ref</span> <span class='ident'>n</span>) <span class='op'>=&gt;</span> <span class='ident'>n</span>.<span class='ident'>names</span>.<span class='ident'>len</span>(),
-            <span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='ident'>d</span>) <span class='op'>=&gt;</span> <span class='ident'>d</span>.<span class='ident'>names</span>.<span class='ident'>len</span>()
+            <span class='ident'>Regex</span>::<span class='ident'>Native</span>(<span class='kw-2'>ref</span> <span class='ident'>n</span>) <span class='op'>=&gt;</span> <span class='ident'>n</span>.<span class='ident'>names</span>.<span class='ident'>len</span>(),
+            <span class='ident'>Regex</span>::<span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='ident'>d</span>) <span class='op'>=&gt;</span> <span class='ident'>d</span>.<span class='ident'>cap_names</span>.<span class='ident'>len</span>()
         }
     }
 
+    <span class='kw'>fn</span> <span class='ident'>alloc_captures</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;&gt;</span> {
+        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
+            <span class='ident'>Regex</span>::<span class='ident'>Native</span>(<span class='kw-2'>ref</span> <span class='ident'>n</span>) <span class='op'>=&gt;</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='prelude-val'>None</span>; <span class='number'>2</span> <span class='op'>*</span> <span class='ident'>n</span>.<span class='ident'>names</span>.<span class='ident'>len</span>()],
+            <span class='ident'>Regex</span>::<span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='ident'>d</span>) <span class='op'>=&gt;</span> <span class='ident'>d</span>.<span class='ident'>alloc_captures</span>(),
+        }
+    }
 }
 
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>NamesIter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>NamesIterNative</span>(::<span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span><span class='op'>&gt;&gt;</span>),
-    <span class='ident'>NamesIterDynamic</span>(::<span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>)
+    <span class='ident'>Native</span>(::<span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span><span class='op'>&gt;&gt;</span>),
+    <span class='ident'>Dynamic</span>(::<span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>)
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>NamesIter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
@@ -1797,8 +1856,10 @@
 
     <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>NamesIterNative</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>i</span>) <span class='op'>=&gt;</span> <span class='ident'>i</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='ident'>x</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>s</span><span class='op'>|</span> <span class='ident'>s</span>.<span class='ident'>to_string</span>())),
-            <span class='ident'>NamesIterDynamic</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>i</span>) <span class='op'>=&gt;</span> <span class='ident'>i</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='ident'>x</span>.<span class='ident'>as_ref</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>s</span><span class='op'>|</span> <span class='ident'>s</span>.<span class='ident'>to_string</span>())),
+            <span class='ident'>NamesIter</span>::<span class='ident'>Native</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>i</span>) <span class='op'>=&gt;</span>
+                <span class='ident'>i</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='ident'>x</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>s</span><span class='op'>|</span> <span class='ident'>s</span>.<span class='ident'>to_owned</span>())),
+            <span class='ident'>NamesIter</span>::<span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>i</span>) <span class='op'>=&gt;</span>
+                <span class='ident'>i</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='ident'>x</span>.<span class='ident'>as_ref</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>s</span><span class='op'>|</span> <span class='ident'>s</span>.<span class='ident'>to_owned</span>())),
         }
     }
 }
@@ -1820,24 +1881,39 @@
     <span class='doccomment'>/// The `&#39;a` lifetime refers to the lifetime of a borrowed string when</span>
     <span class='doccomment'>/// a new owned string isn&#39;t needed (e.g., for `NoExpand`).</span>
     <span class='kw'>fn</span> <span class='ident'>reg_replace</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>caps</span>: <span class='kw-2'>&amp;</span><span class='ident'>Captures</span>) <span class='op'>-&gt;</span> <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;</span>;
+
+    <span class='doccomment'>/// Returns a possibly owned string that never needs expansion.</span>
+    <span class='kw'>fn</span> <span class='ident'>no_expand</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> <span class='ident'>Replacer</span> <span class='kw'>for</span> <span class='ident'>NoExpand</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>reg_replace</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>Captures</span>) <span class='op'>-&gt;</span> <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>NoExpand</span>(<span class='ident'>s</span>) <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-        <span class='ident'>Cow</span>::<span class='ident'>Borrowed</span>(<span class='ident'>s</span>)
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>into</span>()
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>no_expand</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
+        <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>into</span>())
     }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> <span class='ident'>Replacer</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;t</span> <span class='ident'>str</span> {
     <span class='kw'>fn</span> <span class='ident'>reg_replace</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>caps</span>: <span class='kw-2'>&amp;</span><span class='ident'>Captures</span>) <span class='op'>-&gt;</span> <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;</span> {
-        <span class='ident'>Cow</span>::<span class='ident'>Owned</span>(<span class='ident'>caps</span>.<span class='ident'>expand</span>(<span class='op'>*</span><span class='self'>self</span>))
+        <span class='ident'>caps</span>.<span class='ident'>expand</span>(<span class='op'>*</span><span class='self'>self</span>).<span class='ident'>into</span>()
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>no_expand</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>re</span> <span class='op'>=</span> <span class='ident'>Regex</span>::<span class='ident'>new</span>(<span class='ident'>REPLACE_EXPAND</span>).<span class='ident'>unwrap</span>();
+        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>re</span>.<span class='ident'>is_match</span>(<span class='self'>self</span>) {
+            <span class='prelude-val'>Some</span>((<span class='op'>*</span><span class='self'>self</span>).<span class='ident'>into</span>())
+        } <span class='kw'>else</span> {
+            <span class='prelude-val'>None</span>
+        }
     }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Replacer</span> <span class='kw'>for</span> <span class='ident'>F</span> <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='ident'>Captures</span>) <span class='op'>-&gt;</span> <span class='ident'>String</span> {
     <span class='kw'>fn</span> <span class='ident'>reg_replace</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>caps</span>: <span class='kw-2'>&amp;</span><span class='ident'>Captures</span>) <span class='op'>-&gt;</span> <span class='ident'>Cow</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>str</span><span class='op'>&gt;</span> {
-        <span class='ident'>Cow</span>::<span class='ident'>Owned</span>((<span class='op'>*</span><span class='self'>self</span>)(<span class='ident'>caps</span>))
+        (<span class='op'>*</span><span class='self'>self</span>)(<span class='ident'>caps</span>).<span class='ident'>into</span>()
     }
 }
 
@@ -1917,37 +1993,33 @@
 <span class='doccomment'>/// `&#39;t` is the lifetime of the matched text.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Captures</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
     <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;t</span> <span class='ident'>str</span>,
-    <span class='ident'>locs</span>: <span class='ident'>CaptureLocs</span>,
+    <span class='ident'>locs</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>named</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>usize</span><span class='op'>&gt;&gt;</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> <span class='ident'>Captures</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>Regex</span>, <span class='ident'>search</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;t</span> <span class='ident'>str</span>, <span class='ident'>locs</span>: <span class='ident'>CaptureLocs</span>)
-          <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Captures</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;&gt;</span> {
-        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>has_match</span>(<span class='kw-2'>&amp;</span><span class='ident'>locs</span>) {
-            <span class='kw'>return</span> <span class='prelude-val'>None</span>
-        }
-
+    <span class='kw'>fn</span> <span class='ident'>new</span>(
+        <span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>Regex</span>,
+        <span class='ident'>search</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;t</span> <span class='ident'>str</span>,
+        <span class='ident'>locs</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;&gt;</span>,
+    ) <span class='op'>-&gt;</span> <span class='ident'>Captures</span><span class='op'>&lt;</span><span class='lifetime'>&#39;t</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>named</span> <span class='op'>=</span>
             <span class='kw'>if</span> <span class='ident'>re</span>.<span class='ident'>names_len</span>() <span class='op'>==</span> <span class='number'>0</span> {
                 <span class='prelude-val'>None</span>
             } <span class='kw'>else</span> {
                 <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>named</span> <span class='op'>=</span> <span class='ident'>HashMap</span>::<span class='ident'>new</span>();
                 <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>name</span>) <span class='kw'>in</span> <span class='ident'>re</span>.<span class='ident'>names_iter</span>().<span class='ident'>enumerate</span>() {
-                    <span class='kw'>match</span> <span class='ident'>name</span> {
-                        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {},
-                        <span class='prelude-val'>Some</span>(<span class='ident'>name</span>) <span class='op'>=&gt;</span> {
-                            <span class='ident'>named</span>.<span class='ident'>insert</span>(<span class='ident'>name</span>, <span class='ident'>i</span>);
-                        }
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>name</span>) <span class='op'>=</span> <span class='ident'>name</span> {
+                        <span class='ident'>named</span>.<span class='ident'>insert</span>(<span class='ident'>name</span>, <span class='ident'>i</span>);
                     }
                 }
                 <span class='prelude-val'>Some</span>(<span class='ident'>named</span>)
             };
-        <span class='prelude-val'>Some</span>(<span class='ident'>Captures</span> {
+        <span class='ident'>Captures</span> {
             <span class='ident'>text</span>: <span class='ident'>search</span>,
             <span class='ident'>locs</span>: <span class='ident'>locs</span>,
             <span class='ident'>named</span>: <span class='ident'>named</span>,
-        })
+        }
     }
 
     <span class='doccomment'>/// Returns the start and end positions of the Nth capture group.</span>
@@ -2023,15 +2095,7 @@
     <span class='doccomment'>/// To write a literal `$` use `$$`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>expand</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>String</span> {
         <span class='comment'>// How evil can you get?</span>
-        <span class='kw'>let</span> <span class='ident'>re</span> <span class='op'>=</span> <span class='ident'>Regex</span>::<span class='ident'>new</span>(<span class='string'>r&quot;(?x)
-          (?P&lt;before&gt;^|\b|[^$]) # Ignore `$$name`.
-          \$
-          (?P&lt;name&gt; # Match the actual capture name. Can be...
-            [0-9]+  # A sequence of digits (for indexed captures), or...
-            |
-            [_a-zA-Z][_0-9a-zA-Z]* # A name for named captures.
-          )
-        &quot;</span>).<span class='ident'>unwrap</span>();
+        <span class='kw'>let</span> <span class='ident'>re</span> <span class='op'>=</span> <span class='ident'>Regex</span>::<span class='ident'>new</span>(<span class='ident'>REPLACE_EXPAND</span>).<span class='ident'>unwrap</span>();
         <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>re</span>.<span class='ident'>replace_all</span>(<span class='ident'>text</span>, <span class='op'>|</span><span class='ident'>refs</span>: <span class='kw-2'>&amp;</span><span class='ident'>Captures</span><span class='op'>|</span> <span class='op'>-&gt;</span> <span class='ident'>String</span> {
             <span class='kw'>let</span> <span class='ident'>before</span> <span class='op'>=</span> <span class='ident'>refs</span>.<span class='ident'>name</span>(<span class='string'>&quot;before&quot;</span>).<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&quot;</span>);
             <span class='kw'>let</span> <span class='ident'>name</span> <span class='op'>=</span> <span class='ident'>refs</span>.<span class='ident'>name</span>(<span class='string'>&quot;name&quot;</span>).<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&quot;</span>);
@@ -2141,14 +2205,11 @@
             <span class='kw'>return</span> <span class='prelude-val'>None</span>
         }
 
-        <span class='kw'>let</span> <span class='ident'>caps</span> <span class='op'>=</span> <span class='ident'>exec_slice</span>(<span class='self'>self</span>.<span class='ident'>re</span>, <span class='ident'>Submatches</span>, <span class='self'>self</span>.<span class='ident'>search</span>,
-                              <span class='self'>self</span>.<span class='ident'>last_end</span>, <span class='self'>self</span>.<span class='ident'>search</span>.<span class='ident'>len</span>());
-        <span class='kw'>let</span> (<span class='ident'>s</span>, <span class='ident'>e</span>) <span class='op'>=</span>
-            <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>has_match</span>(<span class='kw-2'>&amp;</span><span class='ident'>caps</span>) {
-                <span class='kw'>return</span> <span class='prelude-val'>None</span>
-            } <span class='kw'>else</span> {
-                (<span class='ident'>caps</span>[<span class='number'>0</span>].<span class='ident'>unwrap</span>(), <span class='ident'>caps</span>[<span class='number'>1</span>].<span class='ident'>unwrap</span>())
-            };
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>caps</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>re</span>.<span class='ident'>alloc_captures</span>();
+        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>exec</span>(<span class='self'>self</span>.<span class='ident'>re</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>caps</span>, <span class='self'>self</span>.<span class='ident'>search</span>, <span class='self'>self</span>.<span class='ident'>last_end</span>) {
+            <span class='kw'>return</span> <span class='prelude-val'>None</span>
+        }
+        <span class='kw'>let</span> (<span class='ident'>s</span>, <span class='ident'>e</span>) <span class='op'>=</span> (<span class='ident'>caps</span>[<span class='number'>0</span>].<span class='ident'>unwrap</span>(), <span class='ident'>caps</span>[<span class='number'>1</span>].<span class='ident'>unwrap</span>());
 
         <span class='comment'>// Don&#39;t accept empty matches immediately following a match.</span>
         <span class='comment'>// i.e., no infinite loops please.</span>
@@ -2162,7 +2223,7 @@
         }
         <span class='self'>self</span>.<span class='ident'>last_end</span> <span class='op'>=</span> <span class='ident'>e</span>;
         <span class='self'>self</span>.<span class='ident'>last_match</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>last_end</span>);
-        <span class='ident'>Captures</span>::<span class='ident'>new</span>(<span class='self'>self</span>.<span class='ident'>re</span>, <span class='self'>self</span>.<span class='ident'>search</span>, <span class='ident'>caps</span>)
+        <span class='prelude-val'>Some</span>(<span class='ident'>Captures</span>::<span class='ident'>new</span>(<span class='self'>self</span>.<span class='ident'>re</span>, <span class='self'>self</span>.<span class='ident'>search</span>, <span class='ident'>caps</span>))
     }
 }
 
@@ -2189,14 +2250,11 @@
             <span class='kw'>return</span> <span class='prelude-val'>None</span>
         }
 
-        <span class='kw'>let</span> <span class='ident'>caps</span> <span class='op'>=</span> <span class='ident'>exec_slice</span>(<span class='self'>self</span>.<span class='ident'>re</span>, <span class='ident'>Location</span>, <span class='self'>self</span>.<span class='ident'>search</span>,
-                              <span class='self'>self</span>.<span class='ident'>last_end</span>, <span class='self'>self</span>.<span class='ident'>search</span>.<span class='ident'>len</span>());
-        <span class='kw'>let</span> (<span class='ident'>s</span>, <span class='ident'>e</span>) <span class='op'>=</span>
-            <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>has_match</span>(<span class='kw-2'>&amp;</span><span class='ident'>caps</span>) {
-                <span class='kw'>return</span> <span class='prelude-val'>None</span>
-            } <span class='kw'>else</span> {
-                (<span class='ident'>caps</span>[<span class='number'>0</span>].<span class='ident'>unwrap</span>(), <span class='ident'>caps</span>[<span class='number'>1</span>].<span class='ident'>unwrap</span>())
-            };
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>caps</span> <span class='op'>=</span> [<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>];
+        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>exec</span>(<span class='self'>self</span>.<span class='ident'>re</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>caps</span>, <span class='self'>self</span>.<span class='ident'>search</span>, <span class='self'>self</span>.<span class='ident'>last_end</span>) {
+            <span class='kw'>return</span> <span class='prelude-val'>None</span>;
+        }
+        <span class='kw'>let</span> (<span class='ident'>s</span>, <span class='ident'>e</span>) <span class='op'>=</span> (<span class='ident'>caps</span>[<span class='number'>0</span>].<span class='ident'>unwrap</span>(), <span class='ident'>caps</span>[<span class='number'>1</span>].<span class='ident'>unwrap</span>());
 
         <span class='comment'>// Don&#39;t accept empty matches immediately following a match.</span>
         <span class='comment'>// i.e., no infinite loops please.</span>
@@ -2273,21 +2331,11 @@
     }
 }
 
-<span class='kw'>fn</span> <span class='ident'>exec</span>(<span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>Regex</span>, <span class='ident'>which</span>: <span class='ident'>MatchKind</span>, <span class='ident'>input</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>CaptureLocs</span> {
-    <span class='ident'>exec_slice</span>(<span class='ident'>re</span>, <span class='ident'>which</span>, <span class='ident'>input</span>, <span class='number'>0</span>, <span class='ident'>input</span>.<span class='ident'>len</span>())
-}
-
-<span class='kw'>fn</span> <span class='ident'>exec_slice</span>(<span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>Regex</span>, <span class='ident'>which</span>: <span class='ident'>MatchKind</span>,
-              <span class='ident'>input</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>s</span>: <span class='ident'>usize</span>, <span class='ident'>e</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>CaptureLocs</span> {
+<span class='kw'>fn</span> <span class='ident'>exec</span>(<span class='ident'>re</span>: <span class='kw-2'>&amp;</span><span class='ident'>Regex</span>, <span class='ident'>caps</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>CaptureIdxs</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>start</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
     <span class='kw'>match</span> <span class='op'>*</span><span class='ident'>re</span> {
-        <span class='ident'>Dynamic</span>(<span class='ident'>ExDynamic</span> { <span class='kw-2'>ref</span> <span class='ident'>prog</span>, .. }) <span class='op'>=&gt;</span> <span class='ident'>vm</span>::<span class='ident'>run</span>(<span class='ident'>which</span>, <span class='ident'>prog</span>, <span class='ident'>input</span>, <span class='ident'>s</span>, <span class='ident'>e</span>),
-        <span class='ident'>Native</span>(<span class='ident'>ExNative</span> { <span class='kw-2'>ref</span> <span class='ident'>prog</span>, .. }) <span class='op'>=&gt;</span> (<span class='op'>*</span><span class='ident'>prog</span>)(<span class='ident'>which</span>, <span class='ident'>input</span>, <span class='ident'>s</span>, <span class='ident'>e</span>),
+        <span class='ident'>Regex</span>::<span class='ident'>Native</span>(<span class='ident'>ExNative</span> { <span class='kw-2'>ref</span> <span class='ident'>prog</span>, .. }) <span class='op'>=&gt;</span> (<span class='op'>*</span><span class='ident'>prog</span>)(<span class='ident'>caps</span>, <span class='ident'>text</span>, <span class='ident'>start</span>),
+        <span class='ident'>Regex</span>::<span class='ident'>Dynamic</span>(<span class='kw-2'>ref</span> <span class='ident'>prog</span>) <span class='op'>=&gt;</span> <span class='ident'>prog</span>.<span class='ident'>exec</span>(<span class='ident'>caps</span>, <span class='ident'>text</span>, <span class='ident'>start</span>),
     }
-}
-
-<span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>has_match</span>(<span class='ident'>caps</span>: <span class='kw-2'>&amp;</span><span class='ident'>CaptureLocs</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>caps</span>.<span class='ident'>len</span>() <span class='op'>&gt;=</span> <span class='number'>2</span> <span class='op'>&amp;&amp;</span> <span class='ident'>caps</span>[<span class='number'>0</span>].<span class='ident'>is_some</span>() <span class='op'>&amp;&amp;</span> <span class='ident'>caps</span>[<span class='number'>1</span>].<span class='ident'>is_some</span>()
 }
 </pre>
 </section>
