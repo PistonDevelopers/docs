@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.2.1/src/api/x11/window.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.2.2/src/api/x11/window.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>window.rs.html -- source</title>
@@ -883,6 +883,22 @@
 <span id="841">841</span>
 <span id="842">842</span>
 <span id="843">843</span>
+<span id="844">844</span>
+<span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
+<span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {<span class='ident'>Event</span>, <span class='ident'>BuilderAttribs</span>, <span class='ident'>MouseCursor</span>};
 <span class='kw'>use</span> <span class='ident'>CreationError</span>;
@@ -1251,29 +1267,44 @@
             <span class='ident'>preferred_fb</span>
         };
 
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>best_mode</span> <span class='op'>=</span> <span class='op'>-</span><span class='number'>1</span>;
-        <span class='kw'>let</span> <span class='ident'>modes</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
+        <span class='comment'>// finding the mode to switch to if necessary</span>
+        <span class='kw'>let</span> (<span class='ident'>mode_to_switch_to</span>, <span class='ident'>xf86_desk_mode</span>) <span class='op'>=</span> <span class='kw'>unsafe</span> {
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>mode_num</span>: <span class='ident'>libc</span>::<span class='ident'>c_int</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>uninitialized</span>();
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>modes</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>ffi</span>::<span class='ident'>XF86VidModeModeInfo</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>uninitialized</span>();
             <span class='kw'>if</span> (<span class='ident'>display</span>.<span class='ident'>xf86vmode</span>.<span class='ident'>XF86VidModeGetAllModeLines</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>screen_id</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mode_num</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>modes</span>) <span class='op'>==</span> <span class='number'>0</span> {
                 <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>OsError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Could not query the video modes&quot;</span>)));
             }
 
-            <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>mode_num</span> {
-                <span class='kw'>let</span> <span class='ident'>mode</span>: <span class='ident'>ffi</span>::<span class='ident'>XF86VidModeModeInfo</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>isize</span>) <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _);
-                <span class='kw'>if</span> <span class='ident'>mode</span>.<span class='ident'>hdisplay</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>0</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>&amp;&amp;</span> <span class='ident'>mode</span>.<span class='ident'>vdisplay</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>1</span> <span class='kw'>as</span> <span class='ident'>u16</span> {
-                    <span class='ident'>best_mode</span> <span class='op'>=</span> <span class='ident'>i</span>;
+            <span class='kw'>let</span> <span class='ident'>xf86_desk_mode</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='number'>0</span>);
+
+            <span class='comment'>// FIXME: `XF86VidModeModeInfo` is missing its `hskew` field. Therefore we point to</span>
+            <span class='comment'>//        `vsyncstart` instead of `vdisplay` as a temporary hack.</span>
+
+            <span class='kw'>let</span> <span class='ident'>mode_to_switch_to</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
+                <span class='kw'>let</span> <span class='ident'>matching_mode</span> <span class='op'>=</span> (<span class='number'>0</span> .. <span class='ident'>mode_num</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>i</span><span class='op'>|</span> {
+                    <span class='kw'>let</span> <span class='ident'>m</span>: <span class='ident'>ffi</span>::<span class='ident'>XF86VidModeModeInfo</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>isize</span>) <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _); <span class='ident'>m</span>
+                }).<span class='ident'>find</span>(<span class='op'>|</span><span class='ident'>m</span><span class='op'>|</span> <span class='ident'>m</span>.<span class='ident'>hdisplay</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>0</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>&amp;&amp;</span> <span class='ident'>m</span>.<span class='ident'>vsyncstart</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>1</span> <span class='kw'>as</span> <span class='ident'>u16</span>);
+
+                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>matching_mode</span>) <span class='op'>=</span> <span class='ident'>matching_mode</span> {
+                    <span class='prelude-val'>Some</span>(<span class='ident'>matching_mode</span>)
+
+                } <span class='kw'>else</span> {
+                    <span class='kw'>let</span> <span class='ident'>m</span> <span class='op'>=</span> (<span class='number'>0</span> .. <span class='ident'>mode_num</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>i</span><span class='op'>|</span> {
+                        <span class='kw'>let</span> <span class='ident'>m</span>: <span class='ident'>ffi</span>::<span class='ident'>XF86VidModeModeInfo</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>isize</span>) <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _); <span class='ident'>m</span>
+                    }).<span class='ident'>find</span>(<span class='op'>|</span><span class='ident'>m</span><span class='op'>|</span> <span class='ident'>m</span>.<span class='ident'>hdisplay</span> <span class='op'>&gt;=</span> <span class='ident'>dimensions</span>.<span class='number'>0</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>&amp;&amp;</span> <span class='ident'>m</span>.<span class='ident'>vsyncstart</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>1</span> <span class='kw'>as</span> <span class='ident'>u16</span>);
+
+                    <span class='kw'>match</span> <span class='ident'>m</span> {
+                        <span class='prelude-val'>Some</span>(<span class='ident'>m</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>m</span>),
+                        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>OsError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Could not find a suitable graphics mode&quot;</span>)))
+                    }
                 }
+            } <span class='kw'>else</span> {
+                <span class='prelude-val'>None</span>
             };
-            <span class='kw'>if</span> <span class='ident'>best_mode</span> <span class='op'>==</span> <span class='op'>-</span><span class='number'>1</span> <span class='op'>&amp;&amp;</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
-                <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>OsError</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Could not find a suitable graphics mode&quot;</span>)));
-            }
 
-            <span class='ident'>modes</span>
-        };
+            (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XFree</span>)(<span class='ident'>modes</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> _);
 
-        <span class='kw'>let</span> <span class='ident'>xf86_desk_mode</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-            <span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='number'>0</span>)
+            (<span class='ident'>mode_to_switch_to</span>, <span class='ident'>xf86_desk_mode</span>)
         };
 
         <span class='comment'>// getting the visual infos</span>
@@ -1345,10 +1376,11 @@
             <span class='ident'>window_attributes</span> <span class='op'>|=</span> <span class='ident'>ffi</span>::<span class='ident'>CWBackPixel</span>;
         }
 
-        <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
+        <span class='comment'>// switching to fullscreen</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>mut</span> <span class='ident'>mode_to_switch_to</span>) <span class='op'>=</span> <span class='ident'>mode_to_switch_to</span> {
             <span class='ident'>window_attributes</span> <span class='op'>|=</span> <span class='ident'>ffi</span>::<span class='ident'>CWOverrideRedirect</span>;
             <span class='kw'>unsafe</span> {
-                (<span class='ident'>display</span>.<span class='ident'>xf86vmode</span>.<span class='ident'>XF86VidModeSwitchToMode</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>screen_id</span>, <span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='ident'>best_mode</span> <span class='kw'>as</span> <span class='ident'>isize</span>));
+                (<span class='ident'>display</span>.<span class='ident'>xf86vmode</span>.<span class='ident'>XF86VidModeSwitchToMode</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>screen_id</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mode_to_switch_to</span>);
                 (<span class='ident'>display</span>.<span class='ident'>xf86vmode</span>.<span class='ident'>XF86VidModeSetViewPort</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>screen_id</span>, <span class='number'>0</span>, <span class='number'>0</span>);
                 <span class='ident'>set_win_attr</span>.<span class='ident'>override_redirect</span> <span class='op'>=</span> <span class='number'>1</span>;
             }
