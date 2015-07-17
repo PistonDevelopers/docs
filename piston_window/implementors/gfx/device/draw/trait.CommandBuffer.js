@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors['gfx_device_gl'] = ["impl <a class='trait' href='gfx/device/draw/trait.CommandBuffer.html' title='gfx::device::draw::CommandBuffer'>CommandBuffer</a>&lt;<a class='enum' href='gfx_device_gl/enum.Resources.html' title='gfx_device_gl::Resources'>Resources</a>&gt; for <a class='struct' href='gfx_device_gl/struct.CommandBuffer.html' title='gfx_device_gl::CommandBuffer'>CommandBuffer</a>",];
+implementors['gfx'] = [];implementors['gfx_device_gl'] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
