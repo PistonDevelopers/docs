@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["XRecordClientInfo",""],["XRecordExtRange",""],["XRecordInterceptData",""],["XRecordRange",""],["XRecordRange16",""],["XRecordRange8",""],["XRecordState",""],["Xf86vmode",""]],"type":[["XRecordClientSpec",""],["XRecordContext",""]]});

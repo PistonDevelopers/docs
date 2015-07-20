@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["error",""],["glx",""],["keysym",""],["xcursor",""],["xf86vmode",""],["xlib",""],["xrender",""]]});
+initSidebarItems({"mod":[["error",""],["glx",""],["keysym",""],["xcursor",""],["xf86vmode",""],["xfixes",""],["xinerama",""],["xinput",""],["xinput2",""],["xlib",""],["xmu",""],["xrecord",""],["xrender",""],["xt",""],["xtest",""]]});
