@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["UpdateEvent","When the application state should be updated"]]});
