@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["AfterRenderArgs","After render arguments."]],"trait":[["AfterRenderEvent","After rendering and buffers are swapped."]]});
