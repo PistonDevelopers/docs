@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["floating",""],["split",""]],"struct":[["Canvas","The kind of Canvas."]],"type":[["CanvasId","Unique canvas identifier. Each canvas must use a unique `CanvasId` so that it's state can be cached within the `Ui` type. The reason we use a usize is because canvasses are cached within a `Vec`, which is limited to a size of `usize` elements."]]});
