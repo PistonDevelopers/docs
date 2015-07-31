@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Style","The styling for Canvas Tabs."],["Tabs","A wrapper around a list of canvasses that displays thema s a list of selectable tabs."]]});
