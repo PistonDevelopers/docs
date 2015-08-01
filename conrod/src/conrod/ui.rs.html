@@ -612,8 +612,76 @@
 <span id="570">570</span>
 <span id="571">571</span>
 <span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
+<span id="623">623</span>
+<span id="624">624</span>
+<span id="625">625</span>
+<span id="626">626</span>
+<span id="627">627</span>
+<span id="628">628</span>
+<span id="629">629</span>
+<span id="630">630</span>
+<span id="631">631</span>
+<span id="632">632</span>
+<span id="633">633</span>
+<span id="634">634</span>
+<span id="635">635</span>
+<span id="636">636</span>
+<span id="637">637</span>
+<span id="638">638</span>
+<span id="639">639</span>
 </pre><pre class='rust '>
 
+<span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
 <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Element</span>;
 <span class='kw'>use</span> <span class='ident'>graph</span>::<span class='ident'>Graph</span>;
 <span class='kw'>use</span> <span class='ident'>graphics</span>::{<span class='ident'>Context</span>, <span class='ident'>Graphics</span>};
@@ -686,6 +754,13 @@
     <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Capturing</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// The WidgetId of the widget currently capturing keyboard input if there is one.</span>
     <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Capturing</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The number of frames that that will be used for the `redraw_count` when `need_redraw` is</span>
+    <span class='doccomment'>/// triggered.</span>
+    <span class='ident'>num_redraw_frames</span>: <span class='ident'>u8</span>,
+    <span class='doccomment'>/// Whether or not the `Ui` needs to be re-drawn to screen.</span>
+    <span class='ident'>redraw_count</span>: <span class='ident'>u8</span>,
+    <span class='doccomment'>/// A background color to clear the screen with before drawing if one was given.</span>
+    <span class='ident'>maybe_background_color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
 }
 
 <span class='doccomment'>/// A wrapper over the current user input state.</span>
@@ -728,6 +803,12 @@
 }
 
 
+<span class='doccomment'>/// Each time conrod is required to redraw the GUI, it must draw for at least the next three frames</span>
+<span class='doccomment'>/// to ensure that, in the case that graphics buffers are being swapped, we have filled each</span>
+<span class='doccomment'>/// buffer. Otherwise if we don&#39;t draw into each buffer, we will probably be subject to flickering.</span>
+<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>SAFE_REDRAW_COUNT</span>: <span class='ident'>u8</span> <span class='op'>=</span> <span class='number'>3</span>;
+
+
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
 
     <span class='doccomment'>/// Constructor for a UiContext.</span>
@@ -749,6 +830,9 @@
             <span class='ident'>maybe_widget_under_mouse</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-val'>None</span>,
+            <span class='ident'>num_redraw_frames</span>: <span class='ident'>SAFE_REDRAW_COUNT</span>,
+            <span class='ident'>redraw_count</span>: <span class='ident'>SAFE_REDRAW_COUNT</span>,
+            <span class='ident'>maybe_background_color</span>: <span class='prelude-val'>None</span>,
         }
     }
 
@@ -937,15 +1021,50 @@
         }
     }
 
+
+    <span class='doccomment'>/// Set the number of frames that the `Ui` should draw in the case that `needs_redraw` is</span>
+    <span class='doccomment'>/// called. The default is `3` (see the SAFE_REDRAW_COUNT docs for details).</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_num_redraw_frames</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>num_frames</span>: <span class='ident'>u8</span>) {
+        <span class='self'>self</span>.<span class='ident'>num_redraw_frames</span> <span class='op'>=</span> <span class='ident'>num_frames</span>;
+    }
+
+    <span class='doccomment'>/// Tells the `Ui` that it needs to be re-draw everything. It does this by setting the redraw</span>
+    <span class='doccomment'>/// count to a `SAFE_REDRAW_COUNT`. See the docs for SAFE_REDRAW_COUNT or `draw_if_changed` for</span>
+    <span class='doccomment'>/// more info on how/why the redraw count is used.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>needs_redraw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>redraw_count</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>num_redraw_frames</span>;
+    }
+
+
+    <span class='doccomment'>/// Same as the `Ui::draw` method, but *only* draws if the `redraw_count` is greater than 0.</span>
+    <span class='doccomment'>/// The `redraw_count` is set to `SAFE_REDRAW_COUNT` whenever a `Widget` produces a new</span>
+    <span class='doccomment'>/// `Element` because its state has changed.</span>
+    <span class='doccomment'>/// It can also be triggered manually by the user using the `Ui::needs_redraw` method.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// This method is generally preferred over `Ui::draw` as it requires far less CPU usage, only</span>
+    <span class='doccomment'>/// redrawing to the screen if necessary.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Note that when `Ui::needs_redraw` is triggered, it sets the `redraw_count` to 3 by default.</span>
+    <span class='doccomment'>/// This ensures that conrod is drawn to each buffer in the case that there is buffer swapping</span>
+    <span class='doccomment'>/// happening. Let us know if you need finer control over this and we&#39;ll expose a way for you</span>
+    <span class='doccomment'>/// to set the redraw count manually.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw_if_changed</span><span class='op'>&lt;</span><span class='ident'>G</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>context</span>: <span class='ident'>Context</span>, <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>)
+        <span class='kw'>where</span>
+            <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
+            <span class='ident'>G</span>: <span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>Texture</span> <span class='op'>=</span> <span class='ident'>C</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
+    {
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>redraw_count</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
+            <span class='self'>self</span>.<span class='ident'>draw</span>(<span class='ident'>context</span>, <span class='ident'>graphics</span>);
+        }
+    }
+
+
     <span class='doccomment'>/// Draw the `Ui` in it&#39;s current state.</span>
-    <span class='doccomment'>/// - The order of drawing is as follows:</span>
-    <span class='doccomment'>///     1. Canvas splits.</span>
-    <span class='doccomment'>///     2. Widgets on Canvas splits.</span>
-    <span class='doccomment'>///     3. Floating Canvasses.</span>
-    <span class='doccomment'>///     4. Widgets on Floating Canvasses.</span>
-    <span class='doccomment'>/// - Widgets are sorted by capturing and then render depth (depth first).</span>
-    <span class='doccomment'>/// - Construct the elmesque `Renderer` for rendering the elm `Element`s.</span>
-    <span class='doccomment'>/// - Render all widgets.</span>
+    <span class='doccomment'>/// NOTE: If you don&#39;t need to redraw your conrod GUI every frame, it is recommended to use the</span>
+    <span class='doccomment'>/// `Ui::draw_if_changed` method instead.</span>
+    <span class='doccomment'>/// See the `Graph::draw` method for more details on how Widgets are drawn.</span>
+    <span class='doccomment'>/// See the `graph::update_visit_order` function for details on how the render order is</span>
+    <span class='doccomment'>/// determined.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>G</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>context</span>: <span class='ident'>Context</span>, <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>)
         <span class='kw'>where</span>
             <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
@@ -959,8 +1078,15 @@
             <span class='kw-2'>ref</span> <span class='ident'>glyph_cache</span>,
             <span class='ident'>maybe_captured_mouse</span>,
             <span class='ident'>maybe_captured_keyboard</span>,
+            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>maybe_background_color</span>,
+            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>redraw_count</span>,
             ..
         } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+
+        <span class='comment'>// If some background color was given to clear the screen with, clear it.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>) <span class='op'>=</span> <span class='ident'>maybe_background_color</span>.<span class='ident'>take</span>() {
+            ::<span class='ident'>graphics</span>::<span class='ident'>clear</span>(<span class='ident'>color</span>.<span class='ident'>to_fsa</span>(), <span class='ident'>graphics</span>);
+        }
 
         <span class='kw'>let</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_captured_mouse</span> {
             <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
@@ -978,6 +1104,9 @@
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>renderer</span> <span class='op'>=</span> <span class='ident'>Renderer</span>::<span class='ident'>new</span>(<span class='ident'>context</span>, <span class='ident'>graphics</span>).<span class='ident'>character_cache</span>(<span class='ident'>character_cache</span>);
 
         <span class='ident'>widget_graph</span>.<span class='ident'>draw</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>renderer</span>);
+
+        <span class='comment'>// Now that we&#39;ve drawn everything, take one from the redraw count.</span>
+        <span class='op'>*</span><span class='ident'>redraw_count</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>redraw_count</span> <span class='op'>-</span> <span class='number'>1</span>;
     }
 
 }
@@ -1184,6 +1313,11 @@
     <span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_id</span> <span class='op'>=</span> <span class='ident'>maybe_parent_id</span>;
 }
 
+
+<span class='doccomment'>/// Clear the background with the given color.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear_with</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>color</span>: <span class='ident'>Color</span>) {
+    <span class='ident'>ui</span>.<span class='ident'>maybe_background_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
+}
 
 </pre>
 </section>
