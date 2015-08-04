@@ -681,6 +681,22 @@
 <span id="639">639</span>
 <span id="640">640</span>
 <span id="641">641</span>
+<span id="642">642</span>
+<span id="643">643</span>
+<span id="644">644</span>
+<span id="645">645</span>
+<span id="646">646</span>
+<span id="647">647</span>
+<span id="648">648</span>
+<span id="649">649</span>
+<span id="650">650</span>
+<span id="651">651</span>
+<span id="652">652</span>
+<span id="653">653</span>
+<span id="654">654</span>
+<span id="655">655</span>
+<span id="656">656</span>
+<span id="657">657</span>
 </pre><pre class='rust '>
 
 <span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
@@ -1023,7 +1039,6 @@
         }
     }
 
-
     <span class='doccomment'>/// Set the number of frames that the `Ui` should draw in the case that `needs_redraw` is</span>
     <span class='doccomment'>/// called. The default is `3` (see the SAFE_REDRAW_COUNT docs for details).</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_num_redraw_frames</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>num_frames</span>: <span class='ident'>u8</span>) {
@@ -1075,11 +1090,11 @@
         <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Renderer</span>;
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>DerefMut</span>;
 
+        <span class='kw'>let</span> (<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>captures_for_draw</span>();
+
         <span class='kw'>let</span> <span class='ident'>Ui</span> {
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>widget_graph</span>,
             <span class='kw-2'>ref</span> <span class='ident'>glyph_cache</span>,
-            <span class='ident'>maybe_captured_mouse</span>,
-            <span class='ident'>maybe_captured_keyboard</span>,
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>maybe_background_color</span>,
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>redraw_count</span>,
             ..
@@ -1089,16 +1104,6 @@
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>) <span class='op'>=</span> <span class='ident'>maybe_background_color</span>.<span class='ident'>take</span>() {
             ::<span class='ident'>graphics</span>::<span class='ident'>clear</span>(<span class='ident'>color</span>.<span class='ident'>to_fsa</span>(), <span class='ident'>graphics</span>);
         }
-
-        <span class='kw'>let</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_captured_mouse</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
-            _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-        };
-
-        <span class='kw'>let</span> <span class='ident'>maybe_captured_keyboard</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_captured_keyboard</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
-            _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-        };
 
         <span class='comment'>// Construct the elmesque Renderer for rendering the Elements.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ref_mut_character_cache</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='number'>0</span>.<span class='ident'>borrow_mut</span>();
@@ -1113,6 +1118,33 @@
         }
     }
 
+    <span class='doccomment'>/// Compiles the `Ui` in its current state into an `elmesque::Element`.</span>
+    <span class='doccomment'>/// - The order of drawing is as follows:</span>
+    <span class='doccomment'>///     1. Canvas splits.</span>
+    <span class='doccomment'>///     2. Widgets on Canvas splits.</span>
+    <span class='doccomment'>///     3. Floating Canvasses.</span>
+    <span class='doccomment'>///     4. Widgets on Floating Canvasses.</span>
+    <span class='doccomment'>/// - Widgets are sorted by capturing and then render depth (depth first).</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>element</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Element</span> {
+        <span class='kw'>let</span> (<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>captures_for_draw</span>();
+        <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>element</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>)
+    }
+
+    <span class='comment'>// Helper method for logic shared between draw() and element().</span>
+    <span class='comment'>// Returns (maybe_captured_mouse, maybe_captured_keyboard).</span>
+    <span class='kw'>fn</span> <span class='ident'>captures_for_draw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>WidgetId</span><span class='op'>&gt;</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>WidgetId</span><span class='op'>&gt;</span>) {
+        (
+            <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> {
+                <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
+                _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+            },
+
+            <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> {
+                <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
+                _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+            }
+        )
+    }
 }
 
 

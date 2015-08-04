@@ -584,10 +584,48 @@
 <span id="542">542</span>
 <span id="543">543</span>
 <span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
 </pre><pre class='rust '>
 
 
 <span class='kw'>use</span> <span class='ident'>elmesque</span>::{<span class='ident'>Element</span>, <span class='ident'>Renderer</span>};
+<span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>element</span>::<span class='ident'>layers</span>;
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>Graphics</span>;
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>character</span>::<span class='ident'>CharacterCache</span>;
 <span class='kw'>use</span> <span class='ident'>petgraph</span> <span class='kw'>as</span> <span class='ident'>pg</span>;
@@ -978,6 +1016,53 @@
                           <span class='ident'>renderer</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Renderer</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span>, <span class='ident'>G</span><span class='op'>&gt;</span>) <span class='kw'>where</span>
         <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
         <span class='ident'>G</span>: <span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>Texture</span> <span class='op'>=</span> <span class='ident'>C</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
+    {                   
+        <span class='self'>self</span>.<span class='ident'>prepare_to_draw</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>);
+
+        <span class='comment'>// Draw the widgets in order of depth (starting with the deepest).</span>
+        <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='ident'>idx</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>iter</span>() {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>has_updated</span> {
+                    <span class='ident'>container</span>.<span class='ident'>element</span>.<span class='ident'>draw</span>(<span class='ident'>renderer</span>);
+                    <span class='ident'>container</span>.<span class='ident'>has_updated</span> <span class='op'>=</span> <span class='boolval'>false</span>;
+                }
+            }
+        }
+    }
+    
+    <span class='doccomment'>/// Return an `elmesque::Element` containing all widgets within the entire Graph.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The order in which we will draw all widgets will be a akin to a depth-first search, where</span>
+    <span class='doccomment'>/// the branches with the highest `depth` are drawn first (unless the branch is on a captured</span>
+    <span class='doccomment'>/// widget, which will always be drawn last).</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>element</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                   <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>WidgetId</span><span class='op'>&gt;</span>,
+                   <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>WidgetId</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Element</span>
+    {
+        <span class='self'>self</span>.<span class='ident'>prepare_to_draw</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>);
+
+        <span class='kw'>let</span> <span class='ident'>Graph</span> {
+            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>,
+            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>depth_order</span>,
+            ..
+        } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+
+        <span class='kw'>let</span> <span class='ident'>elements</span> <span class='op'>=</span> <span class='ident'>depth_order</span>.<span class='ident'>iter</span>().<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>idx</span><span class='op'>|</span> {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>has_updated</span> {
+                    <span class='ident'>container</span>.<span class='ident'>has_updated</span> <span class='op'>=</span> <span class='boolval'>false</span>;
+                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>container</span>.<span class='ident'>element</span>.<span class='ident'>clone</span>());
+                }
+            }
+            <span class='prelude-val'>None</span>
+        }).<span class='ident'>collect</span>();
+        <span class='ident'>layers</span>(<span class='ident'>elements</span>)
+    }
+
+    <span class='comment'>// Helper method for logic shared between draw() and element().</span>
+    <span class='kw'>fn</span> <span class='ident'>prepare_to_draw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                       <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>WidgetId</span><span class='op'>&gt;</span>,
+                       <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>WidgetId</span><span class='op'>&gt;</span>)
     {
         <span class='kw'>let</span> <span class='ident'>Graph</span> {
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>,
@@ -995,18 +1080,7 @@
                            <span class='ident'>graph</span>,
                            <span class='ident'>depth_order</span>,
                            <span class='ident'>floating_deque</span>);
-
-        <span class='comment'>// Draw the widgets in order of depth (starting with the deepest).</span>
-        <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='ident'>idx</span> <span class='kw'>in</span> <span class='ident'>depth_order</span>.<span class='ident'>iter</span>() {
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>graph</span>[<span class='ident'>idx</span>] {
-                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>has_updated</span> {
-                    <span class='ident'>container</span>.<span class='ident'>element</span>.<span class='ident'>draw</span>(<span class='ident'>renderer</span>);
-                    <span class='ident'>container</span>.<span class='ident'>has_updated</span> <span class='op'>=</span> <span class='boolval'>false</span>;
-                }
-            }
-        }
     }
-
 }
 
 <span class='doccomment'>/// Update the depth_order (starting with the deepest) for all nodes in the graph.</span>
@@ -1027,7 +1101,7 @@
     <span class='ident'>floating_deque</span>.<span class='ident'>clear</span>();
     <span class='ident'>floating_deque</span>.<span class='ident'>reserve</span>(<span class='ident'>num_nodes</span>);
 
-    <span class='comment'>// Fisit each node in order of depth and add their indices to depth_order.</span>
+    <span class='comment'>// Visit each node in order of depth and add their indices to depth_order.</span>
     <span class='comment'>// If the widget is floating, then store it in the floating_deque instead.</span>
     <span class='ident'>visit_by_depth</span>(<span class='ident'>root</span>,
                    <span class='ident'>maybe_captured_mouse</span>,
