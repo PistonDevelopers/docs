@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors['shared_library'] = [];implementors['glutin'] = [];
+implementors['piston'] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

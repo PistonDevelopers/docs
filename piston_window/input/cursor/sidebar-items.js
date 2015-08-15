@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["CursorEvent","When window gets or looses cursor"]]});
