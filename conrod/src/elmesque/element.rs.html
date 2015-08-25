@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/elmesque-0.5.1/src/element.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/elmesque-0.5.2/src/element.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>element.rs.html -- source</title>
@@ -614,6 +614,26 @@
 <span id="572">572</span>
 <span id="573">573</span>
 <span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! </span>
 <span class='doccomment'>//! Ported from [elm-lang&#39;s `Graphics.Element` module]</span>
@@ -1043,34 +1063,54 @@
     <span class='kw'>let</span> <span class='ident'>Element</span> { <span class='kw-2'>ref</span> <span class='ident'>props</span>, <span class='kw-2'>ref</span> <span class='ident'>element</span> } <span class='op'>=</span> <span class='op'>*</span><span class='ident'>element</span>;
 
     <span class='comment'>// Crop the Element if some crop was given.</span>
+    <span class='comment'>// We&#39;ll use the `DrawState::scissor` method for this.</span>
+    <span class='comment'>//</span>
+    <span class='comment'>// Because `DrawState` uses top-left origin coords, we&#39;ll have to convert from our</span>
+    <span class='comment'>// centered-origin coordinate system.</span>
+    <span class='comment'>//</span>
+    <span class='comment'>// We&#39;ll also need to stretch our coords to match the correct viewport.draw_size.</span>
     <span class='kw'>let</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>props</span>.<span class='ident'>crop</span> {
         <span class='prelude-val'>Some</span>((<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>w</span>, <span class='ident'>h</span>)) <span class='op'>=&gt;</span> {
             <span class='kw'>use</span> <span class='ident'>utils</span>::{<span class='ident'>clamp</span>, <span class='ident'>map_range</span>};
             <span class='kw'>let</span> <span class='ident'>Context</span> { <span class='ident'>draw_state</span>, .. } <span class='op'>=</span> <span class='ident'>context</span>;
 
+            <span class='comment'>// Our view_dim is our virtual window size which is consistent no matter the display.</span>
             <span class='kw'>let</span> <span class='ident'>view_dim</span> <span class='op'>=</span> <span class='ident'>context</span>.<span class='ident'>get_view_size</span>();
+
+            <span class='comment'>// Our draw_dim is the actual window size in pixels. Our target crop area must be</span>
+            <span class='comment'>// represented in this size.</span>
             <span class='kw'>let</span> <span class='ident'>draw_dim</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>context</span>.<span class='ident'>viewport</span> {
                 <span class='prelude-val'>Some</span>(<span class='ident'>viewport</span>) <span class='op'>=&gt;</span> [<span class='ident'>viewport</span>.<span class='ident'>draw_size</span>[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>f64</span>, <span class='ident'>viewport</span>.<span class='ident'>draw_size</span>[<span class='number'>1</span>] <span class='kw'>as</span> <span class='ident'>f64</span>],
                 <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>view_dim</span>,
             };
 
-            <span class='kw'>let</span> <span class='ident'>left</span> <span class='op'>=</span> <span class='op'>-</span><span class='ident'>draw_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
-            <span class='kw'>let</span> <span class='ident'>right</span> <span class='op'>=</span> <span class='ident'>draw_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
-            <span class='kw'>let</span> <span class='ident'>bottom</span> <span class='op'>=</span> <span class='op'>-</span><span class='ident'>draw_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
-            <span class='kw'>let</span> <span class='ident'>top</span> <span class='op'>=</span> <span class='ident'>draw_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='comment'>// Calculate the distance to the edges of the window from the center.</span>
+            <span class='kw'>let</span> <span class='ident'>left</span> <span class='op'>=</span> <span class='op'>-</span><span class='ident'>view_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='kw'>let</span> <span class='ident'>right</span> <span class='op'>=</span> <span class='ident'>view_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='kw'>let</span> <span class='ident'>bottom</span> <span class='op'>=</span> <span class='op'>-</span><span class='ident'>view_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='kw'>let</span> <span class='ident'>top</span> <span class='op'>=</span> <span class='ident'>view_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>;
 
-            <span class='kw'>let</span> <span class='ident'>w_scale</span> <span class='op'>=</span> <span class='number'>1.0</span> <span class='op'>/</span> (<span class='ident'>view_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='ident'>draw_dim</span>[<span class='number'>0</span>]);
-            <span class='kw'>let</span> <span class='ident'>h_scale</span> <span class='op'>=</span> <span class='number'>1.0</span> <span class='op'>/</span> (<span class='ident'>view_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='ident'>draw_dim</span>[<span class='number'>1</span>]);
+            <span class='comment'>// We start with the x and y in the center of our crop area, however we need it to be</span>
+            <span class='comment'>// at the top left of the crop area.</span>
+            <span class='kw'>let</span> <span class='ident'>left_x</span> <span class='op'>=</span> <span class='ident'>x</span> <span class='op'>-</span> <span class='ident'>w</span> <span class='kw'>as</span> <span class='ident'>f64</span> <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='kw'>let</span> <span class='ident'>top_y</span> <span class='op'>=</span> <span class='ident'>y</span> <span class='op'>-</span> <span class='ident'>h</span> <span class='kw'>as</span> <span class='ident'>f64</span> <span class='op'>/</span> <span class='number'>2.0</span>;
 
-            <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> (<span class='ident'>w</span> <span class='op'>*</span> <span class='ident'>w_scale</span>) <span class='kw'>as</span> <span class='ident'>u16</span>;
-            <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> (<span class='ident'>h</span> <span class='op'>*</span> <span class='ident'>h_scale</span>) <span class='kw'>as</span> <span class='ident'>u16</span>;
+            <span class='comment'>// Map the position at the top left of the crop area in view_dim to our draw_dim.</span>
+            <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>left_x</span>, <span class='ident'>left</span>, <span class='ident'>right</span>, <span class='number'>0</span>, <span class='ident'>draw_dim</span>[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>i32</span>);
+            <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>top_y</span>, <span class='ident'>bottom</span>, <span class='ident'>top</span>, <span class='number'>0</span>, <span class='ident'>draw_dim</span>[<span class='number'>1</span>] <span class='kw'>as</span> <span class='ident'>i32</span>);
+ 
+            <span class='comment'>// Convert the w and h from our view_dim to the draw_dim.</span>
+            <span class='kw'>let</span> <span class='ident'>w_scale</span> <span class='op'>=</span> <span class='ident'>draw_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='ident'>view_dim</span>[<span class='number'>0</span>];
+            <span class='kw'>let</span> <span class='ident'>h_scale</span> <span class='op'>=</span> <span class='ident'>draw_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='ident'>view_dim</span>[<span class='number'>1</span>];
+            <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>w</span> <span class='op'>*</span> <span class='ident'>w_scale</span>;
+            <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>h</span> <span class='op'>*</span> <span class='ident'>h_scale</span>;
 
-            <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>x</span> <span class='op'>-</span> <span class='ident'>w</span> <span class='kw'>as</span> <span class='ident'>f64</span> <span class='op'>/</span> <span class='number'>2.0</span>, <span class='ident'>left</span>, <span class='ident'>right</span>, <span class='number'>0</span>, <span class='ident'>draw_dim</span>[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>i32</span>);
-            <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>y</span> <span class='op'>-</span> <span class='ident'>h</span> <span class='kw'>as</span> <span class='ident'>f64</span> <span class='op'>/</span> <span class='number'>2.0</span>, <span class='ident'>bottom</span>, <span class='ident'>top</span>, <span class='number'>0</span>, <span class='ident'>draw_dim</span>[<span class='number'>1</span>] <span class='kw'>as</span> <span class='ident'>i32</span>);
-
+            <span class='comment'>// If we ended up with negative coords for the crop area, we&#39;ll use 0 instead as we</span>
+            <span class='comment'>// can&#39;t represent the negative coords with `u16` (the target DrawState dimension type).</span>
+            <span class='comment'>// We&#39;ll hold onto the lost negative values (x_neg and y_neg) so that we can compensate</span>
+            <span class='comment'>// with the width and height.</span>
             <span class='kw'>let</span> <span class='ident'>x_neg</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>&lt;</span> <span class='number'>0</span> { <span class='ident'>x</span> } <span class='kw'>else</span> { <span class='number'>0</span> };
             <span class='kw'>let</span> <span class='ident'>y_neg</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>y</span> <span class='op'>&lt;</span> <span class='number'>0</span> { <span class='ident'>y</span> } <span class='kw'>else</span> { <span class='number'>0</span> };
-
             <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> ::<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>(<span class='number'>0</span>, <span class='ident'>x</span>) <span class='kw'>as</span> <span class='ident'>u16</span>;
             <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> ::<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>(<span class='number'>0</span>, <span class='ident'>y</span>) <span class='kw'>as</span> <span class='ident'>u16</span>;
             <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> ::<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>(<span class='number'>0</span>, (<span class='ident'>w</span> <span class='kw'>as</span> <span class='ident'>i32</span> <span class='op'>+</span> <span class='ident'>x_neg</span>)) <span class='kw'>as</span> <span class='ident'>u16</span>;
