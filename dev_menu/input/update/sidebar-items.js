@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["UpdateArgs","Update arguments, such as delta time in seconds"]],"trait":[["UpdateEvent","When the application state should be updated"]]});
