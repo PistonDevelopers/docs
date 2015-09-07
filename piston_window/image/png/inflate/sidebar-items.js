@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Inflater","A DEFLATE compressed stream decoder."]]});
