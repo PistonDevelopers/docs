@@ -977,14 +977,6 @@
 <span id="935">935</span>
 <span id="936">936</span>
 <span id="937">937</span>
-<span id="938">938</span>
-<span id="939">939</span>
-<span id="940">940</span>
-<span id="941">941</span>
-<span id="942">942</span>
-<span id="943">943</span>
-<span id="944">944</span>
-<span id="945">945</span>
 </pre><pre class='rust '>
 
 <span class='kw'>use</span> <span class='ident'>Scalar</span>;
@@ -1040,13 +1032,13 @@
     <span class='kw'>pub</span> <span class='ident'>style</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>W</span>::<span class='ident'>Style</span>,
     <span class='doccomment'>/// Restricted access to the `Ui`.</span>
     <span class='doccomment'>/// Provides methods for immutably accessing the `Ui`&#39;s `Theme` and `GlyphCache`.</span>
-    <span class='doccomment'>/// Also allows calling `Widget::set_internal` within the `Widget::update` method.</span>
+    <span class='doccomment'>/// Also allows calling `Widget::set` within the `Widget::update` method.</span>
     <span class='kw'>pub</span> <span class='ident'>ui</span>: <span class='ident'>UiCell</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span>,
 }
 
 <span class='doccomment'>/// A wrapper around a `Ui` that only exposes the functionality necessary for the `Widget::update`</span>
 <span class='doccomment'>/// method. Its primary role is to allow for widget designers to compose their own unique `Widget`s</span>
-<span class='doccomment'>/// from other `Widget`s by calling the `Widget::set_internal` method within their own `Widget`&#39;s</span>
+<span class='doccomment'>/// from other `Widget`s by calling the `Widget::set` method within their own `Widget`&#39;s</span>
 <span class='doccomment'>/// update method. It also provides methods for accessing the `Ui`&#39;s `Theme`, `GlyphCache` and</span>
 <span class='doccomment'>/// `UserInput` via immutable reference.</span>
 <span class='doccomment'>///</span>
@@ -1207,7 +1199,6 @@
 <span class='doccomment'>/// Methods that should not be overridden:</span>
 <span class='doccomment'>/// - parent</span>
 <span class='doccomment'>/// - set</span>
-<span class='doccomment'>/// - set_internal</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Widget</span>: <span class='ident'>Sized</span> {
     <span class='doccomment'>/// State to be stored within the `Ui`s widget cache. Take advantage of this type for any large</span>
     <span class='doccomment'>/// allocations that you would like to avoid repeating between updates, or any calculations</span>
@@ -1390,35 +1381,12 @@
     <span class='doccomment'>/// - If the widget&#39;s state or style has changed, `Widget::draw` will be called to create the</span>
     <span class='doccomment'>/// new Element for rendering.</span>
     <span class='doccomment'>/// - The new State, Style and Element (if there is one) will be cached within the `Ui`.</span>
-    <span class='kw'>fn</span> <span class='ident'>set</span><span class='op'>&lt;</span><span class='ident'>C</span>, <span class='ident'>U</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>id</span>: <span class='ident'>WidgetId</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>U</span>) <span class='kw'>where</span>
+    <span class='kw'>fn</span> <span class='ident'>set</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>C</span>, <span class='ident'>U</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>U</span>) <span class='kw'>where</span>
+        <span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>,
         <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
         <span class='ident'>U</span>: <span class='ident'>UiRefMut</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
     {
-        <span class='ident'>set_widget</span>(<span class='self'>self</span>, <span class='ident'>Index</span>::<span class='ident'>Public</span>(<span class='ident'>id</span>), <span class='ident'>ui</span>.<span class='ident'>ui_ref_mut</span>());
-    }
-
-    <span class='doccomment'>/// Set the widget within the `Ui` that is stored within the given `UiCell` without occupying</span>
-    <span class='doccomment'>/// the `WidgetId` space.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This method is designed to be an alternative to `Widget::set`, to be used by Widget</span>
-    <span class='doccomment'>/// designers when composing `Widget`s out of other `Widgets`.</span>
-    <span class='kw'>fn</span> <span class='ident'>set_internal</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>maybe_idx</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>, <span class='ident'>ui_cell</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>UiCell</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span>)
-        <span class='kw'>where</span> <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>
-    {
-
-        <span class='kw'>let</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_idx</span> {
-            <span class='comment'>// If we don&#39;t yet have a NodeIndex for our internal `Widget` we&#39;ll add a placeholder</span>
-            <span class='comment'>// to the `Graph` and use the returned `NodeIndex`.</span>
-            <span class='ident'>maybe_idx</span> <span class='kw-2'>@</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {
-                <span class='kw'>let</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>ui</span>::<span class='ident'>widget_graph_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui_cell</span>.<span class='ident'>ui</span>).<span class='ident'>add_placeholder</span>();
-                <span class='op'>*</span><span class='ident'>maybe_idx</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>);
-                <span class='ident'>idx</span>
-            },
-            <span class='comment'>// Otherwise, we&#39;ll use the index we already have.</span>
-            <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>idx</span>,
-        };
-
-        <span class='ident'>set_widget</span>(<span class='self'>self</span>, <span class='ident'>Index</span>::<span class='ident'>Internal</span>(<span class='ident'>idx</span>), <span class='ident'>ui_cell</span>.<span class='ident'>ui</span>);
+        <span class='ident'>set_widget</span>(<span class='self'>self</span>, <span class='ident'>idx</span>.<span class='ident'>into</span>(), <span class='ident'>ui</span>.<span class='ident'>ui_ref_mut</span>());
     }
 
 }
@@ -1561,7 +1529,7 @@
             <span class='kw'>let</span> <span class='ident'>maybe_mouse</span> <span class='op'>=</span> <span class='ident'>ui</span>::<span class='ident'>get_mouse_state</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>);
             <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>maybe_floating</span>, <span class='ident'>maybe_mouse</span>) {
                 (<span class='prelude-val'>Some</span>(<span class='ident'>prev_floating</span>), <span class='prelude-val'>Some</span>(<span class='ident'>mouse</span>)) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='ident'>mouse</span>.<span class='ident'>left</span> <span class='op'>==</span> ::<span class='ident'>mouse</span>::<span class='ident'>ButtonState</span>::<span class='ident'>Down</span> {
+                    <span class='kw'>if</span> <span class='ident'>mouse</span>.<span class='ident'>left</span>.<span class='ident'>position</span> <span class='op'>==</span> ::<span class='ident'>mouse</span>::<span class='ident'>ButtonPosition</span>::<span class='ident'>Down</span> {
                         <span class='prelude-val'>Some</span>(<span class='ident'>new_floating</span>())
                     } <span class='kw'>else</span> {
                         <span class='prelude-val'>Some</span>(<span class='ident'>prev_floating</span>)
@@ -1847,6 +1815,22 @@
     <span class='doccomment'>/// A struct representing the user input that has occurred since the last update.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>input</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>UserInput</span> {
         <span class='ident'>ui</span>::<span class='ident'>user_input</span>(<span class='self'>self</span>.<span class='ident'>ui</span>, <span class='self'>self</span>.<span class='ident'>idx</span>)
+    }
+
+    <span class='doccomment'>/// A struct representing the user input that has occurred since the last update for the</span>
+    <span class='doccomment'>/// `Widget` with the given index..</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>input_for</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='ident'>UserInput</span> {
+        <span class='ident'>ui</span>::<span class='ident'>user_input</span>(<span class='self'>self</span>.<span class='ident'>ui</span>, <span class='ident'>idx</span>.<span class='ident'>into</span>())
+    }
+
+    <span class='doccomment'>/// Generate a new, unique NodeIndex into a Placeholder node within the `Ui`&#39;s widget graph.</span>
+    <span class='doccomment'>/// This should only be called once for each unique widget needed to avoid unnecessary bloat</span>
+    <span class='doccomment'>/// within the `Ui`&#39;s widget graph.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// When using this method in your `Widget`&#39;s `update` method, be sure to store the returned</span>
+    <span class='doccomment'>/// NodeIndex somewhere within your `Widget::State` so that it can be re-used on next update.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_unique_node_index</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>NodeIndex</span> {
+        <span class='ident'>ui</span>::<span class='ident'>widget_graph_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>ui</span>).<span class='ident'>add_placeholder</span>()
     }
 
 }
