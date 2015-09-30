@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["FocusEvent","When window gets or looses focus"]]});
+initSidebarItems({"trait":[["FocusEvent","When window gets or loses focus"]]});
