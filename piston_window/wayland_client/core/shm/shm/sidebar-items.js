@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Shm","The shared memory controller."]]});
+initSidebarItems({"enum":[["ShmFormat","Possible formats for a Shm."]],"struct":[["Shm","The shared memory controller."]]});
