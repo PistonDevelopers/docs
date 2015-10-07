@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["JoystickAxisArgs","Components of a joystick axis move event. Not guaranteed consistent across backends."],["JoystickButton","Components of a joystick button event. Not guaranteed consistent across backends."]],"trait":[["JoystickAxisEvent","The position of a joystick axis changed."]]});
