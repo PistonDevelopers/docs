@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["State","The current drag interaction for the Widget."]],"fn":[["drag_widget","Drag the widget from its position `xy` and return the new position."]],"struct":[["Area","Represents the draggable area of a widget by its coordinates and dimensions."]]});
+initSidebarItems({"enum":[["State","The current drag interaction for the Widget."]],"fn":[["drag_widget","Drag the widget from its position `xy` and return the new position."]]});

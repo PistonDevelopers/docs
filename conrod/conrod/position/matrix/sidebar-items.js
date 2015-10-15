@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Matrix","A type to simplify placement of various widgets in a matrix or grid layout."]]});
