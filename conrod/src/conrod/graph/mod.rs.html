@@ -980,18 +980,12 @@
 <span id="938">938</span>
 <span id="939">939</span>
 <span id="940">940</span>
-<span id="941">941</span>
-<span id="942">942</span>
-<span id="943">943</span>
-<span id="944">944</span>
-<span id="945">945</span>
-<span id="946">946</span>
 </pre><pre class='rust '>
 
 
+<span class='kw'>use</span> <span class='ident'>daggy</span>;
 <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Element</span>;
 <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>element</span>::<span class='ident'>layers</span>;
-<span class='kw'>use</span> <span class='ident'>petgraph</span> <span class='kw'>as</span> <span class='ident'>pg</span>;
 <span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Depth</span>, <span class='ident'>Point</span>, <span class='ident'>Rect</span>};
 <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>index_map</span>::<span class='ident'>IndexMap</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
@@ -1005,10 +999,10 @@
 
 
 <span class='doccomment'>/// An alias for our Graph&#39;s Node Index.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>NodeIndex</span> <span class='op'>=</span> <span class='ident'>pg</span>::<span class='ident'>graph</span>::<span class='ident'>NodeIndex</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>;
+<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>NodeIndex</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>NodeIndex</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>;
 
 <span class='doccomment'>/// An alias for our Graph&#39;s Edge Index.</span>
-<span class='kw'>type</span> <span class='ident'>EdgeIndex</span> <span class='op'>=</span> <span class='ident'>pg</span>::<span class='ident'>graph</span>::<span class='ident'>EdgeIndex</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>;
+<span class='kw'>type</span> <span class='ident'>EdgeIndex</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>EdgeIndex</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>;
 
 <span class='doccomment'>/// The state type that we&#39;ll dynamically cast to and from `Any` for storage within the cache.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
@@ -1070,14 +1064,14 @@
 <span class='kw'>enum</span> <span class='ident'>Edge</span> {
     <span class='doccomment'>/// A widget is positioned relatively to another.</span>
     <span class='doccomment'>/// When adding an edge a -&gt; b, b is positioned relatively to a.</span>
-    <span class='ident'>RelativePosition</span>,
+    <span class='ident'>Position</span>,
     <span class='doccomment'>/// A widget is a child of another.</span>
-    <span class='doccomment'>/// When adding an edge a -&gt; b, a is the parent of b.</span>
-    <span class='ident'>Child</span>,
+    <span class='doccomment'>/// When adding an edge a -&gt; b, a is the parent of (and will be rendered before) b.</span>
+    <span class='ident'>Depth</span>,
 }
 
 <span class='doccomment'>/// An alias for the petgraph::Graph used within our Ui Graph.</span>
-<span class='kw'>type</span> <span class='ident'>PetGraph</span> <span class='op'>=</span> <span class='ident'>pg</span>::<span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>Node</span>, <span class='ident'>Edge</span>, <span class='ident'>pg</span>::<span class='ident'>Directed</span><span class='op'>&gt;</span>;
+<span class='kw'>type</span> <span class='ident'>Dag</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>Dag</span><span class='op'>&lt;</span><span class='ident'>Node</span>, <span class='ident'>Edge</span><span class='op'>&gt;</span>;
 
 <span class='doccomment'>/// Parts of the graph that are significant when visiting and sorting by depth.</span>
 <span class='doccomment'>/// The reason a widget and its scrollbar are separate here is because a widget&#39;s scrollbar may</span>
@@ -1093,8 +1087,9 @@
 <span class='doccomment'>/// Stores the dynamic state of a UI tree of Widgets.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Graph</span> {
-    <span class='doccomment'>/// Cached widget state in a graph whose edges describe the rendering tree and positioning.</span>
-    <span class='ident'>graph</span>: <span class='ident'>PetGraph</span>,
+    <span class='doccomment'>/// Cached widget state in a directed acyclic graph whose edges describe the rendering tree and</span>
+    <span class='doccomment'>/// positioning.</span>
+    <span class='ident'>dag</span>: <span class='ident'>Dag</span>,
     <span class='doccomment'>/// A map of the UiId to the graph&#39;s indices.</span>
     <span class='ident'>index_map</span>: <span class='ident'>IndexMap</span>,
     <span class='doccomment'>/// The NodeIndex of the root Node.</span>
@@ -1161,10 +1156,10 @@
 
     <span class='doccomment'>/// Construct a new Graph with the given capacity.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>Graph</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span> <span class='op'>=</span> <span class='ident'>PetGraph</span>::<span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>, <span class='ident'>capacity</span>);
-        <span class='kw'>let</span> <span class='ident'>root</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Root</span>);
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>dag</span> <span class='op'>=</span> <span class='ident'>Dag</span>::<span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>, <span class='ident'>capacity</span>);
+        <span class='kw'>let</span> <span class='ident'>root</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Root</span>);
         <span class='ident'>Graph</span> {
-            <span class='ident'>graph</span>: <span class='ident'>graph</span>,
+            <span class='ident'>dag</span>: <span class='ident'>dag</span>,
             <span class='ident'>index_map</span>: <span class='ident'>IndexMap</span>::<span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>),
             <span class='ident'>root</span>: <span class='ident'>root</span>,
             <span class='ident'>depth_order</span>: <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>),
@@ -1177,13 +1172,13 @@
     <span class='doccomment'>/// This method is used by the `widget::set_widget` function when some internal widget does not</span>
     <span class='doccomment'>/// yet have it&#39;s own `NodeIndex`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>add_placeholder</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>NodeIndex</span> {
-        <span class='self'>self</span>.<span class='ident'>graph</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Placeholder</span>)
+        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Placeholder</span>)
     }
 
     <span class='doccomment'>/// If there is a Widget for the given index, return a reference to it.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_widget</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Container</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, <span class='kw-2'>ref</span> <span class='ident'>graph</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-        <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, <span class='kw-2'>ref</span> <span class='ident'>dag</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>idx</span>] {
             <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>container</span>),
             <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Placeholder</span> <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
             _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
@@ -1192,8 +1187,8 @@
 
     <span class='doccomment'>/// If there is a Widget for the given Id, return a mutable reference to it.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_widget_mut</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Container</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-        <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>).<span class='ident'>and_then</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>dag</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>).<span class='ident'>and_then</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>dag</span>[<span class='ident'>idx</span>] {
             <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>container</span>),
             <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Placeholder</span> <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
             _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
@@ -1206,7 +1201,7 @@
         <span class='ident'>J</span>: <span class='ident'>GraphIndex</span>,
     {
         <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_map</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> {
-            <span class='ident'>maybe_incoming_child_edge</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>graph</span>, <span class='ident'>idx</span>)
+            <span class='ident'>maybe_parent_depth_edge</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>dag</span>, <span class='ident'>idx</span>)
                 .<span class='ident'>and_then</span>(<span class='op'>|</span>(_, <span class='ident'>parent_idx</span>)<span class='op'>|</span> <span class='ident'>J</span>::<span class='ident'>from_idx</span>(<span class='ident'>parent_idx</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_map</span>))
         })
     }
@@ -1214,19 +1209,19 @@
 
     <span class='doccomment'>/// If the given Point is currently on a Widget, return an index to that widget.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pick_widget</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>, <span class='kw-2'>ref</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>, <span class='kw-2'>ref</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
         <span class='ident'>depth_order</span>.<span class='ident'>iter</span>().<span class='ident'>rev</span>()
             .<span class='ident'>find</span>(<span class='op'>|</span><span class='op'>&amp;&amp;</span><span class='ident'>visitable</span><span class='op'>|</span> {
                 <span class='kw'>match</span> <span class='ident'>visitable</span> {
                     <span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
                             <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>rect</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
                                 <span class='kw'>return</span> <span class='boolval'>true</span>
                             }
                         }
                     },
                     <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
                             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>scrolling</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>maybe_scrolling</span> {
                                 <span class='kw'>if</span> <span class='ident'>scrolling</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
                                     <span class='kw'>return</span> <span class='boolval'>true</span>;
@@ -1246,14 +1241,14 @@
 
     <span class='doccomment'>/// If the given Point is currently over a scrollable widget, return an index to that widget.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pick_top_scrollable_widget</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>, <span class='kw-2'>ref</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>, <span class='kw-2'>ref</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
         <span class='ident'>depth_order</span>.<span class='ident'>iter</span>().<span class='ident'>rev</span>()
             .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>visitable</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>visitable</span> {
                 <span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>),
                 <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
             })
             .<span class='ident'>find</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>idx</span><span class='op'>|</span> {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
+                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
                     <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>maybe_scrolling</span>.<span class='ident'>is_some</span>() {
                         <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>rect</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
                             <span class='kw'>return</span> <span class='boolval'>true</span>;
@@ -1268,7 +1263,7 @@
 
     <span class='doccomment'>/// Calculate the total scroll offset for the widget with the given widget::Index.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>scroll_offset</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='ident'>Point</span> {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
 
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>offset</span> <span class='op'>=</span> [<span class='number'>0.0</span>, <span class='number'>0.0</span>];
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>) {
@@ -1282,16 +1277,16 @@
         <span class='lifetime'>&#39;child_edge_traversal</span>: <span class='kw'>loop</span> {
 
             <span class='comment'>// We only need to worry about calculating any offset if there is some parent widget.</span>
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((_, <span class='ident'>parent_idx</span>)) <span class='op'>=</span> <span class='ident'>maybe_incoming_child_edge</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>) {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((_, <span class='ident'>parent_idx</span>)) <span class='op'>=</span> <span class='ident'>maybe_parent_depth_edge</span>(<span class='ident'>dag</span>, <span class='ident'>idx</span>) {
 
-                <span class='comment'>// Recursively check all nodes with incoming `RelativePosition` edges for a parent that</span>
+                <span class='comment'>// Recursively check all nodes with incoming `Position` edges for a parent that</span>
                 <span class='comment'>// matches our own parent. If any match, then we don&#39;t need to calculate any additional</span>
                 <span class='comment'>// offset as the widget we are being positioned relatively to has already applied the</span>
                 <span class='comment'>// necessary scroll offset.</span>
                 <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>current_node</span> <span class='op'>=</span> <span class='ident'>idx</span>;
                 <span class='lifetime'>&#39;relative_position_edge_traversal</span>: <span class='kw'>loop</span> {
-                    <span class='kw'>match</span> <span class='ident'>maybe_incoming_relative_position_edge</span>(<span class='ident'>graph</span>, <span class='ident'>current_node</span>) {
-                        <span class='prelude-val'>Some</span>((_, <span class='ident'>node</span>)) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>maybe_incoming_child_edge</span>(<span class='ident'>graph</span>, <span class='ident'>node</span>) {
+                    <span class='kw'>match</span> <span class='ident'>maybe_parent_position_edge</span>(<span class='ident'>dag</span>, <span class='ident'>current_node</span>) {
+                        <span class='prelude-val'>Some</span>((_, <span class='ident'>node</span>)) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>maybe_parent_depth_edge</span>(<span class='ident'>dag</span>, <span class='ident'>node</span>) {
                             <span class='prelude-val'>Some</span>((_, <span class='ident'>parent_node</span>)) <span class='kw'>if</span> <span class='ident'>parent_node</span> <span class='op'>==</span> <span class='ident'>parent_idx</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>offset</span>,
                             _ <span class='op'>=&gt;</span> <span class='ident'>current_node</span> <span class='op'>=</span> <span class='ident'>node</span>,
                         },
@@ -1303,7 +1298,7 @@
                 <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>parent_idx</span>;
 
                 <span class='comment'>// Check the current widget for any scroll offset.</span>
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
+                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>) {
                     <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>scrolling</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>maybe_scrolling</span> {
                         <span class='kw'>let</span> <span class='ident'>scroll_offset</span> <span class='op'>=</span> <span class='ident'>scrolling</span>.<span class='ident'>kids_pos_offset</span>();
                         <span class='ident'>offset</span>[<span class='number'>0</span>] <span class='op'>+=</span> <span class='ident'>scroll_offset</span>[<span class='number'>0</span>].<span class='ident'>round</span>();
@@ -1326,7 +1321,7 @@
         <span class='ident'>I</span>: <span class='ident'>GraphIndex</span>,
         <span class='ident'>P</span>: <span class='ident'>GraphIndex</span>,
     {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>index_map</span>, <span class='ident'>root</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>index_map</span>, <span class='ident'>root</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
 
         <span class='kw'>let</span> <span class='ident'>node_idx</span> <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>).<span class='ident'>expect</span>(<span class='ident'>NO_MATCHING_NODE_INDEX</span>);
         <span class='comment'>// If no parent id was given, we will set the root as the parent.</span>
@@ -1341,7 +1336,7 @@
                     <span class='kw'>let</span> <span class='ident'>parent_widget_id</span> <span class='op'>=</span> <span class='ident'>parent_idx</span>.<span class='ident'>to_widget_id</span>(<span class='ident'>index_map</span>)
                         .<span class='ident'>expect</span>(<span class='ident'>NO_MATCHING_WIDGET_ID</span>);
                     <span class='comment'>// Add a placeholder node to act as a parent until the actual parent is placed.</span>
-                    <span class='kw'>let</span> <span class='ident'>parent_node_idx</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Placeholder</span>);
+                    <span class='kw'>let</span> <span class='ident'>parent_node_idx</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Placeholder</span>);
                     <span class='ident'>index_map</span>.<span class='ident'>insert</span>(<span class='ident'>parent_widget_id</span>, <span class='ident'>parent_node_idx</span>);
                     <span class='ident'>parent_node_idx</span>
                 },
@@ -1349,11 +1344,11 @@
             <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>root</span>,
         };
 
-        <span class='ident'>set_edge</span>(<span class='ident'>graph</span>, <span class='ident'>parent_node_idx</span>, <span class='ident'>node_idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Child</span>);
+        <span class='ident'>set_edge</span>(<span class='ident'>dag</span>, <span class='ident'>parent_node_idx</span>, <span class='ident'>node_idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Depth</span>);
     }
 
 
-    <span class='doccomment'>/// Set&#39;s an `Edge::RelativePosition` from a to b. This edge represents the fact that b is</span>
+    <span class='doccomment'>/// Set&#39;s an `Edge::Position` from a to b. This edge represents the fact that b is</span>
     <span class='doccomment'>/// positioned relatively to a&#39;s position.</span>
     <span class='kw'>fn</span> <span class='ident'>set_relative_position_edge</span><span class='op'>&lt;</span><span class='ident'>A</span>, <span class='ident'>B</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>a</span>: <span class='ident'>A</span>, <span class='ident'>b</span>: <span class='ident'>B</span>) <span class='kw'>where</span>
         <span class='ident'>A</span>: <span class='ident'>GraphIndex</span>,
@@ -1362,19 +1357,19 @@
         <span class='kw'>let</span> <span class='ident'>a_idx</span> <span class='op'>=</span> <span class='ident'>a</span>.<span class='ident'>to_node_index</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_map</span>).<span class='ident'>expect</span>(<span class='ident'>NO_MATCHING_NODE_INDEX</span>);
         <span class='kw'>let</span> <span class='ident'>b_idx</span> <span class='op'>=</span> <span class='ident'>b</span>.<span class='ident'>to_node_index</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_map</span>).<span class='ident'>expect</span>(<span class='ident'>NO_MATCHING_NODE_INDEX</span>);
 
-        <span class='ident'>set_edge</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>graph</span>, <span class='ident'>a_idx</span>, <span class='ident'>b_idx</span>, <span class='ident'>Edge</span>::<span class='ident'>RelativePosition</span>);
+        <span class='ident'>set_edge</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>dag</span>, <span class='ident'>a_idx</span>, <span class='ident'>b_idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>);
     }
 
 
     <span class='doccomment'>/// Remove the incoming relative position edge (if there is one) to the widget at the given</span>
     <span class='doccomment'>/// index.</span>
     <span class='kw'>fn</span> <span class='ident'>remove_incoming_relative_position_edge</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
         <span class='kw'>let</span> <span class='ident'>node_idx</span> <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>).<span class='ident'>expect</span>(<span class='ident'>NO_MATCHING_NODE_INDEX</span>);
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>incoming_edges</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>walk_edges_directed</span>(<span class='ident'>node_idx</span>, <span class='ident'>pg</span>::<span class='ident'>Incoming</span>);
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, _)) <span class='op'>=</span> <span class='ident'>incoming_edges</span>.<span class='ident'>next_neighbor</span>(<span class='ident'>graph</span>) {
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>RelativePosition</span> <span class='op'>=</span> <span class='ident'>graph</span>[<span class='ident'>in_edge_idx</span>] {
-                <span class='ident'>graph</span>.<span class='ident'>remove_edge</span>(<span class='ident'>in_edge_idx</span>);
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>parents</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>walk_parents</span>(<span class='ident'>node_idx</span>);
+        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, _)) <span class='op'>=</span> <span class='ident'>parents</span>.<span class='ident'>next_parent</span>(<span class='ident'>dag</span>) {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span> <span class='op'>=</span> <span class='ident'>dag</span>[<span class='ident'>in_edge_idx</span>] {
+                <span class='ident'>dag</span>.<span class='ident'>remove_edge</span>(<span class='ident'>in_edge_idx</span>);
                 <span class='comment'>// Note that we only need to check for *one* edge as there can only ever be one</span>
                 <span class='comment'>// incoming relative position edge per node.</span>
                 <span class='kw'>break</span>;
@@ -1394,10 +1389,10 @@
                                        <span class='ident'>use_kid_area</span>: <span class='ident'>bool</span>,
                                        <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>
     {
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='ident'>index_map</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
 
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='ident'>index_map</span>) {
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>idx</span>] {
 
                 <span class='comment'>// If we&#39;re to use the kid area, we&#39;ll get the rect from that, otherwise we&#39;ll use</span>
                 <span class='comment'>// the regular dim and xy.</span>
@@ -1410,9 +1405,9 @@
                 <span class='kw'>let</span> <span class='ident'>relative_bounds</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>(<span class='ident'>relative_target_xy</span>, <span class='ident'>dim</span>);
 
                 <span class='comment'>// An iterator yielding the bounding_box returned by each of our children.</span>
-                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>kids_bounds</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>neighbors_directed</span>(<span class='ident'>idx</span>, <span class='ident'>pg</span>::<span class='ident'>Outgoing</span>)
-                    .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>kid_idx</span><span class='op'>|</span> <span class='ident'>graph</span>.<span class='ident'>find_edge</span>(<span class='ident'>idx</span>, <span class='ident'>kid_idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>kid_edge_idx</span><span class='op'>|</span> {
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>Child</span> <span class='op'>=</span> <span class='ident'>graph</span>[<span class='ident'>kid_edge_idx</span>] {
+                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>kids_bounds</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>children</span>(<span class='ident'>idx</span>)
+                    .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>kid_idx</span><span class='op'>|</span> <span class='ident'>dag</span>.<span class='ident'>find_edge</span>(<span class='ident'>idx</span>, <span class='ident'>kid_idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>kid_edge_idx</span><span class='op'>|</span> {
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>Depth</span> <span class='op'>=</span> <span class='ident'>dag</span>[<span class='ident'>kid_edge_idx</span>] {
                             <span class='self'>self</span>.<span class='ident'>bounding_box</span>(<span class='boolval'>true</span>, <span class='prelude-val'>Some</span>(<span class='ident'>target_xy</span>), <span class='boolval'>false</span>, <span class='ident'>kid_idx</span>)
                         } <span class='kw'>else</span> {
                             <span class='prelude-val'>None</span>
@@ -1449,7 +1444,7 @@
                                      <span class='ident'>maybe_widget_id</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>,
                                      <span class='ident'>maybe_parent_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>NodeIndex</span>
     {
-        <span class='kw'>let</span> <span class='ident'>node_idx</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>graph</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='ident'>container</span>));
+        <span class='kw'>let</span> <span class='ident'>node_idx</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='ident'>container</span>));
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>) <span class='op'>=</span> <span class='ident'>maybe_widget_id</span> {
             <span class='self'>self</span>.<span class='ident'>index_map</span>.<span class='ident'>insert</span>(<span class='ident'>id</span>, <span class='ident'>node_idx</span>);
         }
@@ -1491,10 +1486,10 @@
         <span class='comment'>// If we already have a `Node` in the graph for the given `idx`, we need to update it.</span>
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>node_idx</span>) <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>to_node_index</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_map</span>) {
 
-            <span class='comment'>// Ensure that we have an `Edge::Child` in the graph representing the parent.</span>
+            <span class='comment'>// Ensure that we have an `Edge::Depth` in the graph representing the parent.</span>
             <span class='self'>self</span>.<span class='ident'>set_parent_for_widget</span>(<span class='ident'>idx</span>, <span class='ident'>maybe_parent_idx</span>);
 
-            <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>graph</span>[<span class='ident'>node_idx</span>] {
+            <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>dag</span>[<span class='ident'>node_idx</span>] {
 
                 <span class='comment'>// If the node is currently a `Placeholder`, construct a new container and use this</span>
                 <span class='comment'>// to set it as the `Widget` variant.</span>
@@ -1538,12 +1533,12 @@
         }
 
         <span class='comment'>// Now that we&#39;ve updated the widget&#39;s cached data, we need to check if we should add an</span>
-        <span class='comment'>// `Edge::RelativePosition`.</span>
+        <span class='comment'>// `Edge::Position`.</span>
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>relative_idx</span>) <span class='op'>=</span> <span class='ident'>maybe_positioned_relatively_idx</span> {
             <span class='self'>self</span>.<span class='ident'>set_relative_position_edge</span>(<span class='ident'>relative_idx</span>, <span class='ident'>idx</span>);
 
         <span class='comment'>// Otherwise if the widget is not positioned relatively to any other widget, we should</span>
-        <span class='comment'>// ensure that there are no incoming `RelativePosition` edges.</span>
+        <span class='comment'>// ensure that there are no incoming `Position` edges.</span>
         } <span class='kw'>else</span> {
             <span class='self'>self</span>.<span class='ident'>remove_incoming_relative_position_edge</span>(<span class='ident'>idx</span>);
         }
@@ -1601,7 +1596,7 @@
 
         <span class='self'>self</span>.<span class='ident'>prepare_to_draw</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>);
 
-        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>, <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Graph</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>dag</span>, <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
 
         <span class='comment'>// The main Vec in which we&#39;ll collect all `Element`s.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>elements</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='ident'>depth_order</span>.<span class='ident'>len</span>());
@@ -1619,7 +1614,7 @@
             <span class='kw'>match</span> <span class='ident'>visitable</span> {
 
                 <span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>dag</span>[<span class='ident'>idx</span>] {
                         <span class='ident'>container</span>.<span class='ident'>was_previously_updated</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>is_updated</span>;
                         <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>is_updated</span> {
 
@@ -1652,7 +1647,7 @@
                 },
 
                 <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>idx</span>] {
                         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>scrolling</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>maybe_scrolling</span> {
 
                             <span class='comment'>// Now that we&#39;ve come across a scrollbar, we should pop the group of</span>
@@ -1681,7 +1676,7 @@
     <span class='doccomment'>/// Whether or not any of the Widget `Element`s have changed since the previous call to</span>
     <span class='doccomment'>/// `Graph::element`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>have_any_elements_changed</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>for</span> <span class='ident'>node</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>graph</span>.<span class='ident'>raw_nodes</span>().<span class='ident'>iter</span>() {
+        <span class='kw'>for</span> <span class='ident'>node</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>raw_nodes</span>().<span class='ident'>iter</span>() {
             <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='ident'>node</span>.<span class='ident'>weight</span> {
                 <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>element_has_changed</span>
                 <span class='op'>||</span> (<span class='op'>!</span><span class='ident'>container</span>.<span class='ident'>is_updated</span> <span class='op'>&amp;&amp;</span> <span class='ident'>container</span>.<span class='ident'>was_previously_updated</span>) {
@@ -1713,7 +1708,7 @@
                        <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>)
     {
         <span class='kw'>let</span> <span class='ident'>Graph</span> {
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>graph</span>,
+            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>dag</span>,
             <span class='ident'>root</span>,
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>depth_order</span>,
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>floating_deque</span>,
@@ -1724,7 +1719,7 @@
         <span class='ident'>update_depth_order</span>(<span class='ident'>root</span>,
                            <span class='ident'>maybe_captured_mouse</span>,
                            <span class='ident'>maybe_captured_keyboard</span>,
-                           <span class='ident'>graph</span>,
+                           <span class='ident'>dag</span>,
                            <span class='ident'>depth_order</span>,
                            <span class='ident'>floating_deque</span>);
     }
@@ -1733,20 +1728,20 @@
 
 
 <span class='doccomment'>/// Set some given `Edge` between `a` -&gt; `b`, so that it is the only `Edge` of its variant.</span>
-<span class='kw'>fn</span> <span class='ident'>set_edge</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>PetGraph</span>, <span class='ident'>a</span>: <span class='ident'>NodeIndex</span>, <span class='ident'>b</span>: <span class='ident'>NodeIndex</span>, <span class='ident'>edge</span>: <span class='ident'>Edge</span>) {
+<span class='kw'>fn</span> <span class='ident'>set_edge</span>(<span class='ident'>dag</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Dag</span>, <span class='ident'>a</span>: <span class='ident'>NodeIndex</span>, <span class='ident'>b</span>: <span class='ident'>NodeIndex</span>, <span class='ident'>edge</span>: <span class='ident'>Edge</span>) {
 
     <span class='comment'>// Check to see if the node already has some matching incoming edge.</span>
     <span class='comment'>// Keep it if it&#39;s the one we want. Otherwise, remove any incoming edge that matches the given</span>
     <span class='comment'>// edge kind but isn&#39;t coming from the node that we desire.</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>incoming_edges</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>walk_edges_directed</span>(<span class='ident'>b</span>, <span class='ident'>pg</span>::<span class='ident'>Incoming</span>);
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>parents</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>walk_parents</span>(<span class='ident'>b</span>);
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>already_set</span> <span class='op'>=</span> <span class='boolval'>false</span>;
 
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>incoming_edges</span>.<span class='ident'>next_neighbor</span>(<span class='ident'>graph</span>) {
-        <span class='kw'>if</span> <span class='ident'>edge</span> <span class='op'>==</span> <span class='ident'>graph</span>[<span class='ident'>in_edge_idx</span>] {
+    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>parents</span>.<span class='ident'>next_parent</span>(<span class='ident'>dag</span>) {
+        <span class='kw'>if</span> <span class='ident'>edge</span> <span class='op'>==</span> <span class='ident'>dag</span>[<span class='ident'>in_edge_idx</span>] {
             <span class='kw'>if</span> <span class='ident'>in_node_idx</span> <span class='op'>==</span> <span class='ident'>a</span> {
                 <span class='ident'>already_set</span> <span class='op'>=</span> <span class='boolval'>true</span>;
             } <span class='kw'>else</span> {
-                <span class='ident'>graph</span>.<span class='ident'>remove_edge</span>(<span class='ident'>in_edge_idx</span>);
+                <span class='ident'>dag</span>.<span class='ident'>remove_edge</span>(<span class='ident'>in_edge_idx</span>);
             }
             <span class='comment'>// Note that we only need to check for *one* edge as there can only ever be one</span>
             <span class='comment'>// parent or relative position per node. We know this, as this method is the only</span>
@@ -1757,16 +1752,9 @@
 
     <span class='comment'>// If we don&#39;t already have an incoming edge from the requested parent, add one.</span>
     <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>already_set</span> {
-
-        <span class='comment'>// Add a Child edge from a -&gt; b.</span>
-        <span class='kw'>let</span> <span class='ident'>new_edge</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>add_edge</span>(<span class='ident'>a</span>, <span class='ident'>b</span>, <span class='ident'>edge</span>);
-
-        <span class='comment'>// We can&#39;t allow the new connection to cause a cycle, so we&#39;ll check.</span>
-        <span class='kw'>if</span> <span class='ident'>pg</span>::<span class='ident'>algo</span>::<span class='ident'>is_cyclic_directed</span>(<span class='ident'>graph</span>) {
+        <span class='comment'>// Add a Depth edge from a -&gt; b.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(_) <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>add_edge</span>(<span class='ident'>a</span>, <span class='ident'>b</span>, <span class='ident'>edge</span>) {
             <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
-
-            <span class='comment'>// If there was a cycle, remove the edge and report the error.</span>
-            <span class='ident'>graph</span>.<span class='ident'>remove_edge</span>(<span class='ident'>new_edge</span>);
             <span class='macro'>writeln</span><span class='macro'>!</span>(::<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>stderr</span>(),
                      <span class='string'>&quot;Error: Adding a connection from node {:?} to node {:?} would cause a cycle \
                      within the Graph.&quot;</span>, <span class='ident'>a</span>, <span class='ident'>b</span>).<span class='ident'>unwrap</span>();
@@ -1779,12 +1767,12 @@
 <span class='doccomment'>/// Return the incoming relative position edge (and the attached Node) if one exists.</span>
 <span class='doccomment'>/// We know that there may be at most one incoming relative position edge, as the only</span>
 <span class='doccomment'>/// publicly exposed way to add an edge to the graph is via the `set_edge` method.</span>
-<span class='kw'>fn</span> <span class='ident'>maybe_incoming_relative_position_edge</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>PetGraph</span>, <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>)
+<span class='kw'>fn</span> <span class='ident'>maybe_parent_position_edge</span>(<span class='ident'>dag</span>: <span class='kw-2'>&amp;</span><span class='ident'>Dag</span>, <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>)
     <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>EdgeIndex</span>, <span class='ident'>NodeIndex</span>)<span class='op'>&gt;</span>
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>incoming_edges</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>walk_edges_directed</span>(<span class='ident'>idx</span>, <span class='ident'>pg</span>::<span class='ident'>Incoming</span>);
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>incoming_edges</span>.<span class='ident'>next_neighbor</span>(<span class='ident'>graph</span>) {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>RelativePosition</span> <span class='op'>=</span> <span class='ident'>graph</span>[<span class='ident'>in_edge_idx</span>] {
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>parents</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>walk_parents</span>(<span class='ident'>idx</span>);
+    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>parents</span>.<span class='ident'>next_parent</span>(<span class='ident'>dag</span>) {
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span> <span class='op'>=</span> <span class='ident'>dag</span>[<span class='ident'>in_edge_idx</span>] {
             <span class='kw'>return</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>));
         }
     }
@@ -1794,12 +1782,12 @@
 <span class='doccomment'>/// Return the incoming child edge (and the attached parent Node) if one exists.</span>
 <span class='doccomment'>/// We know that there may be at most one incoming child edge, as the only publicly</span>
 <span class='doccomment'>/// exposed way to add an edge to the graph is via the `set_edge` method.</span>
-<span class='kw'>fn</span> <span class='ident'>maybe_incoming_child_edge</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>PetGraph</span>, <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>)
+<span class='kw'>fn</span> <span class='ident'>maybe_parent_depth_edge</span>(<span class='ident'>dag</span>: <span class='kw-2'>&amp;</span><span class='ident'>Dag</span>, <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>)
     <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>EdgeIndex</span>, <span class='ident'>NodeIndex</span>)<span class='op'>&gt;</span>
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>incoming_edges</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>walk_edges_directed</span>(<span class='ident'>idx</span>, <span class='ident'>pg</span>::<span class='ident'>Incoming</span>);
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>incoming_edges</span>.<span class='ident'>next_neighbor</span>(<span class='ident'>graph</span>) {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>Child</span> <span class='op'>=</span> <span class='ident'>graph</span>[<span class='ident'>in_edge_idx</span>] {
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>parents</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>walk_parents</span>(<span class='ident'>idx</span>);
+    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>parents</span>.<span class='ident'>next_parent</span>(<span class='ident'>dag</span>) {
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Edge</span>::<span class='ident'>Depth</span> <span class='op'>=</span> <span class='ident'>dag</span>[<span class='ident'>in_edge_idx</span>] {
             <span class='kw'>return</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>));
         }
     }
@@ -1813,13 +1801,13 @@
 <span class='kw'>fn</span> <span class='ident'>update_depth_order</span>(<span class='ident'>root</span>: <span class='ident'>NodeIndex</span>,
                       <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
                       <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-                      <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>PetGraph</span>,
+                      <span class='ident'>dag</span>: <span class='kw-2'>&amp;</span><span class='ident'>Dag</span>,
                       <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Visitable</span><span class='op'>&gt;</span>,
                       <span class='ident'>floating_deque</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>)
 {
 
     <span class='comment'>// Clear the buffers and ensure they&#39;ve enough memory allocated.</span>
-    <span class='kw'>let</span> <span class='ident'>num_nodes</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_count</span>();
+    <span class='kw'>let</span> <span class='ident'>num_nodes</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>node_count</span>();
     <span class='ident'>depth_order</span>.<span class='ident'>clear</span>();
     <span class='ident'>depth_order</span>.<span class='ident'>reserve</span>(<span class='ident'>num_nodes</span>);
     <span class='ident'>floating_deque</span>.<span class='ident'>clear</span>();
@@ -1830,12 +1818,12 @@
     <span class='ident'>visit_by_depth</span>(<span class='ident'>root</span>,
                    <span class='ident'>maybe_captured_mouse</span>,
                    <span class='ident'>maybe_captured_keyboard</span>,
-                   <span class='ident'>graph</span>,
+                   <span class='ident'>dag</span>,
                    <span class='ident'>depth_order</span>,
                    <span class='ident'>floating_deque</span>);
 
     <span class='comment'>// Sort the floating widgets so that the ones clicked last come last.</span>
-    <span class='ident'>floating_deque</span>.<span class='ident'>sort_by</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>a</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span><span class='op'>|</span> <span class='kw'>match</span> (<span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>b</span>]) {
+    <span class='ident'>floating_deque</span>.<span class='ident'>sort_by</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>a</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span><span class='op'>|</span> <span class='kw'>match</span> (<span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>b</span>]) {
         (<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>a</span>), <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>b</span>)) <span class='op'>=&gt;</span> {
             <span class='kw'>let</span> <span class='ident'>a_floating</span> <span class='op'>=</span> <span class='ident'>a</span>.<span class='ident'>maybe_floating</span>.<span class='ident'>expect</span>(<span class='string'>&quot;Not floating&quot;</span>);
             <span class='kw'>let</span> <span class='ident'>b_floating</span> <span class='op'>=</span> <span class='ident'>b</span>.<span class='ident'>maybe_floating</span>.<span class='ident'>expect</span>(<span class='string'>&quot;Not floating&quot;</span>);
@@ -1850,23 +1838,23 @@
         <span class='ident'>visit_by_depth</span>(<span class='ident'>idx</span>,
                        <span class='ident'>maybe_captured_mouse</span>,
                        <span class='ident'>maybe_captured_keyboard</span>,
-                       <span class='ident'>graph</span>,
+                       <span class='ident'>dag</span>,
                        <span class='ident'>depth_order</span>,
                        <span class='ident'>floating_deque</span>);
     }
 }
 
 
-<span class='doccomment'>/// Recursive function for visiting all nodes within the graph</span>
+<span class='doccomment'>/// Recursive function for visiting all nodes within the dag.</span>
 <span class='kw'>fn</span> <span class='ident'>visit_by_depth</span>(<span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>,
                   <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
                   <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-                  <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>PetGraph</span>,
+                  <span class='ident'>dag</span>: <span class='kw-2'>&amp;</span><span class='ident'>Dag</span>,
                   <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Visitable</span><span class='op'>&gt;</span>,
                   <span class='ident'>floating_deque</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>)
 {
     <span class='comment'>// First, store the index of the current node.</span>
-    <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+    <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>idx</span>] {
         <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>is_updated</span> <span class='op'>=&gt;</span>
             <span class='ident'>depth_order</span>.<span class='ident'>push</span>(<span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>)),
         <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Root</span> <span class='op'>=&gt;</span> (),
@@ -1877,12 +1865,12 @@
     <span class='comment'>// Sort the children of the current node by their `.depth` members.</span>
     <span class='comment'>// FIXME: We should remove these allocations by storing a `child_sorter` buffer in each Widget</span>
     <span class='comment'>// node (perhaps in the `Container`).</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>child_sorter</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>neighbors_directed</span>(<span class='ident'>idx</span>, <span class='ident'>pg</span>::<span class='ident'>Outgoing</span>).<span class='ident'>collect</span>();
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>child_sorter</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>dag</span>.<span class='ident'>children</span>(<span class='ident'>idx</span>).<span class='ident'>collect</span>();
     <span class='ident'>child_sorter</span>.<span class='ident'>sort_by</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>a</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span><span class='op'>|</span> {
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>Ordering</span>;
         <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>a</span>) <span class='op'>==</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>||</span> <span class='prelude-val'>Some</span>(<span class='ident'>a</span>) <span class='op'>==</span> <span class='ident'>maybe_captured_keyboard</span> {
             <span class='ident'>Ordering</span>::<span class='ident'>Greater</span>
-        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='kw'>let</span> (<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>a</span>), <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>b</span>)) <span class='op'>=</span> (<span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>b</span>]) {
+        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='kw'>let</span> (<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>a</span>), <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>b</span>)) <span class='op'>=</span> (<span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>b</span>]) {
             <span class='ident'>b</span>.<span class='ident'>depth</span>.<span class='ident'>partial_cmp</span>(<span class='kw-2'>&amp;</span><span class='ident'>a</span>.<span class='ident'>depth</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Depth was NaN!&quot;</span>)
         } <span class='kw'>else</span> {
             <span class='ident'>Ordering</span>::<span class='ident'>Equal</span>
@@ -1894,7 +1882,7 @@
     <span class='kw'>for</span> <span class='ident'>child_idx</span> <span class='kw'>in</span> <span class='ident'>child_sorter</span>.<span class='ident'>into_iter</span>() {
 
         <span class='comment'>// Determine whether or not the node is a floating widget.</span>
-        <span class='kw'>let</span> <span class='ident'>maybe_is_floating</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>node_weight</span>(<span class='ident'>child_idx</span>) {
+        <span class='kw'>let</span> <span class='ident'>maybe_is_floating</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>dag</span>.<span class='ident'>node_weight</span>(<span class='ident'>child_idx</span>) {
             <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>container</span>.<span class='ident'>maybe_floating</span>.<span class='ident'>is_some</span>()),
             _                                  <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
         };
@@ -1905,14 +1893,14 @@
             _          <span class='op'>=&gt;</span> <span class='ident'>visit_by_depth</span>(<span class='ident'>child_idx</span>,
                                          <span class='ident'>maybe_captured_mouse</span>,
                                          <span class='ident'>maybe_captured_keyboard</span>,
-                                         <span class='ident'>graph</span>,
+                                         <span class='ident'>dag</span>,
                                          <span class='ident'>depth_order</span>,
                                          <span class='ident'>floating_deque</span>),
         }
     }
 
     <span class='comment'>// If the widget is scrollable, we should add its scrollbar to the visit order also.</span>
-    <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>idx</span>] {
+    <span class='kw'>if</span> <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>dag</span>[<span class='ident'>idx</span>] {
         <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>maybe_scrolling</span>.<span class='ident'>is_some</span>() {
             <span class='ident'>depth_order</span>.<span class='ident'>push</span>(<span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>));
         }
