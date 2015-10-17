@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.3.7/src/api/x11/window.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.4.0/src/api/x11/window.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>window.rs.html -- source</title>
@@ -851,8 +851,41 @@
 <span id="809">809</span>
 <span id="810">810</span>
 <span id="811">811</span>
+<span id="812">812</span>
+<span id="813">813</span>
+<span id="814">814</span>
+<span id="815">815</span>
+<span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
+<span id="821">821</span>
+<span id="822">822</span>
+<span id="823">823</span>
+<span id="824">824</span>
+<span id="825">825</span>
+<span id="826">826</span>
+<span id="827">827</span>
+<span id="828">828</span>
+<span id="829">829</span>
+<span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
+<span id="843">843</span>
+<span id="844">844</span>
 </pre><pre class='rust '>
-<span class='kw'>use</span> {<span class='ident'>Event</span>, <span class='ident'>BuilderAttribs</span>, <span class='ident'>MouseCursor</span>};
+<span class='kw'>use</span> {<span class='ident'>Event</span>, <span class='ident'>MouseCursor</span>};
 <span class='kw'>use</span> <span class='ident'>CreationError</span>;
 <span class='kw'>use</span> <span class='ident'>CreationError</span>::<span class='ident'>OsError</span>;
 <span class='kw'>use</span> <span class='ident'>libc</span>;
@@ -866,19 +899,22 @@
 <span class='kw'>use</span> <span class='ident'>Api</span>;
 <span class='kw'>use</span> <span class='ident'>ContextError</span>;
 <span class='kw'>use</span> <span class='ident'>CursorState</span>;
+<span class='kw'>use</span> <span class='ident'>GlAttributes</span>;
 <span class='kw'>use</span> <span class='ident'>GlContext</span>;
 <span class='kw'>use</span> <span class='ident'>GlRequest</span>;
 <span class='kw'>use</span> <span class='ident'>PixelFormat</span>;
+<span class='kw'>use</span> <span class='ident'>PixelFormatRequirements</span>;
+<span class='kw'>use</span> <span class='ident'>WindowAttributes</span>;
 
 <span class='kw'>use</span> <span class='ident'>api</span>::<span class='ident'>glx</span>::<span class='ident'>Context</span> <span class='kw'>as</span> <span class='ident'>GlxContext</span>;
 <span class='kw'>use</span> <span class='ident'>api</span>::<span class='ident'>egl</span>;
 <span class='kw'>use</span> <span class='ident'>api</span>::<span class='ident'>egl</span>::<span class='ident'>Context</span> <span class='kw'>as</span> <span class='ident'>EglContext</span>;
 
-<span class='kw'>use</span> <span class='ident'>platform</span>::<span class='ident'>MonitorID</span> <span class='kw'>as</span> <span class='ident'>PlatformMonitorID</span>;
+<span class='kw'>use</span> <span class='ident'>platform</span>::<span class='ident'>MonitorId</span> <span class='kw'>as</span> <span class='ident'>PlatformMonitorId</span>;
 
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>input</span>::<span class='ident'>XInputEventHandler</span>;
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>ffi</span>};
-<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>MonitorID</span>, <span class='ident'>XConnection</span>};
+<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>MonitorId</span>, <span class='ident'>XConnection</span>};
 
 <span class='comment'>// XOpenIM doesn&#39;t seem to be thread-safe</span>
 <span class='macro'>lazy_static</span><span class='macro'>!</span> {      <span class='comment'>// TODO: use a static mutex when that&#39;s possible, and put me back in my function</span>
@@ -1040,7 +1076,7 @@
             }
 
             <span class='kw'>match</span> <span class='ident'>xev</span>.<span class='ident'>get_type</span>() {
-                <span class='ident'>ffi</span>::<span class='ident'>KeymapNotify</span> <span class='op'>=&gt;</span> {
+                <span class='ident'>ffi</span>::<span class='ident'>MappingNotify</span> <span class='op'>=&gt;</span> {
                     <span class='kw'>unsafe</span> { (<span class='ident'>xlib</span>.<span class='ident'>XRefreshKeyboardMapping</span>)(<span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='kw-2'>&amp;</span><span class='ident'>xev</span>)); }
                 },
 
@@ -1149,11 +1185,14 @@
 }
 
 <span class='kw'>impl</span> <span class='ident'>Window</span> {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>display</span>: <span class='kw-2'>&amp;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>XConnection</span><span class='op'>&gt;</span>, <span class='ident'>builder</span>: <span class='ident'>BuilderAttribs</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Window</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>dimensions</span> <span class='op'>=</span> <span class='ident'>builder</span>.<span class='ident'>dimensions</span>.<span class='ident'>unwrap_or</span>((<span class='number'>800</span>, <span class='number'>600</span>));
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>display</span>: <span class='kw-2'>&amp;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>XConnection</span><span class='op'>&gt;</span>, <span class='ident'>window_attrs</span>: <span class='kw-2'>&amp;</span><span class='ident'>WindowAttributes</span>,
+               <span class='ident'>pf_reqs</span>: <span class='kw-2'>&amp;</span><span class='ident'>PixelFormatRequirements</span>, <span class='ident'>opengl</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlAttributes</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Window</span><span class='op'>&gt;</span>)
+               <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Window</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span>
+    {
+        <span class='kw'>let</span> <span class='ident'>dimensions</span> <span class='op'>=</span> <span class='ident'>window_attrs</span>.<span class='ident'>dimensions</span>.<span class='ident'>unwrap_or</span>((<span class='number'>800</span>, <span class='number'>600</span>));
 
-        <span class='kw'>let</span> <span class='ident'>screen_id</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>PlatformMonitorID</span>::<span class='ident'>X</span>(<span class='ident'>MonitorID</span>(_, <span class='ident'>monitor</span>))) <span class='op'>=&gt;</span> <span class='ident'>monitor</span> <span class='kw'>as</span> <span class='ident'>i32</span>,
+        <span class='kw'>let</span> <span class='ident'>screen_id</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>window_attrs</span>.<span class='ident'>monitor</span> {
+            <span class='prelude-val'>Some</span>(<span class='ident'>PlatformMonitorId</span>::<span class='ident'>X</span>(<span class='ident'>MonitorId</span>(_, <span class='ident'>monitor</span>))) <span class='op'>=&gt;</span> <span class='ident'>monitor</span> <span class='kw'>as</span> <span class='ident'>i32</span>,
             _ <span class='op'>=&gt;</span> <span class='kw'>unsafe</span> { (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XDefaultScreen</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>) },
         };
 
@@ -1170,7 +1209,7 @@
             <span class='comment'>// FIXME: `XF86VidModeModeInfo` is missing its `hskew` field. Therefore we point to</span>
             <span class='comment'>//        `vsyncstart` instead of `vdisplay` as a temporary hack.</span>
 
-            <span class='kw'>let</span> <span class='ident'>mode_to_switch_to</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
+            <span class='kw'>let</span> <span class='ident'>mode_to_switch_to</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>window_attrs</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
                 <span class='kw'>let</span> <span class='ident'>matching_mode</span> <span class='op'>=</span> (<span class='number'>0</span> .. <span class='ident'>mode_num</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>i</span><span class='op'>|</span> {
                     <span class='kw'>let</span> <span class='ident'>m</span>: <span class='ident'>ffi</span>::<span class='ident'>XF86VidModeModeInfo</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='op'>*</span><span class='ident'>modes</span>.<span class='ident'>offset</span>(<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>isize</span>) <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _); <span class='ident'>m</span>
                 }).<span class='ident'>find</span>(<span class='op'>|</span><span class='ident'>m</span><span class='op'>|</span> <span class='ident'>m</span>.<span class='ident'>hdisplay</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>0</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>&amp;&amp;</span> <span class='ident'>m</span>.<span class='ident'>vsyncstart</span> <span class='op'>==</span> <span class='ident'>dimensions</span>.<span class='number'>1</span> <span class='kw'>as</span> <span class='ident'>u16</span>);
@@ -1202,22 +1241,23 @@
             <span class='ident'>Glx</span>(::<span class='ident'>api</span>::<span class='ident'>glx</span>::<span class='ident'>ContextPrototype</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>),
             <span class='ident'>Egl</span>(::<span class='ident'>api</span>::<span class='ident'>egl</span>::<span class='ident'>ContextPrototype</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>),
         }
-        <span class='kw'>let</span> <span class='ident'>builder_clone</span> <span class='op'>=</span> <span class='ident'>builder</span>.<span class='ident'>clone</span>();
-        <span class='kw'>let</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>builder</span>.<span class='ident'>gl_version</span> {
+        <span class='kw'>let</span> <span class='ident'>builder_clone_opengl_glx</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>clone</span>().<span class='ident'>map_sharing</span>(<span class='op'>|</span>_<span class='op'>|</span> <span class='macro'>unimplemented</span><span class='macro'>!</span>());      <span class='comment'>// FIXME: </span>
+        <span class='kw'>let</span> <span class='ident'>builder_clone_opengl_egl</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>clone</span>().<span class='ident'>map_sharing</span>(<span class='op'>|</span>_<span class='op'>|</span> <span class='macro'>unimplemented</span><span class='macro'>!</span>());      <span class='comment'>// FIXME: </span>
+        <span class='kw'>let</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>opengl</span>.<span class='ident'>version</span> {
             <span class='ident'>GlRequest</span>::<span class='ident'>Latest</span> <span class='op'>|</span> <span class='ident'>GlRequest</span>::<span class='ident'>Specific</span>(<span class='ident'>Api</span>::<span class='ident'>OpenGl</span>, _) <span class='op'>|</span> <span class='ident'>GlRequest</span>::<span class='ident'>GlThenGles</span> { .. } <span class='op'>=&gt;</span> {
                 <span class='comment'>// GLX should be preferred over EGL, otherwise crashes may occur</span>
                 <span class='comment'>// on X11 – issue #314</span>
                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>glx</span>) <span class='op'>=</span> <span class='ident'>display</span>.<span class='ident'>glx</span> {
-                    <span class='ident'>Prototype</span>::<span class='ident'>Glx</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>GlxContext</span>::<span class='ident'>new</span>(<span class='ident'>glx</span>.<span class='ident'>clone</span>(), <span class='kw-2'>&amp;</span><span class='ident'>display</span>.<span class='ident'>xlib</span>, <span class='kw-2'>&amp;</span><span class='ident'>builder_clone</span>, <span class='ident'>display</span>.<span class='ident'>display</span>)))
+                    <span class='ident'>Prototype</span>::<span class='ident'>Glx</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>GlxContext</span>::<span class='ident'>new</span>(<span class='ident'>glx</span>.<span class='ident'>clone</span>(), <span class='kw-2'>&amp;</span><span class='ident'>display</span>.<span class='ident'>xlib</span>, <span class='ident'>pf_reqs</span>, <span class='kw-2'>&amp;</span><span class='ident'>builder_clone_opengl_glx</span>, <span class='ident'>display</span>.<span class='ident'>display</span>)))
                 } <span class='kw'>else</span> <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>egl</span>) <span class='op'>=</span> <span class='ident'>display</span>.<span class='ident'>egl</span> {
-                    <span class='ident'>Prototype</span>::<span class='ident'>Egl</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>EglContext</span>::<span class='ident'>new</span>(<span class='ident'>egl</span>.<span class='ident'>clone</span>(), <span class='kw-2'>&amp;</span><span class='ident'>builder_clone</span>, <span class='ident'>egl</span>::<span class='ident'>NativeDisplay</span>::<span class='ident'>X11</span>(<span class='prelude-val'>Some</span>(<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _)))))
+                    <span class='ident'>Prototype</span>::<span class='ident'>Egl</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>EglContext</span>::<span class='ident'>new</span>(<span class='ident'>egl</span>.<span class='ident'>clone</span>(), <span class='ident'>pf_reqs</span>, <span class='kw-2'>&amp;</span><span class='ident'>builder_clone_opengl_egl</span>, <span class='ident'>egl</span>::<span class='ident'>NativeDisplay</span>::<span class='ident'>X11</span>(<span class='prelude-val'>Some</span>(<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _)))))
                 } <span class='kw'>else</span> {
                     <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>CreationError</span>::<span class='ident'>NotSupported</span>);
                 }
             },
             <span class='ident'>GlRequest</span>::<span class='ident'>Specific</span>(<span class='ident'>Api</span>::<span class='ident'>OpenGlEs</span>, _) <span class='op'>=&gt;</span> {
                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>egl</span>) <span class='op'>=</span> <span class='ident'>display</span>.<span class='ident'>egl</span> {
-                    <span class='ident'>Prototype</span>::<span class='ident'>Egl</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>EglContext</span>::<span class='ident'>new</span>(<span class='ident'>egl</span>.<span class='ident'>clone</span>(), <span class='kw-2'>&amp;</span><span class='ident'>builder_clone</span>, <span class='ident'>egl</span>::<span class='ident'>NativeDisplay</span>::<span class='ident'>X11</span>(<span class='prelude-val'>Some</span>(<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _)))))
+                    <span class='ident'>Prototype</span>::<span class='ident'>Egl</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>EglContext</span>::<span class='ident'>new</span>(<span class='ident'>egl</span>.<span class='ident'>clone</span>(), <span class='ident'>pf_reqs</span>, <span class='kw-2'>&amp;</span><span class='ident'>builder_clone_opengl_egl</span>, <span class='ident'>egl</span>::<span class='ident'>NativeDisplay</span>::<span class='ident'>X11</span>(<span class='prelude-val'>Some</span>(<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> _)))))
                 } <span class='kw'>else</span> {
                     <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>CreationError</span>::<span class='ident'>NotSupported</span>);
                 }
@@ -1269,7 +1309,7 @@
                 <span class='ident'>ffi</span>::<span class='ident'>KeyReleaseMask</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>ButtonPressMask</span> <span class='op'>|</span>
                 <span class='ident'>ffi</span>::<span class='ident'>ButtonReleaseMask</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>KeymapStateMask</span>;
             <span class='ident'>swa</span>.<span class='ident'>border_pixel</span> <span class='op'>=</span> <span class='number'>0</span>;
-            <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>transparent</span> {
+            <span class='kw'>if</span> <span class='ident'>window_attrs</span>.<span class='ident'>transparent</span> {
                 <span class='ident'>swa</span>.<span class='ident'>background_pixel</span> <span class='op'>=</span> <span class='number'>0</span>;
             }
             <span class='ident'>swa</span>.<span class='ident'>override_redirect</span> <span class='op'>=</span> <span class='number'>0</span>;
@@ -1278,7 +1318,7 @@
 
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>window_attributes</span> <span class='op'>=</span> <span class='ident'>ffi</span>::<span class='ident'>CWBorderPixel</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>CWColormap</span> <span class='op'>|</span> <span class='ident'>ffi</span>::<span class='ident'>CWEventMask</span>;
 
-        <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>transparent</span> {
+        <span class='kw'>if</span> <span class='ident'>window_attrs</span>.<span class='ident'>transparent</span> {
             <span class='ident'>window_attributes</span> <span class='op'>|=</span> <span class='ident'>ffi</span>::<span class='ident'>CWBackPixel</span>;
         }
 
@@ -1302,7 +1342,7 @@
         };
 
         <span class='comment'>// set visibility</span>
-        <span class='kw'>if</span> <span class='ident'>builder</span>.<span class='ident'>visible</span> {
+        <span class='kw'>if</span> <span class='ident'>window_attrs</span>.<span class='ident'>visible</span> {
             <span class='kw'>unsafe</span> {
                 (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XMapRaised</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>window</span>);
                 (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XFlush</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>);
@@ -1315,7 +1355,7 @@
                 (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XInternAtom</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>delete_window</span>, <span class='number'>0</span>)
             );
             (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XSetWMProtocols</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>window</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>wm_delete_window</span>, <span class='number'>1</span>);
-            <span class='ident'>with_c_str</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='ident'>builder</span>.<span class='ident'>title</span>, <span class='op'>|</span><span class='ident'>title</span><span class='op'>|</span> {;
+            <span class='ident'>with_c_str</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='ident'>window_attrs</span>.<span class='ident'>title</span>, <span class='op'>|</span><span class='ident'>title</span><span class='op'>|</span> {;
                 (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XStoreName</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='ident'>window</span>, <span class='ident'>title</span>);
             });
             (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XFlush</span>)(<span class='ident'>display</span>.<span class='ident'>display</span>);
@@ -1363,7 +1403,7 @@
 
         <span class='comment'>// Set ICCCM WM_CLASS property based on initial window title</span>
         <span class='kw'>unsafe</span> {
-            <span class='ident'>with_c_str</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='ident'>builder</span>.<span class='ident'>title</span>, <span class='op'>|</span><span class='ident'>c_name</span><span class='op'>|</span> {
+            <span class='ident'>with_c_str</span>(<span class='kw-2'>&amp;</span><span class='op'>*</span><span class='ident'>window_attrs</span>.<span class='ident'>title</span>, <span class='op'>|</span><span class='ident'>c_name</span><span class='op'>|</span> {
                 <span class='kw'>let</span> <span class='ident'>hint</span> <span class='op'>=</span> (<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XAllocClassHint</span>)();
                 (<span class='op'>*</span><span class='ident'>hint</span>).<span class='ident'>res_name</span> <span class='op'>=</span> <span class='ident'>c_name</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_char</span>;
                 (<span class='op'>*</span><span class='ident'>hint</span>).<span class='ident'>res_class</span> <span class='op'>=</span> <span class='ident'>c_name</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_char</span>;
@@ -1372,7 +1412,7 @@
             });
         }
 
-        <span class='kw'>let</span> <span class='ident'>is_fullscreen</span> <span class='op'>=</span> <span class='ident'>builder</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>();
+        <span class='kw'>let</span> <span class='ident'>is_fullscreen</span> <span class='op'>=</span> <span class='ident'>window_attrs</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>();
 
         <span class='comment'>// finish creating the OpenGL context</span>
         <span class='kw'>let</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>context</span> {
@@ -1460,6 +1500,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_position</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>i32</span>, <span class='ident'>i32</span>)<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>get_geometry</span>().<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, _, _, _)<span class='op'>|</span> (<span class='ident'>x</span>, <span class='ident'>y</span>))
     }
@@ -1468,45 +1509,63 @@
         <span class='kw'>unsafe</span> { (<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XMoveWindow</span>)(<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>window</span>, <span class='ident'>x</span> <span class='kw'>as</span> <span class='ident'>libc</span>::<span class='ident'>c_int</span>, <span class='ident'>y</span> <span class='kw'>as</span> <span class='ident'>libc</span>::<span class='ident'>c_int</span>); }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_inner_size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>u32</span>, <span class='ident'>u32</span>)<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>get_geometry</span>().<span class='ident'>map</span>(<span class='op'>|</span>(_, _, <span class='ident'>w</span>, <span class='ident'>h</span>, _)<span class='op'>|</span> (<span class='ident'>w</span>, <span class='ident'>h</span>))
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_outer_size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>u32</span>, <span class='ident'>u32</span>)<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>get_geometry</span>().<span class='ident'>map</span>(<span class='op'>|</span>(_, _, <span class='ident'>w</span>, <span class='ident'>h</span>, <span class='ident'>b</span>)<span class='op'>|</span> (<span class='ident'>w</span> <span class='op'>+</span> <span class='ident'>b</span>, <span class='ident'>h</span> <span class='op'>+</span> <span class='ident'>b</span>))       <span class='comment'>// TODO: is this really outside?</span>
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_inner_size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>x</span>: <span class='ident'>u32</span>, <span class='ident'>y</span>: <span class='ident'>u32</span>) {
         <span class='kw'>unsafe</span> { (<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>xlib</span>.<span class='ident'>XResizeWindow</span>)(<span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>display</span>, <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>window</span>, <span class='ident'>x</span> <span class='kw'>as</span> <span class='ident'>libc</span>::<span class='ident'>c_uint</span>, <span class='ident'>y</span> <span class='kw'>as</span> <span class='ident'>libc</span>::<span class='ident'>c_uint</span>); }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>create_window_proxy</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowProxy</span> {
         <span class='ident'>WindowProxy</span> {
             <span class='ident'>data</span>: <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>window_proxy_data</span>.<span class='ident'>clone</span>()
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>poll_events</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>PollEventsIterator</span> {
         <span class='ident'>PollEventsIterator</span> {
             <span class='ident'>window</span>: <span class='self'>self</span>
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>wait_events</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>WaitEventsIterator</span> {
         <span class='ident'>WaitEventsIterator</span> {
             <span class='ident'>window</span>: <span class='self'>self</span>
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_xlib_display</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
+        <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span>
+    }
+
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>platform_display</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>display</span>.<span class='ident'>display</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span>
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_xlib_window</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
+        <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>window</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span>
+    }
+
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>platform_window</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>window</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span>
     }
 
-
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_window_resize_callback</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='ident'>u32</span>, <span class='ident'>u32</span>)<span class='op'>&gt;</span>) {
     }
 
@@ -1601,6 +1660,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>hidpi_factor</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
         <span class='number'>1.0</span>
     }
@@ -1615,6 +1675,7 @@
 }
 
 <span class='kw'>impl</span> <span class='ident'>GlContext</span> <span class='kw'>for</span> <span class='ident'>Window</span> {
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>make_current</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>ContextError</span><span class='op'>&gt;</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>make_current</span>(),
@@ -1623,6 +1684,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>is_current</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>is_current</span>(),
@@ -1631,6 +1693,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_proc_address</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>addr</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>get_proc_address</span>(<span class='ident'>addr</span>),
@@ -1639,6 +1702,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>swap_buffers</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>ContextError</span><span class='op'>&gt;</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>swap_buffers</span>(),
@@ -1647,6 +1711,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_api</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Api</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>get_api</span>(),
@@ -1655,6 +1720,7 @@
         }
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_pixel_format</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>PixelFormat</span> {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>x</span>.<span class='ident'>context</span> {
             <span class='ident'>Context</span>::<span class='ident'>Glx</span>(<span class='kw-2'>ref</span> <span class='ident'>ctxt</span>) <span class='op'>=&gt;</span> <span class='ident'>ctxt</span>.<span class='ident'>get_pixel_format</span>(),

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.3.7/src/window.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-0a35038f75765ae4/glutin-0.4.0/src/window.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>window.rs.html -- source</title>
@@ -651,22 +651,57 @@
 <span id="609">609</span>
 <span id="610">610</span>
 <span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
+<span id="623">623</span>
+<span id="624">624</span>
+<span id="625">625</span>
+<span id="626">626</span>
+<span id="627">627</span>
+<span id="628">628</span>
+<span id="629">629</span>
+<span id="630">630</span>
+<span id="631">631</span>
+<span id="632">632</span>
+<span id="633">633</span>
+<span id="634">634</span>
+<span id="635">635</span>
+<span id="636">636</span>
+<span id="637">637</span>
+<span id="638">638</span>
+<span id="639">639</span>
+<span id="640">640</span>
+<span id="641">641</span>
+<span id="642">642</span>
+<span id="643">643</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>vec_deque</span>::<span class='ident'>IntoIter</span> <span class='kw'>as</span> <span class='ident'>VecDequeIter</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>default</span>::<span class='ident'>Default</span>;
 
 <span class='kw'>use</span> <span class='ident'>Api</span>;
-<span class='kw'>use</span> <span class='ident'>BuilderAttribs</span>;
 <span class='kw'>use</span> <span class='ident'>ContextError</span>;
 <span class='kw'>use</span> <span class='ident'>CreationError</span>;
 <span class='kw'>use</span> <span class='ident'>CursorState</span>;
 <span class='kw'>use</span> <span class='ident'>Event</span>;
+<span class='kw'>use</span> <span class='ident'>GlAttributes</span>;
 <span class='kw'>use</span> <span class='ident'>GlContext</span>;
 <span class='kw'>use</span> <span class='ident'>GlProfile</span>;
 <span class='kw'>use</span> <span class='ident'>GlRequest</span>;
 <span class='kw'>use</span> <span class='ident'>MouseCursor</span>;
 <span class='kw'>use</span> <span class='ident'>PixelFormat</span>;
+<span class='kw'>use</span> <span class='ident'>PixelFormatRequirements</span>;
 <span class='kw'>use</span> <span class='ident'>Robustness</span>;
+<span class='kw'>use</span> <span class='ident'>Window</span>;
+<span class='kw'>use</span> <span class='ident'>WindowAttributes</span>;
 <span class='kw'>use</span> <span class='ident'>native_monitor</span>::<span class='ident'>NativeMonitorId</span>;
 
 <span class='kw'>use</span> <span class='ident'>gl_common</span>;
@@ -676,57 +711,73 @@
 
 <span class='doccomment'>/// Object that allows you to build windows.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>attribs</span>: <span class='ident'>BuilderAttribs</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>
+    <span class='doccomment'>/// The attributes to use to create the window.</span>
+    <span class='kw'>pub</span> <span class='ident'>window</span>: <span class='ident'>WindowAttributes</span>,
+
+    <span class='doccomment'>/// The attributes to use to create the context.</span>
+    <span class='kw'>pub</span> <span class='ident'>opengl</span>: <span class='ident'>GlAttributes</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>platform</span>::<span class='ident'>Window</span><span class='op'>&gt;</span>,
+
+    <span class='comment'>// Should be made public once it&#39;s stabilized.</span>
+    <span class='ident'>pf_reqs</span>: <span class='ident'>PixelFormatRequirements</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Initializes a new `WindowBuilder` with default values.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
         <span class='ident'>WindowBuilder</span> {
-            <span class='ident'>attribs</span>: <span class='ident'>BuilderAttribs</span>::<span class='ident'>new</span>(),
+            <span class='ident'>pf_reqs</span>: <span class='ident'>Default</span>::<span class='ident'>default</span>(),
+            <span class='ident'>window</span>: <span class='ident'>Default</span>::<span class='ident'>default</span>(),
+            <span class='ident'>opengl</span>: <span class='ident'>Default</span>::<span class='ident'>default</span>(),
         }
     }
 
     <span class='doccomment'>/// Requests the window to be of specific dimensions.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Width and height are in pixels.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_dimensions</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>width</span>: <span class='ident'>u32</span>, <span class='ident'>height</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>dimensions</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>width</span>, <span class='ident'>height</span>));
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>dimensions</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>width</span>, <span class='ident'>height</span>));
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Requests a specific title for the window.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_title</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>title</span>: <span class='ident'>String</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>title</span> <span class='op'>=</span> <span class='ident'>title</span>;
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>title</span> <span class='op'>=</span> <span class='ident'>title</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Requests fullscreen mode.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// If you don&#39;t specify dimensions for the window, it will match the monitor&#39;s.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_fullscreen</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>monitor</span>: <span class='ident'>MonitorID</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>MonitorID</span>(<span class='ident'>monitor</span>) <span class='op'>=</span> <span class='ident'>monitor</span>;
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>monitor</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>monitor</span>);
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_fullscreen</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>monitor</span>: <span class='ident'>MonitorId</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>MonitorId</span>(<span class='ident'>monitor</span>) <span class='op'>=</span> <span class='ident'>monitor</span>;
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>monitor</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>monitor</span>);
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// The created window will share all its OpenGL objects with the window in the parameter.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// There are some exceptions, like FBOs or VAOs. See the OpenGL documentation.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_shared_lists</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Window</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>sharing</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>other</span>.<span class='ident'>window</span>);
+        <span class='self'>self</span>.<span class='ident'>opengl</span>.<span class='ident'>sharing</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>other</span>.<span class='ident'>window</span>);
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets how the backend should choose the OpenGL API and version.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_gl</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>request</span>: <span class='ident'>GlRequest</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>gl_version</span> <span class='op'>=</span> <span class='ident'>request</span>;
+        <span class='self'>self</span>.<span class='ident'>opengl</span>.<span class='ident'>version</span> <span class='op'>=</span> <span class='ident'>request</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets the desired OpenGL context profile.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_gl_profile</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>profile</span>: <span class='ident'>GlProfile</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>gl_profile</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>profile</span>);
+        <span class='self'>self</span>.<span class='ident'>opengl</span>.<span class='ident'>profile</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>profile</span>);
         <span class='self'>self</span>
     }
 
@@ -734,26 +785,30 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// The default value for this flag is `cfg!(debug_assertions)`, which means that it&#39;s enabled</span>
     <span class='doccomment'>/// when you run `cargo build` and disabled when you run `cargo build --release`.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_gl_debug_flag</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>flag</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>gl_debug</span> <span class='op'>=</span> <span class='ident'>flag</span>;
+        <span class='self'>self</span>.<span class='ident'>opengl</span>.<span class='ident'>debug</span> <span class='op'>=</span> <span class='ident'>flag</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets the robustness of the OpenGL context. See the docs of `Robustness`.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_gl_robustness</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>robustness</span>: <span class='ident'>Robustness</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>gl_robustness</span> <span class='op'>=</span> <span class='ident'>robustness</span>;
+        <span class='self'>self</span>.<span class='ident'>opengl</span>.<span class='ident'>robustness</span> <span class='op'>=</span> <span class='ident'>robustness</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Requests that the window has vsync enabled.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_vsync</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>vsync</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+        <span class='self'>self</span>.<span class='ident'>opengl</span>.<span class='ident'>vsync</span> <span class='op'>=</span> <span class='boolval'>true</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets whether the window will be initially hidden or visible.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_visibility</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>visible</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>visible</span> <span class='op'>=</span> <span class='ident'>visible</span>;
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>visible</span> <span class='op'>=</span> <span class='ident'>visible</span>;
         <span class='self'>self</span>
     }
 
@@ -762,58 +817,67 @@
     <span class='doccomment'>/// # Panic</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Will panic if `samples` is not a power of two.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_multisampling</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>samples</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>samples</span>.<span class='ident'>is_power_of_two</span>());
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>multisampling</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>samples</span>);
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>multisampling</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>samples</span>);
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets the number of bits in the depth buffer.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_depth_buffer</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>bits</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>depth_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>bits</span>);
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>depth_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>bits</span>);
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets the number of bits in the stencil buffer.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_stencil_buffer</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>bits</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>stencil_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>bits</span>);
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>stencil_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>bits</span>);
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets the number of bits in the color buffer.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_pixel_format</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>color_bits</span>: <span class='ident'>u8</span>, <span class='ident'>alpha_bits</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>color_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color_bits</span>);
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>alpha_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>alpha_bits</span>);
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>color_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color_bits</span>);
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>alpha_bits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>alpha_bits</span>);
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Request the backend to be stereoscopic.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_stereoscopy</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>stereoscopy</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>stereoscopy</span> <span class='op'>=</span> <span class='boolval'>true</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets whether sRGB should be enabled on the window. `None` means &quot;I don&#39;t care&quot;.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_srgb</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>srgb_enabled</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>bool</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>srgb</span> <span class='op'>=</span> <span class='ident'>srgb_enabled</span>;
+        <span class='self'>self</span>.<span class='ident'>pf_reqs</span>.<span class='ident'>srgb</span> <span class='op'>=</span> <span class='ident'>srgb_enabled</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets whether the background of the window should be transparent.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_transparency</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>transparent</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>transparent</span> <span class='op'>=</span> <span class='ident'>transparent</span>;
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>transparent</span> <span class='op'>=</span> <span class='ident'>transparent</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Sets whether the window should have a border, a title bar, etc.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_decorations</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>decorations</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>decorations</span> <span class='op'>=</span> <span class='ident'>decorations</span>;
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>decorations</span> <span class='op'>=</span> <span class='ident'>decorations</span>;
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Enables multitouch</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_multitouch</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>WindowBuilder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>multitouch</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+        <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>multitouch</span> <span class='op'>=</span> <span class='boolval'>true</span>;
         <span class='self'>self</span>
     }
 
@@ -823,57 +887,33 @@
     <span class='doccomment'>/// out of memory, etc.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Window</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span> {
         <span class='comment'>// resizing the window to the dimensions of the monitor when fullscreen</span>
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>dimensions</span>.<span class='ident'>is_none</span>() <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
-            <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>dimensions</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>monitor</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>().<span class='ident'>get_dimensions</span>())
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>dimensions</span>.<span class='ident'>is_none</span>() <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>monitor</span>.<span class='ident'>is_some</span>() {
+            <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>dimensions</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>monitor</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>().<span class='ident'>get_dimensions</span>())
         }
 
         <span class='comment'>// default dimensions</span>
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>dimensions</span>.<span class='ident'>is_none</span>() {
-            <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>dimensions</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='number'>1024</span>, <span class='number'>768</span>));
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>dimensions</span>.<span class='ident'>is_none</span>() {
+            <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>dimensions</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='number'>1024</span>, <span class='number'>768</span>));
         }
 
         <span class='comment'>// building</span>
-        <span class='ident'>platform</span>::<span class='ident'>Window</span>::<span class='ident'>new</span>(<span class='self'>self</span>.<span class='ident'>attribs</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='ident'>Window</span> { <span class='ident'>window</span>: <span class='ident'>w</span> })
+        <span class='ident'>platform</span>::<span class='ident'>Window</span>::<span class='ident'>new</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>window</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>pf_reqs</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>opengl</span>)
+                            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='ident'>Window</span> { <span class='ident'>window</span>: <span class='ident'>w</span> })
     }
 
     <span class='doccomment'>/// Builds the window.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// The context is build in a *strict* way. That means that if the backend couldn&#39;t give</span>
     <span class='doccomment'>/// you what you requested, an `Err` will be returned.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build_strict</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Window</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>attribs</span>.<span class='ident'>strict</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build_strict</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Window</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>build</span>()
     }
 }
 
-<span class='doccomment'>/// Represents an OpenGL context and the Window or environment around it.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// # Example</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```ignore</span>
-<span class='doccomment'>/// let window = Window::new().unwrap();</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// unsafe { window.make_current() };</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// loop {</span>
-<span class='doccomment'>///     for event in window.poll_events() {</span>
-<span class='doccomment'>///         match(event) {</span>
-<span class='doccomment'>///             // process events here</span>
-<span class='doccomment'>///             _ =&gt; ()</span>
-<span class='doccomment'>///         }</span>
-<span class='doccomment'>///     }</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>///     // draw everything here</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>///     window.swap_buffers();</span>
-<span class='doccomment'>///     std::old_io::timer::sleep(17);</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>/// ```</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Window</span> {
-    <span class='ident'>window</span>: <span class='ident'>platform</span>::<span class='ident'>Window</span>,
-}
 
 <span class='kw'>impl</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>Window</span> {
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>default</span>() <span class='op'>-&gt;</span> <span class='ident'>Window</span> {
         <span class='ident'>Window</span>::<span class='ident'>new</span>().<span class='ident'>unwrap</span>()
     }
@@ -1060,7 +1100,7 @@
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>swap_buffers</span>()
     }
 
-    <span class='doccomment'>/// Gets the native platform specific display for this window.</span>
+    <span class='doccomment'>/// DEPRECATED. Gets the native platform specific display for this window.</span>
     <span class='doccomment'>/// This is typically only required when integrating with</span>
     <span class='doccomment'>/// other libraries that need this information.</span>
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
@@ -1068,7 +1108,7 @@
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>platform_display</span>()
     }
 
-    <span class='doccomment'>/// Gets the native platform specific window handle. This is</span>
+    <span class='doccomment'>/// DEPRECATED. Gets the native platform specific window handle. This is</span>
     <span class='doccomment'>/// typically only required when integrating with other libraries</span>
     <span class='doccomment'>/// that need this information.</span>
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
@@ -1081,11 +1121,13 @@
     <span class='doccomment'>/// - On Windows and OS/X, this always returns `OpenGl`.</span>
     <span class='doccomment'>/// - On Android, this always returns `OpenGlEs`.</span>
     <span class='doccomment'>/// - On Linux, it must be checked at runtime.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_api</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Api</span> {
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>get_api</span>()
     }
 
     <span class='doccomment'>/// Returns the pixel format of this window.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_pixel_format</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>PixelFormat</span> {
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>get_pixel_format</span>()
     }
@@ -1102,6 +1144,7 @@
     <span class='doccomment'>/// Sets a resize callback that is called by Mac (and potentially other</span>
     <span class='doccomment'>/// operating systems) during resize operations. This can be used to repaint</span>
     <span class='doccomment'>/// during window resizing.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_window_resize_callback</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>callback</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='ident'>u32</span>, <span class='ident'>u32</span>)<span class='op'>&gt;</span>) {
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>set_window_resize_callback</span>(<span class='ident'>callback</span>);
     }
@@ -1115,11 +1158,13 @@
     <span class='doccomment'>/// Returns the ratio between the backing framebuffer resolution and the</span>
     <span class='doccomment'>/// window size in screen pixels. This is typically one for a normal display</span>
     <span class='doccomment'>/// and two for a retina display.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>hidpi_factor</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>hidpi_factor</span>()
     }
 
     <span class='doccomment'>/// Changes the position of the cursor in window coordinates.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_cursor_position</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>x</span>: <span class='ident'>i32</span>, <span class='ident'>y</span>: <span class='ident'>i32</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), ()<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>set_cursor_position</span>(<span class='ident'>x</span>, <span class='ident'>y</span>)
     }
@@ -1127,38 +1172,46 @@
     <span class='doccomment'>/// Sets how glutin handles the cursor. See the documentation of `CursorState` for details.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Has no effect on Android.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_cursor_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>state</span>: <span class='ident'>CursorState</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>String</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>set_cursor_state</span>(<span class='ident'>state</span>)
     }
 }
 
 <span class='kw'>impl</span> <span class='ident'>gl_common</span>::<span class='ident'>GlFunctionsSource</span> <span class='kw'>for</span> <span class='ident'>Window</span> {
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_proc_addr</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>addr</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='self'>self</span>.<span class='ident'>get_proc_address</span>(<span class='ident'>addr</span>)
     }
 }
 
 <span class='kw'>impl</span> <span class='ident'>GlContext</span> <span class='kw'>for</span> <span class='ident'>Window</span> {
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>make_current</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>ContextError</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>make_current</span>()
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>is_current</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='ident'>is_current</span>()
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_proc_address</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>addr</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='self'>self</span>.<span class='ident'>get_proc_address</span>(<span class='ident'>addr</span>)
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>swap_buffers</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>ContextError</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>swap_buffers</span>()
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_api</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Api</span> {
         <span class='self'>self</span>.<span class='ident'>get_api</span>()
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>get_pixel_format</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>PixelFormat</span> {
         <span class='self'>self</span>.<span class='ident'>get_pixel_format</span>()
     }
@@ -1187,10 +1240,12 @@
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>PollEventsIterator</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>Event</span>;
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Event</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>next</span>()
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>size_hint</span>()
     }
@@ -1202,10 +1257,12 @@
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>WaitEventsIterator</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>Event</span>;
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Event</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>next</span>()
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>size_hint</span>()
     }
@@ -1215,51 +1272,58 @@
 <span class='comment'>// Implementation note: we retreive the list once, then serve each element by one by one.</span>
 <span class='comment'>// This may change in the future.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>AvailableMonitorsIter</span> {
-    <span class='ident'>data</span>: <span class='ident'>VecDequeIter</span><span class='op'>&lt;</span><span class='ident'>platform</span>::<span class='ident'>MonitorID</span><span class='op'>&gt;</span>,
+    <span class='ident'>data</span>: <span class='ident'>VecDequeIter</span><span class='op'>&lt;</span><span class='ident'>platform</span>::<span class='ident'>MonitorId</span><span class='op'>&gt;</span>,
 }
 
 <span class='kw'>impl</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>AvailableMonitorsIter</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>MonitorID</span>;
+    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>MonitorId</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>MonitorID</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>data</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>id</span><span class='op'>|</span> <span class='ident'>MonitorID</span>(<span class='ident'>id</span>))
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>MonitorId</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>data</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>id</span><span class='op'>|</span> <span class='ident'>MonitorId</span>(<span class='ident'>id</span>))
     }
 
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
         <span class='self'>self</span>.<span class='ident'>data</span>.<span class='ident'>size_hint</span>()
     }
 }
 
 <span class='doccomment'>/// Returns the list of all available monitors.</span>
+<span class='attribute'>#[<span class='ident'>inline</span>]</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_available_monitors</span>() <span class='op'>-&gt;</span> <span class='ident'>AvailableMonitorsIter</span> {
     <span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>platform</span>::<span class='ident'>get_available_monitors</span>();
     <span class='ident'>AvailableMonitorsIter</span>{ <span class='ident'>data</span>: <span class='ident'>data</span>.<span class='ident'>into_iter</span>() }
 }
 
 <span class='doccomment'>/// Returns the primary monitor of the system.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_primary_monitor</span>() <span class='op'>-&gt;</span> <span class='ident'>MonitorID</span> {
-    <span class='ident'>MonitorID</span>(<span class='ident'>platform</span>::<span class='ident'>get_primary_monitor</span>())
+<span class='attribute'>#[<span class='ident'>inline</span>]</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_primary_monitor</span>() <span class='op'>-&gt;</span> <span class='ident'>MonitorId</span> {
+    <span class='ident'>MonitorId</span>(<span class='ident'>platform</span>::<span class='ident'>get_primary_monitor</span>())
 }
 
 <span class='doccomment'>/// Identifier for a monitor.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>MonitorID</span>(<span class='ident'>platform</span>::<span class='ident'>MonitorID</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>MonitorId</span>(<span class='ident'>platform</span>::<span class='ident'>MonitorId</span>);
 
-<span class='kw'>impl</span> <span class='ident'>MonitorID</span> {
+<span class='kw'>impl</span> <span class='ident'>MonitorId</span> {
     <span class='doccomment'>/// Returns a human-readable name of the monitor.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_name</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>MonitorID</span>(<span class='kw-2'>ref</span> <span class='ident'>id</span>) <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>MonitorId</span>(<span class='kw-2'>ref</span> <span class='ident'>id</span>) <span class='op'>=</span> <span class='self'>self</span>;
         <span class='ident'>id</span>.<span class='ident'>get_name</span>()
     }
 
     <span class='doccomment'>/// Returns the native platform identifier for this monitor.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_native_identifier</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>NativeMonitorId</span> {
-        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>MonitorID</span>(<span class='kw-2'>ref</span> <span class='ident'>id</span>) <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>MonitorId</span>(<span class='kw-2'>ref</span> <span class='ident'>id</span>) <span class='op'>=</span> <span class='self'>self</span>;
         <span class='ident'>id</span>.<span class='ident'>get_native_identifier</span>()
     }
 
     <span class='doccomment'>/// Returns the number of pixels currently displayed on the monitor.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>u32</span>, <span class='ident'>u32</span>) {
-        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>MonitorID</span>(<span class='kw-2'>ref</span> <span class='ident'>id</span>) <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='ident'>MonitorId</span>(<span class='kw-2'>ref</span> <span class='ident'>id</span>) <span class='op'>=</span> <span class='self'>self</span>;
         <span class='ident'>id</span>.<span class='ident'>get_dimensions</span>()
     }
 }
