@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Builder","A program builder is used to `bind` shader/target/transform_vearyings together"]]});
