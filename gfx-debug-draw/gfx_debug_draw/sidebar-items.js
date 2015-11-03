@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["DebugRendererError",""]],"fn":[["draw_line",""],["draw_marker",""],["draw_text_at_position",""],["draw_text_on_screen",""]],"struct":[["DebugRenderer",""]]});
+initSidebarItems({"enum":[["DebugRendererError",""]],"struct":[["DebugRenderer",""]]});
