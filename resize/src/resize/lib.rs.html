@@ -230,28 +230,88 @@
 <span id="188">188</span>
 <span id="189">189</span>
 <span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Simple resampling library in pure Rust.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Examples</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! ```ignore</span>
+<span class='doccomment'>//! extern crate resize;</span>
+<span class='doccomment'>//! use resize::Type::Triangle;</span>
+<span class='doccomment'>//! let mut src = vec![0;w1*h1];</span>
+<span class='doccomment'>//! let mut dst = vec![0;w2*h2];</span>
+<span class='doccomment'>//! let mut resizer = resize::new(w1, h1, w2, h2, Triangle);</span>
+<span class='doccomment'>//! resizer.resize(&amp;src, &amp;mut dst);</span>
+<span class='doccomment'>//! ```</span>
+<span class='comment'>// Current implementation is based on:</span>
+<span class='comment'>// * https://github.com/sekrit-twc/zimg/tree/master/src/zimg/resize</span>
+<span class='comment'>// * https://github.com/PistonDevelopers/image/blob/master/src/imageops/sample.rs</span>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>deny</span>(<span class='ident'>missing_docs</span>)]</span>
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>f32</span>;
 
 <span class='doccomment'>/// Resizing type to use.</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Type</span> {
-    <span class='doccomment'>/// Triangle (bilinear) filter.</span>
+    <span class='doccomment'>/// Triangle (bilinear) resizing.</span>
     <span class='ident'>Triangle</span>,
-    <span class='doccomment'>/// Sinc-windowed filter with radius of 3.</span>
+    <span class='doccomment'>/// Resize using sinc-windowed filter with radius of 3.</span>
     <span class='ident'>Lanczos3</span>,
-    <span class='doccomment'>/// Custom filter.</span>
+    <span class='doccomment'>/// Resize using custom filter.</span>
     <span class='ident'>Custom</span>(<span class='ident'>Filter</span>),
 }
 
 <span class='doccomment'>/// Resampling filter.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Filter</span> {
-    <span class='doccomment'>/// Filter kernel.</span>
-    <span class='kw'>pub</span> <span class='ident'>kernel</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Fn</span>(<span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Filter support.</span>
-    <span class='kw'>pub</span> <span class='ident'>support</span>: <span class='ident'>f32</span>,
+    <span class='ident'>kernel</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Fn</span>(<span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span><span class='op'>&gt;</span>,
+    <span class='ident'>support</span>: <span class='ident'>f32</span>,
+}
+
+<span class='kw'>impl</span> <span class='ident'>Filter</span> {
+    <span class='doccomment'>/// Create a new filter.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// # Examples</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='doccomment'>/// use resize::Filter;</span>
+    <span class='doccomment'>/// fn nearest(x: f32) -&gt; f32 { f32::round(x) }</span>
+    <span class='doccomment'>/// let filter = Filter::new(Box::new(nearest), 0.5);</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>kernel</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Fn</span>(<span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span><span class='op'>&gt;</span>, <span class='ident'>support</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>Filter</span> {
+        <span class='ident'>Filter</span> {<span class='ident'>kernel</span>: <span class='ident'>kernel</span>, <span class='ident'>support</span>: <span class='ident'>support</span>}
+    }
 }
 
 <span class='attribute'>#[<span class='ident'>inline</span>]</span>
@@ -278,10 +338,8 @@
     }
 }
 
-<span class='doccomment'>/// Simple resampler with preallocated buffers and coeffecients for the given</span>
-<span class='doccomment'>/// dimensions. See also:</span>
-<span class='doccomment'>/// * https://github.com/sekrit-twc/zimg/tree/master/src/zimg/resize</span>
-<span class='doccomment'>/// * https://github.com/PistonDevelopers/image/blob/master/src/imageops/sample.rs</span>
+<span class='doccomment'>/// Resampler with preallocated buffers and coeffecients for the given</span>
+<span class='doccomment'>/// dimensions and filter type.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Resizer</span> {
     <span class='comment'>// Source/target dimensions.</span>
@@ -302,17 +360,11 @@
 }
 
 <span class='kw'>impl</span> <span class='ident'>Resizer</span> {
-    <span class='doccomment'>/// Create a new resizer instance for the given dimensions and filter.</span>
+    <span class='doccomment'>/// Create a new resizer instance.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>w1</span>: <span class='ident'>usize</span>, <span class='ident'>h1</span>: <span class='ident'>usize</span>, <span class='ident'>w2</span>: <span class='ident'>usize</span>, <span class='ident'>h2</span>: <span class='ident'>usize</span>, <span class='ident'>t</span>: <span class='ident'>Type</span>) <span class='op'>-&gt;</span> <span class='ident'>Resizer</span> {
         <span class='kw'>let</span> <span class='ident'>filter</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>t</span> {
-            <span class='ident'>Type</span>::<span class='ident'>Triangle</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span> {
-                <span class='ident'>kernel</span>: <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>triangle_kernel</span>),
-                <span class='ident'>support</span>: <span class='number'>1.0</span>,
-            },
-            <span class='ident'>Type</span>::<span class='ident'>Lanczos3</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span> {
-                <span class='ident'>kernel</span>: <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>lanczos3_kernel</span>),
-                <span class='ident'>support</span>: <span class='number'>3.0</span>,
-            },
+            <span class='ident'>Type</span>::<span class='ident'>Triangle</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>triangle_kernel</span>), <span class='number'>1.0</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Lanczos3</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>lanczos3_kernel</span>), <span class='number'>3.0</span>),
             <span class='ident'>Type</span>::<span class='ident'>Custom</span>(<span class='ident'>f</span>) <span class='op'>=&gt;</span> <span class='ident'>f</span>,
         };
         <span class='ident'>Resizer</span> {
@@ -371,9 +423,8 @@
         <span class='ident'>v</span> <span class='kw'>as</span> <span class='ident'>u8</span>
     }
 
-    <span class='doccomment'>/// Resample W1xH1 to W1xH2.</span>
+    <span class='comment'>// Resample W1xH1 to W1xH2.</span>
     <span class='kw'>fn</span> <span class='ident'>sample_rows</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>src</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) {
-        <span class='comment'>// FIXME(Kagami): Avoid bound checkings.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='number'>0</span>;
         <span class='kw'>for</span> <span class='ident'>x1</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='self'>self</span>.<span class='ident'>w1</span> {
             <span class='kw'>for</span> <span class='ident'>y2</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='self'>self</span>.<span class='ident'>h2</span> {
@@ -390,7 +441,7 @@
         }
     }
 
-    <span class='doccomment'>/// Resample W1xH2 to W2xH2.</span>
+    <span class='comment'>// Resample W1xH2 to W2xH2.</span>
     <span class='kw'>fn</span> <span class='ident'>sample_cols</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>]) {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='number'>0</span>;
         <span class='kw'>for</span> <span class='ident'>y2</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='self'>self</span>.<span class='ident'>h2</span> {
@@ -409,7 +460,11 @@
     }
 
     <span class='doccomment'>/// Resize `src` image data into `dst`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>src</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>]) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>resize</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>src</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>]) {
+        <span class='comment'>// TODO:</span>
+        <span class='comment'>// * Multi-thread</span>
+        <span class='comment'>// * Bound checkings</span>
+        <span class='comment'>// * SIMD</span>
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>src</span>.<span class='ident'>len</span>(), <span class='self'>self</span>.<span class='ident'>w1</span> <span class='op'>*</span> <span class='self'>self</span>.<span class='ident'>h1</span>);
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>dst</span>.<span class='ident'>len</span>(), <span class='self'>self</span>.<span class='ident'>w2</span> <span class='op'>*</span> <span class='self'>self</span>.<span class='ident'>h2</span>);
         <span class='self'>self</span>.<span class='ident'>sample_rows</span>(<span class='ident'>src</span>);
@@ -420,6 +475,17 @@
 <span class='doccomment'>/// Create a new resizer instance. Alias for `Resizer::new`.</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>w1</span>: <span class='ident'>usize</span>, <span class='ident'>h1</span>: <span class='ident'>usize</span>, <span class='ident'>w2</span>: <span class='ident'>usize</span>, <span class='ident'>h2</span>: <span class='ident'>usize</span>, <span class='ident'>t</span>: <span class='ident'>Type</span>) <span class='op'>-&gt;</span> <span class='ident'>Resizer</span> {
     <span class='ident'>Resizer</span>::<span class='ident'>new</span>(<span class='ident'>w1</span>, <span class='ident'>h1</span>, <span class='ident'>w2</span>, <span class='ident'>h2</span>, <span class='ident'>t</span>)
+}
+
+<span class='doccomment'>/// Resize image data to the new dimension in a single step.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// **NOTE:** If you need to resize to the same dimension multiple times,</span>
+<span class='doccomment'>/// consider creating an resizer instance since it&#39;s faster.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>resize</span>(
+    <span class='ident'>w1</span>: <span class='ident'>usize</span>, <span class='ident'>h1</span>: <span class='ident'>usize</span>, <span class='ident'>w2</span>: <span class='ident'>usize</span>, <span class='ident'>h2</span>: <span class='ident'>usize</span>, <span class='ident'>t</span>: <span class='ident'>Type</span>,
+    <span class='ident'>src</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>dst</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>],
+) {
+    <span class='ident'>Resizer</span>::<span class='ident'>new</span>(<span class='ident'>w1</span>, <span class='ident'>h1</span>, <span class='ident'>w2</span>, <span class='ident'>h2</span>, <span class='ident'>t</span>).<span class='ident'>resize</span>(<span class='ident'>src</span>, <span class='ident'>dst</span>)
 }
 </pre>
 </section>
