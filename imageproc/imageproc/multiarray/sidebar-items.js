@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Array3d","A 3d array that owns its data."],["View3d","A view into a 3d array."]]});

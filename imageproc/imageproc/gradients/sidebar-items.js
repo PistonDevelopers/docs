@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["horizontal_sobel","Convolves with the horizontal Sobel kernel to detect horizontal edges in an image."],["sobel_gradients","Returns the magnitudes of gradients in an image."],["vertical_sobel","Convolves with the vertical Sobel kernel to detect vertical edges in an image."]]});
