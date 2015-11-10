@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["MinScored","**MinScored<K, T>** holds a score **K** and a scored object **T** in a pair for use with a **BinaryHeap**."]]});
+initSidebarItems({"struct":[["MinScored","`MinScored<K, T>` holds a score `K` and a scored object `T` in a pair for use with a `BinaryHeap`."]]});
