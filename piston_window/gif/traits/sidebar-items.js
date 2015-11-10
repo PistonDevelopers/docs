@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["Parameter","Configuration parameter trait."],["SetParameter","Implemented for objects that have parameters."],["WriteBytesExt","Writer extension to write little endian data"]]});
+initSidebarItems({"trait":[["Parameter","Configuration parameter trait."],["SetParameter","Implemented for objects that have parameters."]]});
