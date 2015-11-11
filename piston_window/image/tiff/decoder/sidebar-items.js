@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["TIFFDecoder","The representation of a PNG decoder"]]});
+initSidebarItems({"struct":[["TIFFDecoder","The representation of a TIFF decoder"]]});

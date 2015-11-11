@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Frame","A Representation of the last decoded video frame"],["VP8Decoder","VP8 Decoder Only decodes keyframes"]]});
+initSidebarItems({"struct":[["Frame","A Representation of the last decoded video frame"],["VP8Decoder","VP8 Decoder"]]});
