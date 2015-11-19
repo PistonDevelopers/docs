@@ -393,12 +393,12 @@
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Type</span> {
     <span class='doccomment'>/// Point resizing.</span>
     <span class='ident'>Point</span>,
-    <span class='doccomment'>/// Box (nearest) resizing.</span>
-    <span class='ident'>Nearest</span>,
     <span class='doccomment'>/// Triangle (bilinear) resizing.</span>
     <span class='ident'>Triangle</span>,
     <span class='doccomment'>/// Catmull-Rom (bicubic) resizing.</span>
     <span class='ident'>Catrom</span>,
+    <span class='doccomment'>/// Resize using Mitchell-Netravali filter.</span>
+    <span class='ident'>Mitchell</span>,
     <span class='doccomment'>/// Resize using sinc-windowed filter with radius of 3.</span>
     <span class='ident'>Lanczos3</span>,
     <span class='doccomment'>/// Resize using custom filter.</span>
@@ -418,11 +418,21 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// ```</span>
     <span class='doccomment'>/// use resize::Filter;</span>
-    <span class='doccomment'>/// fn kernel(x: f32) -&gt; f32 { f32::round(x) }</span>
-    <span class='doccomment'>/// let filter = Filter::new(Box::new(kernel), 0.5);</span>
+    <span class='doccomment'>/// fn kernel(x: f32) -&gt; f32 { f32::max(1.0 - x.abs(), 0.0) }</span>
+    <span class='doccomment'>/// let filter = Filter::new(Box::new(kernel), 1.0);</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>kernel</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Fn</span>(<span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span><span class='op'>&gt;</span>, <span class='ident'>support</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>Filter</span> {
         <span class='ident'>Filter</span> {<span class='ident'>kernel</span>: <span class='ident'>kernel</span>, <span class='ident'>support</span>: <span class='ident'>support</span>}
+    }
+
+    <span class='doccomment'>/// Helper to create Cubic filter with custom B and C parameters.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_cubic</span>(<span class='ident'>b</span>: <span class='ident'>f32</span>, <span class='ident'>c</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>Filter</span> {
+        <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='ident'>cubic_bc</span>(<span class='ident'>b</span>, <span class='ident'>c</span>, <span class='ident'>x</span>)), <span class='number'>2.0</span>)
+    }
+
+    <span class='doccomment'>/// Helper to create Lanczos filter with custom radius.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_lanczos</span>(<span class='ident'>radius</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>Filter</span> {
+        <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='ident'>lanczos</span>(<span class='ident'>radius</span>, <span class='ident'>x</span>)), <span class='ident'>radius</span>)
     }
 }
 
@@ -432,21 +442,16 @@
 }
 
 <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>box_kernel</span>(<span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
-    <span class='kw'>if</span> <span class='ident'>x</span>.<span class='ident'>abs</span>() <span class='op'>&lt;=</span> <span class='number'>0.5</span> { <span class='number'>1.0</span> } <span class='kw'>else</span> { <span class='number'>0.0</span> }
-}
-
-<span class='attribute'>#[<span class='ident'>inline</span>]</span>
 <span class='kw'>fn</span> <span class='ident'>triangle_kernel</span>(<span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
     <span class='ident'>f32</span>::<span class='ident'>max</span>(<span class='number'>1.0</span> <span class='op'>-</span> <span class='ident'>x</span>.<span class='ident'>abs</span>(), <span class='number'>0.0</span>)
 }
 
 <span class='comment'>// Taken from</span>
 <span class='comment'>// https://github.com/PistonDevelopers/image/blob/2921cd7/src/imageops/sample.rs#L68</span>
-<span class='comment'>// Probably may be optimized a bit, see e.g.</span>
+<span class='comment'>// TODO(Kagami): Could be optimized for known B and C, see e.g.</span>
 <span class='comment'>// https://github.com/sekrit-twc/zimg/blob/1a606c0/src/zimg/resize/filter.cpp#L149</span>
 <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>bc_cubic_spline</span>(<span class='ident'>x</span>: <span class='ident'>f32</span>, <span class='ident'>b</span>: <span class='ident'>f32</span>, <span class='ident'>c</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
+<span class='kw'>fn</span> <span class='ident'>cubic_bc</span>(<span class='ident'>b</span>: <span class='ident'>f32</span>, <span class='ident'>c</span>: <span class='ident'>f32</span>, <span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
     <span class='kw'>let</span> <span class='ident'>a</span> <span class='op'>=</span> <span class='ident'>x</span>.<span class='ident'>abs</span>();
     <span class='kw'>let</span> <span class='ident'>k</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>a</span> <span class='op'>&lt;</span> <span class='number'>1.0</span> {
         (<span class='number'>12.0</span> <span class='op'>-</span> <span class='number'>9.0</span> <span class='op'>*</span> <span class='ident'>b</span> <span class='op'>-</span> <span class='number'>6.0</span> <span class='op'>*</span> <span class='ident'>c</span>) <span class='op'>*</span> <span class='ident'>a</span>.<span class='ident'>powi</span>(<span class='number'>3</span>) <span class='op'>+</span>
@@ -464,11 +469,6 @@
 }
 
 <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>catrom_kernel</span>(<span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
-    <span class='ident'>bc_cubic_spline</span>(<span class='ident'>x</span>, <span class='number'>0.0</span>, <span class='number'>0.5</span>)
-}
-
-<span class='attribute'>#[<span class='ident'>inline</span>]</span>
 <span class='kw'>fn</span> <span class='ident'>sinc</span>(<span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
     <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>==</span> <span class='number'>0.0</span> {
         <span class='number'>1.0</span>
@@ -479,9 +479,9 @@
 }
 
 <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>lanczos3_kernel</span>(<span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
-    <span class='kw'>if</span> <span class='ident'>x</span>.<span class='ident'>abs</span>() <span class='op'>&lt;</span> <span class='number'>3.0</span> {
-        <span class='ident'>sinc</span>(<span class='ident'>x</span>) <span class='op'>*</span> <span class='ident'>sinc</span>(<span class='ident'>x</span> <span class='op'>/</span> <span class='number'>3.0</span>)
+<span class='kw'>fn</span> <span class='ident'>lanczos</span>(<span class='ident'>taps</span>: <span class='ident'>f32</span>, <span class='ident'>x</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
+    <span class='kw'>if</span> <span class='ident'>x</span>.<span class='ident'>abs</span>() <span class='op'>&lt;</span> <span class='ident'>taps</span> {
+        <span class='ident'>sinc</span>(<span class='ident'>x</span>) <span class='op'>*</span> <span class='ident'>sinc</span>(<span class='ident'>x</span> <span class='op'>/</span> <span class='ident'>taps</span>)
     } <span class='kw'>else</span> {
         <span class='number'>0.0</span>
     }
@@ -548,11 +548,11 @@
     <span class='doccomment'>/// Create a new resizer instance.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>w1</span>: <span class='ident'>usize</span>, <span class='ident'>h1</span>: <span class='ident'>usize</span>, <span class='ident'>w2</span>: <span class='ident'>usize</span>, <span class='ident'>h2</span>: <span class='ident'>usize</span>, <span class='ident'>p</span>: <span class='ident'>Pixel</span>, <span class='ident'>t</span>: <span class='ident'>Type</span>) <span class='op'>-&gt;</span> <span class='ident'>Resizer</span> {
         <span class='kw'>let</span> <span class='ident'>filter</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>t</span> {
-            <span class='ident'>Type</span>::<span class='ident'>Point</span>     <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>point_kernel</span>),    <span class='number'>0.0</span>),
-            <span class='ident'>Type</span>::<span class='ident'>Nearest</span>   <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>box_kernel</span>),      <span class='number'>0.5</span>),
-            <span class='ident'>Type</span>::<span class='ident'>Triangle</span>  <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>triangle_kernel</span>), <span class='number'>1.0</span>),
-            <span class='ident'>Type</span>::<span class='ident'>Catrom</span>    <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>catrom_kernel</span>),   <span class='number'>2.0</span>),
-            <span class='ident'>Type</span>::<span class='ident'>Lanczos3</span>  <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>lanczos3_kernel</span>), <span class='number'>3.0</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Point</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>point_kernel</span>), <span class='number'>0.0</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Triangle</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>triangle_kernel</span>), <span class='number'>1.0</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Catrom</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new_cubic</span>(<span class='number'>0.0</span>, <span class='number'>0.5</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Mitchell</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new_cubic</span>(<span class='number'>1.0</span><span class='op'>/</span><span class='number'>3.0</span>, <span class='number'>1.0</span><span class='op'>/</span><span class='number'>3.0</span>),
+            <span class='ident'>Type</span>::<span class='ident'>Lanczos3</span> <span class='op'>=&gt;</span> <span class='ident'>Filter</span>::<span class='ident'>new_lanczos</span>(<span class='number'>3.0</span>),
             <span class='ident'>Type</span>::<span class='ident'>Custom</span>(<span class='ident'>f</span>) <span class='op'>=&gt;</span> <span class='ident'>f</span>,
         };
         <span class='ident'>Resizer</span> {
