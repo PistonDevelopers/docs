@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["is_isomorphic","Return **true** if the graphs **g0** and **g1** are isomorphic."]]});
+initSidebarItems({"fn":[["is_isomorphic","Return `true` if the graphs `g0` and `g1` are isomorphic."]]});
