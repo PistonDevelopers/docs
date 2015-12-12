@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Align","The alignment of an element's dimensions with another's."],["Theme","A serializable collection of canvas and widget styling defaults."],["WidgetDefault","The defaults for a specific widget."]]});
+initSidebarItems({"struct":[["Theme","A serializable collection of canvas and widget styling defaults."],["UniqueDefault","A **WidgetDefault** downcast to a **Widget**'s unique **Style** type."],["WidgetDefault","The defaults for a specific widget."]]});

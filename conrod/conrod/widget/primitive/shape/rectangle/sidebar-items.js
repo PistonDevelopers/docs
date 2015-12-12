@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Rectangle","A basic, non-interactive rectangle shape widget."]]});

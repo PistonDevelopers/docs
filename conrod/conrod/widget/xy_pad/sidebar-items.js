@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Style","Styling for the XYPad, necessary for constructing its renderable Element."],["XYPad","Used for displaying and controlling a 2D point on a cartesian plane within a given range. Its reaction is triggered when the value is updated or if the mouse button is released while the cursor is above the rectangle."]]});
+initSidebarItems({"struct":[["Style","Styling for the XYPad, necessary for constructing its renderable Element."],["XYPad","Used for displaying and controlling a 2D point on a cartesian plane within a given range."]]});

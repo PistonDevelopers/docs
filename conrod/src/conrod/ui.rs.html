@@ -9,6 +9,7 @@
 
     <title>ui.rs.html -- source</title>
 
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
     
@@ -836,14 +837,19 @@
 <span id="794">794</span>
 <span id="795">795</span>
 <span id="796">796</span>
+<span id="797">797</span>
+<span id="798">798</span>
+<span id="799">799</span>
+<span id="800">800</span>
+<span id="801">801</span>
+<span id="802">802</span>
 </pre><pre class='rust '>
 
+<span class='kw'>use</span> {<span class='ident'>CharacterCache</span>, <span class='ident'>Scalar</span>};
+<span class='kw'>use</span> <span class='ident'>backend</span>::<span class='ident'>graphics</span>::{<span class='ident'>Context</span>, <span class='ident'>Graphics</span>};
 <span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
-<span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Element</span>;
-<span class='kw'>use</span> <span class='ident'>graph</span>::<span class='ident'>Graph</span>;
-<span class='kw'>use</span> <span class='ident'>graphics</span>::{<span class='ident'>Context</span>, <span class='ident'>Graphics</span>};
-<span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>character</span>::<span class='ident'>CharacterCache</span>;
-<span class='kw'>use</span> <span class='ident'>label</span>::<span class='ident'>FontSize</span>;
+<span class='kw'>use</span> <span class='ident'>glyph_cache</span>::<span class='ident'>GlyphCache</span>;
+<span class='kw'>use</span> <span class='ident'>graph</span>::{<span class='self'>self</span>, <span class='ident'>Graph</span>, <span class='ident'>NodeIndex</span>};
 <span class='kw'>use</span> <span class='ident'>mouse</span>::{<span class='self'>self</span>, <span class='ident'>Mouse</span>};
 <span class='kw'>use</span> <span class='ident'>input</span>;
 <span class='kw'>use</span> <span class='ident'>input</span>::{
@@ -855,8 +861,8 @@
     <span class='ident'>RenderEvent</span>,
     <span class='ident'>TextEvent</span>,
 };
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Dimensions</span>, <span class='ident'>HorizontalAlign</span>, <span class='ident'>Padding</span>, <span class='ident'>Point</span>, <span class='ident'>Position</span>, <span class='ident'>Rect</span>, <span class='ident'>VerticalAlign</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>RefCell</span>;
+<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Align</span>, <span class='ident'>Direction</span>, <span class='ident'>Dimensions</span>, <span class='ident'>Padding</span>, <span class='ident'>Place</span>, <span class='ident'>Point</span>, <span class='ident'>Position</span>, <span class='ident'>Range</span>, <span class='ident'>Rect</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
 <span class='kw'>use</span> <span class='ident'>theme</span>::<span class='ident'>Theme</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
@@ -865,7 +871,7 @@
 <span class='doccomment'>/// Indicates whether or not the Mouse has been captured by a widget.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>)]</span>
 <span class='kw'>enum</span> <span class='ident'>Capturing</span> {
-    <span class='doccomment'>/// The Ui is captured by the Ui element with the given widget::Index.</span>
+    <span class='doccomment'>/// The Ui is captured by the Widget with the given widget::Index.</span>
     <span class='ident'>Captured</span>(<span class='ident'>widget</span>::<span class='ident'>Index</span>),
     <span class='doccomment'>/// The Ui has just been uncaptured.</span>
     <span class='ident'>JustReleased</span>,
@@ -884,6 +890,8 @@
     <span class='kw'>pub</span> <span class='ident'>theme</span>: <span class='ident'>Theme</span>,
     <span class='doccomment'>/// Cache for character textures, used for label width calculation and glyph rendering.</span>
     <span class='kw'>pub</span> <span class='ident'>glyph_cache</span>: <span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// An index into the root widget of the graph, representing the entire window.</span>
+    <span class='kw'>pub</span> <span class='ident'>window</span>: <span class='ident'>NodeIndex</span>,
     <span class='doccomment'>/// Window width.</span>
     <span class='kw'>pub</span> <span class='ident'>win_w</span>: <span class='ident'>f64</span>,
     <span class='doccomment'>/// Window height.</span>
@@ -898,8 +906,6 @@
     <span class='ident'>keys_just_released</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>input</span>::<span class='ident'>keyboard</span>::<span class='ident'>Key</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Text that has been entered since the end of the last render cycle.</span>
     <span class='ident'>text_just_entered</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Tracks whether or not the previous event was a Render event.</span>
-    <span class='ident'>prev_event_was_render</span>: <span class='ident'>bool</span>,
     <span class='doccomment'>/// The widget::Index of the widget that was last updated/set.</span>
     <span class='ident'>maybe_prev_widget_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// The widget::Index of the last widget used as a parent for another widget.</span>
@@ -919,8 +925,15 @@
     <span class='ident'>redraw_count</span>: <span class='ident'>u8</span>,
     <span class='doccomment'>/// A background color to clear the screen with before drawing if one was given.</span>
     <span class='ident'>maybe_background_color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// The latest element returned/drawn that represents the entire widget graph.</span>
-    <span class='ident'>maybe_element</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Element</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The order in which widgets from the `widget_graph` are drawn.</span>
+    <span class='ident'>depth_order</span>: <span class='ident'>graph</span>::<span class='ident'>DepthOrder</span>,
+    <span class='doccomment'>/// The set of widgets that have been updated since the beginning of the `set_widgets` stage.</span>
+    <span class='ident'>updated_widgets</span>: <span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The `updated_widgets` for the previous `set_widgets` stage.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// We use this to compare against the newly generated `updated_widgets` to see whether or not</span>
+    <span class='doccomment'>/// we require re-drawing.</span>
+    <span class='ident'>prev_updated_widgets</span>: <span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
 }
 
 <span class='doccomment'>/// A wrapper over the current user input state.</span>
@@ -940,30 +953,6 @@
     <span class='kw'>pub</span> <span class='ident'>window_dim</span>: <span class='ident'>Dimensions</span>,
 }
 
-<span class='doccomment'>/// A wrapper over some CharacterCache, exposing it&#39;s functionality via a RefCell.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>);
-
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> <span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>C</span>: <span class='ident'>CharacterCache</span> {
-    <span class='doccomment'>/// Return the width of a character.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>char_width</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>, <span class='ident'>ch</span>: <span class='ident'>char</span>) <span class='op'>-&gt;</span> <span class='ident'>f64</span> {
-        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>character</span>(<span class='ident'>font_size</span>, <span class='ident'>ch</span>).<span class='ident'>width</span>()
-    }
-    <span class='doccomment'>/// Return the width of the given text.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>width</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>f64</span> {
-        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>width</span>(<span class='ident'>font_size</span>, <span class='ident'>text</span>)
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>deref</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>DerefMut</span> <span class='kw'>for</span> <span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>deref_mut</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='number'>0</span> }
-}
-
 
 <span class='doccomment'>/// Each time conrod is required to redraw the GUI, it must draw for at least the next three frames</span>
 <span class='doccomment'>/// to ensure that, in the case that graphics buffers are being swapped, we have filled each</span>
@@ -974,18 +963,40 @@
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
 
 
-    <span class='doccomment'>/// Constructor for a UiContext.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>character_cache</span>: <span class='ident'>C</span>, <span class='ident'>theme</span>: <span class='ident'>Theme</span>) <span class='op'>-&gt;</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
-        <span class='kw'>const</span> <span class='ident'>GRAPH_CAPACITY</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>512</span>;
+    <span class='doccomment'>/// A new, empty **Ui**.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>character_cache</span>: <span class='ident'>C</span>, <span class='ident'>theme</span>: <span class='ident'>Theme</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='kw'>let</span> <span class='ident'>widget_graph</span> <span class='op'>=</span> <span class='ident'>Graph</span>::<span class='ident'>new</span>();
+        <span class='kw'>let</span> <span class='ident'>depth_order</span> <span class='op'>=</span> <span class='ident'>graph</span>::<span class='ident'>DepthOrder</span>::<span class='ident'>new</span>();
+        <span class='kw'>let</span> <span class='ident'>updated_widgets</span> <span class='op'>=</span> <span class='ident'>HashSet</span>::<span class='ident'>new</span>();
+        <span class='ident'>Self</span>::<span class='ident'>new_internal</span>(<span class='ident'>character_cache</span>, <span class='ident'>theme</span>, <span class='ident'>widget_graph</span>, <span class='ident'>depth_order</span>, <span class='ident'>updated_widgets</span>)
+    }
+
+    <span class='doccomment'>/// A new **Ui** with the capacity given as a number of widgets.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_capacity</span>(<span class='ident'>character_cache</span>: <span class='ident'>C</span>, <span class='ident'>theme</span>: <span class='ident'>Theme</span>, <span class='ident'>n_widgets</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='kw'>let</span> <span class='ident'>widget_graph</span> <span class='op'>=</span> <span class='ident'>Graph</span>::<span class='ident'>with_node_capacity</span>(<span class='ident'>n_widgets</span>);
+        <span class='kw'>let</span> <span class='ident'>depth_order</span> <span class='op'>=</span> <span class='ident'>graph</span>::<span class='ident'>DepthOrder</span>::<span class='ident'>with_node_capacity</span>(<span class='ident'>n_widgets</span>);
+        <span class='kw'>let</span> <span class='ident'>updated_widgets</span> <span class='op'>=</span> <span class='ident'>HashSet</span>::<span class='ident'>with_capacity</span>(<span class='ident'>n_widgets</span>);
+        <span class='ident'>Self</span>::<span class='ident'>new_internal</span>(<span class='ident'>character_cache</span>, <span class='ident'>theme</span>, <span class='ident'>widget_graph</span>, <span class='ident'>depth_order</span>, <span class='ident'>updated_widgets</span>)
+    }
+
+    <span class='doccomment'>/// An internal constructor to share logic between the `new` and `with_capacity` constructors.</span>
+    <span class='kw'>fn</span> <span class='ident'>new_internal</span>(<span class='ident'>character_cache</span>: <span class='ident'>C</span>,
+                    <span class='ident'>theme</span>: <span class='ident'>Theme</span>,
+                    <span class='kw-2'>mut</span> <span class='ident'>widget_graph</span>: <span class='ident'>Graph</span>,
+                    <span class='ident'>depth_order</span>: <span class='ident'>graph</span>::<span class='ident'>DepthOrder</span>,
+                    <span class='ident'>updated_widgets</span>: <span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span>
+    {
+        <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='ident'>widget_graph</span>.<span class='ident'>add_placeholder</span>();
+        <span class='kw'>let</span> <span class='ident'>prev_updated_widgets</span> <span class='op'>=</span> <span class='ident'>updated_widgets</span>.<span class='ident'>clone</span>();
         <span class='ident'>Ui</span> {
-            <span class='ident'>widget_graph</span>: <span class='ident'>Graph</span>::<span class='ident'>with_capacity</span>(<span class='ident'>GRAPH_CAPACITY</span>),
+            <span class='ident'>widget_graph</span>: <span class='ident'>widget_graph</span>,
             <span class='ident'>theme</span>: <span class='ident'>theme</span>,
+            <span class='ident'>window</span>: <span class='ident'>window</span>,
             <span class='ident'>mouse</span>: <span class='ident'>Mouse</span>::<span class='ident'>new</span>(),
             <span class='ident'>keys_just_pressed</span>: <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='number'>10</span>),
             <span class='ident'>keys_just_released</span>: <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='number'>10</span>),
             <span class='ident'>text_just_entered</span>: <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='number'>10</span>),
-            <span class='ident'>glyph_cache</span>: <span class='ident'>GlyphCache</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>character_cache</span>)),
-            <span class='ident'>prev_event_was_render</span>: <span class='boolval'>false</span>,
+            <span class='ident'>glyph_cache</span>: <span class='ident'>GlyphCache</span>::<span class='ident'>new</span>(<span class='ident'>character_cache</span>),
             <span class='ident'>win_w</span>: <span class='number'>0.0</span>,
             <span class='ident'>win_h</span>: <span class='number'>0.0</span>,
             <span class='ident'>maybe_prev_widget_idx</span>: <span class='prelude-val'>None</span>,
@@ -997,62 +1008,74 @@
             <span class='ident'>num_redraw_frames</span>: <span class='ident'>SAFE_REDRAW_COUNT</span>,
             <span class='ident'>redraw_count</span>: <span class='ident'>SAFE_REDRAW_COUNT</span>,
             <span class='ident'>maybe_background_color</span>: <span class='prelude-val'>None</span>,
-            <span class='ident'>maybe_element</span>: <span class='prelude-val'>None</span>,
+            <span class='ident'>depth_order</span>: <span class='ident'>depth_order</span>,
+            <span class='ident'>updated_widgets</span>: <span class='ident'>updated_widgets</span>,
+            <span class='ident'>prev_updated_widgets</span>: <span class='ident'>prev_updated_widgets</span>,
         }
     }
 
-
-    <span class='doccomment'>/// Return the dimensions of a widget.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widget_size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimensions</span> {
-        <span class='self'>self</span>.<span class='ident'>widget_graph</span>[<span class='ident'>id</span>].<span class='ident'>rect</span>.<span class='ident'>dim</span>()
+    <span class='doccomment'>/// The **Rect** for the widget at the given index.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `None` if there is no widget for the given index.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>rect_of</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Index</span> <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>into</span>();
+        <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>widget</span><span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>rect</span>)
     }
 
+    <span class='doccomment'>/// The absolute width of the widget at the given index.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `None` if there is no widget for the given index.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>width_of</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Scalar</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>rect</span><span class='op'>|</span> <span class='ident'>rect</span>.<span class='ident'>w</span>())
+    }
+
+    <span class='doccomment'>/// The absolute height of the widget at the given index.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `None` if there is no widget for the given index.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>height_of</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Scalar</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>rect</span><span class='op'>|</span> <span class='ident'>rect</span>.<span class='ident'>h</span>())
+    }
+
+    <span class='doccomment'>/// The absolute dimensions for the widget at the given index.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `None` if there is no widget for the given index.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>dim_of</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Dimensions</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>rect</span><span class='op'>|</span> <span class='ident'>rect</span>.<span class='ident'>dim</span>())
+    }
+
+    <span class='doccomment'>/// The coordinates for the widget at the given index.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `None` if there is no widget for the given index.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>xy_of</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Point</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>rect</span><span class='op'>|</span> <span class='ident'>rect</span>.<span class='ident'>xy</span>())
+    }
+
+    <span class='doccomment'>/// The `kid_area` of the widget at the given index.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `None` if there is no widget for the given index.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>kid_area_of</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Index</span> <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>into</span>();
+        <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>widget</span><span class='op'>|</span> {
+            <span class='ident'>widget</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>.<span class='ident'>padding</span>(<span class='ident'>widget</span>.<span class='ident'>kid_area</span>.<span class='ident'>pad</span>)
+        })
+    }
 
     <span class='doccomment'>/// An index to the previously updated widget if there is one.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>maybe_prev_widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>maybe_prev_widget_idx</span>
     }
 
+    <span class='doccomment'>/// Borrow the **Ui**&#39;s `widget_graph`.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widget_graph</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Graph</span> {
+        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>
+    }
 
     <span class='doccomment'>/// Handle game events and update the state.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle_event</span><span class='op'>&lt;</span><span class='ident'>E</span>: <span class='ident'>GenericEvent</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>event</span>: <span class='kw-2'>&amp;</span><span class='ident'>E</span>) {
 
-        <span class='comment'>// The `Ui` tracks various things during a frame - we&#39;ll reset those things here.</span>
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>prev_event_was_render</span> {
-            <span class='self'>self</span>.<span class='ident'>prev_event_was_render</span> <span class='op'>=</span> <span class='boolval'>false</span>;
-
-            <span class='comment'>// Clear text and key buffers.</span>
-            <span class='self'>self</span>.<span class='ident'>keys_just_pressed</span>.<span class='ident'>clear</span>();
-            <span class='self'>self</span>.<span class='ident'>keys_just_released</span>.<span class='ident'>clear</span>();
-            <span class='self'>self</span>.<span class='ident'>text_just_entered</span>.<span class='ident'>clear</span>();
-
-            <span class='comment'>// Reset the mouse state.</span>
-            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span> <span class='op'>=</span> <span class='ident'>mouse</span>::<span class='ident'>Scroll</span> { <span class='ident'>x</span>: <span class='number'>0.0</span>, <span class='ident'>y</span>: <span class='number'>0.0</span> };
-            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>left</span>.<span class='ident'>reset_pressed_and_released</span>();
-            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>middle</span>.<span class='ident'>reset_pressed_and_released</span>();
-            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>right</span>.<span class='ident'>reset_pressed_and_released</span>();
-            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>unknown</span>.<span class='ident'>reset_pressed_and_released</span>();
-
-            <span class='self'>self</span>.<span class='ident'>maybe_prev_widget_idx</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-            <span class='self'>self</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-
-            <span class='comment'>// If the mouse / keyboard capturing was just released by a widget, reset to None ready</span>
-            <span class='comment'>// for capturing once again.</span>
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>JustReleased</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> {
-                <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-            }
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>JustReleased</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> {
-                <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-            }
-        }
-
         <span class='ident'>event</span>.<span class='ident'>render</span>(<span class='op'>|</span><span class='ident'>args</span><span class='op'>|</span> {
             <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>=</span> <span class='ident'>args</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>f64</span>;
             <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>=</span> <span class='ident'>args</span>.<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>f64</span>;
-            <span class='self'>self</span>.<span class='ident'>prev_event_was_render</span> <span class='op'>=</span> <span class='boolval'>true</span>;
-            <span class='self'>self</span>.<span class='ident'>maybe_widget_under_mouse</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>pick_widget</span>(<span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>);
-            <span class='self'>self</span>.<span class='ident'>maybe_top_scrollable_widget_under_mouse</span> <span class='op'>=</span>
-                <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>pick_top_scrollable_widget</span>(<span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>);
         });
 
         <span class='ident'>event</span>.<span class='ident'>mouse_cursor</span>(<span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span><span class='op'>|</span> {
@@ -1111,106 +1134,210 @@
 
 
     <span class='doccomment'>/// Get the centred xy coords for some given `Dimension`s, `Position` and alignment.</span>
-    <span class='doccomment'>/// If getting the xy for a widget, its ID should be specified so that we can also consider the</span>
-    <span class='doccomment'>/// scroll offset of the scrollable parent widgets.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_xy</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>,
-                  <span class='ident'>maybe_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>,
-                  <span class='ident'>position</span>: <span class='ident'>Position</span>,
-                  <span class='ident'>dim</span>: <span class='ident'>Dimensions</span>,
-                  <span class='ident'>h_align</span>: <span class='ident'>HorizontalAlign</span>,
-                  <span class='ident'>v_align</span>: <span class='ident'>VerticalAlign</span>) <span class='op'>-&gt;</span> <span class='ident'>Point</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If getting the xy for a specific widget, its `widget::Index` should be specified so that we</span>
+    <span class='doccomment'>/// can also consider the scroll offset of the scrollable parent widgets.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `place_on_kid_area` argument specifies whether or not **Place** **Position** variants</span>
+    <span class='doccomment'>/// should target a **Widget**&#39;s `kid_area`, or simply the **Widget**&#39;s total area.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>calc_xy</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>,
+                   <span class='ident'>maybe_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>,
+                   <span class='ident'>x_position</span>: <span class='ident'>Position</span>,
+                   <span class='ident'>y_position</span>: <span class='ident'>Position</span>,
+                   <span class='ident'>dim</span>: <span class='ident'>Dimensions</span>,
+                   <span class='ident'>place_on_kid_area</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>Point</span>
     {
         <span class='kw'>use</span> <span class='ident'>vecmath</span>::<span class='ident'>vec2_add</span>;
 
-        <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>position</span> {
+        <span class='comment'>// Retrieves the absolute **Scalar** position from the given position for a single axis.</span>
+        <span class='comment'>//</span>
+        <span class='comment'>// The axis used is specified by the given range_from_rect function which, given some</span>
+        <span class='comment'>// **Rect**, returns the relevant **Range**.</span>
+        <span class='kw'>fn</span> <span class='ident'>abs_from_position</span><span class='op'>&lt;</span><span class='ident'>C</span>, <span class='ident'>R</span>, <span class='ident'>P</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
+                                      <span class='ident'>position</span>: <span class='ident'>Position</span>,
+                                      <span class='ident'>dim</span>: <span class='ident'>Scalar</span>,
+                                      <span class='ident'>place_on_kid_area</span>: <span class='ident'>bool</span>,
+                                      <span class='ident'>range_from_rect</span>: <span class='ident'>R</span>,
+                                      <span class='ident'>start_and_end_pad</span>: <span class='ident'>P</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span>
+            <span class='kw'>where</span> <span class='ident'>R</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span>,
+                  <span class='ident'>P</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Padding</span>) <span class='op'>-&gt;</span> (<span class='ident'>Scalar</span>, <span class='ident'>Scalar</span>),
+        {
+            <span class='kw'>match</span> <span class='ident'>position</span> {
 
-            <span class='ident'>Position</span>::<span class='ident'>Absolute</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>=&gt;</span> [<span class='ident'>x</span>, <span class='ident'>y</span>],
+                <span class='ident'>Position</span>::<span class='ident'>Absolute</span>(<span class='ident'>abs</span>) <span class='op'>=&gt;</span> <span class='ident'>abs</span>,
 
-            <span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='self'>self</span>.<span class='ident'>maybe_prev_widget</span>()) {
-                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> [<span class='ident'>x</span>, <span class='ident'>y</span>],
-                <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>vec2_add</span>(<span class='self'>self</span>.<span class='ident'>widget_graph</span>[<span class='ident'>idx</span>].<span class='ident'>rect</span>.<span class='ident'>xy</span>(), [<span class='ident'>x</span>, <span class='ident'>y</span>]),
-            },
+                <span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>rel</span>, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span>
+                    <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span>).<span class='ident'>or</span>(<span class='prelude-val'>Some</span>(<span class='ident'>ui</span>.<span class='ident'>window</span>.<span class='ident'>into</span>()))
+                        .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='ident'>range_from_rect</span>))
+                        .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>other_range</span><span class='op'>|</span> <span class='ident'>other_range</span>.<span class='ident'>middle</span>() <span class='op'>+</span> <span class='ident'>rel</span>)
+                        .<span class='ident'>unwrap_or</span>(<span class='ident'>rel</span>),
 
-            <span class='ident'>Position</span>::<span class='ident'>Direction</span>(<span class='ident'>direction</span>, <span class='ident'>px</span>, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span> {
-                <span class='kw'>match</span> <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='self'>self</span>.<span class='ident'>maybe_prev_widget</span>()) {
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> [<span class='number'>0.0</span>, <span class='number'>0.0</span>],
-                    <span class='prelude-val'>Some</span>(<span class='ident'>rel_idx</span>) <span class='op'>=&gt;</span> {
-                        <span class='kw'>use</span> <span class='ident'>position</span>::<span class='ident'>Direction</span>;
-                        <span class='kw'>let</span> (<span class='ident'>rel_xy</span>, <span class='ident'>rel_w</span>, <span class='ident'>rel_h</span>) <span class='op'>=</span> {
-                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>[<span class='ident'>rel_idx</span>];
-                            (<span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>xy</span>(), <span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>w</span>(), <span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>h</span>())
-                        };
+                <span class='ident'>Position</span>::<span class='ident'>Direction</span>(<span class='ident'>direction</span>, <span class='ident'>amt</span>, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span>
+                    <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span>)
+                        .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='ident'>range_from_rect</span>))
+                        .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>other_range</span><span class='op'>|</span> {
+                            <span class='kw'>let</span> <span class='ident'>range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='number'>0.0</span>, <span class='ident'>dim</span>);
+                            <span class='kw'>match</span> <span class='ident'>direction</span> {
+                                <span class='ident'>Direction</span>::<span class='ident'>Forwards</span> <span class='op'>=&gt;</span> <span class='ident'>range</span>.<span class='ident'>align_after</span>(<span class='ident'>other_range</span>).<span class='ident'>middle</span>() <span class='op'>+</span> <span class='ident'>amt</span>,
+                                <span class='ident'>Direction</span>::<span class='ident'>Backwards</span> <span class='op'>=&gt;</span> <span class='ident'>range</span>.<span class='ident'>align_before</span>(<span class='ident'>other_range</span>).<span class='ident'>middle</span>() <span class='op'>-</span> <span class='ident'>amt</span>,
+                            }
+                        })
+                        .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='kw'>match</span> <span class='ident'>direction</span> {
+                            <span class='ident'>Direction</span>::<span class='ident'>Forwards</span> <span class='op'>=&gt;</span> <span class='ident'>amt</span>,
+                            <span class='ident'>Direction</span>::<span class='ident'>Backwards</span> <span class='op'>=&gt;</span> <span class='op'>-</span><span class='ident'>amt</span>,
+                        }),
 
-                        <span class='kw'>match</span> <span class='ident'>direction</span> {
+                <span class='ident'>Position</span>::<span class='ident'>Align</span>(<span class='ident'>align</span>, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span>
+                    <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span>).<span class='ident'>or</span>(<span class='prelude-val'>Some</span>(<span class='ident'>ui</span>.<span class='ident'>window</span>.<span class='ident'>into</span>()))
+                        .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>map</span>(<span class='ident'>range_from_rect</span>))
+                        .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>other_range</span><span class='op'>|</span> {
+                            <span class='kw'>let</span> <span class='ident'>range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='number'>0.0</span>, <span class='ident'>dim</span>);
+                            <span class='kw'>match</span> <span class='ident'>align</span> {
+                                <span class='ident'>Align</span>::<span class='ident'>Start</span> <span class='op'>=&gt;</span> <span class='ident'>range</span>.<span class='ident'>align_start_of</span>(<span class='ident'>other_range</span>).<span class='ident'>middle</span>(),
+                                <span class='ident'>Align</span>::<span class='ident'>Middle</span> <span class='op'>=&gt;</span> <span class='ident'>other_range</span>.<span class='ident'>middle</span>(),
+                                <span class='ident'>Align</span>::<span class='ident'>End</span> <span class='op'>=&gt;</span> <span class='ident'>range</span>.<span class='ident'>align_end_of</span>(<span class='ident'>other_range</span>).<span class='ident'>middle</span>(),
+                            }
+                        })
+                        .<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>),
 
-                            <span class='comment'>// For vertical directions, we must consider horizontal alignment.</span>
-                            <span class='ident'>Direction</span>::<span class='ident'>Up</span> <span class='op'>|</span> <span class='ident'>Direction</span>::<span class='ident'>Down</span> <span class='op'>=&gt;</span> {
-                                <span class='comment'>// Check whether or not we are aligning to a specific `Ui` element.</span>
-                                <span class='kw'>let</span> (<span class='ident'>other_x</span>, <span class='ident'>other_w</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>h_align</span>.<span class='number'>1</span> {
-                                    <span class='prelude-val'>Some</span>(<span class='ident'>other_idx</span>) <span class='op'>=&gt;</span> {
-                                        <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>[<span class='ident'>other_idx</span>];
-                                        (<span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>x</span>(), <span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>w</span>())
-                                    },
-                                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> (<span class='ident'>rel_xy</span>[<span class='number'>0</span>], <span class='ident'>rel_w</span>),
-                                };
-                                <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>other_x</span> <span class='op'>+</span> <span class='ident'>h_align</span>.<span class='number'>0</span>.<span class='ident'>to</span>(<span class='ident'>other_w</span>, <span class='ident'>dim</span>[<span class='number'>0</span>]);
-                                <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>direction</span> {
-                                    <span class='ident'>Direction</span>::<span class='ident'>Up</span>   <span class='op'>=&gt;</span> <span class='ident'>rel_xy</span>[<span class='number'>1</span>] <span class='op'>+</span> <span class='ident'>rel_h</span> <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>+</span> <span class='ident'>dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>+</span> <span class='ident'>px</span>,
-                                    <span class='ident'>Direction</span>::<span class='ident'>Down</span> <span class='op'>=&gt;</span> <span class='ident'>rel_xy</span>[<span class='number'>1</span>] <span class='op'>-</span> <span class='ident'>rel_h</span> <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>-</span> <span class='ident'>dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>-</span> <span class='ident'>px</span>,
-                                    _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
-                                };
-                                [<span class='ident'>x</span>, <span class='ident'>y</span>]
-                            },
+                <span class='ident'>Position</span>::<span class='ident'>Place</span>(<span class='ident'>place</span>, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span> {
+                    <span class='kw'>let</span> <span class='ident'>parent_idx</span> <span class='op'>=</span> <span class='ident'>maybe_idx</span>
+                        .<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span>)
+                        .<span class='ident'>unwrap_or</span>(<span class='ident'>ui</span>.<span class='ident'>window</span>.<span class='ident'>into</span>());
+                    <span class='kw'>let</span> <span class='ident'>maybe_area</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>place_on_kid_area</span> {
+                        <span class='boolval'>true</span> <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>parent_idx</span>)
+                            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='ident'>w</span>.<span class='ident'>kid_area</span>)
+                            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>k</span><span class='op'>|</span> (<span class='ident'>range_from_rect</span>(<span class='ident'>k</span>.<span class='ident'>rect</span>), <span class='ident'>start_and_end_pad</span>(<span class='ident'>k</span>.<span class='ident'>pad</span>))),
+                        <span class='boolval'>false</span> <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>rect_of</span>(<span class='ident'>parent_idx</span>)
+                            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>rect</span><span class='op'>|</span> (<span class='ident'>range_from_rect</span>(<span class='ident'>rect</span>), (<span class='number'>0.0</span>, <span class='number'>0.0</span>))),
+                    };
+                    <span class='ident'>maybe_area</span>
+                        .<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>parent_range</span>, (<span class='ident'>pad_start</span>, <span class='ident'>pad_end</span>))<span class='op'>|</span> {
+                            <span class='kw'>let</span> <span class='ident'>range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='number'>0.0</span>, <span class='ident'>dim</span>);
+                            <span class='kw'>let</span> <span class='ident'>parent_range</span> <span class='op'>=</span> <span class='ident'>parent_range</span>.<span class='ident'>pad_start</span>(<span class='ident'>pad_start</span>).<span class='ident'>pad_end</span>(<span class='ident'>pad_end</span>);
+                            <span class='kw'>match</span> <span class='ident'>place</span> {
+                                <span class='ident'>Place</span>::<span class='ident'>Start</span> <span class='op'>=&gt;</span> <span class='ident'>range</span>.<span class='ident'>align_start_of</span>(<span class='ident'>parent_range</span>).<span class='ident'>middle</span>(),
+                                <span class='ident'>Place</span>::<span class='ident'>Middle</span> <span class='op'>=&gt;</span> <span class='ident'>parent_range</span>.<span class='ident'>middle</span>(),
+                                <span class='ident'>Place</span>::<span class='ident'>End</span> <span class='op'>=&gt;</span> <span class='ident'>range</span>.<span class='ident'>align_end_of</span>(<span class='ident'>parent_range</span>).<span class='ident'>middle</span>(),
+                            }
+                        })
+                        .<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>)
+                },
 
-                            <span class='comment'>// For horizontal directions, we must consider vertical alignment.</span>
-                            <span class='ident'>Direction</span>::<span class='ident'>Left</span> <span class='op'>|</span> <span class='ident'>Direction</span>::<span class='ident'>Right</span> <span class='op'>=&gt;</span> {
-                                <span class='comment'>// Check whether or not we are aligning to a specific `Ui` element.</span>
-                                <span class='kw'>let</span> (<span class='ident'>other_y</span>, <span class='ident'>other_h</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>h_align</span>.<span class='number'>1</span> {
-                                    <span class='prelude-val'>Some</span>(<span class='ident'>other_idx</span>) <span class='op'>=&gt;</span> {
-                                        <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>[<span class='ident'>other_idx</span>];
-                                        (<span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>y</span>(), <span class='ident'>widget</span>.<span class='ident'>rect</span>.<span class='ident'>h</span>())
-                                    },
-                                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> (<span class='ident'>rel_xy</span>[<span class='number'>1</span>], <span class='ident'>rel_h</span>),
-                                };
-                                <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>other_y</span> <span class='op'>+</span> <span class='ident'>v_align</span>.<span class='number'>0</span>.<span class='ident'>to</span>(<span class='ident'>other_h</span>, <span class='ident'>dim</span>[<span class='number'>1</span>]);
-                                <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>direction</span> {
-                                    <span class='ident'>Direction</span>::<span class='ident'>Left</span>  <span class='op'>=&gt;</span> <span class='ident'>rel_xy</span>[<span class='number'>0</span>] <span class='op'>-</span> <span class='ident'>rel_w</span> <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>-</span> <span class='ident'>dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>-</span> <span class='ident'>px</span>,
-                                    <span class='ident'>Direction</span>::<span class='ident'>Right</span> <span class='op'>=&gt;</span> <span class='ident'>rel_xy</span>[<span class='number'>0</span>] <span class='op'>+</span> <span class='ident'>rel_w</span> <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>+</span> <span class='ident'>dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>+</span> <span class='ident'>px</span>,
-                                    _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
-                                };
-                                [<span class='ident'>x</span>, <span class='ident'>y</span>]
-                            },
+            }
+        }
 
-                        }
-                    },
-                }
-            },
-
-            <span class='ident'>Position</span>::<span class='ident'>Place</span>(<span class='ident'>place</span>, <span class='ident'>maybe_parent_idx</span>) <span class='op'>=&gt;</span> {
-                <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='op'>||</span> (([<span class='number'>0.0</span>, <span class='number'>0.0</span>], [<span class='self'>self</span>.<span class='ident'>win_w</span>, <span class='self'>self</span>.<span class='ident'>win_h</span>]), <span class='ident'>Padding</span>::<span class='ident'>none</span>());
-                <span class='kw'>let</span> <span class='ident'>maybe_parent</span> <span class='op'>=</span> <span class='ident'>maybe_parent_idx</span>.<span class='ident'>or</span>(<span class='self'>self</span>.<span class='ident'>maybe_current_parent_idx</span>);
-                <span class='kw'>let</span> ((<span class='ident'>target_xy</span>, <span class='ident'>target_dim</span>), <span class='ident'>pad</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_parent</span> {
-                    <span class='prelude-val'>Some</span>(<span class='ident'>parent_idx</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>get_widget</span>(<span class='ident'>parent_idx</span>) {
-                        <span class='prelude-val'>Some</span>(<span class='ident'>parent</span>) <span class='op'>=&gt;</span>
-                            (<span class='ident'>parent</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>.<span class='ident'>xy_dim</span>(), <span class='ident'>parent</span>.<span class='ident'>kid_area</span>.<span class='ident'>pad</span>),
-                        <span class='comment'>// Sometimes the children are placed prior to their parents being set for</span>
-                        <span class='comment'>// the first time. If this is the case, we&#39;ll just place them on the window</span>
-                        <span class='comment'>// until we have information about the parents on the next update.</span>
-                        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>window</span>(),
-                    },
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>window</span>(),
-                };
-                <span class='kw'>let</span> <span class='ident'>place_xy</span> <span class='op'>=</span> <span class='ident'>place</span>.<span class='ident'>within</span>(<span class='ident'>target_dim</span>, <span class='ident'>dim</span>);
-                <span class='kw'>let</span> <span class='ident'>relative_xy</span> <span class='op'>=</span> <span class='ident'>vec2_add</span>(<span class='ident'>place_xy</span>, <span class='ident'>pad</span>.<span class='ident'>offset_from</span>(<span class='ident'>place</span>));
-                <span class='ident'>vec2_add</span>(<span class='ident'>target_xy</span>, <span class='ident'>relative_xy</span>)
-            },
-
-        };
+        <span class='kw'>fn</span> <span class='ident'>x_range</span>(<span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> { <span class='ident'>rect</span>.<span class='ident'>x</span> }
+        <span class='kw'>fn</span> <span class='ident'>y_range</span>(<span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> { <span class='ident'>rect</span>.<span class='ident'>y</span> }
+        <span class='kw'>fn</span> <span class='ident'>x_pad</span>(<span class='ident'>pad</span>: <span class='ident'>Padding</span>) <span class='op'>-&gt;</span> (<span class='ident'>Scalar</span>, <span class='ident'>Scalar</span>) { (<span class='ident'>pad</span>.<span class='ident'>left</span>, <span class='ident'>pad</span>.<span class='ident'>right</span>) }
+        <span class='kw'>fn</span> <span class='ident'>y_pad</span>(<span class='ident'>pad</span>: <span class='ident'>Padding</span>) <span class='op'>-&gt;</span> (<span class='ident'>Scalar</span>, <span class='ident'>Scalar</span>) { (<span class='ident'>pad</span>.<span class='ident'>bottom</span>, <span class='ident'>pad</span>.<span class='ident'>top</span>) }
+        <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>abs_from_position</span>(<span class='self'>self</span>, <span class='ident'>x_position</span>, <span class='ident'>dim</span>[<span class='number'>0</span>], <span class='ident'>place_on_kid_area</span>, <span class='ident'>x_range</span>, <span class='ident'>x_pad</span>);
+        <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>abs_from_position</span>(<span class='self'>self</span>, <span class='ident'>y_position</span>, <span class='ident'>dim</span>[<span class='number'>1</span>], <span class='ident'>place_on_kid_area</span>, <span class='ident'>y_range</span>, <span class='ident'>y_pad</span>);
+        <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> [<span class='ident'>x</span>, <span class='ident'>y</span>];
 
         <span class='comment'>// Add the widget&#39;s parents&#39; total combined scroll offset to the given xy.</span>
         <span class='ident'>maybe_idx</span>
-            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>vec2_add</span>(<span class='ident'>xy</span>, <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>scroll_offset</span>(<span class='ident'>idx</span>)))
+            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>vec2_add</span>(<span class='ident'>xy</span>, <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>scroll_offset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>, <span class='ident'>idx</span>)))
             .<span class='ident'>unwrap_or</span>(<span class='ident'>xy</span>)
+    }
+
+
+    <span class='doccomment'>/// A function within which all widgets are instantiated by the user, normally situated within</span>
+    <span class='doccomment'>/// the &quot;update&quot; stage of an event loop.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_widgets</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>user_widgets_fn</span>: <span class='ident'>F</span>)
+        <span class='kw'>where</span> <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
+              <span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw'>Self</span>),
+    {
+        <span class='self'>self</span>.<span class='ident'>maybe_prev_widget_idx</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+        <span class='self'>self</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+
+        <span class='comment'>// If the mouse / keyboard capturing was just released by a widget, reset to None ready</span>
+        <span class='comment'>// for capturing once again.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>JustReleased</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> {
+            <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+        }
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>JustReleased</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> {
+            <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+        }
+
+        <span class='self'>self</span>.<span class='ident'>maybe_widget_under_mouse</span> <span class='op'>=</span>
+            <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>pick_widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>, <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>);
+        <span class='self'>self</span>.<span class='ident'>maybe_top_scrollable_widget_under_mouse</span> <span class='op'>=</span>
+            <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>pick_scrollable_widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>, <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>);
+
+
+        <span class='comment'>// Move the previous `updated_widgets` to `prev_updated_widgets` and clear</span>
+        <span class='comment'>// `updated_widgets` so that we&#39;re ready to store the newly updated widgets.</span>
+        {
+            <span class='kw'>let</span> <span class='ident'>Ui</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>updated_widgets</span>, <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>prev_updated_widgets</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+            ::<span class='ident'>std</span>::<span class='ident'>mem</span>::<span class='ident'>swap</span>(<span class='ident'>updated_widgets</span>, <span class='ident'>prev_updated_widgets</span>);
+            <span class='ident'>updated_widgets</span>.<span class='ident'>clear</span>();
+        }
+
+        <span class='comment'>// Instantiate the root `Window` `Widget`.</span>
+        <span class='comment'>//</span>
+        <span class='comment'>// This widget acts as the parent-most widget and root node for the Ui&#39;s `widget_graph`,</span>
+        <span class='comment'>// upon which all other widgets are placed.</span>
+        {
+            <span class='kw'>use</span> ::{<span class='ident'>color</span>, <span class='ident'>Colorable</span>, <span class='ident'>Frameable</span>, <span class='ident'>FramedRectangle</span>, <span class='ident'>Positionable</span>, <span class='ident'>Widget</span>};
+            <span class='kw'>type</span> <span class='ident'>Window</span> <span class='op'>=</span> <span class='ident'>FramedRectangle</span>;
+            <span class='ident'>Window</span>::<span class='ident'>new</span>([<span class='self'>self</span>.<span class='ident'>win_w</span>, <span class='self'>self</span>.<span class='ident'>win_h</span>])
+                .<span class='ident'>no_parent</span>()
+                .<span class='ident'>x_y</span>(<span class='number'>0.0</span>, <span class='number'>0.0</span>)
+                .<span class='ident'>frame</span>(<span class='number'>0.0</span>)
+                .<span class='ident'>frame_color</span>(<span class='ident'>color</span>::<span class='ident'>black</span>().<span class='ident'>alpha</span>(<span class='number'>0.0</span>))
+                .<span class='ident'>color</span>(<span class='self'>self</span>.<span class='ident'>maybe_background_color</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>color</span>::<span class='ident'>black</span>().<span class='ident'>alpha</span>(<span class='number'>0.0</span>)))
+                .<span class='ident'>set</span>(<span class='self'>self</span>.<span class='ident'>window</span>, <span class='self'>self</span>);
+        }
+
+        <span class='self'>self</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>into</span>());
+
+        <span class='comment'>// Call the given user function for instantiating Widgets.</span>
+        <span class='ident'>user_widgets_fn</span>(<span class='self'>self</span>);
+
+        <span class='comment'>// We&#39;ll need to re-draw if we have gained or lost widgets.</span>
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>updated_widgets</span> <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>prev_updated_widgets</span> {
+            <span class='self'>self</span>.<span class='ident'>needs_redraw</span>();
+        }
+
+        <span class='comment'>// Update the graph&#39;s internal depth_order while considering the captured input.</span>
+        <span class='kw'>let</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> {
+            <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
+            _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+        };
+        <span class='kw'>let</span> <span class='ident'>maybe_captured_keyboard</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> {
+            <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
+            _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+        };
+
+        <span class='comment'>// Update the **DepthOrder** so that it reflects the **Graph**&#39;s current state.</span>
+        {
+            <span class='kw'>let</span> <span class='ident'>Ui</span> {
+                <span class='kw-2'>ref</span> <span class='ident'>widget_graph</span>,
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>depth_order</span>,
+                <span class='ident'>window</span>,
+                <span class='kw-2'>ref</span> <span class='ident'>updated_widgets</span>,
+                ..
+            } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+
+            <span class='ident'>depth_order</span>.<span class='ident'>update</span>(<span class='ident'>widget_graph</span>,
+                               <span class='ident'>window</span>,
+                               <span class='ident'>updated_widgets</span>,
+                               <span class='ident'>maybe_captured_mouse</span>,
+                               <span class='ident'>maybe_captured_keyboard</span>);
+        }
+
+        <span class='comment'>// Clear text and key buffers.</span>
+        <span class='self'>self</span>.<span class='ident'>keys_just_pressed</span>.<span class='ident'>clear</span>();
+        <span class='self'>self</span>.<span class='ident'>keys_just_released</span>.<span class='ident'>clear</span>();
+        <span class='self'>self</span>.<span class='ident'>text_just_entered</span>.<span class='ident'>clear</span>();
+
+        <span class='comment'>// Reset the mouse state.</span>
+        <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span> <span class='op'>=</span> <span class='ident'>mouse</span>::<span class='ident'>Scroll</span> { <span class='ident'>x</span>: <span class='number'>0.0</span>, <span class='ident'>y</span>: <span class='number'>0.0</span> };
+        <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>left</span>.<span class='ident'>reset_pressed_and_released</span>();
+        <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>middle</span>.<span class='ident'>reset_pressed_and_released</span>();
+        <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>right</span>.<span class='ident'>reset_pressed_and_released</span>();
+        <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>unknown</span>.<span class='ident'>reset_pressed_and_released</span>();
     }
 
 
@@ -1229,161 +1356,51 @@
     }
 
 
-    <span class='doccomment'>/// Helper method for logic shared between draw() and element().</span>
-    <span class='doccomment'>/// Returns (maybe_captured_mouse, maybe_captured_keyboard).</span>
-    <span class='kw'>fn</span> <span class='ident'>captures_for_draw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>) {
-        <span class='kw'>let</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_mouse</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
-            _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-        };
-        <span class='kw'>let</span> <span class='ident'>maybe_captured_keyboard</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>maybe_captured_keyboard</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>id</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>id</span>),
-            _                             <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-        };
-        (<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>)
-    }
-
-
-    <span class='doccomment'>/// Compiles the `Ui`&#39;s entire widget `Graph` in its current state into a single</span>
-    <span class='doccomment'>/// `elmesque::Element` and returns a reference to it.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This allows a user to take all information necessary for drawing within a single type,</span>
-    <span class='doccomment'>/// which can be sent across threads or used to draw later on rather than drawing the whole</span>
-    <span class='doccomment'>/// graph immediately (as does the `Ui::draw` method).</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Producing an `Element` also allows for simpler interoperation with `elmesque` (a purely</span>
-    <span class='doccomment'>/// functional graphics layout crate which conrod uses internally).</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>element</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Element</span> {
-        <span class='comment'>// The graph needs to consider captured widgets when calculating the render depth order.</span>
-        <span class='kw'>let</span> (<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>captures_for_draw</span>();
-
-        <span class='kw'>let</span> <span class='ident'>Ui</span> {
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>widget_graph</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>maybe_background_color</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>maybe_element</span>,
-            ..
-        } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-
-        <span class='kw'>let</span> <span class='ident'>maybe_bg_color</span> <span class='op'>=</span> <span class='ident'>maybe_background_color</span>.<span class='ident'>take</span>();
-
-        <span class='comment'>// A function to simplify combining an element with the given background color.</span>
-        <span class='kw'>let</span> <span class='ident'>with_background_color</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>element</span>: <span class='ident'>Element</span><span class='op'>|</span> <span class='op'>-&gt;</span> <span class='ident'>Element</span> {
-            <span class='kw'>match</span> <span class='ident'>maybe_bg_color</span> {
-                <span class='prelude-val'>Some</span>(<span class='ident'>color</span>) <span class='op'>=&gt;</span> <span class='ident'>element</span>.<span class='ident'>clear</span>(<span class='ident'>color</span>),
-                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>element</span>,
-            }
-        };
-
-        <span class='comment'>// Check to see whether or not there is a new element to be stored.</span>
-        <span class='kw'>match</span> <span class='ident'>widget_graph</span>.<span class='ident'>element_if_changed</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>) {
-
-            <span class='comment'>// If there&#39;s been some change in element, we&#39;ll store the new one and return a</span>
-            <span class='comment'>// reference to it.</span>
-            <span class='prelude-val'>Some</span>(<span class='ident'>new_element</span>) <span class='op'>=&gt;</span> {
-                <span class='op'>*</span><span class='ident'>maybe_element</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>with_background_color</span>(<span class='ident'>new_element</span>));
-                <span class='ident'>maybe_element</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>()
-            },
-
-            <span class='comment'>// Otherwise, we&#39;ll check to see if we have a pre-stored one that we can return a</span>
-            <span class='comment'>// reference to.</span>
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>maybe_element</span> {
-
-                <span class='comment'>// If we do have some stored element, we&#39;ll clone that.</span>
-                <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>element</span>) <span class='op'>=&gt;</span> <span class='ident'>element</span>,
-
-                <span class='comment'>// Otherwise this must be the first time an `element` is requested so we&#39;ll</span>
-                <span class='comment'>// request a new `Element` from our widget graph.</span>
-                <span class='ident'>maybe_element</span> <span class='kw-2'>@</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {
-
-                    <span class='kw'>let</span> <span class='ident'>element</span> <span class='op'>=</span> <span class='ident'>widget_graph</span>
-                        .<span class='ident'>element</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>);
-
-                    <span class='comment'>// Store the new `Element` (along with it&#39;s background color).</span>
-                    <span class='op'>*</span><span class='ident'>maybe_element</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>with_background_color</span>(<span class='ident'>element</span>));
-
-                    <span class='comment'>// We can unwrap here as we *know* that we have `Some` element.</span>
-                    <span class='ident'>maybe_element</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>()
-                },
-            },
-        }
-    }
-
-
-    <span class='doccomment'>/// Same as `Ui::element`, but only returns an `&amp;Element` if the stored `&amp;Element` has changed</span>
-    <span class='doccomment'>/// since the last time `Ui::element` or `Ui::element_if_changed` was called.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>element_if_changed</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Element</span><span class='op'>&gt;</span> {
-        <span class='comment'>// The graph needs to consider captured widgets when calculating the render depth order.</span>
-        <span class='kw'>let</span> (<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>captures_for_draw</span>();
-
-        <span class='kw'>let</span> <span class='ident'>Ui</span> {
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>widget_graph</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>maybe_background_color</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>maybe_element</span>,
-            ..
-        } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-
-        <span class='comment'>// Request a new `Element` from the graph if there has been some change.</span>
-        <span class='ident'>widget_graph</span>
-            .<span class='ident'>element_if_changed</span>(<span class='ident'>maybe_captured_mouse</span>, <span class='ident'>maybe_captured_keyboard</span>)
-            .<span class='ident'>map</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>element</span><span class='op'>|</span> {
-                <span class='kw'>let</span> <span class='ident'>element</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_background_color</span>.<span class='ident'>take</span>() {
-                    <span class='comment'>// If we&#39;ve been given a background color for the gui, construct a Cleared Element.</span>
-                    <span class='prelude-val'>Some</span>(<span class='ident'>color</span>) <span class='op'>=&gt;</span> <span class='ident'>element</span>.<span class='ident'>clear</span>(<span class='ident'>color</span>),
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>element</span>
-                };
-                <span class='comment'>// If we have a new `Element` we&#39;ll update our stored `Element`.</span>
-                <span class='op'>*</span><span class='ident'>maybe_element</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>element</span>.<span class='ident'>clone</span>());
-                <span class='ident'>maybe_element</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>()
-            })
-    }
-
-
     <span class='doccomment'>/// Draw the `Ui` in it&#39;s current state.</span>
+    <span class='doccomment'>///</span>
     <span class='doccomment'>/// NOTE: If you don&#39;t need to redraw your conrod GUI every frame, it is recommended to use the</span>
     <span class='doccomment'>/// `Ui::draw_if_changed` method instead.</span>
-    <span class='doccomment'>/// See the `Graph::draw` method for more details on how Widgets are drawn.</span>
-    <span class='doccomment'>/// See the `graph::update_visit_order` function for details on how the render order is</span>
-    <span class='doccomment'>/// determined.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>G</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>context</span>: <span class='ident'>Context</span>, <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>)
-        <span class='kw'>where</span>
-            <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
-            <span class='ident'>G</span>: <span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>Texture</span> <span class='op'>=</span> <span class='ident'>C</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
+        <span class='kw'>where</span> <span class='ident'>G</span>: <span class='ident'>Graphics</span>,
+              <span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&lt;</span><span class='ident'>Texture</span><span class='op'>=</span><span class='ident'>G</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
     {
-        <span class='kw'>use</span> <span class='ident'>elmesque</span>::<span class='ident'>Renderer</span>;
-        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>DerefMut</span>;
-
-        <span class='comment'>// Ensure that `maybe_element` is `Some(element)` with the latest `Element`.</span>
-        <span class='self'>self</span>.<span class='ident'>element</span>();
+        <span class='kw'>use</span> <span class='ident'>backend</span>::<span class='ident'>graphics</span>::{<span class='ident'>draw_from_graph</span>, <span class='ident'>Transformed</span>};
+        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::{<span class='ident'>Deref</span>, <span class='ident'>DerefMut</span>};
 
         <span class='kw'>let</span> <span class='ident'>Ui</span> {
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>glyph_cache</span>,
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>redraw_count</span>,
-            <span class='kw-2'>ref</span> <span class='ident'>maybe_element</span>,
+            <span class='kw-2'>ref</span> <span class='ident'>widget_graph</span>,
+            <span class='kw-2'>ref</span> <span class='ident'>depth_order</span>,
+            <span class='kw-2'>ref</span> <span class='ident'>theme</span>,
             ..
         } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
 
-        <span class='comment'>// We know that `maybe_element` is `Some` due to calling `self.element` above, thus we can</span>
-        <span class='comment'>// safely unwrap our reference to it to use for drawing.</span>
-        <span class='kw'>let</span> <span class='ident'>element</span> <span class='op'>=</span> <span class='ident'>maybe_element</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>();
+        <span class='kw'>let</span> <span class='ident'>view_size</span> <span class='op'>=</span> <span class='ident'>context</span>.<span class='ident'>get_view_size</span>();
+        <span class='kw'>let</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='ident'>context</span>.<span class='ident'>trans</span>(<span class='ident'>view_size</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span>, <span class='ident'>view_size</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>).<span class='ident'>scale</span>(<span class='number'>1.0</span>, <span class='op'>-</span><span class='number'>1.0</span>);
 
-        <span class='comment'>// Construct the elmesque Renderer for rendering the Elements.</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ref_mut_character_cache</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='number'>0</span>.<span class='ident'>borrow_mut</span>();
+        <span class='comment'>// Retrieve the `CharacterCache` from the `Ui`&#39;s `GlyphCache`.</span>
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ref_mut_character_cache</span> <span class='op'>=</span> <span class='ident'>glyph_cache</span>.<span class='ident'>deref</span>().<span class='ident'>borrow_mut</span>();
         <span class='kw'>let</span> <span class='ident'>character_cache</span> <span class='op'>=</span> <span class='ident'>ref_mut_character_cache</span>.<span class='ident'>deref_mut</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>renderer</span> <span class='op'>=</span> <span class='ident'>Renderer</span>::<span class='ident'>new</span>(<span class='ident'>context</span>, <span class='ident'>graphics</span>).<span class='ident'>character_cache</span>(<span class='ident'>character_cache</span>);
 
-        <span class='comment'>// Renderer the `Element` to the screen.</span>
-        <span class='ident'>element</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>renderer</span>);
+        <span class='comment'>// Use the depth_order indices as the order for drawing.</span>
+        <span class='kw'>let</span> <span class='ident'>indices</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>depth_order</span>.<span class='ident'>indices</span>;
 
-        <span class='comment'>// Because we&#39;re about to draw everything, take one from the redraw count.</span>
+        <span class='comment'>// Draw the `Ui` from the `widget_graph`.</span>
+        <span class='ident'>draw_from_graph</span>(<span class='ident'>context</span>, <span class='ident'>graphics</span>, <span class='ident'>character_cache</span>, <span class='ident'>widget_graph</span>, <span class='ident'>indices</span>, <span class='ident'>theme</span>);
+
+        <span class='comment'>// Because we just drew everything, take one from the redraw count.</span>
         <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>redraw_count</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
-            <span class='op'>*</span><span class='ident'>redraw_count</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>redraw_count</span> <span class='op'>-</span> <span class='number'>1</span>;
+            <span class='op'>*</span><span class='ident'>redraw_count</span> <span class='op'>-=</span> <span class='number'>1</span>;
         }
     }
 
 
     <span class='doccomment'>/// Same as the `Ui::draw` method, but *only* draws if the `redraw_count` is greater than 0.</span>
-    <span class='doccomment'>/// The `redraw_count` is set to `SAFE_REDRAW_COUNT` whenever a `Widget` produces a new</span>
-    <span class='doccomment'>/// `Element` because its state has changed.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `redraw_count` is set to `SAFE_REDRAW_COUNT` whenever a `Widget` indicates that it</span>
+    <span class='doccomment'>/// needs to be re-drawn.</span>
+    <span class='doccomment'>///</span>
     <span class='doccomment'>/// It can also be triggered manually by the user using the `Ui::needs_redraw` method.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// This method is generally preferred over `Ui::draw` as it requires far less CPU usage, only</span>
@@ -1394,13 +1411,9 @@
     <span class='doccomment'>/// happening. Let us know if you need finer control over this and we&#39;ll expose a way for you</span>
     <span class='doccomment'>/// to set the redraw count manually.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw_if_changed</span><span class='op'>&lt;</span><span class='ident'>G</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>context</span>: <span class='ident'>Context</span>, <span class='ident'>graphics</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>)
-        <span class='kw'>where</span>
-            <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
-            <span class='ident'>G</span>: <span class='ident'>Graphics</span><span class='op'>&lt;</span><span class='ident'>Texture</span> <span class='op'>=</span> <span class='ident'>C</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
+        <span class='kw'>where</span> <span class='ident'>G</span>: <span class='ident'>Graphics</span>,
+              <span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&lt;</span><span class='ident'>Texture</span><span class='op'>=</span><span class='ident'>G</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>,
     {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>have_any_elements_changed</span>() {
-            <span class='self'>self</span>.<span class='ident'>redraw_count</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>num_redraw_frames</span>;
-        }
         <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>redraw_count</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
             <span class='self'>self</span>.<span class='ident'>draw</span>(<span class='ident'>context</span>, <span class='ident'>graphics</span>);
         }
@@ -1410,7 +1423,7 @@
     <span class='doccomment'>/// The **Rect** that bounds the kids of the widget with the given index.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>kids_bounding_box</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Index</span> <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>into</span>();
-        <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>kids_bounding_box</span>(<span class='ident'>idx</span>)
+        <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>bounding_box</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>, <span class='boolval'>false</span>, <span class='prelude-val'>None</span>, <span class='boolval'>true</span>, <span class='ident'>idx</span>, <span class='prelude-val'>None</span>)
     }
 
 
@@ -1420,7 +1433,7 @@
     <span class='doccomment'>/// Otherwise, return None if the widget is not visible.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>visible_area</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Index</span> <span class='op'>=</span> <span class='ident'>idx</span>.<span class='ident'>into</span>();
-        <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>visible_area</span>(<span class='ident'>idx</span>)
+        <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>visible_area_of_widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>, <span class='ident'>idx</span>)
     }
 
 }
@@ -1433,25 +1446,21 @@
 
 
 <span class='doccomment'>/// Check the given position for an attached parent widget.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>parent_from_position</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>position</span>: <span class='ident'>Position</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span> {
-    <span class='kw'>match</span> <span class='ident'>position</span> {
-        <span class='ident'>Position</span>::<span class='ident'>Relative</span>(_, _, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>maybe_idx</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>parent_of</span>(<span class='ident'>idx</span>),
-            <span class='prelude-val'>None</span>     <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span> {
-                <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>parent_of</span>(<span class='ident'>idx</span>),
-                <span class='prelude-val'>None</span>     <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span>,
-            },
-        },
-        <span class='ident'>Position</span>::<span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>maybe_idx</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>parent_of</span>(<span class='ident'>idx</span>),
-            <span class='prelude-val'>None</span>     <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span> {
-                <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>parent_of</span>(<span class='ident'>idx</span>),
-                <span class='prelude-val'>None</span>     <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span>,
-            },
-        },
-        <span class='ident'>Position</span>::<span class='ident'>Place</span>(_, <span class='ident'>maybe_parent_idx</span>) <span class='op'>=&gt;</span> <span class='ident'>maybe_parent_idx</span>.<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span>),
-        _ <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span>,
-    }
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>parent_from_position</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>x_pos</span>: <span class='ident'>Position</span>, <span class='ident'>y_pos</span>: <span class='ident'>Position</span>)
+    <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>
+{
+    <span class='kw'>use</span> <span class='ident'>Position</span>::{<span class='ident'>Place</span>, <span class='ident'>Relative</span>, <span class='ident'>Direction</span>, <span class='ident'>Align</span>};
+    <span class='kw'>let</span> <span class='ident'>maybe_parent</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>) {
+        (<span class='ident'>Place</span>(_, <span class='ident'>maybe_parent_idx</span>), _) <span class='op'>|</span> (_, <span class='ident'>Place</span>(_, <span class='ident'>maybe_parent_idx</span>)) <span class='op'>=&gt;</span>
+            <span class='ident'>maybe_parent_idx</span>,
+        (<span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_idx</span>), _) <span class='op'>|</span> (_, <span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_idx</span>)) <span class='op'>|</span>
+        (<span class='ident'>Align</span>(_, <span class='ident'>maybe_idx</span>), _)        <span class='op'>|</span> (_, <span class='ident'>Align</span>(_, <span class='ident'>maybe_idx</span>))        <span class='op'>|</span>
+        (<span class='ident'>Relative</span>(_, <span class='ident'>maybe_idx</span>), _)     <span class='op'>|</span> (_, <span class='ident'>Relative</span>(_, <span class='ident'>maybe_idx</span>))     <span class='op'>=&gt;</span>
+            <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span>)
+                .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>depth_parent</span>(<span class='ident'>idx</span>)),
+        _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+    };
+    <span class='ident'>maybe_parent</span>.<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span>)
 }
 
 
@@ -1609,7 +1618,12 @@
 {
     <span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget_idx</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>.<span class='ident'>idx</span>);
     <span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>maybe_parent_idx</span>;
-    <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>pre_update_cache</span>(<span class='ident'>widget</span>);
+    <span class='kw'>let</span> <span class='ident'>widget_idx</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>idx</span>;
+    <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>pre_update_cache</span>(<span class='ident'>ui</span>.<span class='ident'>window</span>, <span class='ident'>widget</span>, <span class='ident'>ui</span>.<span class='ident'>updated_widgets</span>.<span class='ident'>len</span>());
+
+    <span class='comment'>// Add the widget&#39;s `NodeIndex` to the set of updated widgets.</span>
+    <span class='kw'>let</span> <span class='ident'>node_idx</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>.<span class='ident'>node_index</span>(<span class='ident'>widget_idx</span>).<span class='ident'>expect</span>(<span class='string'>&quot;No NodeIndex&quot;</span>);
+    <span class='ident'>ui</span>.<span class='ident'>updated_widgets</span>.<span class='ident'>insert</span>(<span class='ident'>node_idx</span>);
 }
 
 <span class='doccomment'>/// Cache some `PostUpdateCache` widget data into the widget graph.</span>
@@ -1631,7 +1645,6 @@
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear_with</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>color</span>: <span class='ident'>Color</span>) {
     <span class='ident'>ui</span>.<span class='ident'>maybe_background_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
 }
-
 
 </pre>
 </section>

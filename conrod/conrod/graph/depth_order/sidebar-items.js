@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Visitable","Parts of the graph that are significant when visiting and sorting by depth."]],"struct":[["DepthOrder","Contains Node indices in order of depth, starting with the deepest."]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Label","Displays some given text centred within a rectangle."],["Style","The styling for a Label's renderable Element."]]});

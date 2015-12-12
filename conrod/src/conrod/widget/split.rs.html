@@ -9,6 +9,7 @@
 
     <title>split.rs.html -- source</title>
 
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../../main.css">
 
     
@@ -340,12 +341,25 @@
 <span id="298">298</span>
 <span id="299">299</span>
 <span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
 </pre><pre class='rust '>
 
-<span class='kw'>use</span> <span class='ident'>Scalar</span>;
+<span class='kw'>use</span> {<span class='ident'>CharacterCache</span>, <span class='ident'>Scalar</span>};
 <span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
-<span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>character</span>::<span class='ident'>CharacterCache</span>;
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Dimensions</span>, <span class='ident'>Direction</span>, <span class='ident'>Point</span>, <span class='ident'>Positionable</span>, <span class='ident'>Sizeable</span>};
+<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Dimensions</span>, <span class='ident'>Point</span>, <span class='ident'>Positionable</span>, <span class='ident'>Sizeable</span>};
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>canvas</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
 <span class='kw'>use</span> <span class='ident'>ui</span>::<span class='ident'>Ui</span>;
@@ -360,6 +374,16 @@
     <span class='comment'>// TODO: Maybe use the `CommonBuilder` (to be used for the wrapped `Canvas`) here instead?</span>
     <span class='ident'>is_h_scrollable</span>: <span class='ident'>bool</span>,
     <span class='ident'>is_v_scrollable</span>: <span class='ident'>bool</span>,
+}
+
+
+<span class='doccomment'>/// The direction in which the the **Split** should layout it&#39;s child **Split**s.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>enum</span> <span class='ident'>Direction</span> {
+    <span class='ident'>Left</span>,
+    <span class='ident'>Right</span>,
+    <span class='ident'>Down</span>,
+    <span class='ident'>Up</span>,
 }
 
 
@@ -384,7 +408,7 @@
     }
 
     <span class='doccomment'>/// Set the child Canvas Splits of the current Canvas flowing in a given direction.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>flow</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>dir</span>: <span class='ident'>Direction</span>, <span class='ident'>splits</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>Split</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>]) <span class='op'>-&gt;</span> <span class='ident'>Split</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>flow</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>dir</span>: <span class='ident'>Direction</span>, <span class='ident'>splits</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>Split</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>]) <span class='op'>-&gt;</span> <span class='ident'>Split</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>maybe_splits</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>dir</span>, <span class='ident'>splits</span>));
         <span class='self'>self</span>
     }
@@ -526,11 +550,26 @@
         <span class='comment'>// Offset xy so that it is in the center of the given margin.</span>
         <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>vec2_add</span>(<span class='ident'>xy</span>, <span class='ident'>mgn_offset</span>);
 
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>direction</span>, <span class='ident'>splits</span>)) <span class='op'>=</span> <span class='op'>*</span><span class='ident'>maybe_splits</span> {
-            <span class='kw'>use</span> <span class='ident'>Direction</span>::{<span class='ident'>Up</span>, <span class='ident'>Down</span>, <span class='ident'>Left</span>, <span class='ident'>Right</span>};
+        <span class='comment'>// Instantiate the Canvas widget for this split.</span>
+        {
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>canvas</span> <span class='op'>=</span> <span class='ident'>canvas</span>::<span class='ident'>Canvas</span>::<span class='ident'>new</span>();
+            <span class='ident'>canvas</span>.<span class='ident'>style</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>clone</span>();
+            <span class='kw'>match</span> <span class='ident'>maybe_parent</span> {
+                <span class='prelude-val'>Some</span>(<span class='ident'>parent_id</span>) <span class='op'>=&gt;</span> <span class='ident'>canvas</span>.<span class='ident'>parent</span>(<span class='ident'>parent_id</span>),
+                <span class='prelude-val'>None</span>            <span class='op'>=&gt;</span> <span class='ident'>canvas</span>.<span class='ident'>no_parent</span>(),
+            }.<span class='ident'>xy</span>(<span class='ident'>xy</span>)
+                .<span class='ident'>dim</span>(<span class='ident'>dim</span>)
+                .<span class='ident'>vertical_scrolling</span>(<span class='ident'>is_v_scrollable</span>)
+                .<span class='ident'>horizontal_scrolling</span>(<span class='ident'>is_h_scrollable</span>)
+                .<span class='ident'>set</span>(<span class='ident'>id</span>, <span class='ident'>ui</span>);
+        }
 
-            <span class='comment'>// Offset xy so that it is in the center of the padded area.</span>
-            <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>vec2_add</span>(<span class='ident'>xy</span>, <span class='ident'>pad_offset</span>);
+        <span class='comment'>// Offset xy so that it is in the center of the padded area.</span>
+        <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>vec2_add</span>(<span class='ident'>xy</span>, <span class='ident'>pad_offset</span>);
+
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>direction</span>, <span class='ident'>splits</span>)) <span class='op'>=</span> <span class='op'>*</span><span class='ident'>maybe_splits</span> {
+            <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Direction</span>::{<span class='ident'>Up</span>, <span class='ident'>Down</span>, <span class='ident'>Left</span>, <span class='ident'>Right</span>};
+
             <span class='kw'>let</span> (<span class='ident'>stuck_length</span>, <span class='ident'>num_not_stuck</span>) <span class='op'>=</span>
                 <span class='ident'>splits</span>.<span class='ident'>iter</span>().<span class='ident'>fold</span>((<span class='number'>0.0</span>, <span class='ident'>splits</span>.<span class='ident'>len</span>()), <span class='op'>|</span>(<span class='ident'>total</span>, <span class='ident'>remaining</span>), <span class='ident'>split</span><span class='op'>|</span> {
                     <span class='kw'>match</span> <span class='ident'>split</span>.<span class='ident'>maybe_length</span> {
@@ -607,16 +646,6 @@
             }
         }
 
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>canvas</span> <span class='op'>=</span> <span class='ident'>canvas</span>::<span class='ident'>Canvas</span>::<span class='ident'>new</span>();
-        <span class='ident'>canvas</span>.<span class='ident'>style</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>clone</span>();
-        <span class='kw'>match</span> <span class='ident'>maybe_parent</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>parent_id</span>) <span class='op'>=&gt;</span> <span class='ident'>canvas</span>.<span class='ident'>parent</span>(<span class='prelude-val'>Some</span>(<span class='ident'>parent_id</span>)),
-            <span class='prelude-val'>None</span>            <span class='op'>=&gt;</span> <span class='ident'>canvas</span>.<span class='ident'>parent</span>(<span class='prelude-val'>None</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>),
-        }.<span class='ident'>point</span>(<span class='ident'>xy</span>)
-            .<span class='ident'>dim</span>(<span class='ident'>dim</span>)
-            .<span class='ident'>vertical_scrolling</span>(<span class='ident'>is_v_scrollable</span>)
-            .<span class='ident'>horizontal_scrolling</span>(<span class='ident'>is_h_scrollable</span>)
-            .<span class='ident'>set</span>(<span class='ident'>id</span>, <span class='ident'>ui</span>);
     }
 
 }
@@ -624,18 +653,18 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> ::<span class='ident'>color</span>::<span class='ident'>Colorable</span> <span class='kw'>for</span> <span class='ident'>Split</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>color</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>color</span>: <span class='ident'>Color</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>maybe_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
+        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>framed_rectangle</span>.<span class='ident'>maybe_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
         <span class='self'>self</span>
     }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> ::<span class='ident'>frame</span>::<span class='ident'>Frameable</span> <span class='kw'>for</span> <span class='ident'>Split</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>frame</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>width</span>: <span class='ident'>f64</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>maybe_frame</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>width</span>);
+        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>framed_rectangle</span>.<span class='ident'>maybe_frame</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>width</span>);
         <span class='self'>self</span>
     }
     <span class='kw'>fn</span> <span class='ident'>frame_color</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>color</span>: <span class='ident'>Color</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>maybe_frame_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
+        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>framed_rectangle</span>.<span class='ident'>maybe_frame_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
         <span class='self'>self</span>
     }
 }

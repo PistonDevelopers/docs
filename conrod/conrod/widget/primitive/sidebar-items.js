@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["line",""],["point_path",""],["shape","A module encompassing the primitive 2D shape widgets."],["text",""]]});
