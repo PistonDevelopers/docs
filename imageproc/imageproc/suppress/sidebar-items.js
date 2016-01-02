@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["suppress_non_maximum","Returns all items which have the highest score in the (2 * radius + 1) square block centred on them."]]});
