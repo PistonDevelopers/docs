@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["quickcheck","Convenience function for running QuickCheck."]],"struct":[["QuickCheck","The main QuickCheck type for setting configuration and running QuickCheck."],["TestResult","Describes the status of a single instance of a test."]],"trait":[["Testable","`Testable` describes types (e.g., a function) whose values can be tested."]]});
