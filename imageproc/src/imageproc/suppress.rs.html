@@ -192,14 +192,194 @@
 <span id="149">149</span>
 <span id="150">150</span>
 <span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Functions for suppressing non-maximal values.</span>
 
-<span class='kw'>use</span> <span class='ident'>definitions</span>::{<span class='ident'>Position</span>, <span class='ident'>Score</span>};
+<span class='kw'>use</span> <span class='ident'>definitions</span>::{
+    <span class='ident'>Position</span>,
+    <span class='ident'>Score</span>
+};
+
+<span class='kw'>use</span> <span class='ident'>image</span>::{
+    <span class='ident'>GenericImage</span>,
+    <span class='ident'>ImageBuffer</span>,
+    <span class='ident'>Luma</span>,
+    <span class='ident'>Primitive</span>};
+
+<span class='doccomment'>/// Zeroes all pixels which do not have the greatest intensity in the</span>
+<span class='doccomment'>/// (2 * radius + 1) square block centred on them. Ties are resolved lexicographically.</span>
+<span class='comment'>// TODO: Implement a more efficient version.</span>
+<span class='comment'>// TODO: e.g. https://www.vision.ee.ethz.ch/en/publications/papers/proceedings/eth_biwi_00446.pdf</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>suppress_non_maximum_mut</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>I</span>, <span class='ident'>radius</span>: <span class='ident'>u32</span>)
+    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span><span class='op'>&lt;</span><span class='ident'>Pixel</span> <span class='op'>=</span> <span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;&gt;</span>,
+          <span class='ident'>C</span>: <span class='ident'>Primitive</span> <span class='op'>+</span> <span class='ident'>Ord</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>
+{
+    <span class='kw'>let</span> (<span class='ident'>width</span>, <span class='ident'>height</span>) <span class='op'>=</span> <span class='ident'>image</span>.<span class='ident'>dimensions</span>();
+    <span class='kw'>let</span> <span class='ident'>irad</span> <span class='op'>=</span> <span class='ident'>radius</span> <span class='kw'>as</span> <span class='ident'>i32</span>;
+
+    <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>height</span> {
+        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>width</span> {
+            <span class='kw'>let</span> <span class='ident'>intensity</span> <span class='op'>=</span> <span class='ident'>image</span>.<span class='ident'>get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>)[<span class='number'>0</span>];
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>is_max</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+
+            <span class='kw'>for</span> <span class='ident'>dy</span> <span class='kw'>in</span> <span class='op'>-</span><span class='ident'>irad</span>..<span class='ident'>irad</span> {
+                <span class='kw'>let</span> <span class='ident'>py</span> <span class='op'>=</span> (<span class='ident'>y</span> <span class='kw'>as</span> <span class='ident'>i32</span>) <span class='op'>+</span> <span class='ident'>dy</span>;
+                <span class='kw'>if</span> <span class='ident'>py</span> <span class='op'>&lt;</span> <span class='number'>0</span> <span class='op'>||</span> <span class='ident'>py</span> <span class='op'>&gt;=</span> <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>i32</span> {
+                    <span class='kw'>continue</span>;
+                }
+                <span class='kw'>for</span> <span class='ident'>dx</span> <span class='kw'>in</span> <span class='op'>-</span><span class='ident'>irad</span>..<span class='ident'>irad</span> {
+                    <span class='kw'>let</span> <span class='ident'>px</span> <span class='op'>=</span> (<span class='ident'>x</span> <span class='kw'>as</span> <span class='ident'>i32</span>) <span class='op'>+</span> <span class='ident'>dx</span>;
+                    <span class='kw'>if</span> <span class='ident'>px</span> <span class='op'>&lt;</span> <span class='number'>0</span> <span class='op'>||</span> <span class='ident'>px</span> <span class='op'>&gt;=</span> <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>i32</span> {
+                        <span class='kw'>continue</span>;
+                    }
+
+                    <span class='kw'>let</span> <span class='ident'>v</span> <span class='op'>=</span> <span class='ident'>image</span>.<span class='ident'>get_pixel</span>(<span class='ident'>px</span> <span class='kw'>as</span> <span class='ident'>u32</span>, <span class='ident'>py</span> <span class='kw'>as</span> <span class='ident'>u32</span>)[<span class='number'>0</span>];
+                    <span class='kw'>if</span> <span class='ident'>v</span> <span class='op'>&gt;</span> <span class='ident'>intensity</span> <span class='op'>||</span>
+                       (<span class='ident'>v</span> <span class='op'>==</span> <span class='ident'>intensity</span> <span class='op'>&amp;&amp;</span> (<span class='ident'>px</span> <span class='kw'>as</span> <span class='ident'>u32</span>, <span class='ident'>py</span> <span class='kw'>as</span> <span class='ident'>u32</span>) <span class='op'>&lt;</span> (<span class='ident'>x</span>, <span class='ident'>y</span>)){
+                        <span class='ident'>is_max</span> <span class='op'>=</span> <span class='boolval'>false</span>;
+                        <span class='kw'>break</span>;
+                    }
+                }
+            }
+            <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>is_max</span> {
+                <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>Luma</span>([<span class='ident'>C</span>::<span class='ident'>zero</span>()]));
+            }
+        }
+    }
+}
+
+<span class='doccomment'>/// Returned image has zeroes for all inputs pixels which do not have the greatest</span>
+<span class='doccomment'>/// intensity in the (2 * radius + 1) square block centred on them.</span>
+<span class='doccomment'>/// Ties are resolved lexicographically.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>suppress_non_maximum</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>radius</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>ImageBuffer</span><span class='op'>&lt;</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span><span class='op'>&lt;</span><span class='ident'>Pixel</span> <span class='op'>=</span> <span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;&gt;</span>,
+          <span class='ident'>C</span>: <span class='ident'>Primitive</span> <span class='op'>+</span> <span class='ident'>Ord</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>
+{
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span>: <span class='ident'>ImageBuffer</span><span class='op'>&lt;</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;&gt;</span> <span class='op'>=</span> <span class='ident'>ImageBuffer</span>::<span class='ident'>new</span>(<span class='ident'>image</span>.<span class='ident'>width</span>(), <span class='ident'>image</span>.<span class='ident'>height</span>());
+    <span class='ident'>out</span>.<span class='ident'>copy_from</span>(<span class='ident'>image</span>, <span class='number'>0</span>, <span class='number'>0</span>);
+    <span class='ident'>suppress_non_maximum_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out</span>, <span class='ident'>radius</span>);
+    <span class='ident'>out</span>
+}
 
 <span class='doccomment'>/// Returns all items which have the highest score in the</span>
-<span class='doccomment'>/// (2 * radius + 1) square block centred on them.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>suppress_non_maximum</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>ts</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>T</span>], <span class='ident'>radius</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>
+<span class='doccomment'>/// (2 * radius + 1) square block centred on them. Ties are resolved lexicographically.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>local_maxima</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>ts</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>T</span>], <span class='ident'>radius</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>
     <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Position</span> <span class='op'>+</span> <span class='ident'>Score</span> <span class='op'>+</span> <span class='ident'>Copy</span>
  {
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ordered_ts</span> <span class='op'>=</span> <span class='ident'>ts</span>.<span class='ident'>to_vec</span>();
@@ -261,11 +441,20 @@
 <span class='kw'>mod</span> <span class='ident'>test</span> {
 
     <span class='kw'>use</span> <span class='ident'>super</span>::{
+        <span class='ident'>local_maxima</span>,
         <span class='ident'>suppress_non_maximum</span>
     };
     <span class='kw'>use</span> <span class='ident'>definitions</span>::{
         <span class='ident'>Position</span>,
         <span class='ident'>Score</span>
+    };
+    <span class='kw'>use</span> <span class='ident'>image</span>::{
+        <span class='ident'>GrayImage</span>,
+        <span class='ident'>ImageBuffer</span>,
+        <span class='ident'>Luma</span>
+    };
+    <span class='kw'>use</span> <span class='ident'>noise</span>::{
+        <span class='ident'>gaussian_noise_mut</span>
     };
     <span class='kw'>use</span> <span class='ident'>test</span>::<span class='ident'>Bencher</span>;
 
@@ -283,23 +472,16 @@
     }
 
     <span class='kw'>impl</span> <span class='ident'>Position</span> <span class='kw'>for</span> <span class='ident'>T</span> {
-        <span class='kw'>fn</span> <span class='ident'>x</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> {
-            <span class='self'>self</span>.<span class='ident'>x</span>
-        }
-
-        <span class='kw'>fn</span> <span class='ident'>y</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> {
-            <span class='self'>self</span>.<span class='ident'>y</span>
-        }
+        <span class='kw'>fn</span> <span class='ident'>x</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> { <span class='self'>self</span>.<span class='ident'>x</span> }
+        <span class='kw'>fn</span> <span class='ident'>y</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> { <span class='self'>self</span>.<span class='ident'>y</span> }
     }
 
     <span class='kw'>impl</span> <span class='ident'>Score</span> <span class='kw'>for</span> <span class='ident'>T</span> {
-        <span class='kw'>fn</span> <span class='ident'>score</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> {
-            <span class='self'>self</span>.<span class='ident'>score</span>
-        }
+        <span class='kw'>fn</span> <span class='ident'>score</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>f32</span> { <span class='self'>self</span>.<span class='ident'>score</span> }
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_suppress_non_maximum</span>() {
+    <span class='kw'>fn</span> <span class='ident'>test_local_maxima</span>() {
         <span class='kw'>let</span> <span class='ident'>ts</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[
             <span class='comment'>// Suppress vertically</span>
             <span class='ident'>T</span>::<span class='ident'>new</span>(<span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>10f32</span>),
@@ -319,29 +501,79 @@
             <span class='ident'>T</span>::<span class='ident'>new</span>(<span class='number'>12</span>, <span class='number'>20</span>, <span class='number'>10f32</span>)
         ];
 
-        <span class='kw'>let</span> <span class='ident'>max</span> <span class='op'>=</span> <span class='ident'>suppress_non_maximum</span>(<span class='kw-2'>&amp;</span><span class='ident'>ts</span>, <span class='number'>3</span>);
+        <span class='kw'>let</span> <span class='ident'>max</span> <span class='op'>=</span> <span class='ident'>local_maxima</span>(<span class='kw-2'>&amp;</span><span class='ident'>ts</span>, <span class='number'>3</span>);
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>max</span>, <span class='ident'>expected</span>);
     }
 
     <span class='attribute'>#[<span class='ident'>bench</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>bench_suppress_non_maximum</span>(<span class='ident'>b</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bencher</span>) {
+    <span class='kw'>fn</span> <span class='ident'>bench_local_maxima_dense</span>(<span class='ident'>b</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bencher</span>) {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ts</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
-        <span class='comment'>// Large contiguous block</span>
-        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>50</span> {
-            <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>50</span> {
+        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>20</span> {
+            <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>20</span> {
                 <span class='kw'>let</span> <span class='ident'>score</span> <span class='op'>=</span> (<span class='ident'>x</span> <span class='op'>*</span> <span class='ident'>y</span>) <span class='op'>%</span> <span class='number'>15</span>;
                 <span class='ident'>ts</span>.<span class='ident'>push</span>(<span class='ident'>T</span>::<span class='ident'>new</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>score</span> <span class='kw'>as</span> <span class='ident'>f32</span>));
             }
         }
+        <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> <span class='ident'>local_maxima</span>(<span class='kw-2'>&amp;</span><span class='ident'>ts</span>, <span class='number'>15</span>));
+    }
 
-        <span class='comment'>// Isolated values</span>
-        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>50</span> {
-            <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>50</span> {
-                <span class='ident'>ts</span>.<span class='ident'>push</span>(<span class='ident'>T</span>::<span class='ident'>new</span>(<span class='number'>10</span> <span class='op'>*</span> <span class='ident'>x</span> <span class='op'>+</span> <span class='number'>110</span>, <span class='number'>10</span> <span class='op'>*</span> <span class='ident'>y</span> <span class='op'>+</span> <span class='number'>110</span>, <span class='number'>50f32</span>));
+    <span class='attribute'>#[<span class='ident'>bench</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>bench_local_maxima_sparse</span>(<span class='ident'>b</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bencher</span>) {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ts</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
+        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>20</span> {
+            <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='number'>20</span> {
+                <span class='ident'>ts</span>.<span class='ident'>push</span>(<span class='ident'>T</span>::<span class='ident'>new</span>(<span class='number'>50</span> <span class='op'>*</span> <span class='ident'>x</span>, <span class='number'>50</span> <span class='op'>*</span> <span class='ident'>y</span>, <span class='number'>50f32</span>));
             }
         }
+        <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> <span class='ident'>local_maxima</span>(<span class='kw-2'>&amp;</span><span class='ident'>ts</span>, <span class='number'>15</span>));
+    }
 
-        <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> <span class='ident'>suppress_non_maximum</span>(<span class='kw-2'>&amp;</span><span class='ident'>ts</span>, <span class='number'>15</span>));
+    <span class='attribute'>#[<span class='ident'>test</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>test_suppress_non_maximum</span>() {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>image</span> <span class='op'>=</span> <span class='ident'>GrayImage</span>::<span class='ident'>new</span>(<span class='number'>25</span>, <span class='number'>25</span>);
+        <span class='comment'>// Suppress vertically</span>
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>0</span>, <span class='number'>0</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>0</span>, <span class='number'>2</span>, <span class='ident'>Luma</span>([<span class='number'>8u8</span>]));
+        <span class='comment'>// Suppress horizontally</span>
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>5</span>, <span class='number'>5</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>7</span>, <span class='number'>5</span>, <span class='ident'>Luma</span>([<span class='number'>15u8</span>]));
+        <span class='comment'>// Tiebreak</span>
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>12</span>, <span class='number'>20</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>13</span>, <span class='number'>20</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+        <span class='ident'>image</span>.<span class='ident'>put_pixel</span>(<span class='number'>13</span>, <span class='number'>21</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>expected</span> <span class='op'>=</span> <span class='ident'>GrayImage</span>::<span class='ident'>new</span>(<span class='number'>25</span>, <span class='number'>25</span>);
+        <span class='ident'>expected</span>.<span class='ident'>put_pixel</span>(<span class='number'>0</span>, <span class='number'>0</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+        <span class='ident'>expected</span>.<span class='ident'>put_pixel</span>(<span class='number'>7</span>, <span class='number'>5</span>, <span class='ident'>Luma</span>([<span class='number'>15u8</span>]));
+        <span class='ident'>expected</span>.<span class='ident'>put_pixel</span>(<span class='number'>12</span>, <span class='number'>20</span>, <span class='ident'>Luma</span>([<span class='number'>10u8</span>]));
+
+        <span class='kw'>let</span> <span class='ident'>actual</span> <span class='op'>=</span> <span class='ident'>suppress_non_maximum</span>(<span class='kw-2'>&amp;</span><span class='ident'>image</span>, <span class='number'>3</span>);
+        <span class='macro'>assert_pixels_eq</span><span class='macro'>!</span>(<span class='ident'>actual</span>, <span class='ident'>expected</span>);
+    }
+
+    <span class='attribute'>#[<span class='ident'>bench</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>bench_suppress_non_maximum_increasing_gradient</span>(<span class='ident'>b</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bencher</span>) {
+        <span class='comment'>// Increasing gradient in both directions. This can be a worst-case for</span>
+        <span class='comment'>// early-abort strategies.</span>
+        <span class='kw'>let</span> <span class='ident'>img</span> <span class='op'>=</span> <span class='ident'>ImageBuffer</span>::<span class='ident'>from_fn</span>(<span class='number'>40</span>, <span class='number'>20</span>, <span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span><span class='op'>|</span> <span class='ident'>Luma</span>([(<span class='ident'>x</span> <span class='op'>+</span> <span class='ident'>y</span>) <span class='kw'>as</span> <span class='ident'>u8</span>]));
+        <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> <span class='ident'>suppress_non_maximum</span>(<span class='kw-2'>&amp;</span><span class='ident'>img</span>, <span class='number'>7</span>));
+    }
+
+    <span class='attribute'>#[<span class='ident'>bench</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>bench_suppress_non_maximum_decreasing_gradient</span>(<span class='ident'>b</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bencher</span>) {
+        <span class='kw'>let</span> <span class='ident'>width</span> <span class='op'>=</span> <span class='number'>40u32</span>;
+        <span class='kw'>let</span> <span class='ident'>height</span> <span class='op'>=</span> <span class='number'>20u32</span>;
+        <span class='kw'>let</span> <span class='ident'>img</span> <span class='op'>=</span> <span class='ident'>ImageBuffer</span>::<span class='ident'>from_fn</span>(<span class='ident'>width</span>, <span class='ident'>height</span>, <span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span><span class='op'>|</span> {
+            <span class='ident'>Luma</span>([((<span class='ident'>width</span> <span class='op'>-</span> <span class='ident'>x</span>) <span class='op'>+</span> (<span class='ident'>height</span> <span class='op'>-</span> <span class='ident'>y</span>)) <span class='kw'>as</span> <span class='ident'>u8</span>])
+        });
+        <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> <span class='ident'>suppress_non_maximum</span>(<span class='kw-2'>&amp;</span><span class='ident'>img</span>, <span class='number'>7</span>));
+    }
+
+    <span class='attribute'>#[<span class='ident'>bench</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>bench_suppress_non_maximum_noise</span>(<span class='ident'>b</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Bencher</span>) {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>img</span>: <span class='ident'>GrayImage</span> <span class='op'>=</span> <span class='ident'>ImageBuffer</span>::<span class='ident'>new</span>(<span class='number'>40</span>, <span class='number'>20</span>);
+        <span class='ident'>gaussian_noise_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>img</span>, <span class='number'>128f64</span>, <span class='number'>30f64</span>, <span class='number'>1</span>);
+        <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> <span class='ident'>suppress_non_maximum</span>(<span class='kw-2'>&amp;</span><span class='ident'>img</span>, <span class='number'>7</span>));
     }
 }
 </pre>
