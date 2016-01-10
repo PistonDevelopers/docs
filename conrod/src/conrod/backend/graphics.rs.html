@@ -441,6 +441,26 @@
 <span id="398">398</span>
 <span id="399">399</span>
 <span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Conrod&#39;s generic graphics backend.</span>
 <span class='doccomment'>//!</span>
@@ -453,7 +473,7 @@
 
 
 <span class='kw'>use</span> ::{<span class='ident'>Color</span>, <span class='ident'>Point</span>, <span class='ident'>Rect</span>, <span class='ident'>Scalar</span>};
-<span class='kw'>use</span> <span class='ident'>graph</span>::{<span class='ident'>Container</span>, <span class='ident'>Graph</span>, <span class='ident'>Visitable</span>};
+<span class='kw'>use</span> <span class='ident'>graph</span>::{<span class='self'>self</span>, <span class='ident'>Container</span>, <span class='ident'>Graph</span>, <span class='ident'>NodeIndex</span>, <span class='ident'>Visitable</span>};
 <span class='kw'>use</span> <span class='ident'>graphics</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>iter</span>::<span class='ident'>once</span>;
 <span class='kw'>use</span> <span class='ident'>theme</span>::<span class='ident'>Theme</span>;
@@ -482,6 +502,24 @@
     <span class='comment'>// (perhaps owned by the Ui) for this.</span>
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scroll_stack</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Context</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
 
+    <span class='comment'>// Retrieve the core window widget so that we can use it to filter visible widgets.</span>
+    <span class='kw'>let</span> <span class='ident'>window_idx</span> <span class='op'>=</span> <span class='ident'>NodeIndex</span>::<span class='ident'>new</span>(<span class='number'>0</span>);
+    <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>window_idx</span>){
+        <span class='prelude-val'>Some</span>(<span class='ident'>window</span>) <span class='op'>=&gt;</span> <span class='ident'>window</span>,
+        <span class='comment'>// If we don&#39;t yet have the window widget, we won&#39;t have *any* widgets, so bail out.</span>
+        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
+    };
+
+    <span class='comment'>// A function for checking whether or not a widget would be visible.</span>
+    <span class='comment'>//</span>
+    <span class='comment'>// TODO: Refactor this into a `visible_area_of_widget` graph algo. Also, consider calculating</span>
+    <span class='comment'>// the visible area during the `set_widgets` stage, as it might be more optimal than doing so</span>
+    <span class='comment'>// here.</span>
+    <span class='kw'>let</span> <span class='ident'>is_visible</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>, <span class='ident'>container</span>: <span class='kw-2'>&amp;</span><span class='ident'>Container</span><span class='op'>|</span> <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='ident'>container</span>.<span class='ident'>rect</span>.<span class='ident'>overlap</span>(<span class='ident'>window</span>.<span class='ident'>rect</span>).<span class='ident'>is_some</span>()
+        <span class='op'>&amp;&amp;</span> <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>cropped_area_of_widget</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>).<span class='ident'>is_some</span>()
+    };
+
     <span class='comment'>// The depth order describes the order in which widgets should be drawn.</span>
     <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='ident'>visitable</span> <span class='kw'>in</span> <span class='ident'>depth_order</span> {
         <span class='kw'>match</span> <span class='ident'>visitable</span> {
@@ -492,8 +530,10 @@
                     <span class='comment'>// Check the stack for the current Context.</span>
                     <span class='kw'>let</span> <span class='ident'>context</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>scroll_stack</span>.<span class='ident'>last</span>().<span class='ident'>unwrap_or</span>(<span class='kw-2'>&amp;</span><span class='ident'>context</span>);
 
-                    <span class='comment'>// Draw the widget from its container.</span>
-                    <span class='ident'>draw_from_container</span>(<span class='kw-2'>&amp;</span><span class='ident'>context</span>, <span class='ident'>graphics</span>, <span class='ident'>character_cache</span>, <span class='ident'>container</span>, <span class='ident'>theme</span>);
+                    <span class='comment'>// Draw the widget, but only if it would actually be visible on the window.</span>
+                    <span class='kw'>if</span> <span class='ident'>is_visible</span>(<span class='ident'>idx</span>, <span class='ident'>container</span>) {
+                        <span class='ident'>draw_from_container</span>(<span class='kw-2'>&amp;</span><span class='ident'>context</span>, <span class='ident'>graphics</span>, <span class='ident'>character_cache</span>, <span class='ident'>container</span>, <span class='ident'>theme</span>);
+                    }
 
                     <span class='comment'>// If the current widget is some scrollable widget, we need to add a context</span>
                     <span class='comment'>// for it to the top of the stack.</span>
