@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Canvas","A widget designed to be a parent for other widgets."],["Style","Describes the style of a Canvas."]]});
+initSidebarItems({"struct":[["Canvas","**Canvas** is designed to be a \"container\"-like \"parent\" widget that simplifies placement of \"children\" widgets."],["Style","Describes the style of a Canvas."]]});

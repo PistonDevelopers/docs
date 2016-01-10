@@ -1305,6 +1305,20 @@
 <span id="1262">1262</span>
 <span id="1263">1263</span>
 <span id="1264">1264</span>
+<span id="1265">1265</span>
+<span id="1266">1266</span>
+<span id="1267">1267</span>
+<span id="1268">1268</span>
+<span id="1269">1269</span>
+<span id="1270">1270</span>
+<span id="1271">1271</span>
+<span id="1272">1272</span>
+<span id="1273">1273</span>
+<span id="1274">1274</span>
+<span id="1275">1275</span>
+<span id="1276">1276</span>
+<span id="1277">1277</span>
+<span id="1278">1278</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {<span class='ident'>CharacterCache</span>, <span class='ident'>Dimension</span>, <span class='ident'>GlyphCache</span>};
 <span class='kw'>use</span> <span class='ident'>graph</span>::<span class='ident'>NodeIndex</span>;
@@ -1334,7 +1348,6 @@
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>matrix</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>number_dialer</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>slider</span>;
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>split</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>tabs</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>text_box</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>title_bar</span>;
@@ -1442,12 +1455,30 @@
 <span class='kw'>impl</span> <span class='ident'>MaybeParent</span> {
     <span class='doccomment'>/// Convert the **MaybeParent** into an **Option&lt;Index&gt;**.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If not given explicitly, check the positioning to retrieve the **Index** from there.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>x_pos</span>: <span class='ident'>Position</span>, <span class='ident'>y_pos</span>: <span class='ident'>Position</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// If `Unspecified`, check the positioning to retrieve the **Index** from there.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If `None`, the `Ui`&#39;s `window` widget will be used.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// **Note:** This method does not check whether or not using the `window` widget as the parent</span>
+    <span class='doccomment'>/// would cause a cycle. If it is important that the inferred parent should not cause a cycle,</span>
+    <span class='doccomment'>/// use `get` instead.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_unchecked</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>x_pos</span>: <span class='ident'>Position</span>, <span class='ident'>y_pos</span>: <span class='ident'>Position</span>) <span class='op'>-&gt;</span> <span class='ident'>Index</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>MaybeParent</span>::<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>),
-            <span class='ident'>MaybeParent</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-            <span class='ident'>MaybeParent</span>::<span class='ident'>Unspecified</span> <span class='op'>=&gt;</span> <span class='ident'>ui</span>::<span class='ident'>parent_from_position</span>(<span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>),
+            <span class='ident'>MaybeParent</span>::<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>idx</span>,
+            <span class='ident'>MaybeParent</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>ui</span>.<span class='ident'>window</span>.<span class='ident'>into</span>(),
+            <span class='ident'>MaybeParent</span>::<span class='ident'>Unspecified</span> <span class='op'>=&gt;</span> <span class='ident'>ui</span>::<span class='ident'>infer_parent_unchecked</span>(<span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>),
+        }
+    }
+
+    <span class='doccomment'>/// The same as `get_unchecked`, but checks whether or not the widget that we&#39;re inferring the</span>
+    <span class='doccomment'>/// parent for is the `Ui`&#39;s window (which cannot have a parent, without creating a cycle).</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>Index</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>x_pos</span>: <span class='ident'>Position</span>, <span class='ident'>y_pos</span>: <span class='ident'>Position</span>)
+        <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>
+    {
+        <span class='kw'>if</span> <span class='ident'>idx</span> <span class='op'>==</span> <span class='ident'>ui</span>.<span class='ident'>window</span>.<span class='ident'>into</span>() {
+            <span class='prelude-val'>None</span>
+        } <span class='kw'>else</span> {
+            <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>get_unchecked</span>(<span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>))
         }
     }
 }
@@ -1473,16 +1504,10 @@
     <span class='kw'>pub</span> <span class='ident'>maybe_parent_idx</span>: <span class='ident'>MaybeParent</span>,
     <span class='doccomment'>/// Whether or not the Widget is a &quot;floating&quot; Widget.</span>
     <span class='kw'>pub</span> <span class='ident'>is_floating</span>: <span class='ident'>bool</span>,
-    <span class='doccomment'>/// Builder data for scrollable widgets.</span>
-    <span class='kw'>pub</span> <span class='ident'>scrolling</span>: <span class='ident'>scroll</span>::<span class='ident'>Scrolling</span>,
-    <span class='doccomment'>/// Whether or not the widget should be considered when picking the topmost widget at a</span>
-    <span class='doccomment'>/// position.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This also stops the widget from being included within bounding box calculations.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is useful to indicate whether or not the widget should block the mouse from</span>
-    <span class='doccomment'>/// interacting with widgets underneath it.</span>
-    <span class='kw'>pub</span> <span class='ident'>picking_passthrough</span>: <span class='ident'>bool</span>,
+    <span class='doccomment'>/// Arguments to the scrolling of the widget&#39;s *x* axis.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_x_scroll</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>Scroll</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// Arguments to the scrolling of the widget&#39;s *y* axis.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_y_scroll</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>Scroll</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Whether or not the **Widget** should be placed on the kid_area.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// If `true`, the **Widget** will be placed on the `kid_area` of the parent **Widget** if the</span>
@@ -1550,6 +1575,8 @@
     <span class='kw'>pub</span> <span class='ident'>drag_state</span>: <span class='ident'>drag</span>::<span class='ident'>State</span>,
     <span class='doccomment'>/// Floating state for the widget if it is floating.</span>
     <span class='kw'>pub</span> <span class='ident'>maybe_floating</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Floating</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The area of the widget upon which kid widgets are placed.</span>
+    <span class='kw'>pub</span> <span class='ident'>kid_area</span>: <span class='ident'>KidArea</span>,
 }
 
 <span class='doccomment'>/// A **Widget**&#39;s state in a form that is retrievable from the **Ui**&#39;s widget cache.</span>
@@ -1568,8 +1595,10 @@
     <span class='kw'>pub</span> <span class='ident'>kid_area</span>: <span class='ident'>KidArea</span>,
     <span class='doccomment'>/// Whether or not the Widget is a &quot;floating&quot; Widget.</span>
     <span class='kw'>pub</span> <span class='ident'>maybe_floating</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Floating</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// The state for scrollable widgets.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_scrolling</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The state for a widget&#39;s scrollable *x* axis.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_x_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>StateX</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The state for a widget&#39;s scrollable *y* axis.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_y_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>StateY</span><span class='op'>&gt;</span>,
 }
 
 <span class='doccomment'>/// A unique identifier for a **Widget** type.</span>
@@ -1591,8 +1620,11 @@
     <span class='doccomment'>/// The **Widget**&#39;s parent&#39;s unique index (if it has a parent).</span>
     <span class='kw'>pub</span> <span class='ident'>maybe_parent_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// If this **Widget** is relatively positioned to another **Widget**, this will be the index</span>
-    <span class='doccomment'>/// of the **Widget** to which this **Widget** is relatively positioned</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_positioned_relatively_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// of the **Widget** to which this **Widget** is relatively positioned along the *x* axis.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_x_positioned_relatively_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// If this **Widget** is relatively positioned to another **Widget**, this will be the index</span>
+    <span class='doccomment'>/// of the **Widget** to which this **Widget** is relatively positioned along the *y* axis.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_y_positioned_relatively_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// The **Rect** describing the **Widget**&#39;s position and dimensions.</span>
     <span class='kw'>pub</span> <span class='ident'>rect</span>: <span class='ident'>Rect</span>,
     <span class='doccomment'>/// The z-axis depth - affects the render order of sibling widgets.</span>
@@ -1603,12 +1635,10 @@
     <span class='kw'>pub</span> <span class='ident'>drag_state</span>: <span class='ident'>drag</span>::<span class='ident'>State</span>,
     <span class='doccomment'>/// Floating data for the **Widget** if there is some.</span>
     <span class='kw'>pub</span> <span class='ident'>maybe_floating</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Floating</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Scrolling data for the **Widget** if there is some.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_scrolling</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Indicates whether the widget blocks the mouse from interacting with widgets underneath it.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This also stops the widget from being included within bounding box calculations.</span>
-    <span class='kw'>pub</span> <span class='ident'>picking_passthrough</span>: <span class='ident'>bool</span>,
+    <span class='doccomment'>/// Scrolling data for the **Widget**&#39;s *x* axis if there is some.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_x_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>StateX</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// Scrolling data for the **Widget**&#39;s *y* axis if there is some.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_y_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>scroll</span>::<span class='ident'>StateY</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Whether or not the **Widget** has been instantiated as a graphical element for some other</span>
     <span class='doccomment'>/// widget.</span>
     <span class='kw'>pub</span> <span class='ident'>maybe_graphics_for</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Index</span><span class='op'>&gt;</span>,
@@ -1663,20 +1693,20 @@
 <span class='doccomment'>/// 1. Check for a default value within the **Ui**&#39;s **Theme**.</span>
 <span class='doccomment'>/// 2. Otherwise attempts to copy the dimension of the previously set widget if there is one.</span>
 <span class='doccomment'>/// 3. Otherwise attempts to copy the dimension of our parent widget.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Returns **None** if no default can be found.</span>
-<span class='kw'>fn</span> <span class='ident'>default_dimension</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>C</span>, <span class='ident'>F</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>W</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Dimension</span><span class='op'>&gt;</span>
+<span class='doccomment'>/// 4. If no parent widget can be inferred, the window dimensions are used.</span>
+<span class='kw'>fn</span> <span class='ident'>default_dimension</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>C</span>, <span class='ident'>F</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>W</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span>
     <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Widget</span>,
           <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
           <span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>theme</span>::<span class='ident'>UniqueDefault</span><span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>Style</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Dimension</span><span class='op'>&gt;</span>,
 {
     <span class='ident'>ui</span>.<span class='ident'>theme</span>.<span class='ident'>widget_style</span>::<span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>Style</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>.<span class='ident'>unique_kind</span>())
         .<span class='ident'>and_then</span>(<span class='ident'>f</span>)
-        .<span class='ident'>or_else</span>(<span class='op'>||</span> <span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>Dimension</span>::<span class='ident'>Of</span>(<span class='ident'>idx</span>)))
-        .<span class='ident'>or_else</span>(<span class='op'>||</span> {
+        .<span class='ident'>or_else</span>(<span class='op'>||</span> <span class='ident'>ui</span>.<span class='ident'>maybe_prev_widget</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>Dimension</span>::<span class='ident'>Of</span>(<span class='ident'>idx</span>, <span class='prelude-val'>None</span>)))
+        .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> {
             <span class='kw'>let</span> <span class='ident'>x_pos</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_x_position</span>(<span class='ident'>ui</span>);
             <span class='kw'>let</span> <span class='ident'>y_pos</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_y_position</span>(<span class='ident'>ui</span>);
-            <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_parent_idx</span>.<span class='ident'>get</span>(<span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>Dimension</span>::<span class='ident'>Of</span>(<span class='ident'>idx</span>))
+            <span class='kw'>let</span> <span class='ident'>parent_idx</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_parent_idx</span>.<span class='ident'>get_unchecked</span>(<span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>);
+            <span class='ident'>Dimension</span>::<span class='ident'>Of</span>(<span class='ident'>parent_idx</span>, <span class='prelude-val'>None</span>)
         })
 }
 
@@ -1686,14 +1716,13 @@
 <span class='doccomment'>/// 1. Check for a default value within the **Ui**&#39;s **Theme**.</span>
 <span class='doccomment'>/// 2. Otherwise attempts to copy the dimension of the previously set widget if there is one.</span>
 <span class='doccomment'>/// 3. Otherwise attempts to copy the dimension of our parent widget.</span>
+<span class='doccomment'>/// 4. If no parent widget can be inferred, the window dimensions are used.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// This is called by the default implementations of **Widget::default_x_dimension**.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// If you wish to override **Widget::default_x_dimension**, feel free to call this function</span>
 <span class='doccomment'>/// internally if you partly require the bahaviour of the default implementations.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Returns **None** if no default can be found.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>W</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Dimension</span><span class='op'>&gt;</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>W</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span>
     <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Widget</span>,
           <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
 {
@@ -1706,14 +1735,13 @@
 <span class='doccomment'>/// 1. Check for a default value within the **Ui**&#39;s **Theme**.</span>
 <span class='doccomment'>/// 2. Otherwise attempts to copy the dimension of the previously set widget if there is one.</span>
 <span class='doccomment'>/// 3. Otherwise attempts to copy the dimension of our parent widget.</span>
+<span class='doccomment'>/// 4. If no parent widget can be inferred, the window dimensions are used.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// This is called by the default implementations of **Widget::default_y_dimension**.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// If you wish to override **Widget::default_y_dimension**, feel free to call this function</span>
 <span class='doccomment'>/// internally if you partly require the bahaviour of the default implementations.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Returns **None** if no default can be found.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>W</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Dimension</span><span class='op'>&gt;</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>W</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span>
     <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Widget</span>,
           <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
 {
@@ -1736,13 +1764,19 @@
 <span class='doccomment'>/// - update</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// Methods that can be optionally overridden:</span>
-<span class='doccomment'>/// - picking_passthrough</span>
 <span class='doccomment'>/// - default_x_position</span>
 <span class='doccomment'>/// - default_y_position</span>
 <span class='doccomment'>/// - default_width</span>
 <span class='doccomment'>/// - default_height</span>
+<span class='doccomment'>/// - drag_area</span>
+<span class='doccomment'>/// - kid_area</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// Methods that should not be overridden:</span>
+<span class='doccomment'>/// - floating</span>
+<span class='doccomment'>/// - scroll_kids</span>
+<span class='doccomment'>/// - scroll_kids_vertically</span>
+<span class='doccomment'>/// - scroll_kids_horizontally</span>
+<span class='doccomment'>/// - place_widget_on_kid_area</span>
 <span class='doccomment'>/// - parent</span>
 <span class='doccomment'>/// - no_parent</span>
 <span class='doccomment'>/// - set</span>
@@ -1845,7 +1879,7 @@
     <span class='doccomment'>/// By default, this simply calls [**default_dimension**](./fn.default_dimension) with a</span>
     <span class='doccomment'>/// fallback absolute dimension of 0.0.</span>
     <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>default_x_dimension</span>(<span class='self'>self</span>, <span class='ident'>ui</span>).<span class='ident'>unwrap_or</span>(<span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='number'>0.0</span>))
+        <span class='ident'>default_x_dimension</span>(<span class='self'>self</span>, <span class='ident'>ui</span>)
     }
 
     <span class='doccomment'>/// The default height of the widget.</span>
@@ -1853,7 +1887,7 @@
     <span class='doccomment'>/// By default, this simply calls [**default_dimension**](./fn.default_dimension) with a</span>
     <span class='doccomment'>/// fallback absolute dimension of 0.0.</span>
     <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span><span class='op'>&lt;</span><span class='ident'>C</span>: <span class='ident'>CharacterCache</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>default_y_dimension</span>(<span class='self'>self</span>, <span class='ident'>ui</span>).<span class='ident'>unwrap_or</span>(<span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='number'>0.0</span>))
+        <span class='ident'>default_y_dimension</span>(<span class='self'>self</span>, <span class='ident'>ui</span>)
     }
 
     <span class='doccomment'>/// If the widget is draggable, implement this method and return the position an dimensions</span>
@@ -1874,6 +1908,7 @@
         }
     }
 
+
     <span class='comment'>// None of the following methods should require overriding. Perhaps they should be split off</span>
     <span class='comment'>// into a separate trait which is impl&#39;ed for W: Widget to make this clearer?</span>
     <span class='comment'>// Most of them would benefit by some sort of field inheritance as they are mainly just used to</span>
@@ -1891,18 +1926,6 @@
     <span class='doccomment'>/// Specify that this widget has no parent widgets.</span>
     <span class='kw'>fn</span> <span class='ident'>no_parent</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
         <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>maybe_parent_idx</span> <span class='op'>=</span> <span class='ident'>MaybeParent</span>::<span class='prelude-val'>None</span>;
-        <span class='self'>self</span>
-    }
-
-    <span class='doccomment'>/// Whether or not the widget should be considered when picking the topmost widget at a</span>
-    <span class='doccomment'>/// position.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This also stops the widget from being included within bounding box calculations.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is useful to indicate whether or not the widget should block the mouse from</span>
-    <span class='doccomment'>/// interacting with widgets underneath it.</span>
-    <span class='kw'>fn</span> <span class='ident'>picking_passthrough</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>passthrough</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>picking_passthrough</span> <span class='op'>=</span> <span class='ident'>passthrough</span>;
         <span class='self'>self</span>
     }
 
@@ -1954,27 +1977,28 @@
     }
 
     <span class='doccomment'>/// Set whether or not the widget&#39;s `KidArea` is scrollable (the default is false).</span>
+    <span class='doccomment'>///</span>
     <span class='doccomment'>/// If a widget is scrollable and it has children widgets that fall outside of its `KidArea`,</span>
     <span class='doccomment'>/// the `KidArea` will become scrollable.</span>
-    <span class='kw'>fn</span> <span class='ident'>scrolling</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>scrollable</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>scrolling</span>.<span class='ident'>vertical</span> <span class='op'>=</span> <span class='ident'>scrollable</span>;
-        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>scrolling</span>.<span class='ident'>horizontal</span> <span class='op'>=</span> <span class='ident'>scrollable</span>;
+    <span class='kw'>fn</span> <span class='ident'>scroll_kids</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='self'>self</span>.<span class='ident'>scroll_kids_vertically</span>().<span class='ident'>scroll_kids_horizontally</span>()
+    }
+
+    <span class='doccomment'>/// Set whether or not the widget&#39;s `KidArea` is scrollable (the default is false).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If a widget is scrollable and it has children widgets that fall outside of its `KidArea`,</span>
+    <span class='doccomment'>/// the `KidArea` will become scrollable.</span>
+    <span class='kw'>fn</span> <span class='ident'>scroll_kids_vertically</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>maybe_y_scroll</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>scroll</span>::<span class='ident'>Scroll</span>::<span class='ident'>new</span>());
         <span class='self'>self</span>
     }
 
     <span class='doccomment'>/// Set whether or not the widget&#39;s `KidArea` is scrollable (the default is false).</span>
+    <span class='doccomment'>///</span>
     <span class='doccomment'>/// If a widget is scrollable and it has children widgets that fall outside of its `KidArea`,</span>
     <span class='doccomment'>/// the `KidArea` will become scrollable.</span>
-    <span class='kw'>fn</span> <span class='ident'>vertical_scrolling</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>scrollable</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>scrolling</span>.<span class='ident'>vertical</span> <span class='op'>=</span> <span class='ident'>scrollable</span>;
-        <span class='self'>self</span>
-    }
-
-    <span class='doccomment'>/// Set whether or not the widget&#39;s `KidArea` is scrollable (the default is false).</span>
-    <span class='doccomment'>/// If a widget is scrollable and it has children widgets that fall outside of its `KidArea`,</span>
-    <span class='doccomment'>/// the `KidArea` will become scrollable.</span>
-    <span class='kw'>fn</span> <span class='ident'>horizontal_scrolling</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>scrollable</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>scrolling</span>.<span class='ident'>horizontal</span> <span class='op'>=</span> <span class='ident'>scrollable</span>;
+    <span class='kw'>fn</span> <span class='ident'>scroll_kids_horizontally</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='self'>self</span>.<span class='ident'>common_mut</span>().<span class='ident'>maybe_x_scroll</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>scroll</span>::<span class='ident'>Scroll</span>::<span class='ident'>new</span>());
         <span class='self'>self</span>
     }
 
@@ -2037,7 +2061,11 @@
     };
 
     <span class='comment'>// Seperate the Widget&#39;s previous state into it&#39;s unique state, style and scrolling.</span>
-    <span class='kw'>let</span> (<span class='ident'>maybe_prev_unique_state</span>, <span class='ident'>maybe_prev_common</span>, <span class='ident'>maybe_prev_style</span>, <span class='ident'>maybe_prev_scrolling</span>) <span class='op'>=</span>
+    <span class='kw'>let</span> (<span class='ident'>maybe_prev_unique_state</span>,
+         <span class='ident'>maybe_prev_common</span>,
+         <span class='ident'>maybe_prev_style</span>,
+         <span class='ident'>maybe_prev_x_scroll_state</span>,
+         <span class='ident'>maybe_prev_y_scroll_state</span>) <span class='op'>=</span>
         <span class='ident'>maybe_widget_state</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>prev</span><span class='op'>|</span> {
 
             <span class='comment'>// Destructure the cached state.</span>
@@ -2048,7 +2076,9 @@
                 <span class='ident'>depth</span>,
                 <span class='ident'>drag_state</span>,
                 <span class='ident'>maybe_floating</span>,
-                <span class='ident'>maybe_scrolling</span>,
+                <span class='ident'>maybe_x_scroll_state</span>,
+                <span class='ident'>maybe_y_scroll_state</span>,
+                <span class='ident'>kid_area</span>,
                 ..
             } <span class='op'>=</span> <span class='ident'>prev</span>;
 
@@ -2058,10 +2088,15 @@
                 <span class='ident'>depth</span>: <span class='ident'>depth</span>,
                 <span class='ident'>drag_state</span>: <span class='ident'>drag_state</span>,
                 <span class='ident'>maybe_floating</span>: <span class='ident'>maybe_floating</span>,
+                <span class='ident'>kid_area</span>: <span class='ident'>kid_area</span>,
             };
 
-            (<span class='prelude-val'>Some</span>(<span class='ident'>state</span>), <span class='prelude-val'>Some</span>(<span class='ident'>prev_common</span>), <span class='prelude-val'>Some</span>(<span class='ident'>style</span>), <span class='ident'>maybe_scrolling</span>)
-        }).<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> (<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>));
+            (<span class='prelude-val'>Some</span>(<span class='ident'>state</span>),
+             <span class='prelude-val'>Some</span>(<span class='ident'>prev_common</span>),
+             <span class='prelude-val'>Some</span>(<span class='ident'>style</span>),
+             <span class='ident'>maybe_x_scroll_state</span>,
+             <span class='ident'>maybe_y_scroll_state</span>)
+        }).<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> (<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>));
 
     <span class='comment'>// We need to hold onto the current &quot;previously set widget&quot;, as this may change during our</span>
     <span class='comment'>// `Widget`&#39;s update method (i.e. if it sets any of its own widgets, they will become the last</span>
@@ -2070,10 +2105,14 @@
 
     <span class='kw'>let</span> <span class='ident'>new_style</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>style</span>();
     <span class='kw'>let</span> <span class='ident'>depth</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_depth</span>();
-    <span class='kw'>let</span> <span class='ident'>dim</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_dim</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>).<span class='ident'>unwrap_or</span>([<span class='number'>0.0</span>, <span class='number'>0.0</span>]);
+    <span class='kw'>let</span> <span class='ident'>dim</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_wh</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>).<span class='ident'>unwrap_or</span>([<span class='number'>0.0</span>, <span class='number'>0.0</span>]);
     <span class='kw'>let</span> <span class='ident'>x_pos</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_x_position</span>(<span class='ident'>ui</span>);
     <span class='kw'>let</span> <span class='ident'>y_pos</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>get_y_position</span>(<span class='ident'>ui</span>);
     <span class='kw'>let</span> <span class='ident'>place_on_kid_area</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>place_on_kid_area</span>;
+
+    <span class='comment'>// Determine the id of the canvas that the widget is attached to. If not given explicitly,</span>
+    <span class='comment'>// check the positioning to retrieve the Id from there.</span>
+    <span class='kw'>let</span> <span class='ident'>maybe_parent_idx</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_parent_idx</span>.<span class='ident'>get</span>(<span class='ident'>idx</span>, <span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>);
 
     <span class='kw'>let</span> (<span class='ident'>xy</span>, <span class='ident'>drag_state</span>) <span class='op'>=</span> {
         <span class='comment'>// A function for generating the xy coords from the given alignment and Position.</span>
@@ -2127,10 +2166,6 @@
         _ <span class='op'>=&gt;</span> (),
     }
 
-    <span class='comment'>// Determine the id of the canvas that the widget is attached to. If not given explicitly,</span>
-    <span class='comment'>// check the positioning to retrieve the Id from there.</span>
-    <span class='kw'>let</span> <span class='ident'>maybe_parent_idx</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_parent_idx</span>.<span class='ident'>get</span>(<span class='ident'>ui</span>, <span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>);
-
     <span class='comment'>// Check whether or not the widget is a &quot;floating&quot; (hovering / pop-up style) widget.</span>
     <span class='kw'>let</span> <span class='ident'>maybe_floating</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>is_floating</span> {
 
@@ -2171,34 +2206,18 @@
         <span class='ident'>widget</span>.<span class='ident'>kid_area</span>(<span class='ident'>args</span>)
     };
 
-    <span class='comment'>// Determine whether or not we have some state for scrolling.</span>
-    <span class='kw'>let</span> <span class='ident'>maybe_new_scrolling</span> <span class='op'>=</span> {
-        <span class='kw'>let</span> <span class='ident'>scrolling</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>scrolling</span>;
-        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>scrolling</span>.<span class='ident'>horizontal</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='ident'>scrolling</span>.<span class='ident'>vertical</span> {
-            <span class='prelude-val'>None</span>
-        <span class='comment'>// Otherwise, construct our new Scroll state!</span>
-        } <span class='kw'>else</span> {
-            <span class='kw'>let</span> <span class='ident'>maybe_mouse</span> <span class='op'>=</span> <span class='ident'>ui</span>::<span class='ident'>get_mouse_state</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>);
-            <span class='kw'>let</span> <span class='ident'>visible</span> <span class='op'>=</span> <span class='ident'>kid_area</span>.<span class='ident'>rect</span>;
-            <span class='kw'>let</span> <span class='ident'>kids</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>kids_bounding_box</span>(<span class='ident'>idx</span>)
-                .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>kids</span><span class='op'>|</span> <span class='ident'>kids</span>.<span class='ident'>shift</span>(<span class='ident'>visible</span>.<span class='ident'>xy</span>()))
-                .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>kid_area</span>.<span class='ident'>rect</span>);
-            <span class='kw'>let</span> <span class='ident'>maybe_prev</span> <span class='op'>=</span> <span class='ident'>maybe_prev_scrolling</span>.<span class='ident'>as_ref</span>();
-            <span class='kw'>let</span> <span class='ident'>scroll_state</span> <span class='op'>=</span> <span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>new</span>(<span class='ident'>scrolling</span>, <span class='ident'>visible</span>, <span class='ident'>kids</span>, <span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>, <span class='ident'>maybe_prev</span>);
-            <span class='prelude-val'>Some</span>(<span class='ident'>maybe_mouse</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>mouse</span><span class='op'>|</span> <span class='ident'>scroll_state</span>.<span class='ident'>handle_input</span>(<span class='ident'>mouse</span>))
-                .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>scroll_state</span>))
-        }
-    };
-
-    <span class='comment'>// Check whether or not our new scrolling state should capture or uncapture the mouse.</span>
-    <span class='kw'>if</span> <span class='kw'>let</span> (<span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>prev</span>), <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>new</span>)) <span class='op'>=</span> (<span class='ident'>maybe_prev_scrolling</span>, <span class='ident'>maybe_new_scrolling</span>) {
-        <span class='kw'>if</span> <span class='ident'>scroll</span>::<span class='ident'>capture_mouse</span>(<span class='ident'>prev</span>, <span class='ident'>new</span>) {
-            <span class='ident'>ui</span>::<span class='ident'>mouse_captured_by</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>);
-        }
-        <span class='kw'>if</span> <span class='ident'>scroll</span>::<span class='ident'>uncapture_mouse</span>(<span class='ident'>prev</span>, <span class='ident'>new</span>) {
-            <span class='ident'>ui</span>::<span class='ident'>mouse_uncaptured_by</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>);
-        }
-    }
+    <span class='comment'>// If either axis is scrollable, retrieve the up-to-date `scroll::State` for that axis.</span>
+    <span class='comment'>//</span>
+    <span class='comment'>// We must step the scrolling using the previous `kid_area` state so that the bounding box</span>
+    <span class='comment'>// around our kid widgets is in sync with the position of the `kid_area`.</span>
+    <span class='kw'>let</span> <span class='ident'>prev_kid_area</span> <span class='op'>=</span> <span class='ident'>maybe_prev_common</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>common</span><span class='op'>|</span> <span class='ident'>common</span>.<span class='ident'>kid_area</span>)
+        .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>kid_area</span>);
+    <span class='kw'>let</span> <span class='ident'>maybe_x_scroll_state</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_x_scroll</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>scroll_args</span><span class='op'>|</span> {
+        <span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>update</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>, <span class='ident'>scroll_args</span>, <span class='kw-2'>&amp;</span><span class='ident'>prev_kid_area</span>, <span class='ident'>maybe_prev_x_scroll_state</span>)
+    });
+    <span class='kw'>let</span> <span class='ident'>maybe_y_scroll_state</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_y_scroll</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>scroll_args</span><span class='op'>|</span> {
+        <span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>update</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>, <span class='ident'>scroll_args</span>, <span class='kw-2'>&amp;</span><span class='ident'>prev_kid_area</span>, <span class='ident'>maybe_prev_y_scroll_state</span>)
+    });
 
     <span class='comment'>// Determine whether or not this is the first time set has been called.</span>
     <span class='comment'>// We&#39;ll use this to determine whether or not we need to draw for the first time.</span>
@@ -2208,33 +2227,33 @@
     <span class='comment'>// We do this so that if this widget were to internally `set` some other `Widget`s, this</span>
     <span class='comment'>// `Widget`s positioning and dimension data already exists within the `Graph`.</span>
     {
-        <span class='kw'>use</span> <span class='ident'>Position</span>::{<span class='ident'>Place</span>, <span class='ident'>Relative</span>, <span class='ident'>Direction</span>, <span class='ident'>Align</span>};
+        <span class='kw'>use</span> <span class='ident'>Position</span>::{<span class='ident'>Place</span>, <span class='ident'>Relative</span>, <span class='ident'>Direction</span>, <span class='ident'>Align</span>, <span class='ident'>Absolute</span>};
+
         <span class='comment'>// Some widget to which this widget is relatively positioned (if there is one).</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// FIXME: Here we only store the first relatively positioned widget we come across, whereas</span>
-        <span class='comment'>// we should really be storing and handling both within the graph.</span>
-        <span class='kw'>let</span> <span class='ident'>maybe_positioned_relatively_idx</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='ident'>x_pos</span>, <span class='ident'>y_pos</span>) {
-            (<span class='ident'>Place</span>(_, <span class='ident'>maybe_idx</span>), _)        <span class='op'>|</span> (_, <span class='ident'>Place</span>(_, <span class='ident'>maybe_idx</span>))        <span class='op'>|</span>
-            (<span class='ident'>Relative</span>(_, <span class='ident'>maybe_idx</span>), _)     <span class='op'>|</span> (_, <span class='ident'>Relative</span>(_, <span class='ident'>maybe_idx</span>))     <span class='op'>|</span>
-            (<span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_idx</span>), _) <span class='op'>|</span> (_, <span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_idx</span>)) <span class='op'>|</span>
-            (<span class='ident'>Align</span>(_, <span class='ident'>maybe_idx</span>), _)        <span class='op'>|</span> (_, <span class='ident'>Align</span>(_, <span class='ident'>maybe_idx</span>))        <span class='op'>=&gt;</span>
+        <span class='kw'>let</span> <span class='ident'>maybe_positioned_relatively_idx</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>pos</span>: <span class='ident'>Position</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>pos</span> {
+            <span class='ident'>Place</span>(_, <span class='ident'>maybe_idx</span>) <span class='op'>|</span> <span class='ident'>Relative</span>(_, <span class='ident'>maybe_idx</span>) <span class='op'>|</span>
+            <span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_idx</span>) <span class='op'>|</span> <span class='ident'>Align</span>(_, <span class='ident'>maybe_idx</span>) <span class='op'>=&gt;</span>
                 <span class='ident'>maybe_idx</span>.<span class='ident'>or</span>(<span class='ident'>maybe_prev_widget_idx</span>),
-            _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+            <span class='ident'>Absolute</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
         };
+
+        <span class='kw'>let</span> <span class='ident'>maybe_x_positioned_relatively_idx</span> <span class='op'>=</span> <span class='ident'>maybe_positioned_relatively_idx</span>(<span class='ident'>x_pos</span>);
+        <span class='kw'>let</span> <span class='ident'>maybe_y_positioned_relatively_idx</span> <span class='op'>=</span> <span class='ident'>maybe_positioned_relatively_idx</span>(<span class='ident'>y_pos</span>);
 
         <span class='comment'>// This will cache the given data into the `ui`&#39;s `widget_graph`.</span>
         <span class='ident'>ui</span>::<span class='ident'>pre_update_cache</span>(<span class='ident'>ui</span>, <span class='ident'>PreUpdateCache</span> {
             <span class='ident'>kind</span>: <span class='ident'>kind</span>,
             <span class='ident'>idx</span>: <span class='ident'>idx</span>,
             <span class='ident'>maybe_parent_idx</span>: <span class='ident'>maybe_parent_idx</span>,
-            <span class='ident'>maybe_positioned_relatively_idx</span>: <span class='ident'>maybe_positioned_relatively_idx</span>,
+            <span class='ident'>maybe_x_positioned_relatively_idx</span>: <span class='ident'>maybe_x_positioned_relatively_idx</span>,
+            <span class='ident'>maybe_y_positioned_relatively_idx</span>: <span class='ident'>maybe_y_positioned_relatively_idx</span>,
             <span class='ident'>rect</span>: <span class='ident'>rect</span>,
             <span class='ident'>depth</span>: <span class='ident'>depth</span>,
             <span class='ident'>drag_state</span>: <span class='ident'>drag_state</span>,
             <span class='ident'>kid_area</span>: <span class='ident'>kid_area</span>,
             <span class='ident'>maybe_floating</span>: <span class='ident'>maybe_floating</span>,
-            <span class='ident'>maybe_scrolling</span>: <span class='ident'>maybe_new_scrolling</span>,
-            <span class='ident'>picking_passthrough</span>: <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>picking_passthrough</span>,
+            <span class='ident'>maybe_y_scroll_state</span>: <span class='ident'>maybe_y_scroll_state</span>,
+            <span class='ident'>maybe_x_scroll_state</span>: <span class='ident'>maybe_x_scroll_state</span>,
             <span class='ident'>maybe_graphics_for</span>: <span class='ident'>widget</span>.<span class='ident'>common</span>().<span class='ident'>maybe_graphics_for</span>,
         });
     }
@@ -2246,6 +2265,7 @@
         <span class='ident'>depth</span>: <span class='ident'>depth</span>,
         <span class='ident'>drag_state</span>: <span class='ident'>drag_state</span>,
         <span class='ident'>maybe_floating</span>: <span class='ident'>maybe_floating</span>,
+        <span class='ident'>kid_area</span>: <span class='ident'>kid_area</span>,
     });
 
     <span class='comment'>// Retrieve the widget&#39;s unique state and update it via `Widget::update`.</span>
@@ -2289,7 +2309,8 @@
     <span class='kw'>let</span> <span class='ident'>style_has_changed</span> <span class='op'>=</span> <span class='ident'>maybe_prev_style</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>style</span><span class='op'>|</span> <span class='ident'>style</span> <span class='op'>!=</span> <span class='ident'>new_style</span>).<span class='ident'>unwrap_or</span>(<span class='boolval'>false</span>);
 
     <span class='comment'>// We need to know if the scroll state has changed to see if we need to redraw.</span>
-    <span class='kw'>let</span> <span class='ident'>scroll_has_changed</span> <span class='op'>=</span> <span class='ident'>maybe_new_scrolling</span> <span class='op'>!=</span> <span class='ident'>maybe_prev_scrolling</span>;
+    <span class='kw'>let</span> <span class='ident'>scroll_has_changed</span> <span class='op'>=</span> <span class='ident'>maybe_x_scroll_state</span> <span class='op'>!=</span> <span class='ident'>maybe_prev_x_scroll_state</span>
+        <span class='op'>||</span> <span class='ident'>maybe_y_scroll_state</span> <span class='op'>!=</span> <span class='ident'>maybe_prev_y_scroll_state</span>;
 
     <span class='comment'>// We only need to redraw if some visible part of our widget has changed.</span>
     <span class='kw'>let</span> <span class='ident'>requires_redraw</span> <span class='op'>=</span> <span class='ident'>style_has_changed</span> <span class='op'>||</span> <span class='ident'>state_has_changed</span> <span class='op'>||</span> <span class='ident'>scroll_has_changed</span>;
@@ -2388,6 +2409,13 @@
 
 }
 
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>UiCell</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>ui</span>
+    }
+}
+
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span> <span class='ident'>AsRef</span><span class='op'>&lt;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;&gt;</span> <span class='kw'>for</span> <span class='ident'>UiCell</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>as_ref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> {
         <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>ui</span>
@@ -2447,11 +2475,11 @@
         <span class='ident'>CommonBuilder</span> {
             <span class='ident'>style</span>: <span class='ident'>CommonStyle</span>::<span class='ident'>new</span>(),
             <span class='ident'>maybe_parent_idx</span>: <span class='ident'>MaybeParent</span>::<span class='ident'>Unspecified</span>,
-            <span class='ident'>picking_passthrough</span>: <span class='boolval'>false</span>,
             <span class='ident'>place_on_kid_area</span>: <span class='boolval'>true</span>,
             <span class='ident'>maybe_graphics_for</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>is_floating</span>: <span class='boolval'>false</span>,
-            <span class='ident'>scrolling</span>: <span class='ident'>scroll</span>::<span class='ident'>Scrolling</span>::<span class='ident'>new</span>(),
+            <span class='ident'>maybe_x_scroll</span>: <span class='prelude-val'>None</span>,
+            <span class='ident'>maybe_y_scroll</span>: <span class='prelude-val'>None</span>,
         }
     }
 }

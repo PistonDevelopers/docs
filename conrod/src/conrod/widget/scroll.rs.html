@@ -564,84 +564,60 @@
 <span id="521">521</span>
 <span id="522">522</span>
 <span id="523">523</span>
-<span id="524">524</span>
-<span id="525">525</span>
-<span id="526">526</span>
-<span id="527">527</span>
-<span id="528">528</span>
-<span id="529">529</span>
-<span id="530">530</span>
-<span id="531">531</span>
-<span id="532">532</span>
-<span id="533">533</span>
-<span id="534">534</span>
-<span id="535">535</span>
-<span id="536">536</span>
-<span id="537">537</span>
-<span id="538">538</span>
-<span id="539">539</span>
-<span id="540">540</span>
-<span id="541">541</span>
-<span id="542">542</span>
-<span id="543">543</span>
-<span id="544">544</span>
-<span id="545">545</span>
-<span id="546">546</span>
-<span id="547">547</span>
-<span id="548">548</span>
-<span id="549">549</span>
-<span id="550">550</span>
-<span id="551">551</span>
-<span id="552">552</span>
-<span id="553">553</span>
-<span id="554">554</span>
 </pre><pre class='rust '>
-<span class='doccomment'>//! </span>
-<span class='doccomment'>//! Types and functionality related to the scrolling behaviour of widgets.</span>
-<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Scroll related types and logic.</span>
 
 <span class='kw'>use</span> {
+    <span class='ident'>Align</span>,
     <span class='ident'>Color</span>,
-    <span class='ident'>Dimensions</span>,
-    <span class='ident'>Mouse</span>,
+    <span class='ident'>MouseScroll</span>,
     <span class='ident'>Point</span>,
+    <span class='ident'>Padding</span>,
     <span class='ident'>Range</span>,
     <span class='ident'>Rect</span>,
     <span class='ident'>Scalar</span>,
     <span class='ident'>Theme</span>,
+    <span class='ident'>Ui</span>,
 };
-<span class='kw'>use</span> <span class='ident'>utils</span>::{<span class='ident'>map_range</span>, <span class='ident'>partial_max</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
+<span class='kw'>use</span> <span class='ident'>ui</span>;
 
 
-<span class='doccomment'>/// A type for building a scrollbar widget.</span>
+<span class='doccomment'>/// Arguments given via a scrollable `Widget`&#39;s builder methods for the scrolling along a single</span>
+<span class='doccomment'>/// axis.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Scrolling</span> {
-    <span class='doccomment'>/// Is there horizontal scrolling.</span>
-    <span class='kw'>pub</span> <span class='ident'>horizontal</span>: <span class='ident'>bool</span>,
-    <span class='doccomment'>/// Is there vertical scrolling.</span>
-    <span class='kw'>pub</span> <span class='ident'>vertical</span>: <span class='ident'>bool</span>,
-    <span class='doccomment'>/// Styling for the Scrolling.</span>
-    <span class='kw'>pub</span> <span class='ident'>style</span>: <span class='ident'>Style</span>,
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Scroll</span> {
+    <span class='ident'>maybe_initial_alignment</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Align</span><span class='op'>&gt;</span>,
+    <span class='ident'>style</span>: <span class='ident'>Style</span>,
 }
 
-
-<span class='doccomment'>/// State related to scrolling.</span>
+<span class='doccomment'>/// Scroll state calculated for a single axis.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>State</span> {
-    <span class='doccomment'>/// vertical scrollbar.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_vertical</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Bar</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Horizontal scrollbar.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_horizontal</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Bar</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// The rectangle representing the Visible area used tot calculate the Bar offsets.</span>
-    <span class='kw'>pub</span> <span class='ident'>visible</span>: <span class='ident'>Rect</span>,
-    <span class='doccomment'>/// The dimensions of the maximum bounding box around both the visible and kids Rects.</span>
-    <span class='kw'>pub</span> <span class='ident'>total_dim</span>: <span class='ident'>Dimensions</span>,
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// The distance that has been scrolled from the origin.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A positive offset pushes the scrollable range that is under the kid_area upwards.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A negative offset pushes the scrollable range that is under the kid_area downwards.</span>
+    <span class='kw'>pub</span> <span class='ident'>offset</span>: <span class='ident'>Scalar</span>,
+    <span class='doccomment'>/// The start and end bounds for the offset along the axis.</span>
+    <span class='ident'>offset_bounds</span>: <span class='ident'>Range</span>,
+    <span class='doccomment'>/// The total range which may be &quot;offset&quot; from the &quot;root&quot; range (aka the `kid_area`).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `scrollable_range` is determined as the bounding range around both the `kid_area` and</span>
+    <span class='doccomment'>/// all **un-scrolled** **visible** children widgets.</span>
+    <span class='ident'>scrollable_range_len</span>: <span class='ident'>Scalar</span>,
     <span class='doccomment'>/// The width for vertical scrollbars, the height for horizontal scrollbars.</span>
     <span class='kw'>pub</span> <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>,
     <span class='doccomment'>/// The color of the scrollbar.</span>
     <span class='kw'>pub</span> <span class='ident'>color</span>: <span class='ident'>Color</span>,
+    <span class='doccomment'>/// The current state of interaction between the mouse and the scrollbar.</span>
+    <span class='kw'>pub</span> <span class='ident'>interaction</span>: <span class='ident'>Interaction</span>,
+    <span class='doccomment'>/// The axis type used to instantiate this state.</span>
+    <span class='ident'>axis</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// Whether or not the this axis is currently scrolling.</span>
+    <span class='kw'>pub</span> <span class='ident'>is_scrolling</span>: <span class='ident'>bool</span>,
 }
-
 
 <span class='doccomment'>/// Style for the Scrolling.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
@@ -652,59 +628,326 @@
     <span class='kw'>pub</span> <span class='ident'>maybe_color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
 }
 
-
-<span class='doccomment'>/// The state of a single scrollbar.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Bar</span> {
-    <span class='doccomment'>/// The current interaction with the Scrollbar.</span>
-    <span class='kw'>pub</span> <span class='ident'>interaction</span>: <span class='ident'>Interaction</span>,
-    <span class='doccomment'>/// The range to which the start of the visible range is bounded.</span>
-    <span class='kw'>pub</span> <span class='ident'>scrollable</span>: <span class='ident'>Range</span>,
-    <span class='doccomment'>/// The distance from the start of the scrollable range and the start of the visible range.</span>
-    <span class='doccomment'>/// i.e. visible.start - scrollable.start</span>
-    <span class='kw'>pub</span> <span class='ident'>offset</span>: <span class='ident'>Scalar</span>,
-    <span class='doccomment'>/// If the start of the visible range would start before the range of the widget&#39;s kids&#39;</span>
-    <span class='doccomment'>/// bounding box, this amount will represent the difference as a positive scalar value.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Otherwise, it will remain 0.0.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// We need to keep track of this as we should never let the offset become before the start</span>
-    <span class='doccomment'>/// overlap when being scrolled.</span>
-    <span class='kw'>pub</span> <span class='ident'>start_overlap</span>: <span class='ident'>Scalar</span>,
-}
-
-
-<span class='doccomment'>/// The current interaction with the </span>
+<span class='doccomment'>/// Represents an interaction between the mouse cursor and the scroll bar.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Interaction</span> {
-    <span class='doccomment'>/// No interaction with the Scrollbar.</span>
+    <span class='doccomment'>/// There are currently no interactions.</span>
     <span class='ident'>Normal</span>,
-    <span class='doccomment'>/// Part of the scrollbar is highlighted.</span>
+    <span class='doccomment'>/// The mouse is over either the track or the handle of the scroll bar.</span>
     <span class='ident'>Highlighted</span>(<span class='ident'>Elem</span>),
-    <span class='doccomment'>/// Part of the scrollbar is clicked.</span>
+    <span class='doccomment'>/// The scrollbar handle is currently clicked by the mouse.</span>
     <span class='ident'>Clicked</span>(<span class='ident'>Elem</span>),
 }
 
-
-<span class='doccomment'>/// The elements that make up a ScrollBar.</span>
+<span class='doccomment'>/// The elements that make up the scrollbar.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Elem</span> {
-    <span class='doccomment'>/// The draggable part of the bar and the mouse&#39;s position.</span>
+    <span class='doccomment'>/// The draggable part of the scrollbar and the mouse&#39;s position.</span>
     <span class='ident'>Handle</span>(<span class='ident'>Scalar</span>),
-    <span class='doccomment'>/// The track along which the bar can be dragged.</span>
+    <span class='doccomment'>/// The track along which the `Handle` can be dragged.</span>
     <span class='ident'>Track</span>,
 }
 
+<span class='doccomment'>/// Methods for distinguishing behaviour between both scroll axes at compile-time.</span>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Axis</span> {
+    <span class='doccomment'>/// The range of the given `Rect` that is parallel with this `Axis`.</span>
+    <span class='kw'>fn</span> <span class='ident'>parallel_range</span>(<span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span>;
+    <span class='doccomment'>/// The range of the given `Rect` that is perpendicular with this `Axis`.</span>
+    <span class='kw'>fn</span> <span class='ident'>perpendicular_range</span>(<span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span>;
+    <span class='doccomment'>/// Given some rectangular `Padding`, return the `Range` that corresponds with this `Axis`.</span>
+    <span class='kw'>fn</span> <span class='ident'>padding_range</span>(<span class='ident'>Padding</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span>;
+    <span class='doccomment'>/// The `Rect` for a scroll &quot;track&quot; with the given `thickness` for a container with the given</span>
+    <span class='doccomment'>/// `Rect`.</span>
+    <span class='kw'>fn</span> <span class='ident'>track</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span>;
+    <span class='doccomment'>/// The coordinate of the given mouse position that corresponds with this `Axis`.</span>
+    <span class='kw'>fn</span> <span class='ident'>mouse_scalar</span>(<span class='ident'>mouse_xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span>;
+    <span class='doccomment'>/// The coordinate of the given `MouseScroll` that corresponds with this `Axis`.</span>
+    <span class='kw'>fn</span> <span class='ident'>mouse_scroll_axis</span>(<span class='ident'>MouseScroll</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span>;
+    <span class='doccomment'>/// The `Rect` for a scroll handle given both `Range`s.</span>
+    <span class='kw'>fn</span> <span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>: <span class='ident'>Range</span>, <span class='ident'>handle_range</span>: <span class='ident'>Range</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span>;
+    <span class='doccomment'>/// A `Scalar` multiplier representing the direction in which positive offset shifts the</span>
+    <span class='doccomment'>/// `scrollable_range` (either `-1.0` or `1.0).</span>
+    <span class='kw'>fn</span> <span class='ident'>offset_direction</span>() <span class='op'>-&gt;</span> <span class='ident'>Scalar</span>;
+}
 
-<span class='kw'>impl</span> <span class='ident'>Scrolling</span> {
-    <span class='doccomment'>/// Constructs the default Scrolling.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>Scrolling</span> {
-        <span class='ident'>Scrolling</span> {
-            <span class='ident'>vertical</span>: <span class='boolval'>false</span>,
-            <span class='ident'>horizontal</span>: <span class='boolval'>false</span>,
+<span class='doccomment'>/// Behaviour for scrolling across the `X` axis.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>X</span> {}
+
+<span class='doccomment'>/// Behaviour for scrolling across the `Y` axis.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Y</span> {}
+
+<span class='doccomment'>/// State for scrolling along the **X** axis.</span>
+<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>StateX</span> <span class='op'>=</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>X</span><span class='op'>&gt;</span>;
+
+<span class='doccomment'>/// State for scrolling along the **Y** axis.</span>
+<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>StateY</span> <span class='op'>=</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>Y</span><span class='op'>&gt;</span>;
+
+
+<span class='kw'>impl</span> <span class='ident'>Scroll</span> {
+    <span class='doccomment'>/// The default `Scroll` args.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+        <span class='ident'>Scroll</span> {
+            <span class='ident'>maybe_initial_alignment</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>new</span>(),
         }
     }
+}
+
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Axis</span>
+{
+
+    <span class='doccomment'>/// Calculate the new scroll state for the single axis of a `Widget`.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```txt</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>///           &gt;     +---+</span>
+    <span class='doccomment'>///           |     |   |</span>
+    <span class='doccomment'>///           |   =========================</span>
+    <span class='doccomment'>///           |   | | a | scroll root     |</span>
+    <span class='doccomment'>///           |   | +---+ aka `kid_area`  |</span>
+    <span class='doccomment'>///           |   |            +--------+ |</span>
+    <span class='doccomment'>///           |   |            |        | |</span>
+    <span class='doccomment'>///           |   =========================</span>
+    <span class='doccomment'>///           |                |   b    |</span>
+    <span class='doccomment'>///           |                +--------+</span>
+    <span class='doccomment'>/// scrollable|    +--------+</span>
+    <span class='doccomment'>///    range y|    |        |</span>
+    <span class='doccomment'>///           |    |        | +------+</span>
+    <span class='doccomment'>///           |    |    c   | |      |</span>
+    <span class='doccomment'>///           |    +--------+ |  d   |</span>
+    <span class='doccomment'>///           |               |      |</span>
+    <span class='doccomment'>///           &gt;               +------+</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>///                ^--------------------^</span>
+    <span class='doccomment'>///                     scrollable</span>
+    <span class='doccomment'>///                      range x</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// - `kid_area` is the cropped area of the container widget in which kid widgets may be</span>
+    <span class='doccomment'>/// viewed.</span>
+    <span class='doccomment'>/// - `a`, `b`, `c` and `d` are widgets that are kids of the &quot;scroll root&quot; widget in their</span>
+    <span class='doccomment'>/// original, un-scrolled positions.</span>
+    <span class='doccomment'>/// - `scrollable_range` is the total range occuppied by all children widgets in their</span>
+    <span class='doccomment'>/// original, un-scrolled positions.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Everything above and below the set of ==== bars of the parent widget is hidden, i.e:</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```txt</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// =========================</span>
+    <span class='doccomment'>/// | | a | scroll root     |</span>
+    <span class='doccomment'>/// | +---+ aka `kid_area`  |</span>
+    <span class='doccomment'>/// |            +--------+ |</span>
+    <span class='doccomment'>/// |            |   b    | |</span>
+    <span class='doccomment'>/// =========================</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `scrollable_range` on each axis only becomes scrollable if its length exceeds the</span>
+    <span class='doccomment'>/// length of the `kid_area` on the same axis. Thus, in the above example, only the *y*</span>
+    <span class='doccomment'>/// scrollable_range is scrollable.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `offset_bounds` are calculated as the amount which the original, un-scrolled,</span>
+    <span class='doccomment'>/// `scrollable_range` may be offset from its origin.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```txt</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>///   offset +              &gt;</span>
+    <span class='doccomment'>///   bounds v              |</span>
+    <span class='doccomment'>///   .start &gt;              |   =========================</span>
+    <span class='doccomment'>///                         |   |                       |</span>
+    <span class='doccomment'>///                         |   |        kid_area       |</span>
+    <span class='doccomment'>///                         |   |                       |</span>
+    <span class='doccomment'>///                         |   |                       |</span>
+    <span class='doccomment'>///          &gt;   scrollable |   =========================</span>
+    <span class='doccomment'>///          ^      range y |</span>
+    <span class='doccomment'>///          ^              |    </span>
+    <span class='doccomment'>///          ^              |    </span>
+    <span class='doccomment'>///   offset ^              |    </span>
+    <span class='doccomment'>///   bounds ^              |    </span>
+    <span class='doccomment'>///     .end ^              |    </span>
+    <span class='doccomment'>///          ^              |    </span>
+    <span class='doccomment'>///          ^              |    </span>
+    <span class='doccomment'>///          +              &gt;    </span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
+                     <span class='ident'>idx</span>: <span class='ident'>super</span>::<span class='ident'>Index</span>,
+                     <span class='ident'>scroll_args</span>: <span class='ident'>Scroll</span>,
+                     <span class='ident'>kid_area</span>: <span class='kw-2'>&amp;</span><span class='ident'>super</span>::<span class='ident'>KidArea</span>,
+                     <span class='ident'>maybe_prev_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span>
+    {
+
+        <span class='comment'>// Retrieve the *current* scroll offset.</span>
+        <span class='kw'>let</span> <span class='ident'>current_offset</span> <span class='op'>=</span> <span class='ident'>maybe_prev_scroll_state</span>.<span class='ident'>as_ref</span>()
+            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>offset</span>)
+            .<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>);
+
+        <span class='comment'>// Padding for the range.</span>
+        <span class='kw'>let</span> <span class='ident'>padding</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>padding_range</span>(<span class='ident'>kid_area</span>.<span class='ident'>pad</span>);
+
+        <span class='comment'>// Get the range for the Axis that concerns this particular scroll `State`.</span>
+        <span class='kw'>let</span> <span class='ident'>kid_area_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>kid_area</span>.<span class='ident'>rect</span>).<span class='ident'>pad_ends</span>(<span class='ident'>padding</span>.<span class='ident'>start</span>, <span class='ident'>padding</span>.<span class='ident'>end</span>);
+
+        <span class='comment'>// The `kid_area_range` but centred at zero.</span>
+        <span class='kw'>let</span> <span class='ident'>kid_area_range_origin</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='number'>0.0</span>, <span class='ident'>kid_area_range</span>.<span class='ident'>magnitude</span>());
+
+        <span class='comment'>// The mouse state for the widget whose scroll state we&#39;re calculating.</span>
+        <span class='kw'>let</span> <span class='ident'>maybe_mouse</span> <span class='op'>=</span> <span class='ident'>ui</span>::<span class='ident'>get_mouse_state</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>);
+
+        <span class='comment'>// The un-scrolled, scrollable_range relative to the kid_area_range&#39;s position.</span>
+        <span class='kw'>let</span> <span class='ident'>scrollable_range</span> <span class='op'>=</span> {
+            <span class='ident'>ui</span>.<span class='ident'>kids_bounding_box</span>(<span class='ident'>idx</span>)
+                .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>kids</span><span class='op'>|</span> {
+                    <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>kids</span>)
+                        .<span class='ident'>shift</span>(<span class='op'>-</span><span class='ident'>current_offset</span>)
+                        .<span class='ident'>shift</span>(<span class='op'>-</span><span class='ident'>kid_area_range</span>.<span class='ident'>middle</span>())
+                })
+                .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='number'>0.0</span>, <span class='number'>0.0</span>))
+        };
+
+        <span class='comment'>// Determine the min and max offst bounds. These bounds are the limits to which the</span>
+        <span class='comment'>// scrollable_range may be shifted in either direction across the range.</span>
+        <span class='kw'>let</span> <span class='ident'>offset_bounds</span> <span class='op'>=</span> {
+            <span class='kw'>let</span> <span class='ident'>min_offset</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>scrollable_range</span>.<span class='ident'>start</span>, <span class='ident'>kid_area_range_origin</span>.<span class='ident'>start</span>).<span class='ident'>magnitude</span>();
+            <span class='kw'>let</span> <span class='ident'>max_offset</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>scrollable_range</span>.<span class='ident'>end</span>, <span class='ident'>kid_area_range_origin</span>.<span class='ident'>end</span>).<span class='ident'>magnitude</span>();
+            <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>min_offset</span>, <span class='ident'>max_offset</span>)
+        };
+
+        <span class='comment'>// The range is only scrollable if it is longer than the padded kid_area_range.</span>
+        <span class='kw'>let</span> <span class='ident'>is_scrollable</span> <span class='op'>=</span> <span class='ident'>scrollable_range</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='ident'>kid_area_range</span>.<span class='ident'>len</span>();
+
+        <span class='comment'>// Determine the total `additional_scroll_offset` that we want to add to the</span>
+        <span class='comment'>// `current_offset`. We only need to check for additional offset and interactions if the</span>
+        <span class='comment'>// scrollable_range is actually longer than our kid_area.</span>
+        <span class='kw'>let</span> (<span class='ident'>additional_offset</span>, <span class='ident'>new_interaction</span>) <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>is_scrollable</span> {
+
+            <span class='kw'>let</span> (<span class='ident'>scroll_bar_drag_offset</span>, <span class='ident'>new_interaction</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>maybe_prev_scroll_state</span> {
+                <span class='prelude-val'>Some</span>(<span class='ident'>prev_scroll_state</span>) <span class='op'>=&gt;</span> {
+                    <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Elem</span>::{<span class='ident'>Track</span>, <span class='ident'>Handle</span>};
+                    <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Interaction</span>::{<span class='ident'>Normal</span>, <span class='ident'>Highlighted</span>, <span class='ident'>Clicked</span>};
+                    <span class='kw'>use</span> <span class='ident'>utils</span>::<span class='ident'>map_range</span>;
+
+                    <span class='kw'>let</span> <span class='ident'>track</span> <span class='op'>=</span> <span class='ident'>track</span>::<span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='ident'>kid_area</span>.<span class='ident'>rect</span>, <span class='ident'>prev_scroll_state</span>.<span class='ident'>thickness</span>);
+                    <span class='kw'>let</span> <span class='ident'>handle</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='ident'>track</span>, <span class='kw-2'>&amp;</span><span class='ident'>prev_scroll_state</span>);
+                    <span class='kw'>let</span> <span class='ident'>handle_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>handle</span>);
+                    <span class='kw'>let</span> <span class='ident'>handle_pos_range_len</span> <span class='op'>=</span> <span class='op'>||</span> {
+                        <span class='kw'>let</span> <span class='ident'>track_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>track</span>);
+                        <span class='kw'>let</span> <span class='ident'>handle_pos_at_start</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_start_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
+                        <span class='kw'>let</span> <span class='ident'>handle_pos_at_end</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_end_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
+                        <span class='kw'>let</span> <span class='ident'>handle_pos_range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>handle_pos_at_start</span>, <span class='ident'>handle_pos_at_end</span>);
+                        <span class='ident'>handle_pos_range</span>.<span class='ident'>len</span>()
+                    };
+                    <span class='kw'>let</span> <span class='ident'>prev_interaction</span> <span class='op'>=</span> <span class='ident'>prev_scroll_state</span>.<span class='ident'>interaction</span>;
+                    <span class='kw'>let</span> <span class='ident'>is_scrollable</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0.0</span>;
+                    <span class='kw'>let</span> <span class='ident'>new_interaction</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='ident'>maybe_mouse</span>, <span class='ident'>is_scrollable</span>) {
+                        (<span class='prelude-val'>Some</span>(<span class='ident'>mouse</span>), <span class='boolval'>true</span>) <span class='op'>=&gt;</span> {
+                            <span class='kw'>use</span> <span class='ident'>mouse</span>::<span class='ident'>ButtonPosition</span>::{<span class='ident'>Down</span>, <span class='ident'>Up</span>};
+                            <span class='kw'>let</span> <span class='ident'>mouse_scalar</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>mouse_scalar</span>(<span class='ident'>mouse</span>.<span class='ident'>xy</span>);
+
+                            <span class='comment'>// Check if the mouse is currently over part of the scroll bar.</span>
+                            <span class='kw'>let</span> <span class='ident'>is_over_elem</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>handle</span>.<span class='ident'>is_over</span>(<span class='ident'>mouse</span>.<span class='ident'>xy</span>) {
+                                <span class='prelude-val'>Some</span>(<span class='ident'>Handle</span>(<span class='ident'>mouse_scalar</span>))
+                            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>track</span>.<span class='ident'>is_over</span>(<span class='ident'>mouse</span>.<span class='ident'>xy</span>) {
+                                <span class='prelude-val'>Some</span>(<span class='ident'>Track</span>)
+                            } <span class='kw'>else</span> {
+                                <span class='prelude-val'>None</span>
+                            };
+
+                            <span class='comment'>// Determine the new `Interaction` between the mouse and scrollbar.</span>
+                            <span class='kw'>match</span> (<span class='ident'>is_over_elem</span>, <span class='ident'>prev_interaction</span>, <span class='ident'>mouse</span>.<span class='ident'>left</span>.<span class='ident'>position</span>) {
+                                (<span class='prelude-val'>Some</span>(_),    <span class='ident'>Normal</span>,             <span class='ident'>Down</span>) <span class='op'>=&gt;</span> <span class='ident'>Normal</span>,
+                                (<span class='prelude-val'>Some</span>(<span class='ident'>elem</span>), _,                  <span class='ident'>Up</span>)   <span class='op'>=&gt;</span> <span class='ident'>Highlighted</span>(<span class='ident'>elem</span>),
+                                (<span class='prelude-val'>Some</span>(_),    <span class='ident'>Highlighted</span>(_),     <span class='ident'>Down</span>) <span class='op'>|</span>
+                                (_,          <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(_)), <span class='ident'>Down</span>) <span class='op'>=&gt;</span> <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>mouse_scalar</span>)),
+                                (_,          <span class='ident'>Clicked</span>(<span class='ident'>elem</span>),      <span class='ident'>Down</span>) <span class='op'>=&gt;</span> <span class='ident'>Clicked</span>(<span class='ident'>elem</span>),
+                                _                                      <span class='op'>=&gt;</span> <span class='ident'>Normal</span>,
+                            }
+                        },
+                        _ <span class='op'>=&gt;</span> <span class='ident'>Normal</span>,
+                    };
+
+                    <span class='comment'>// Check whether or not the mouse interactions require (un)capturing of mouse.</span>
+                    <span class='kw'>match</span> (<span class='ident'>prev_interaction</span>, <span class='ident'>new_interaction</span>) {
+                        (<span class='ident'>Highlighted</span>(_), <span class='ident'>Clicked</span>(_)) <span class='op'>=&gt;</span> { <span class='ident'>ui</span>::<span class='ident'>mouse_captured_by</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>); }
+                        (<span class='ident'>Clicked</span>(_), <span class='ident'>Highlighted</span>(_)) <span class='op'>|</span>
+                        (<span class='ident'>Clicked</span>(_), <span class='ident'>Normal</span>) <span class='op'>=&gt;</span> { <span class='ident'>ui</span>::<span class='ident'>mouse_uncaptured_by</span>(<span class='ident'>ui</span>, <span class='ident'>idx</span>); }
+                        _ <span class='op'>=&gt;</span> (),
+                    }
+
+                    <span class='kw'>let</span> <span class='ident'>scroll_bar_drag_offset</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='ident'>prev_interaction</span>, <span class='ident'>new_interaction</span>) {
+
+                        <span class='comment'>// When the track is clicked and the handle snaps to the cursor.</span>
+                        (<span class='ident'>Highlighted</span>(<span class='ident'>Track</span>), <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>mouse_scalar</span>))) <span class='op'>=&gt;</span> {
+                            <span class='kw'>let</span> <span class='ident'>handle_pos_range_len</span> <span class='op'>=</span> <span class='ident'>handle_pos_range_len</span>();
+                            <span class='kw'>let</span> <span class='ident'>offset_range_len</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>len</span>();
+                            <span class='kw'>let</span> <span class='ident'>pos_offset</span> <span class='op'>=</span> <span class='ident'>mouse_scalar</span> <span class='op'>-</span> <span class='ident'>handle_range</span>.<span class='ident'>middle</span>();
+                            <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>pos_offset</span>,
+                                                   <span class='number'>0.0</span>, <span class='ident'>handle_pos_range_len</span>,
+                                                   <span class='number'>0.0</span>, <span class='ident'>offset_range_len</span>);
+                            <span class='op'>-</span><span class='ident'>offset</span>
+                        },
+
+                        <span class='comment'>// When the handle is dragged.</span>
+                        (<span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>prev_mouse_scalar</span>)), <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>new_mouse_scalar</span>))) <span class='op'>=&gt;</span> {
+                            <span class='kw'>let</span> <span class='ident'>handle_pos_range_len</span> <span class='op'>=</span> <span class='ident'>handle_pos_range_len</span>();
+                            <span class='kw'>let</span> <span class='ident'>offset_range_len</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>len</span>();
+                            <span class='kw'>let</span> <span class='ident'>pos_offset</span> <span class='op'>=</span> <span class='ident'>new_mouse_scalar</span> <span class='op'>-</span> <span class='ident'>prev_mouse_scalar</span>;
+                            <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>pos_offset</span>,
+                                                   <span class='number'>0.0</span>, <span class='ident'>handle_pos_range_len</span>,
+                                                   <span class='number'>0.0</span>, <span class='ident'>offset_range_len</span>);
+                            <span class='op'>-</span><span class='ident'>offset</span>
+                        },
+
+                        _ <span class='op'>=&gt;</span> <span class='number'>0.0</span>,
+                    }.<span class='ident'>round</span>();
+
+                    (<span class='ident'>scroll_bar_drag_offset</span>, <span class='ident'>new_interaction</span>)
+                },
+                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> (<span class='number'>0.0</span>, <span class='ident'>Interaction</span>::<span class='ident'>Normal</span>),
+            };
+
+            <span class='comment'>// Additional offset from mouse scroll events provided by the window.</span>
+            <span class='kw'>let</span> <span class='ident'>scroll_wheel_offset</span> <span class='op'>=</span> {
+                <span class='ident'>maybe_mouse</span>
+                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>mouse</span><span class='op'>|</span> <span class='ident'>A</span>::<span class='ident'>mouse_scroll_axis</span>(<span class='ident'>mouse</span>.<span class='ident'>scroll</span>) <span class='op'>*</span> <span class='ident'>A</span>::<span class='ident'>offset_direction</span>())
+                    .<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>)
+            };
+
+            <span class='kw'>let</span> <span class='ident'>additional_offset</span> <span class='op'>=</span> <span class='ident'>scroll_bar_drag_offset</span> <span class='op'>+</span> <span class='ident'>scroll_wheel_offset</span>;
+
+            (<span class='ident'>additional_offset</span>, <span class='ident'>new_interaction</span>)
+
+        <span class='comment'>// Otherwise, our scrollable_range length is shorter than our kid_area, so no need for</span>
+        <span class='comment'>// additional scroll offset or interactions.</span>
+        } <span class='kw'>else</span> {
+            (<span class='number'>0.0</span>, <span class='ident'>Interaction</span>::<span class='ident'>Normal</span>)
+        };
+
+        <span class='kw'>let</span> <span class='ident'>new_offset</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>clamp_value</span>(<span class='ident'>current_offset</span> <span class='op'>+</span> <span class='ident'>additional_offset</span>);
+
+        <span class='ident'>State</span> {
+            <span class='ident'>offset</span>: <span class='ident'>new_offset</span>,
+            <span class='ident'>offset_bounds</span>: <span class='ident'>offset_bounds</span>,
+            <span class='ident'>scrollable_range_len</span>: <span class='ident'>scrollable_range</span>.<span class='ident'>len</span>(),
+            <span class='ident'>thickness</span>: <span class='ident'>scroll_args</span>.<span class='ident'>style</span>.<span class='ident'>thickness</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>),
+            <span class='ident'>color</span>: <span class='ident'>scroll_args</span>.<span class='ident'>style</span>.<span class='ident'>color</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>),
+            <span class='ident'>interaction</span>: <span class='ident'>new_interaction</span>,
+            <span class='ident'>axis</span>: <span class='ident'>PhantomData</span>,
+            <span class='ident'>is_scrolling</span>: <span class='ident'>additional_offset</span> <span class='op'>!=</span> <span class='number'>0.0</span>,
+        }
+    }
+
+    <span class='doccomment'>/// Whether or not the given `xy` point is over the scroll track.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_over</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>xy</span>: <span class='ident'>Point</span>, <span class='ident'>kid_area_rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='ident'>A</span>::<span class='ident'>track</span>(<span class='ident'>kid_area_rect</span>, <span class='self'>self</span>.<span class='ident'>thickness</span>).<span class='ident'>is_over</span>(<span class='ident'>xy</span>)
+    }
+
 }
 
 
@@ -736,420 +979,115 @@
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>Interaction</span> {
-    <span class='doccomment'>/// The stateful version of the given color.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>color</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>color</span>: <span class='ident'>Color</span>) <span class='op'>-&gt;</span> <span class='ident'>Color</span> {
-        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>Interaction</span>::<span class='ident'>Normal</span> <span class='op'>=&gt;</span> <span class='ident'>color</span>,
-            <span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(_) <span class='op'>=&gt;</span> <span class='ident'>color</span>.<span class='ident'>highlighted</span>(),
-            <span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_) <span class='op'>=&gt;</span> <span class='ident'>color</span>.<span class='ident'>clicked</span>(),
-        }
-    }
+<span class='doccomment'>/// Calculates the `Rect` for a scroll &quot;track&quot; with the given `thickness` over the given axis for</span>
+<span class='doccomment'>/// the given `container`.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>track</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Axis</span><span class='op'>&gt;</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
+    <span class='ident'>A</span>::<span class='ident'>track</span>(<span class='ident'>container</span>, <span class='ident'>thickness</span>)
+}
+
+<span class='doccomment'>/// Calculates the `Rect` for a scroll &quot;handle&quot; sitting on the given `track` with an offset and</span>
+<span class='doccomment'>/// length that represents the given `Axis`&#39; `state`.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Axis</span><span class='op'>&gt;</span>(<span class='ident'>track</span>: <span class='ident'>Rect</span>, <span class='ident'>state</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
+    <span class='kw'>let</span> <span class='ident'>track_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>track</span>);
+    <span class='kw'>let</span> <span class='ident'>track_len</span> <span class='op'>=</span> <span class='ident'>track_range</span>.<span class='ident'>len</span>();
+    <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>track_len</span> <span class='op'>*</span> (<span class='ident'>track_len</span> <span class='op'>/</span> <span class='ident'>state</span>.<span class='ident'>scrollable_range_len</span>);
+    <span class='kw'>let</span> <span class='ident'>handle_range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='number'>0.0</span>, <span class='ident'>len</span>);
+    <span class='kw'>let</span> <span class='ident'>pos</span> <span class='op'>=</span> {
+        <span class='kw'>let</span> <span class='ident'>pos_min</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_start_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
+        <span class='kw'>let</span> <span class='ident'>pos_max</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_end_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
+        <span class='kw'>let</span> <span class='ident'>pos_bounds</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>pos_min</span>, <span class='ident'>pos_max</span>);
+        <span class='ident'>state</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>map_value_to</span>(<span class='ident'>state</span>.<span class='ident'>offset</span>, <span class='kw-2'>&amp;</span><span class='ident'>pos_bounds</span>)
+    };
+    <span class='kw'>let</span> <span class='ident'>perpendicular_track_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>perpendicular_range</span>(<span class='ident'>track</span>);
+    <span class='kw'>let</span> <span class='ident'>range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='ident'>pos</span>, <span class='ident'>len</span>);
+    <span class='ident'>A</span>::<span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>, <span class='ident'>range</span>)
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>State</span> {
+<span class='kw'>impl</span> <span class='ident'>Axis</span> <span class='kw'>for</span> <span class='ident'>X</span> {
 
-    <span class='doccomment'>/// Construct a new State.</span>
-    <span class='doccomment'>/// The `visible` rect corresponds to a Widget&#39;s `kid_area` aka the viewable container.</span>
-    <span class='doccomment'>/// The `kids` rect is the area *actually occupied* by the children widgets.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>scrolling</span>: <span class='ident'>Scrolling</span>, 
-               <span class='ident'>visible</span>: <span class='ident'>Rect</span>,
-               <span class='ident'>kids</span>: <span class='ident'>Rect</span>,
-               <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='ident'>Theme</span>,
-               <span class='ident'>maybe_prev</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>State</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>State</span>
-    {
-        <span class='ident'>State</span> {
-
-            <span class='ident'>maybe_vertical</span>: <span class='kw'>if</span> <span class='ident'>scrolling</span>.<span class='ident'>vertical</span> {
-                <span class='kw'>let</span> <span class='ident'>maybe_prev</span> <span class='op'>=</span> <span class='ident'>maybe_prev</span>.<span class='ident'>as_ref</span>()
-                    .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>prev</span><span class='op'>|</span> <span class='ident'>prev</span>.<span class='ident'>maybe_vertical</span>.<span class='ident'>as_ref</span>());
-                <span class='comment'>// For a vertical scrollbar, we want the range to start at the top and end at</span>
-                <span class='comment'>// the bottom. To do this, we will use the invert of our visible and kids y ranges.</span>
-                <span class='ident'>Bar</span>::<span class='ident'>new_if_scrollable</span>(<span class='ident'>visible</span>.<span class='ident'>y</span>.<span class='ident'>invert</span>(), <span class='ident'>kids</span>.<span class='ident'>y</span>.<span class='ident'>invert</span>(), <span class='ident'>maybe_prev</span>)
-            } <span class='kw'>else</span> {
-                <span class='prelude-val'>None</span>
-            },
-
-            <span class='ident'>maybe_horizontal</span>: <span class='kw'>if</span> <span class='ident'>scrolling</span>.<span class='ident'>horizontal</span> {
-                <span class='kw'>let</span> <span class='ident'>maybe_prev</span> <span class='op'>=</span> <span class='ident'>maybe_prev</span>.<span class='ident'>as_ref</span>()
-                    .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>prev</span><span class='op'>|</span> <span class='ident'>prev</span>.<span class='ident'>maybe_horizontal</span>.<span class='ident'>as_ref</span>());
-                <span class='ident'>Bar</span>::<span class='ident'>new_if_scrollable</span>(<span class='ident'>visible</span>.<span class='ident'>x</span>, <span class='ident'>kids</span>.<span class='ident'>x</span>, <span class='ident'>maybe_prev</span>)
-            } <span class='kw'>else</span> {
-                <span class='prelude-val'>None</span>
-            },
-
-            <span class='ident'>total_dim</span>: <span class='ident'>visible</span>.<span class='ident'>max</span>(<span class='ident'>kids</span>).<span class='ident'>dim</span>(),
-            <span class='ident'>visible</span>: <span class='ident'>visible</span>,
-            <span class='ident'>thickness</span>: <span class='ident'>scrolling</span>.<span class='ident'>style</span>.<span class='ident'>thickness</span>(<span class='ident'>theme</span>),
-            <span class='ident'>color</span>: <span class='ident'>scrolling</span>.<span class='ident'>style</span>.<span class='ident'>color</span>(<span class='ident'>theme</span>),
-        }
+    <span class='kw'>fn</span> <span class='ident'>parallel_range</span>(<span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> {
+        <span class='ident'>rect</span>.<span class='ident'>x</span>
     }
 
-    <span class='doccomment'>/// Given some mouse input, update the State and return the resulting State.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle_input</span>(<span class='self'>self</span>, <span class='ident'>mouse</span>: <span class='ident'>Mouse</span>) <span class='op'>-&gt;</span> <span class='ident'>State</span> {
-        <span class='ident'>State</span> {
+    <span class='kw'>fn</span> <span class='ident'>perpendicular_range</span>(<span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> {
+        <span class='ident'>rect</span>.<span class='ident'>y</span>
+    }
 
-            <span class='ident'>maybe_vertical</span>: <span class='self'>self</span>.<span class='ident'>maybe_vertical</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> {
-                <span class='kw'>let</span> <span class='ident'>track</span> <span class='op'>=</span> <span class='ident'>vertical_track</span>(<span class='self'>self</span>.<span class='ident'>visible</span>, <span class='self'>self</span>.<span class='ident'>thickness</span>);
-                <span class='kw'>let</span> <span class='ident'>handle</span> <span class='op'>=</span> <span class='ident'>vertical_handle</span>(<span class='kw-2'>&amp;</span><span class='ident'>bar</span>, <span class='ident'>track</span>, <span class='self'>self</span>.<span class='ident'>total_dim</span>[<span class='number'>1</span>]);
-                <span class='comment'>// Invert the visible y axis so that it points downward for vertical scrolling.</span>
-                <span class='kw'>let</span> <span class='ident'>visible</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>visible</span>.<span class='ident'>y</span>.<span class='ident'>invert</span>();
-                <span class='kw'>let</span> <span class='ident'>mouse_pos_scalar</span> <span class='op'>=</span> <span class='ident'>mouse</span>.<span class='ident'>xy</span>[<span class='number'>1</span>] <span class='op'>-</span> <span class='ident'>track</span>.<span class='ident'>top</span>();
-                <span class='ident'>bar</span>.<span class='ident'>handle_input</span>(<span class='ident'>visible</span>, <span class='ident'>track</span>, <span class='ident'>handle</span>, <span class='kw-2'>&amp;</span><span class='ident'>mouse</span>, <span class='ident'>mouse_pos_scalar</span>, <span class='ident'>mouse</span>.<span class='ident'>scroll</span>.<span class='ident'>y</span>)
-            }),
+    <span class='kw'>fn</span> <span class='ident'>padding_range</span>(<span class='ident'>padding</span>: <span class='ident'>Padding</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> {
+        <span class='ident'>padding</span>.<span class='ident'>x</span>
+    }
 
-            <span class='ident'>maybe_horizontal</span>: <span class='self'>self</span>.<span class='ident'>maybe_horizontal</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> {
-                <span class='kw'>let</span> <span class='ident'>track</span> <span class='op'>=</span> <span class='ident'>horizontal_track</span>(<span class='self'>self</span>.<span class='ident'>visible</span>, <span class='self'>self</span>.<span class='ident'>thickness</span>);
-                <span class='kw'>let</span> <span class='ident'>handle</span> <span class='op'>=</span> <span class='ident'>horizontal_handle</span>(<span class='kw-2'>&amp;</span><span class='ident'>bar</span>, <span class='ident'>track</span>, <span class='self'>self</span>.<span class='ident'>total_dim</span>[<span class='number'>0</span>]);
-                <span class='kw'>let</span> <span class='ident'>visible</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>visible</span>.<span class='ident'>x</span>;
-                <span class='kw'>let</span> <span class='ident'>mouse_pos_scalar</span> <span class='op'>=</span> <span class='ident'>mouse</span>.<span class='ident'>xy</span>[<span class='number'>0</span>] <span class='op'>-</span> <span class='ident'>track</span>.<span class='ident'>left</span>();
-                <span class='ident'>bar</span>.<span class='ident'>handle_input</span>(<span class='ident'>visible</span>, <span class='ident'>track</span>, <span class='ident'>handle</span>, <span class='kw-2'>&amp;</span><span class='ident'>mouse</span>, <span class='ident'>mouse_pos_scalar</span>, <span class='op'>-</span><span class='ident'>mouse</span>.<span class='ident'>scroll</span>.<span class='ident'>x</span>)
-            }),
+    <span class='kw'>fn</span> <span class='ident'>track</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
+        <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>thickness</span>;
+        <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>w</span>();
+        <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>x</span>();
+        <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='ident'>x</span>, <span class='number'>0.0</span>], [<span class='ident'>w</span>, <span class='ident'>h</span>]).<span class='ident'>align_bottom_of</span>(<span class='ident'>container</span>)
+    }
 
-            .. <span class='self'>self</span>
+    <span class='kw'>fn</span> <span class='ident'>mouse_scalar</span>(<span class='ident'>mouse_xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
+        <span class='ident'>mouse_xy</span>[<span class='number'>0</span>]
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>mouse_scroll_axis</span>(<span class='ident'>scroll</span>: <span class='ident'>MouseScroll</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
+        <span class='ident'>scroll</span>.<span class='ident'>x</span>
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>: <span class='ident'>Range</span>, <span class='ident'>handle_range</span>: <span class='ident'>Range</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
+        <span class='ident'>Rect</span> {
+            <span class='ident'>x</span>: <span class='ident'>handle_range</span>,
+            <span class='ident'>y</span>: <span class='ident'>perpendicular_track_range</span>,
         }
     }
 
-    <span class='doccomment'>/// Is the given xy over either scroll Bars.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_over</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>target_xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>maybe_vertical</span>.<span class='ident'>is_some</span>() {
-            <span class='kw'>if</span> <span class='ident'>vertical_track</span>(<span class='self'>self</span>.<span class='ident'>visible</span>, <span class='self'>self</span>.<span class='ident'>thickness</span>).<span class='ident'>is_over</span>(<span class='ident'>target_xy</span>) {
-                <span class='kw'>return</span> <span class='boolval'>true</span>;
-            }
-        }
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>maybe_horizontal</span>.<span class='ident'>is_some</span>() {
-            <span class='kw'>if</span> <span class='ident'>horizontal_track</span>(<span class='self'>self</span>.<span class='ident'>visible</span>, <span class='self'>self</span>.<span class='ident'>thickness</span>).<span class='ident'>is_over</span>(<span class='ident'>target_xy</span>) {
-                <span class='kw'>return</span> <span class='boolval'>true</span>;
-            }
-        }
-        <span class='boolval'>false</span>
-    }
-
-    <span class='doccomment'>/// Converts the Bars&#39; current offset to a positional offset along its visible area.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>kids_pos_offset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimensions</span> {
-        <span class='kw'>let</span> <span class='ident'>maybe_x_offset</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_horizontal</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> <span class='ident'>bar</span>.<span class='ident'>kids_pos_offset</span>());
-        <span class='kw'>let</span> <span class='ident'>maybe_y_offset</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_vertical</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> <span class='ident'>bar</span>.<span class='ident'>kids_pos_offset</span>());
-        [<span class='ident'>maybe_x_offset</span>.<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>), <span class='ident'>maybe_y_offset</span>.<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>)]
+    <span class='kw'>fn</span> <span class='ident'>offset_direction</span>() <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
+        <span class='number'>1.0</span>
     }
 
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>Bar</span> {
+<span class='kw'>impl</span> <span class='ident'>Axis</span> <span class='kw'>for</span> <span class='ident'>Y</span> {
 
-    <span class='doccomment'>/// Construct a new Bar for a widget from a given visible range as well as the range occuppied</span>
-    <span class='doccomment'>/// by the widget&#39;s child widgets.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The given `kids` Range should be relative to the visible range.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If there is some previous Bar its interaction will be carried through to the Bar.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_if_scrollable</span>(<span class='ident'>visible</span>: <span class='ident'>Range</span>, <span class='ident'>kids</span>: <span class='ident'>Range</span>, <span class='ident'>maybe_prev</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Bar</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Bar</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>parallel_range</span>(<span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> {
+        <span class='ident'>rect</span>.<span class='ident'>y</span>
+    }
 
-        <span class='comment'>// The range occuppied by kid widgets when the scroll offset is at 0.0.</span>
-        <span class='kw'>let</span> <span class='ident'>kids_at_origin</span> <span class='op'>=</span> {
-            <span class='kw'>let</span> <span class='ident'>offset_from_origin</span> <span class='op'>=</span> <span class='ident'>maybe_prev</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> <span class='ident'>bar</span>.<span class='ident'>kids_pos_offset</span>()).<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>);
-            <span class='ident'>kids</span>.<span class='ident'>shift</span>(<span class='op'>-</span><span class='ident'>offset_from_origin</span>)
-        };
+    <span class='kw'>fn</span> <span class='ident'>perpendicular_range</span>(<span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> {
+        <span class='ident'>rect</span>.<span class='ident'>x</span>
+    }
 
-        <span class='comment'>// Total combined range of the visible and kids_at_origin ranges.</span>
-        <span class='kw'>let</span> <span class='ident'>total</span> <span class='op'>=</span> <span class='ident'>visible</span>.<span class='ident'>max_directed</span>(<span class='ident'>kids_at_origin</span>);
+    <span class='kw'>fn</span> <span class='ident'>padding_range</span>(<span class='ident'>padding</span>: <span class='ident'>Padding</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span> {
+        <span class='ident'>padding</span>.<span class='ident'>y</span>
+    }
 
-        <span class='comment'>// The range that describes the area upon which the start of the visible range can scroll.</span>
-        <span class='kw'>let</span> <span class='ident'>scrollable</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>total</span>.<span class='ident'>start</span>, <span class='ident'>total</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>visible</span>.<span class='ident'>magnitude</span>());
+    <span class='kw'>fn</span> <span class='ident'>track</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
+        <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>thickness</span>;
+        <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>h</span>();
+        <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>y</span>();
+        <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='number'>0.0</span>, <span class='ident'>y</span>], [<span class='ident'>w</span>, <span class='ident'>h</span>]).<span class='ident'>align_right_of</span>(<span class='ident'>container</span>)
+    }
 
-        <span class='comment'>// We only need to calculate offsets if we actually have some scrollable area.</span>
-        <span class='kw'>if</span> <span class='ident'>scrollable</span>.<span class='ident'>magnitude</span>().<span class='ident'>is_normal</span>() <span class='op'>&amp;&amp;</span> <span class='ident'>scrollable</span>.<span class='ident'>direction</span>() <span class='op'>==</span> <span class='ident'>kids</span>.<span class='ident'>direction</span>() {
+    <span class='kw'>fn</span> <span class='ident'>mouse_scalar</span>(<span class='ident'>mouse_xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
+        <span class='ident'>mouse_xy</span>[<span class='number'>1</span>]
+    }
 
-            <span class='kw'>let</span> <span class='ident'>interaction</span> <span class='op'>=</span> <span class='ident'>maybe_prev</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> <span class='ident'>bar</span>.<span class='ident'>interaction</span>)
-                .<span class='ident'>unwrap_or</span>(<span class='ident'>Interaction</span>::<span class='ident'>Normal</span>);
+    <span class='kw'>fn</span> <span class='ident'>mouse_scroll_axis</span>(<span class='ident'>scroll</span>: <span class='ident'>MouseScroll</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
+        <span class='ident'>scroll</span>.<span class='ident'>y</span>
+    }
 
-            <span class='comment'>// The amount that the visible range overlaps the start of the kids range when at its</span>
-            <span class='comment'>// origin position (non-scrolled).</span>
-            <span class='kw'>let</span> <span class='ident'>start_overlap</span> <span class='op'>=</span> {
-                <span class='kw'>let</span> <span class='ident'>start_diff_at_origin</span> <span class='op'>=</span> <span class='ident'>kids_at_origin</span>.<span class='ident'>start</span> <span class='op'>-</span> <span class='ident'>visible</span>.<span class='ident'>start</span>;
-                <span class='kw'>if</span> <span class='ident'>start_diff_at_origin</span>.<span class='ident'>signum</span>() <span class='op'>==</span> <span class='ident'>visible</span>.<span class='ident'>direction</span>() {
-                    <span class='ident'>start_diff_at_origin</span>
-                } <span class='kw'>else</span> {
-                    <span class='number'>0.0</span>
-                }
-            };
-
-            <span class='comment'>// The positional scroll offset.</span>
-            <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>maybe_prev</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>bar</span><span class='op'>|</span> <span class='ident'>bar</span>.<span class='ident'>offset</span>).<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>);
-
-            <span class='prelude-val'>Some</span>(<span class='ident'>Bar</span> {
-                <span class='ident'>interaction</span>: <span class='ident'>interaction</span>,
-                <span class='ident'>scrollable</span>: <span class='ident'>scrollable</span>,
-                <span class='ident'>offset</span>: <span class='ident'>offset</span>,
-                <span class='ident'>start_overlap</span>: <span class='ident'>start_overlap</span>,
-            })
-        <span class='comment'>// Otherwise our offsets are zeroed.</span>
-        } <span class='kw'>else</span> {
-            <span class='prelude-val'>None</span>
+    <span class='kw'>fn</span> <span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>: <span class='ident'>Range</span>, <span class='ident'>handle_range</span>: <span class='ident'>Range</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
+        <span class='ident'>Rect</span> {
+            <span class='ident'>x</span>: <span class='ident'>perpendicular_track_range</span>,
+            <span class='ident'>y</span>: <span class='ident'>handle_range</span>,
         }
     }
 
-
-    <span class='doccomment'>/// Update a scroll `Bar` with the given mouse input.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle_input</span>(<span class='self'>self</span>,
-                        <span class='ident'>visible</span>: <span class='ident'>Range</span>,
-                        <span class='ident'>track</span>: <span class='ident'>Rect</span>,
-                        <span class='ident'>handle</span>: <span class='ident'>Rect</span>,
-                        <span class='ident'>mouse</span>: <span class='kw-2'>&amp;</span><span class='ident'>Mouse</span>,
-                        <span class='ident'>mouse_pos_scalar</span>: <span class='ident'>Scalar</span>,
-                        <span class='ident'>mouse_scroll_scalar</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Bar</span>
-    {
-        <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Elem</span>::{<span class='ident'>Handle</span>, <span class='ident'>Track</span>};
-        <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Interaction</span>::{<span class='ident'>Highlighted</span>, <span class='ident'>Clicked</span>};
-
-        <span class='comment'>// Determine whether or not the mouse is over part of the Scrollbar.</span>
-        <span class='kw'>let</span> <span class='ident'>is_over_elem</span> <span class='op'>=</span> <span class='ident'>is_over_elem</span>(<span class='ident'>track</span>, <span class='ident'>handle</span>, <span class='ident'>mouse</span>, <span class='ident'>mouse_pos_scalar</span>);
-
-        <span class='comment'>// Determine the new current `Interaction`.</span>
-        <span class='kw'>let</span> <span class='ident'>new_interaction</span> <span class='op'>=</span> <span class='ident'>new_interaction</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>is_over_elem</span>, <span class='ident'>mouse</span>, <span class='ident'>mouse_pos_scalar</span>);
-
-        <span class='comment'>// Calculate the maximum bar offset.</span>
-        <span class='kw'>let</span> <span class='ident'>bar_offset_max</span> <span class='op'>=</span> <span class='op'>||</span> {
-            <span class='kw'>let</span> <span class='ident'>bar_mag</span> <span class='op'>=</span> <span class='ident'>handle</span>.<span class='ident'>len</span>() <span class='op'>*</span> <span class='ident'>visible</span>.<span class='ident'>direction</span>();
-            <span class='ident'>track</span>.<span class='ident'>len</span>() <span class='op'>*</span> <span class='ident'>visible</span>.<span class='ident'>direction</span>() <span class='op'>-</span> <span class='ident'>bar_mag</span>
-        };
-
-        <span class='comment'>// Calculate a positional offset given some bar offset.</span>
-        <span class='kw'>let</span> <span class='ident'>pos_offset_from_bar_offset</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>bar_offset</span>: <span class='ident'>Scalar</span>, <span class='ident'>bar_offset_max</span>: <span class='ident'>Scalar</span><span class='op'>|</span> {
-            <span class='ident'>map_range</span>(<span class='ident'>bar_offset</span>, <span class='number'>0.0</span>, <span class='ident'>bar_offset_max</span>, <span class='number'>0.0</span>, <span class='self'>self</span>.<span class='ident'>scrollable</span>.<span class='ident'>magnitude</span>())
-        };
-
-        <span class='comment'>// Determine the new offset for the scrollbar.</span>
-        <span class='kw'>let</span> <span class='ident'>new_offset</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='self'>self</span>.<span class='ident'>interaction</span>, <span class='ident'>new_interaction</span>) {
-
-            <span class='comment'>// When the track is clicked and the handle snaps to the cursor.</span>
-            (<span class='ident'>Highlighted</span>(<span class='ident'>Track</span>), <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>mouse_pos_scalar</span>))) <span class='op'>=&gt;</span> {
-                <span class='comment'>// Should try snap the handle so that the mouse is in the middle of it.</span>
-                <span class='kw'>let</span> <span class='ident'>direction</span> <span class='op'>=</span> <span class='ident'>visible</span>.<span class='ident'>direction</span>();
-                <span class='kw'>let</span> <span class='ident'>half_handle_len</span> <span class='op'>=</span> <span class='ident'>handle</span>.<span class='ident'>len</span>() <span class='op'>*</span> <span class='ident'>direction</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-                <span class='kw'>let</span> <span class='ident'>target_offset</span> <span class='op'>=</span> <span class='ident'>mouse_pos_scalar</span> <span class='op'>-</span> <span class='ident'>half_handle_len</span>;
-                <span class='kw'>let</span> <span class='ident'>target_pos_offset</span> <span class='op'>=</span> <span class='ident'>pos_offset_from_bar_offset</span>(<span class='ident'>target_offset</span>, <span class='ident'>bar_offset_max</span>());
-                ::<span class='ident'>utils</span>::<span class='ident'>clamp</span>(<span class='ident'>target_pos_offset</span>, <span class='number'>0.0</span>, <span class='self'>self</span>.<span class='ident'>scrollable</span>.<span class='ident'>magnitude</span>())
-            },
-
-            <span class='comment'>// When the handle is dragged.</span>
-            (<span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>prev_mouse_scalar</span>)), <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>mouse_pos_scalar</span>))) <span class='op'>=&gt;</span> {
-                <span class='kw'>let</span> <span class='ident'>scroll_amount</span> <span class='op'>=</span> <span class='ident'>mouse_pos_scalar</span> <span class='op'>-</span> <span class='ident'>prev_mouse_scalar</span>;<span class='comment'>// * visible.direction();</span>
-                <span class='kw'>let</span> <span class='ident'>pos_scroll_amount</span> <span class='op'>=</span> <span class='ident'>pos_offset_from_bar_offset</span>(<span class='ident'>scroll_amount</span>, <span class='ident'>bar_offset_max</span>());
-                <span class='self'>self</span>.<span class='ident'>add_to_scroll_offset</span>(<span class='ident'>pos_scroll_amount</span>)
-            },
-
-            <span class='comment'>// The mouse has been scrolled using a wheel/trackpad/touchpad.</span>
-            (_, _) <span class='kw'>if</span> <span class='ident'>mouse_scroll_scalar</span> <span class='op'>!=</span> <span class='number'>0.0</span> <span class='op'>=&gt;</span>
-                <span class='self'>self</span>.<span class='ident'>add_to_scroll_offset</span>(<span class='ident'>mouse_scroll_scalar</span>),
-
-            <span class='comment'>// Otherwise, we&#39;ll assume the offset is unchanged.</span>
-            _ <span class='op'>=&gt;</span> <span class='self'>self</span>.<span class='ident'>offset</span>,
-        };
-
-        <span class='ident'>Bar</span> { <span class='ident'>interaction</span>: <span class='ident'>new_interaction</span>, <span class='ident'>offset</span>: <span class='ident'>new_offset</span>, ..<span class='self'>self</span> }
-    }
-
-
-    <span class='doccomment'>/// A function for shifting some current offset by some amount while ensuring it remains within the</span>
-    <span class='doccomment'>/// Bar&#39;s Range.</span>
-    <span class='kw'>fn</span> <span class='ident'>add_to_scroll_offset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>amount</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
-        <span class='kw'>use</span> <span class='ident'>utils</span>::<span class='ident'>clamp</span>;
-        <span class='kw'>let</span> <span class='ident'>target_offset</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>offset</span> <span class='op'>+</span> <span class='ident'>amount</span>;
-        <span class='kw'>let</span> <span class='ident'>min_offset</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>start_overlap</span>;
-        <span class='kw'>let</span> <span class='ident'>max_offset</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>scrollable</span>.<span class='ident'>magnitude</span>();
-
-        <span class='comment'>// If the offset is before the start, only let it be dragged towards the end.</span>
-        <span class='kw'>let</span> <span class='ident'>clamp_current_to_max</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>clamp</span>(<span class='ident'>target_offset</span>, <span class='self'>self</span>.<span class='ident'>offset</span>, <span class='ident'>max_offset</span>);
-        <span class='comment'>// If the offset is past the end, only let it be dragged towards the start.</span>
-        <span class='kw'>let</span> <span class='ident'>clamp_min_to_current</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>clamp</span>(<span class='ident'>target_offset</span>, <span class='ident'>min_offset</span>, <span class='self'>self</span>.<span class='ident'>offset</span>);
-        <span class='comment'>// Otherwise, clamp it between 0.0 and the max.</span>
-        <span class='kw'>let</span> <span class='ident'>clamp_min_to_max</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>clamp</span>(<span class='ident'>target_offset</span>, <span class='ident'>min_offset</span>, <span class='ident'>max_offset</span>);
-
-        <span class='comment'>// For a positive range, check the start and end of the range normally.</span>
-        <span class='kw'>if</span> <span class='ident'>max_offset</span> <span class='op'>&gt;=</span> <span class='number'>0.0</span> {
-            <span class='kw'>if</span>      <span class='self'>self</span>.<span class='ident'>offset</span> <span class='op'>&lt;</span> <span class='ident'>min_offset</span> { <span class='ident'>clamp_current_to_max</span>() }
-            <span class='kw'>else</span> <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>offset</span> <span class='op'>&gt;</span> <span class='ident'>max_offset</span> { <span class='ident'>clamp_min_to_current</span>() }
-            <span class='kw'>else</span>                             { <span class='ident'>clamp_min_to_max</span>() }
-
-        <span class='comment'>// Otherwise, check the inverse.</span>
-        } <span class='kw'>else</span> {
-            <span class='kw'>if</span>      <span class='self'>self</span>.<span class='ident'>offset</span> <span class='op'>&gt;</span> <span class='ident'>min_offset</span> { <span class='ident'>clamp_current_to_max</span>() }
-            <span class='kw'>else</span> <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>offset</span> <span class='op'>&lt;</span> <span class='ident'>max_offset</span> { <span class='ident'>clamp_min_to_current</span>() }
-            <span class='kw'>else</span>                             { <span class='ident'>clamp_min_to_max</span>() }
-        }
-    }
-
-
-    <span class='doccomment'>/// Converts the Bar&#39;s current offset to the positional offset required to shift the children</span>
-    <span class='doccomment'>/// widgets in accordance with the scrolling.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>kids_pos_offset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
-        <span class='kw'>let</span> <span class='ident'>Bar</span> { <span class='ident'>offset</span>, <span class='ident'>scrollable</span>, .. } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-        <span class='kw'>if</span> <span class='ident'>scrollable</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0.0</span> { <span class='number'>0.0</span> } <span class='kw'>else</span> { <span class='op'>-</span><span class='ident'>offset</span> }
-    }
-
-    <span class='doccomment'>/// Converts the given bar offset to a positional offset.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// TODO: Needs testing.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pos_offset_from_bar_offset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>bar_offset</span>: <span class='ident'>Scalar</span>, <span class='ident'>bar_len</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
-        <span class='ident'>map_range</span>(<span class='ident'>bar_offset</span>, <span class='number'>0.0</span>, <span class='ident'>bar_len</span>, <span class='number'>0.0</span>, <span class='self'>self</span>.<span class='ident'>scrollable</span>.<span class='ident'>magnitude</span>())
+    <span class='kw'>fn</span> <span class='ident'>offset_direction</span>() <span class='op'>-&gt;</span> <span class='ident'>Scalar</span> {
+        <span class='op'>-</span><span class='number'>1.0</span>
     }
 
 }
-
-
-<span class='doccomment'>/// The area for a vertical scrollbar track as its dimensions and position.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>vertical_track</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-    <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>thickness</span>;
-    <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>x</span>() <span class='op'>+</span> <span class='ident'>container</span>.<span class='ident'>w</span>() <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>-</span> <span class='ident'>w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-    <span class='ident'>Rect</span> {
-        <span class='ident'>x</span>: <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='ident'>x</span>, <span class='ident'>w</span>),
-        <span class='ident'>y</span>: <span class='ident'>container</span>.<span class='ident'>y</span>,
-    }
-}
-
-<span class='doccomment'>/// The area for a vertical scrollbar handle as its dimensions and position.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>vertical_handle</span>(<span class='ident'>bar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Bar</span>, <span class='ident'>track</span>: <span class='ident'>Rect</span>, <span class='ident'>total_len</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-    <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>partial_max</span>(<span class='ident'>bar</span>.<span class='ident'>start_overlap</span> <span class='op'>-</span> <span class='ident'>bar</span>.<span class='ident'>offset</span>, <span class='number'>0.0</span>);
-    <span class='kw'>let</span> <span class='ident'>max_offset</span> <span class='op'>=</span> <span class='ident'>bar</span>.<span class='ident'>scrollable</span>.<span class='ident'>len</span>() <span class='op'>-</span> (<span class='ident'>bar</span>.<span class='ident'>offset</span>.<span class='ident'>abs</span>() <span class='op'>-</span> <span class='ident'>offset</span>);
-    <span class='kw'>let</span> <span class='ident'>track_h</span> <span class='op'>=</span> <span class='ident'>track</span>.<span class='ident'>h</span>();
-    <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>track_h</span>, <span class='number'>0.0</span>, <span class='ident'>total_len</span>, <span class='number'>0.0</span>, <span class='ident'>track_h</span>);
-    <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>offset</span>, <span class='number'>0.0</span>, <span class='ident'>max_offset</span>, <span class='ident'>track</span>.<span class='ident'>top</span>(), <span class='ident'>track</span>.<span class='ident'>bottom</span>() <span class='op'>+</span> <span class='ident'>h</span>) <span class='op'>-</span> <span class='ident'>h</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-    <span class='ident'>Rect</span> {
-        <span class='ident'>x</span>: <span class='ident'>track</span>.<span class='ident'>x</span>,
-        <span class='ident'>y</span>: <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='ident'>y</span>, <span class='ident'>h</span>),
-    }
-}
-
-<span class='doccomment'>/// The area for a horizontal scrollbar track as its dimensions and position.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>horizontal_track</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-    <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>thickness</span>;
-    <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>y</span>() <span class='op'>-</span> <span class='ident'>container</span>.<span class='ident'>h</span>() <span class='op'>/</span> <span class='number'>2.0</span> <span class='op'>+</span> <span class='ident'>h</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-    <span class='ident'>Rect</span> {
-        <span class='ident'>x</span>: <span class='ident'>container</span>.<span class='ident'>x</span>,
-        <span class='ident'>y</span>: <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='ident'>y</span>, <span class='ident'>h</span>),
-    }
-}
-
-<span class='doccomment'>/// The area for a horizontal scrollbar handle as its dimensions and position.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>horizontal_handle</span>(<span class='ident'>bar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Bar</span>, <span class='ident'>track</span>: <span class='ident'>Rect</span>, <span class='ident'>total_len</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-    <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>partial_max</span>(<span class='ident'>bar</span>.<span class='ident'>offset</span> <span class='op'>-</span> <span class='ident'>bar</span>.<span class='ident'>start_overlap</span>, <span class='number'>0.0</span>);
-    <span class='kw'>let</span> <span class='ident'>max_offset</span> <span class='op'>=</span> <span class='ident'>bar</span>.<span class='ident'>scrollable</span>.<span class='ident'>len</span>() <span class='op'>-</span> (<span class='ident'>bar</span>.<span class='ident'>offset</span>.<span class='ident'>abs</span>() <span class='op'>-</span> <span class='ident'>offset</span>);
-    <span class='kw'>let</span> <span class='ident'>track_w</span> <span class='op'>=</span> <span class='ident'>track</span>.<span class='ident'>w</span>();
-    <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>track_w</span>, <span class='number'>0.0</span>, <span class='ident'>total_len</span>, <span class='number'>0.0</span>, <span class='ident'>track_w</span>);
-    <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>map_range</span>(<span class='ident'>offset</span>, <span class='number'>0.0</span>, <span class='ident'>max_offset</span>, <span class='ident'>track</span>.<span class='ident'>left</span>(), <span class='ident'>track</span>.<span class='ident'>right</span>() <span class='op'>-</span> <span class='ident'>w</span>) <span class='op'>+</span> <span class='ident'>w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-    <span class='ident'>Rect</span> {
-        <span class='ident'>x</span>: <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='ident'>x</span>, <span class='ident'>w</span>),
-        <span class='ident'>y</span>: <span class='ident'>track</span>.<span class='ident'>y</span>,
-    }
-}
-
-
-<span class='doccomment'>/// Whether or not the mouse is currently over the Bar, and if so, which Elem.</span>
-<span class='kw'>fn</span> <span class='ident'>is_over_elem</span>(<span class='ident'>track</span>: <span class='ident'>Rect</span>, <span class='ident'>handle</span>: <span class='ident'>Rect</span>, <span class='ident'>mouse</span>: <span class='kw-2'>&amp;</span><span class='ident'>Mouse</span>, <span class='ident'>mouse_scalar</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Elem</span><span class='op'>&gt;</span> {
-    <span class='kw'>if</span> <span class='ident'>handle</span>.<span class='ident'>is_over</span>(<span class='ident'>mouse</span>.<span class='ident'>xy</span>) {
-        <span class='prelude-val'>Some</span>(<span class='ident'>Elem</span>::<span class='ident'>Handle</span>(<span class='ident'>mouse_scalar</span>))
-    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>track</span>.<span class='ident'>is_over</span>(<span class='ident'>mouse</span>.<span class='ident'>xy</span>) {
-        <span class='prelude-val'>Some</span>(<span class='ident'>Elem</span>::<span class='ident'>Track</span>)
-    } <span class='kw'>else</span> {
-        <span class='prelude-val'>None</span>
-    }
-}
-
-<span class='doccomment'>/// Determine the new current `Interaction` for a Bar.</span>
-<span class='doccomment'>/// The given mouse_scalar is the position of the mouse to be recorded by the Handle.</span>
-<span class='doccomment'>/// For vertical handle this is mouse.y, for horizontal this is mouse.x.</span>
-<span class='kw'>fn</span> <span class='ident'>new_interaction</span>(<span class='ident'>bar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Bar</span>,
-                   <span class='ident'>is_over_elem</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Elem</span><span class='op'>&gt;</span>,
-                   <span class='ident'>mouse</span>: <span class='kw-2'>&amp;</span><span class='ident'>Mouse</span>,
-                   <span class='ident'>mouse_scalar</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Interaction</span>
-{
-    <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Interaction</span>::{<span class='ident'>Normal</span>, <span class='ident'>Highlighted</span>, <span class='ident'>Clicked</span>};
-
-    <span class='comment'>// If there&#39;s no need for a scroll bar, leave the interaction as `Normal`.</span>
-    <span class='kw'>if</span> <span class='ident'>bar</span>.<span class='ident'>scrollable</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0.0</span> {
-        <span class='ident'>Normal</span>
-    } <span class='kw'>else</span> {
-        <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>Elem</span>::<span class='ident'>Handle</span>;
-        <span class='kw'>use</span> <span class='ident'>mouse</span>::<span class='ident'>ButtonPosition</span>::{<span class='ident'>Down</span>, <span class='ident'>Up</span>};
-        <span class='kw'>match</span> (<span class='ident'>is_over_elem</span>, <span class='ident'>bar</span>.<span class='ident'>interaction</span>, <span class='ident'>mouse</span>.<span class='ident'>left</span>.<span class='ident'>position</span>) {
-            (<span class='prelude-val'>Some</span>(_),    <span class='ident'>Normal</span>,             <span class='ident'>Down</span>) <span class='op'>=&gt;</span> <span class='ident'>Normal</span>,
-            (<span class='prelude-val'>Some</span>(<span class='ident'>elem</span>), _,                  <span class='ident'>Up</span>)   <span class='op'>=&gt;</span> <span class='ident'>Highlighted</span>(<span class='ident'>elem</span>),
-            (<span class='prelude-val'>Some</span>(_),    <span class='ident'>Highlighted</span>(_),     <span class='ident'>Down</span>) <span class='op'>|</span>
-            (_,          <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(_)), <span class='ident'>Down</span>) <span class='op'>=&gt;</span> <span class='ident'>Clicked</span>(<span class='ident'>Handle</span>(<span class='ident'>mouse_scalar</span>)),
-            (_,          <span class='ident'>Clicked</span>(<span class='ident'>elem</span>),      <span class='ident'>Down</span>) <span class='op'>=&gt;</span> <span class='ident'>Clicked</span>(<span class='ident'>elem</span>),
-            _                                      <span class='op'>=&gt;</span> <span class='ident'>Normal</span>,
-        }
-    }
-}
-
-
-
-<span class='doccomment'>/// Whether or not the scrollbar should capture the mouse given previous and new states.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>capture_mouse</span>(<span class='ident'>prev</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>, <span class='ident'>new</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>maybe_vertical</span>, <span class='ident'>new</span>.<span class='ident'>maybe_vertical</span>) {
-        (<span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>prev_bar</span>), <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>new_bar</span>)) <span class='op'>=&gt;</span>
-            <span class='kw'>match</span> (<span class='ident'>prev_bar</span>.<span class='ident'>interaction</span>, <span class='ident'>new_bar</span>.<span class='ident'>interaction</span>) {
-                (<span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_)) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='boolval'>true</span>,
-                _ <span class='op'>=&gt;</span> (),
-            },
-        _ <span class='op'>=&gt;</span> (),
-    }
-    <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>maybe_horizontal</span>, <span class='ident'>new</span>.<span class='ident'>maybe_horizontal</span>) {
-        (<span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>prev_bar</span>), <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>new_bar</span>)) <span class='op'>=&gt;</span>
-            <span class='kw'>match</span> (<span class='ident'>prev_bar</span>.<span class='ident'>interaction</span>, <span class='ident'>new_bar</span>.<span class='ident'>interaction</span>) {
-                (<span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_)) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='boolval'>true</span>,
-                _ <span class='op'>=&gt;</span> (),
-            },
-        _ <span class='op'>=&gt;</span> (),
-    }
-    <span class='boolval'>false</span>
-}
-
-
-<span class='doccomment'>/// Whether or not the scrollbar should uncapture the mouse given previous and new states.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>uncapture_mouse</span>(<span class='ident'>prev</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>, <span class='ident'>new</span>: <span class='kw-2'>&amp;</span><span class='ident'>State</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>maybe_vertical</span>, <span class='ident'>new</span>.<span class='ident'>maybe_vertical</span>) {
-        (<span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>prev_bar</span>), <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>new_bar</span>)) <span class='op'>=&gt;</span>
-            <span class='kw'>match</span> (<span class='ident'>prev_bar</span>.<span class='ident'>interaction</span>, <span class='ident'>new_bar</span>.<span class='ident'>interaction</span>) {
-                (<span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(_)) <span class='op'>|</span>
-                (<span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Normal</span>)         <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='boolval'>true</span>,
-                _ <span class='op'>=&gt;</span> (),
-            },
-        _ <span class='op'>=&gt;</span> (),
-    }
-    <span class='kw'>match</span> (<span class='ident'>prev</span>.<span class='ident'>maybe_horizontal</span>, <span class='ident'>new</span>.<span class='ident'>maybe_horizontal</span>) {
-        (<span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>prev_bar</span>), <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>new_bar</span>)) <span class='op'>=&gt;</span>
-            <span class='kw'>match</span> (<span class='ident'>prev_bar</span>.<span class='ident'>interaction</span>, <span class='ident'>new_bar</span>.<span class='ident'>interaction</span>) {
-                (<span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Highlighted</span>(_)) <span class='op'>|</span>
-                (<span class='ident'>Interaction</span>::<span class='ident'>Clicked</span>(_), <span class='ident'>Interaction</span>::<span class='ident'>Normal</span>)         <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='boolval'>true</span>,
-                _ <span class='op'>=&gt;</span> (),
-            },
-        _ <span class='op'>=&gt;</span> (),
-    }
-    <span class='boolval'>false</span>
-}
-
-
-<span class='attribute'>#[<span class='ident'>test</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>test_bar_new_no_scroll</span>() {
-    <span class='comment'>// Create a `Bar` that shouldn&#39;t scroll.</span>
-    <span class='kw'>let</span> <span class='ident'>visible</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='op'>-</span><span class='number'>5.0</span>, <span class='number'>5.0</span>);
-    <span class='kw'>let</span> <span class='ident'>kids</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='op'>-</span><span class='number'>3.0</span>, <span class='number'>3.0</span>);
-    <span class='kw'>let</span> <span class='ident'>maybe_bar</span> <span class='op'>=</span> <span class='ident'>Bar</span>::<span class='ident'>new_if_scrollable</span>(<span class='ident'>visible</span>, <span class='ident'>kids</span>, <span class='prelude-val'>None</span>);
-    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>maybe_bar</span>, <span class='prelude-val'>None</span>);
-}
-
-<span class='attribute'>#[<span class='ident'>test</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>test_bar_new_no_scroll_rev_range</span>() {
-    <span class='comment'>// Now with a reversed range.</span>
-    <span class='kw'>let</span> <span class='ident'>visible</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='number'>5.0</span>, <span class='op'>-</span><span class='number'>5.0</span>);
-    <span class='kw'>let</span> <span class='ident'>kids</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='number'>3.0</span>, <span class='op'>-</span><span class='number'>3.0</span>);
-    <span class='kw'>let</span> <span class='ident'>maybe_bar</span> <span class='op'>=</span> <span class='ident'>Bar</span>::<span class='ident'>new_if_scrollable</span>(<span class='ident'>visible</span>, <span class='ident'>kids</span>, <span class='prelude-val'>None</span>);
-    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>maybe_bar</span>, <span class='prelude-val'>None</span>);
-}
-
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

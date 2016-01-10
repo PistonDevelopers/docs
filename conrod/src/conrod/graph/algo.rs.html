@@ -316,54 +316,6 @@
 <span id="273">273</span>
 <span id="274">274</span>
 <span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
-<span id="283">283</span>
-<span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-<span id="288">288</span>
-<span id="289">289</span>
-<span id="290">290</span>
-<span id="291">291</span>
-<span id="292">292</span>
-<span id="293">293</span>
-<span id="294">294</span>
-<span id="295">295</span>
-<span id="296">296</span>
-<span id="297">297</span>
-<span id="298">298</span>
-<span id="299">299</span>
-<span id="300">300</span>
-<span id="301">301</span>
-<span id="302">302</span>
-<span id="303">303</span>
-<span id="304">304</span>
-<span id="305">305</span>
-<span id="306">306</span>
-<span id="307">307</span>
-<span id="308">308</span>
-<span id="309">309</span>
-<span id="310">310</span>
-<span id="311">311</span>
-<span id="312">312</span>
-<span id="313">313</span>
-<span id="314">314</span>
-<span id="315">315</span>
-<span id="316">316</span>
-<span id="317">317</span>
-<span id="318">318</span>
-<span id="319">319</span>
-<span id="320">320</span>
-<span id="321">321</span>
-<span id="322">322</span>
-<span id="323">323</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! This module was created in order to keep the `graph` module clean and focused upon the</span>
 <span class='doccomment'>//! **Graph** data structure behaviour.</span>
@@ -374,13 +326,9 @@
 
 <span class='kw'>use</span> <span class='ident'>daggy</span>::<span class='ident'>Walker</span>;
 <span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Point</span>, <span class='ident'>Rect</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span>;
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>depth_order</span>::<span class='ident'>Visitable</span>;
-<span class='kw'>use</span> <span class='ident'>super</span>::{
-    <span class='ident'>Graph</span>,
-    <span class='ident'>GraphIndex</span>,
-    <span class='ident'>Node</span>,
-    <span class='ident'>NodeIndex</span>,
-};
+<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>EdgeIndex</span>, <span class='ident'>Graph</span>, <span class='ident'>GraphIndex</span>, <span class='ident'>NodeIndex</span>};
 <span class='kw'>use</span> <span class='ident'>widget</span>;
 
 
@@ -429,8 +377,11 @@
 
                 <span class='comment'>// Check to see if our parent is a scrollable widget and whether or not we need to</span>
                 <span class='comment'>// update the overlap.</span>
+                <span class='comment'>//</span>
+                <span class='comment'>// TODO: Consider &quot;cropped area&quot; here once implemented instead of scrolling.</span>
                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>depth_parent_widget</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>depth_parent</span>) {
-                    <span class='kw'>if</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_scrolling</span>.<span class='ident'>is_some</span>() {
+                    <span class='kw'>if</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>()
+                    <span class='op'>||</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
 
                         <span class='comment'>// If the depth_parent is also a **Graphic** parent, there is no need to</span>
                         <span class='comment'>// calculate overlap as the child is a graphical element of the parent and</span>
@@ -471,9 +422,16 @@
                     }
                 },
                 <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>scrolling</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget_scroll_state</span>(<span class='ident'>idx</span>) {
-                        <span class='kw'>if</span> <span class='ident'>scrolling</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
-                            <span class='kw'>return</span> <span class='boolval'>true</span>;
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>x_scroll_state</span>) <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span> {
+                            <span class='kw'>if</span> <span class='ident'>x_scroll_state</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>, <span class='ident'>widget</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>) {
+                                <span class='kw'>return</span> <span class='boolval'>true</span>;
+                            }
+                        }
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>y_scroll_state</span>) <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span> {
+                            <span class='kw'>if</span> <span class='ident'>y_scroll_state</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>, <span class='ident'>widget</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>) {
+                                <span class='kw'>return</span> <span class='boolval'>true</span>;
+                            }
                         }
                     }
                 },
@@ -506,7 +464,8 @@
         })
         .<span class='ident'>find</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>idx</span><span class='op'>|</span> {
             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
-                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>maybe_scrolling</span>.<span class='ident'>is_some</span>() {
+                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>()
+                <span class='op'>||</span> <span class='ident'>container</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
                     <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>rect</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
                         <span class='kw'>return</span> <span class='boolval'>true</span>;
                     }
@@ -518,176 +477,121 @@
 }
 
 
-<span class='doccomment'>/// The box that bounds the widget with the given ID as well as all its widget kids.</span>
+<span class='doccomment'>/// Find the absolute `Rect` that bounds all widgets that are `Depth` children of the widget at the</span>
+<span class='doccomment'>/// given `idx`.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// Bounds are given as (max y, min y, min x, max x) from the given target xy position.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// If no target xy is given, the bounds will be given relative to the centre of the widget.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// If `use_kid_area` is true, then bounds will be calculated relative to the centre of the</span>
-<span class='doccomment'>/// `kid_area` of the widget, rather than the regular dimensions.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The `maybe_deepest_parent_idx` refers to the index of the parent that began the recursion, and</span>
-<span class='doccomment'>/// is used when calculating the &quot;visible area&quot; for each widget. If `None` is given, it means we</span>
-<span class='doccomment'>/// are the first widget in the recursion, and we will use ourselves as the deepest_parent_idx.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>bounding_box</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
-                               <span class='ident'>include_self</span>: <span class='ident'>bool</span>,
-                               <span class='ident'>maybe_target_xy</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Point</span><span class='op'>&gt;</span>,
-                               <span class='ident'>use_kid_area</span>: <span class='ident'>bool</span>,
-                               <span class='ident'>idx</span>: <span class='ident'>I</span>,
-                               <span class='ident'>maybe_deepest_parent_idx</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>
+<span class='doccomment'>/// FIXME: This currently uses call stack recursion to do a depth-first search through all</span>
+<span class='doccomment'>/// depth_children for the total bounding box. This should use a proper `Dfs` type with it&#39;s own</span>
+<span class='doccomment'>/// stack for safer traversal that won&#39;t blow the stack on hugely deep GUIs.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>kids_bounding_box</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
+                            <span class='ident'>prev_updated</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
+                            <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GraphIndex</span>,
 {
-    <span class='ident'>graph</span>.<span class='ident'>node_index</span>(<span class='ident'>idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> {
-        <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>container</span><span class='op'>|</span> {
+    <span class='comment'>// When traversing the `depth_kids`, we only want to visit those who:</span>
+    <span class='comment'>// - are not also graphic kid widgets.</span>
+    <span class='comment'>// - are currently active within the `Ui`. In other words, they *were* updated during the last</span>
+    <span class='comment'>// call to `Ui::set_widgets`.</span>
+    <span class='kw'>let</span> <span class='ident'>kid_filter</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>|</span><span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>_e</span>, <span class='ident'>n</span><span class='op'>|</span> <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='kw'>let</span> <span class='ident'>is_not_graphic_kid</span> <span class='op'>=</span> <span class='op'>!</span><span class='ident'>g</span>.<span class='ident'>graphic_parent</span>::<span class='op'>&lt;</span>_, <span class='ident'>NodeIndex</span><span class='op'>&gt;</span>(<span class='ident'>n</span>).<span class='ident'>is_some</span>();
+        <span class='kw'>let</span> <span class='ident'>is_set</span> <span class='op'>=</span> <span class='ident'>prev_updated</span>.<span class='ident'>contains</span>(<span class='kw-2'>&amp;</span><span class='ident'>n</span>);
+        <span class='ident'>is_not_graphic_kid</span> <span class='op'>&amp;&amp;</span> <span class='ident'>is_set</span>
+    };
 
-            <span class='comment'>// If we&#39;re to use the kid area, we&#39;ll get the rect from that, otherwise we&#39;ll use</span>
-            <span class='comment'>// the regular dim and xy.</span>
-            <span class='comment'>//</span>
-            <span class='comment'>// If we&#39;re given some deepest parent index, we must only use the visible area within</span>
-            <span class='comment'>// the depth range that approaches it.</span>
-            <span class='kw'>let</span> <span class='ident'>rect</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>deepest_parent_idx</span>) <span class='op'>=</span> <span class='ident'>maybe_deepest_parent_idx</span> {
-                <span class='kw'>match</span> <span class='ident'>visible_area_of_widget_within_depth</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>, <span class='ident'>deepest_parent_idx</span>) {
-                    <span class='prelude-val'>Some</span>(<span class='ident'>visible_rect</span>) <span class='op'>=&gt;</span> <span class='kw'>if</span> <span class='ident'>use_kid_area</span> {
-                        <span class='kw'>match</span> <span class='ident'>visible_rect</span>.<span class='ident'>overlap</span>(<span class='ident'>container</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>) {
-                            <span class='prelude-val'>Some</span>(<span class='ident'>visible_kid_area</span>) <span class='op'>=&gt;</span> <span class='ident'>visible_kid_area</span>,
-                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>None</span>,
-                        }
-                    } <span class='kw'>else</span> {
-                        <span class='ident'>visible_rect</span>
-                    },
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>None</span>,
-                }
-            } <span class='kw'>else</span> {
-                <span class='kw'>if</span> <span class='ident'>use_kid_area</span> { <span class='ident'>container</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span> } <span class='kw'>else</span> { <span class='ident'>container</span>.<span class='ident'>rect</span> }
-            };
-
-            <span class='comment'>// Determine our bounds relative to the target_xy position.</span>
-            <span class='kw'>let</span> (<span class='ident'>xy</span>, <span class='ident'>dim</span>) <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>xy_dim</span>();
-            <span class='kw'>let</span> <span class='ident'>target_xy</span> <span class='op'>=</span> <span class='ident'>maybe_target_xy</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>xy</span>);
-            <span class='kw'>let</span> <span class='ident'>relative_target_xy</span> <span class='op'>=</span> ::<span class='ident'>vecmath</span>::<span class='ident'>vec2_sub</span>(<span class='ident'>xy</span>, <span class='ident'>target_xy</span>);
-            <span class='kw'>let</span> <span class='ident'>relative_bounds</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>(<span class='ident'>relative_target_xy</span>, <span class='ident'>dim</span>);
-
-            <span class='comment'>// Get the deepest parent so that we can consider it in the calculation of the kids</span>
-            <span class='comment'>// bounds.</span>
-            <span class='kw'>let</span> <span class='ident'>deepest_parent_idx</span> <span class='op'>=</span> <span class='ident'>maybe_deepest_parent_idx</span>.<span class='ident'>or</span>(<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>));
+    <span class='comment'>// A function for doing a recursive depth-first search through all depth kids that satisfy the</span>
+    <span class='comment'>// `kid_filter` (see above) in order to find the maximum &quot;bounding box&quot;.</span>
+    <span class='kw'>fn</span> <span class='ident'>kids_dfs</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
+                   <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>,
+                   <span class='ident'>deepest_parent_idx</span>: <span class='ident'>NodeIndex</span>,
+                   <span class='ident'>kid_filter</span>: <span class='kw-2'>&amp;</span><span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>
+        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>EdgeIndex</span>, <span class='ident'>NodeIndex</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>,
+    {
+        <span class='comment'>// If we&#39;re given some deepest parent index, we must only use the visible area within</span>
+        <span class='comment'>// the depth range that approaches it.</span>
+        <span class='ident'>visible_area_of_widget_within_depth</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>, <span class='ident'>deepest_parent_idx</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>rect</span><span class='op'>|</span> {
 
             <span class='comment'>// An iterator yielding the bounding_box returned by each of our children.</span>
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>kids_bounds</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_children</span>(<span class='ident'>idx</span>)
-                .<span class='ident'>filter</span>(<span class='op'>|</span><span class='ident'>g</span>, _, <span class='ident'>n</span><span class='op'>|</span> {
-                    <span class='kw'>let</span> <span class='ident'>is_pickable</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>g</span>[<span class='ident'>n</span>] {
-                        <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=&gt;</span> <span class='op'>!</span><span class='ident'>container</span>.<span class='ident'>picking_passthrough</span>,
-                        _ <span class='op'>=&gt;</span> <span class='boolval'>false</span>,
-                    };
-                    <span class='kw'>let</span> <span class='ident'>is_graphic</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>graphic_parent</span>::<span class='op'>&lt;</span>_, <span class='ident'>NodeIndex</span><span class='op'>&gt;</span>(<span class='ident'>n</span>).<span class='ident'>is_some</span>();
-                    <span class='ident'>is_pickable</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='ident'>is_graphic</span>
-                })
-                .<span class='ident'>iter</span>(<span class='ident'>graph</span>).<span class='ident'>nodes</span>()
-                .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>n</span><span class='op'>|</span> {
-                    <span class='ident'>bounding_box</span>(<span class='ident'>graph</span>, <span class='boolval'>true</span>, <span class='prelude-val'>Some</span>(<span class='ident'>target_xy</span>), <span class='boolval'>false</span>, <span class='ident'>n</span>, <span class='ident'>deepest_parent_idx</span>)
-                });
+            <span class='kw'>let</span> <span class='ident'>kids_bounds</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_children</span>(<span class='ident'>idx</span>).<span class='ident'>filter</span>(<span class='ident'>kid_filter</span>).<span class='ident'>iter</span>(<span class='ident'>graph</span>).<span class='ident'>nodes</span>()
+                .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>n</span><span class='op'>|</span> <span class='ident'>kids_dfs</span>(<span class='ident'>graph</span>, <span class='ident'>n</span>, <span class='ident'>deepest_parent_idx</span>, <span class='ident'>kid_filter</span>));
 
-            <span class='comment'>// Work out the initial bounds to use for our max_bounds fold.</span>
-            <span class='kw'>let</span> <span class='ident'>init_bounds</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>include_self</span> {
-                <span class='ident'>relative_bounds</span>()
-            } <span class='kw'>else</span> {
-                <span class='kw'>match</span> <span class='ident'>kids_bounds</span>.<span class='ident'>next</span>() {
-                    <span class='prelude-val'>Some</span>(<span class='ident'>first_kid_bounds</span>) <span class='op'>=&gt;</span> <span class='ident'>first_kid_bounds</span>,
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>None</span>,
-                }
-            };
+            <span class='ident'>kids_bounds</span>.<span class='ident'>fold</span>(<span class='ident'>rect</span>, <span class='op'>|</span><span class='ident'>max</span>, <span class='ident'>next</span><span class='op'>|</span> <span class='ident'>max</span>.<span class='ident'>max</span>(<span class='ident'>next</span>))
+        })
+    }
 
-            <span class='comment'>// Fold the Rect for each kid into the total encompassing bounds.</span>
-            <span class='prelude-val'>Some</span>(<span class='ident'>kids_bounds</span>.<span class='ident'>fold</span>(<span class='ident'>init_bounds</span>, <span class='op'>|</span><span class='ident'>a</span>, <span class='ident'>b</span><span class='op'>|</span> <span class='ident'>a</span>.<span class='ident'>max</span>(<span class='ident'>b</span>)))
+    <span class='ident'>graph</span>.<span class='ident'>node_index</span>(<span class='ident'>idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> {
+        <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span>_<span class='op'>|</span> {
+
+            <span class='comment'>// An iterator yielding the bounding_box returned by each of our children.</span>
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>kids_bounds</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_children</span>(<span class='ident'>idx</span>).<span class='ident'>filter</span>(<span class='ident'>kid_filter</span>).<span class='ident'>iter</span>(<span class='ident'>graph</span>).<span class='ident'>nodes</span>()
+                .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>n</span><span class='op'>|</span> <span class='ident'>kids_dfs</span>(<span class='ident'>graph</span>, <span class='ident'>n</span>, <span class='ident'>idx</span>, <span class='ident'>kid_filter</span>));
+
+            <span class='ident'>kids_bounds</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>first</span><span class='op'>|</span> {
+                <span class='ident'>kids_bounds</span>.<span class='ident'>fold</span>(<span class='ident'>first</span>, <span class='op'>|</span><span class='ident'>max</span>, <span class='ident'>next</span><span class='op'>|</span> <span class='ident'>max</span>.<span class='ident'>max</span>(<span class='ident'>next</span>))
+            })
         })
     })
 }
 
 
-
-<span class='doccomment'>/// Calculate the total scroll offset for the widget with the given index.</span>
+<span class='doccomment'>/// Return the `scroll_offset` for the widget at the given index.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// The offset is retrieved from the widget that is the immediate `depth_parent` of the widget at</span>
+<span class='doccomment'>/// the given `idx` unless:</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// - the immediate `depth_parent` of `idx` is also a `graphic_parent` to `idx`. In this case,</span>
+<span class='doccomment'>/// `NO_OFFSET` will be returned, as child widgets that are graphical elements of their parents</span>
+<span class='doccomment'>/// should not be affected by scrolling.</span>
+<span class='doccomment'>/// - one of the position parents also has the same `depth_parent`. In this case, `NO_OFFSET` will</span>
+<span class='doccomment'>/// be returned, as we know that our scroll offset has already been applied via the widget to which</span>
+<span class='doccomment'>/// we are relatively positioned.</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>scroll_offset</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>GraphIndex</span><span class='op'>&gt;</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='ident'>Point</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>offset</span> <span class='op'>=</span> [<span class='number'>0.0</span>, <span class='number'>0.0</span>];
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>node_index</span>(<span class='ident'>idx</span>) {
-        <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>idx</span>,
-        <span class='comment'>// If the ID is not yet present within the graph, just return the zeroed offset.</span>
-        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>offset</span>,
-    };
+    <span class='kw'>const</span> <span class='ident'>NO_OFFSET</span>: <span class='ident'>Point</span> <span class='op'>=</span> [<span class='number'>0.0</span>, <span class='number'>0.0</span>];
 
-    <span class='comment'>// Check the widget at the given index for any scroll offset and add it to our total offset.</span>
-    <span class='kw'>let</span> <span class='ident'>add_to_offset</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>offset</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Point</span>, <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span><span class='op'>|</span> {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>scrolling</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget_scroll_state</span>(<span class='ident'>idx</span>) {
-            <span class='kw'>let</span> <span class='ident'>scroll_offset</span> <span class='op'>=</span> <span class='ident'>scrolling</span>.<span class='ident'>kids_pos_offset</span>();
-            <span class='ident'>offset</span>[<span class='number'>0</span>] <span class='op'>+=</span> <span class='ident'>scroll_offset</span>[<span class='number'>0</span>].<span class='ident'>round</span>();
-            <span class='ident'>offset</span>[<span class='number'>1</span>] <span class='op'>+=</span> <span class='ident'>scroll_offset</span>[<span class='number'>1</span>].<span class='ident'>round</span>();
-        }
-    };
+    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_index</span>(<span class='ident'>idx</span>) {
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>depth_parent</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent</span>(<span class='ident'>idx</span>) {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>depth_parent_widget</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>depth_parent</span>) {
+                <span class='kw'>if</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>()
+                <span class='op'>||</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
 
-    <span class='comment'>// We need to calculate the offset by summing the offset of each scrollable parent, while</span>
-    <span class='comment'>// considering relative positioning and graphic parents.</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>depth_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent_recursion</span>(<span class='ident'>idx</span>);
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>depth_parent</span>) <span class='op'>=</span> <span class='ident'>depth_parents</span>.<span class='ident'>next_node</span>(<span class='ident'>graph</span>) {
-
-        <span class='comment'>// If the widget has some parent graphic edge, we may need to skip its offset.</span>
-        <span class='comment'>// This is because **Graphic** edges describe that the child widget is a graphical</span>
-        <span class='comment'>// element of the parent widget, so despite being instantiated at a higher depth, we</span>
-        <span class='comment'>// should consider its offset equal to the graphic parent.</span>
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>graphic_parent</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>graphic_parent</span>(<span class='ident'>idx</span>) {
-            <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>position_parent</span>::<span class='op'>&lt;</span>_, <span class='ident'>NodeIndex</span><span class='op'>&gt;</span>(<span class='ident'>idx</span>) {
-
-                <span class='comment'>// If we have a graphic parent but no position parent, we should skip straight</span>
-                <span class='comment'>// to the graphic parent.</span>
-                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {
-                    <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>graphic_parent</span>;
-                    <span class='ident'>depth_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent_recursion</span>(<span class='ident'>idx</span>);
-                    <span class='kw'>continue</span>;
-                },
-
-                <span class='comment'>// Otherwise, we need to consider the given position parent.</span>
-                <span class='prelude-val'>Some</span>(<span class='ident'>position_parent</span>) <span class='op'>=&gt;</span> {
-
-                    <span class='comment'>// If our position parent is equal to or some child of our graphic parent,</span>
-                    <span class='comment'>// we don&#39;t need any offset.</span>
-                    <span class='comment'>// TODO: Review this part of the algorithm.</span>
-                    <span class='kw'>if</span> <span class='ident'>position_parent</span> <span class='op'>==</span> <span class='ident'>graphic_parent</span>
-                    <span class='op'>||</span> <span class='ident'>graph</span>.<span class='ident'>does_recursive_depth_edge_exist</span>(<span class='ident'>graphic_parent</span>, <span class='ident'>position_parent</span>) {
-                        <span class='kw'>return</span> <span class='ident'>offset</span>;
+                    <span class='comment'>// If our depth parent is also a graphic parent, we don&#39;t want any offset.</span>
+                    <span class='kw'>if</span> <span class='ident'>graph</span>.<span class='ident'>graphic_parent_recursion</span>(<span class='ident'>idx</span>)
+                        .<span class='ident'>any</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>_g</span>, <span class='ident'>_e</span>, <span class='ident'>n</span><span class='op'>|</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='ident'>depth_parent</span>)
+                    {
+                        <span class='kw'>return</span> <span class='ident'>NO_OFFSET</span>;
                     }
-                },
 
+                    <span class='comment'>// If we have a position_parent along the axis whose depth_parent is the same</span>
+                    <span class='comment'>// as ours, then the offset has already been applied via our relative</span>
+                    <span class='comment'>// positioning.</span>
+                    <span class='kw'>let</span> <span class='ident'>is_already_offset</span> <span class='op'>=</span> <span class='op'>|</span><span class='kw-2'>mut</span> <span class='ident'>position_parents</span>: <span class='ident'>super</span>::<span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span><span class='op'>|</span> {
+                        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>position_parent</span>) <span class='op'>=</span> <span class='ident'>position_parents</span>.<span class='ident'>next_node</span>(<span class='ident'>graph</span>) {
+                            <span class='kw'>if</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent_recursion</span>(<span class='ident'>position_parent</span>)
+                                .<span class='ident'>any</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>_g</span>, <span class='ident'>_e</span>, <span class='ident'>n</span><span class='op'>|</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='ident'>depth_parent</span>)
+                            {
+                                <span class='kw'>return</span> <span class='boolval'>true</span>;
+                            }
+                        }
+                        <span class='boolval'>false</span>
+                    };
+
+                    <span class='kw'>let</span> <span class='ident'>x_offset</span> <span class='op'>=</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>scroll</span><span class='op'>|</span> {
+                        <span class='kw'>let</span> <span class='ident'>position_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>x_position_parent_recursion</span>(<span class='ident'>idx</span>);
+                        <span class='kw'>if</span> <span class='ident'>is_already_offset</span>(<span class='ident'>position_parents</span>) { <span class='number'>0.0</span> } <span class='kw'>else</span> { <span class='ident'>scroll</span>.<span class='ident'>offset</span> }
+                    }).<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>);
+
+                    <span class='kw'>let</span> <span class='ident'>y_offset</span> <span class='op'>=</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>scroll</span><span class='op'>|</span> {
+                        <span class='kw'>let</span> <span class='ident'>position_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>y_position_parent_recursion</span>(<span class='ident'>idx</span>);
+                        <span class='kw'>if</span> <span class='ident'>is_already_offset</span>(<span class='ident'>position_parents</span>) { <span class='number'>0.0</span> } <span class='kw'>else</span> { <span class='ident'>scroll</span>.<span class='ident'>offset</span> }
+                    }).<span class='ident'>unwrap_or</span>(<span class='number'>0.0</span>);
+
+                    <span class='kw'>return</span> [<span class='ident'>x_offset</span>, <span class='ident'>y_offset</span>];
+                }
             }
         }
-
-        <span class='comment'>// Recursively check all nodes with incoming `Position` edges for a parent that</span>
-        <span class='comment'>// matches our own parent. If any match, then we don&#39;t need to calculate any</span>
-        <span class='comment'>// additional offset as the widget we are being positioned relatively to has</span>
-        <span class='comment'>// already applied the necessary scroll offset.</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>position_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>position_parent_recursion</span>(<span class='ident'>idx</span>);
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>position_parent</span>) <span class='op'>=</span> <span class='ident'>position_parents</span>.<span class='ident'>next_node</span>(<span class='ident'>graph</span>) {
-
-            <span class='comment'>// If our parent depth edge is also the parent position edge, we&#39;ll add</span>
-            <span class='comment'>// offset for that parent before finishing.</span>
-            <span class='kw'>if</span> <span class='ident'>depth_parent</span> <span class='op'>==</span> <span class='ident'>position_parent</span> {
-                <span class='ident'>add_to_offset</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>offset</span>, <span class='ident'>depth_parent</span>);
-                <span class='kw'>return</span> <span class='ident'>offset</span>;
-            }
-
-            <span class='comment'>// If our position_parent has some depth parent or grandparent that matches our</span>
-            <span class='comment'>// current depth_parent_idx, we can assume that the scroll offset for our widget</span>
-            <span class='comment'>// has already been calculated by this position_parent.</span>
-            <span class='kw'>if</span> <span class='ident'>graph</span>.<span class='ident'>does_recursive_depth_edge_exist</span>(<span class='ident'>depth_parent</span>, <span class='ident'>position_parent</span>) {
-                <span class='kw'>return</span> <span class='ident'>offset</span>;
-            }
-        }
-
-        <span class='ident'>add_to_offset</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>offset</span>, <span class='ident'>depth_parent</span>);
-
-        <span class='comment'>// Set the parent as the new current idx and continue traversing.</span>
-        <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>depth_parent</span>;
     }
 
-    <span class='ident'>offset</span>
+    <span class='ident'>NO_OFFSET</span>
 }
-
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
