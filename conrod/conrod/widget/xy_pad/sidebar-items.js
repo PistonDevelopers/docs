@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Style","Styling for the XYPad, necessary for constructing its renderable Element."],["XYPad","Used for displaying and controlling a 2D point on a cartesian plane within a given range."]]});
+initSidebarItems({"struct":[["Style","Unique graphical styling for the XYPad."],["XYPad","Used for displaying and controlling a 2D point on a cartesian plane within a given range."]]});

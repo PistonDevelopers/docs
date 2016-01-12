@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["NumberDialer","A widget for precision control over any digit within a value."],["Style","Styling for the NumberDialer, necessary for constructing its renderable Element."]]});
+initSidebarItems({"struct":[["NumberDialer","A widget for precision control over any digit within a value."],["Style","Unique graphical styling for the NumberDialer."]]});

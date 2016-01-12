@@ -46,7 +46,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-11308' class='srclink' href='../src/conrod/widget/mod.rs.html#461-700' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-11591' class='srclink' href='../src/conrod/widget/mod.rs.html#469-756' title='goto source code'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Widget: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Sized.html' title='core::marker::Sized'>Sized</a> {
     type State: <a class='trait' href='https://doc.rust-lang.org/nightly/core/any/trait.Any.html' title='core::any::Any'>Any</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='core::cmp::PartialEq'>PartialEq</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='core::fmt::Debug'>Debug</a>;
     type Style: Style;
@@ -78,31 +78,40 @@
 <strong>Widget</strong>&#39;s <strong>Widget::update</strong> method. They type itself is not stored between updates, but
 rather is used to update an instance of the <strong>Widget</strong>&#39;s <strong>Widget::State</strong>, which <em>is</em> stored.</p>
 
-<p>Methods that <em>must</em> be overridden:
-- common
-- common_mut
-- unique_kind
-- init_state
-- style
-- update</p>
+<p>Methods that <em>must</em> be overridden:</p>
 
-<p>Methods that can be optionally overridden:
-- default_x_position
-- default_y_position
-- default_width
-- default_height
-- drag_area
-- kid_area</p>
+<ul>
+<li>common</li>
+<li>common_mut</li>
+<li>unique_kind</li>
+<li>init_state</li>
+<li>style</li>
+<li>update</li>
+</ul>
 
-<p>Methods that should not be overridden:
-- floating
-- scroll_kids
-- scroll_kids_vertically
-- scroll_kids_horizontally
-- place_widget_on_kid_area
-- parent
-- no_parent
-- set</p>
+<p>Methods that can be optionally overridden:</p>
+
+<ul>
+<li>default_x_position</li>
+<li>default_y_position</li>
+<li>default_width</li>
+<li>default_height</li>
+<li>drag_area</li>
+<li>kid_area</li>
+</ul>
+
+<p>Methods that should not be overridden:</p>
+
+<ul>
+<li>floating</li>
+<li>scroll_kids</li>
+<li>scroll_kids_vertically</li>
+<li>scroll_kids_horizontally</li>
+<li>place_widget_on_kid_area</li>
+<li>parent</li>
+<li>no_parent</li>
+<li>set</li>
+</ul>
 </div>
             <h2 id='associated-types'>Associated Types</h2>
             <div class='methods'>
@@ -113,13 +122,53 @@ repeating between updates, or any calculations that you&#39;d like to avoid repe
 calls to <code>update</code>.</p>
 
 <p>Conrod will never clone the state, it will only ever be moved.</p>
-</div><h3 id='associatedtype.Style' class='method stab '><code>type Style: Style</code></h3><div class='docblock'><p>Styling used by the widget to draw its graphics.</p>
+</div><h3 id='associatedtype.Style' class='method stab '><code>type Style: Style</code></h3><div class='docblock'><p>Every widget is required to have its own associated <code>Style</code> type. This type is intended to
+contain high-level styling information for the widget that can be <em>optionally specified</em> by
+a user of the widget.</p>
 
-<p>Styling is useful to have in its own abstraction in order to make <code>Theme</code> defaults
-easier to retrieve.</p>
+<p>All <code>Style</code> structs are typically <code>Copy</code> and contain simple, descriptive fields like
+<code>color</code>, <code>font_size</code>, <code>line_spacing</code>, <code>frame_width</code>, etc. These types are also required to
+be <code>PartialEq</code>. This is so that the <code>Ui</code> may automatically compare the previous style to
+the new style each time <code>.set</code> is called, allowing conrod to automatically determine
+whether or not something has changed and if a re-draw is required.</p>
+
+<p>Each field in a <code>Style</code> struct is typically an <code>Option&lt;T&gt;</code>. This is so that each field may
+be <em>optionally specified</em>, indicating to fall back to defaults if the fields are <code>None</code>
+upon style retrieval.</p>
+
+<p>The reason this data is required to be in its own <code>Style</code> type (rather than in the widget
+type itself) is so that conrod can distinguish between default style data that may be
+stored within the <code>Theme</code>&#39;s <code>widget_styling</code>, and other data that is necessary for the
+widget&#39;s behaviour logic. Having <code>Style</code> be an associated type makes it trivial to retrieve
+unique, widget-specific styling data for each widget from a single method (see
+<a href="./theme/struct.Theme.html#method.widget_style"><code>Theme::widget_style</code></a>).</p>
+
+<p>These types are often quite similar and can involve a lot of boilerplate when written by
+hand due to rust&#39;s lack of field inheritance. To get around this, conrod provides
+<a href="./macro.widget_style!.html"><code>widget_style!</code></a> - a macro that vastly simplifies the definition and implementation of
+widget <code>Style</code> types.</p>
 
 <p>Conrod doesn&#39;t yet support serializing widget styling with the <code>Theme</code> type, but we hope to
 soon.</p>
+
+<h1 id='examples' class='section-header'><a href='#examples'>Examples</a></h1><pre class='rust rust-example-rendered'>
+<span class='doccomment'>/// Unique styling for a Button widget.</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Style</span> {
+    <span class='doccomment'>/// Color of the Button&#39;s pressable area.</span>
+    <span class='kw'>pub</span> <span class='ident'>color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// Width of the frame surrounding the button.</span>
+    <span class='kw'>pub</span> <span class='ident'>frame</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Scalar</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The color of the Button&#39;s rectangular frame.</span>
+    <span class='kw'>pub</span> <span class='ident'>frame_color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The color of the Button&#39;s label.</span>
+    <span class='kw'>pub</span> <span class='ident'>label_color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The font size for the Button&#39;s label.</span>
+    <span class='kw'>pub</span> <span class='ident'>label_font_size</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>FontSize</span><span class='op'>&gt;</span>,
+}</pre>
+
+<p>Note: It is recommended that you don&#39;t write these types yourself as it can get tedious.
+Instead, we suggest using the <a href="./macro.widget_style!.html"><code>widget_style!</code></a> macro which also provides all necessary
+style retrieval method implementations.</p>
 </div></div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
