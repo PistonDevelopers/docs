@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["weighted_sum","Adds pixels with the given weights. Results are clamped to prevent arithmetical overflows."]]});
