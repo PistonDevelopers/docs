@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["KbState",""],["MappedKeyboard","A wayland keyboard mapped to its keymap"]]});
+initSidebarItems({"enum":[["MappedKeyboardError",""],["MappedKeyboardEvent",""]],"struct":[["KeyEvent",""],["MappedKeyboard","A wayland keyboard mapped to its keymap"]]});

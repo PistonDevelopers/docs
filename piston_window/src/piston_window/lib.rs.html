@@ -341,6 +341,7 @@
 <span id="298">298</span>
 <span id="299">299</span>
 <span id="300">300</span>
+<span id="301">301</span>
 </pre><pre class='rust '>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>deny</span>(<span class='ident'>missing_docs</span>)]</span>
 
@@ -390,7 +391,7 @@
     <span class='doccomment'>/// Gfx2d.</span>
     <span class='kw'>pub</span> <span class='ident'>g2d</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>Gfx2d</span><span class='op'>&lt;</span><span class='ident'>gfx_device_gl</span>::<span class='ident'>Resources</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// The event loop.</span>
-    <span class='kw'>pub</span> <span class='ident'>events</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>WindowEvents</span><span class='op'>&lt;</span><span class='ident'>W</span>, <span class='ident'>Event</span><span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>Event</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>events</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>RefCell</span><span class='op'>&lt;</span><span class='ident'>WindowEvents</span><span class='op'>&gt;&gt;</span>,
     <span class='doccomment'>/// The event.</span>
     <span class='kw'>pub</span> <span class='ident'>event</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Event</span><span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>Event</span><span class='op'>&gt;&gt;</span>,
     <span class='doccomment'>/// Application structure.</span>
@@ -451,7 +452,7 @@
             <span class='ident'>stream</span>: <span class='ident'>Rc</span>::<span class='ident'>new</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>stream</span>)),
             <span class='ident'>device</span>: <span class='ident'>Rc</span>::<span class='ident'>new</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>device</span>)),
             <span class='ident'>g2d</span>: <span class='ident'>Rc</span>::<span class='ident'>new</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>g2d</span>)),
-            <span class='ident'>events</span>: <span class='ident'>Rc</span>::<span class='ident'>new</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>window</span>.<span class='ident'>events</span>())),
+            <span class='ident'>events</span>: <span class='ident'>Rc</span>::<span class='ident'>new</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>window</span>.<span class='ident'>borrow</span>().<span class='ident'>events</span>())),
             <span class='ident'>event</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>app</span>: <span class='ident'>app</span>,
             <span class='ident'>factory</span>: <span class='ident'>Rc</span>::<span class='ident'>new</span>(<span class='ident'>RefCell</span>::<span class='ident'>new</span>(<span class='ident'>factory</span>)),
@@ -523,7 +524,8 @@
     <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>PistonWindow</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>W</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>use</span> <span class='ident'>piston</span>::<span class='ident'>input</span>::<span class='op'>*</span>;
 
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>e</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>events</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>next</span>() {
+        <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow_mut</span>();
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>e</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>events</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>next</span>(<span class='ident'>window</span>) {
             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(_) <span class='op'>=</span> <span class='ident'>e</span>.<span class='ident'>after_render_args</span>() {
                 <span class='comment'>// After swapping buffers.</span>
                 <span class='self'>self</span>.<span class='ident'>device</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>cleanup</span>();
@@ -531,7 +533,7 @@
 
             <span class='comment'>// Check whether window has resized and update the output.</span>
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>stream</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>stream</span>.<span class='ident'>borrow_mut</span>();
-            <span class='kw'>let</span> <span class='ident'>draw_size</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>borrow</span>().<span class='ident'>draw_size</span>();
+            <span class='kw'>let</span> <span class='ident'>draw_size</span> <span class='op'>=</span> <span class='ident'>window</span>.<span class='ident'>draw_size</span>();
             <span class='kw'>if</span> <span class='ident'>stream</span>.<span class='ident'>out</span>.<span class='ident'>width</span> <span class='op'>!=</span> <span class='ident'>draw_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>||</span>
                <span class='ident'>stream</span>.<span class='ident'>out</span>.<span class='ident'>height</span> <span class='op'>!=</span> <span class='ident'>draw_size</span>.<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>u16</span> {
                 <span class='ident'>stream</span>.<span class='ident'>out</span>.<span class='ident'>width</span> <span class='op'>=</span> <span class='ident'>draw_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>u16</span>;

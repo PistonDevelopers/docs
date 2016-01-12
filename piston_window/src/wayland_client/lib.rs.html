@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/wayland-client-0.2.1/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/wayland-client-0.5.8/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
@@ -92,58 +92,75 @@
 <span id="49">49</span>
 <span id="50">50</span>
 <span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
 </pre><pre class='rust '>
-<span class='doccomment'>//! This library provides a Rust interface on the Wayland client library.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The module `core` provides support for the core features of the wayland protocol.</span>
-<span class='doccomment'>//! Some protocol extentions are available, each as their own module. Some of them require</span>
-<span class='doccomment'>//! a system library which they will try to load at first use.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! - module `egl`: it provides a mean to build EGL surfaces in a wayland context. It requires</span>
-<span class='doccomment'>//!   the presence of `libwayland-egl.so`. This module is activated by the `egl` feature.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! Additionnaly, the feature `dlopen` prevents the crate to be linked to the various</span>
-<span class='doccomment'>//! wayland libraries. In this case, it will instead try to load them dynamically at runtime.</span>
-<span class='doccomment'>//! In this case, each module will provide a function allowing you to gracefully check if</span>
-<span class='doccomment'>//! the load was successful. There is also the function `is_wayland_lib_available()` at the</span>
-<span class='doccomment'>//! root of this crate, providing the same function for the core `libwayland-client.so`.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The entry point of your wayland application will be `core::default_display()`, which will</span>
-<span class='doccomment'>//! provide you with a `Display` object representing the connexion to the wayland server.</span>
-<span class='doccomment'>//! This display will give you access to the `Registry`, which will then give you access to the</span>
-<span class='doccomment'>//! various Wayland global objects.</span>
-
 <span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>bitflags</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>crossbeam</span>;
 <span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>dlib</span>;
-<span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>lazy_static</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>libc</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>wayland_sys</span>;
 
-<span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>mod</span> <span class='ident'>ffi</span>;
-
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>core</span>;
+<span class='kw'>mod</span> <span class='ident'>env</span>;
+<span class='kw'>mod</span> <span class='ident'>events</span>;
+<span class='kw'>mod</span> <span class='ident'>sys</span>;
 
 <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;egl&quot;</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>egl</span>;
 
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>internals</span> {
-    <span class='doccomment'>//! Internal types and traits provided for custom protocol extensions.</span>
-    <span class='doccomment'>//!</span>
-    <span class='doccomment'>//! You most likely won&#39;t need to use these, unless you plan to plug a custom</span>
-    <span class='doccomment'>//! wayland protocol into this library, in which case this interface should be</span>
-    <span class='doccomment'>//! enough to plug the Registry into working with it.</span>
-    <span class='doccomment'>//!</span>
-    <span class='doccomment'>//! If not, don&#39;t hesitate to open an issue on Github.</span>
-    <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>ffi</span>::<span class='ident'>abi</span>::{<span class='ident'>wl_interface</span>, <span class='ident'>wl_message</span>};
-    <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>ffi</span>::{<span class='ident'>FFI</span>, <span class='ident'>Bind</span>};
+<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;cursor&quot;</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>cursor</span>;
+
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>wayland</span>;
+
+<span class='kw'>use</span> <span class='ident'>wayland_sys</span>::<span class='ident'>client</span>::<span class='ident'>wl_proxy</span>;
+<span class='kw'>use</span> <span class='ident'>wayland_sys</span>::<span class='ident'>common</span>::<span class='ident'>wl_interface</span>;
+
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>events</span>::{<span class='ident'>Event</span>, <span class='ident'>EventIterator</span>};
+
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Proxy</span> {
+    <span class='kw'>fn</span> <span class='ident'>ptr</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_proxy</span>;
+    <span class='kw'>fn</span> <span class='ident'>interface</span>() <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_interface</span>;
+    <span class='doccomment'>/// The internal name of this interface, as advertized by the registry if it is a global.</span>
+    <span class='kw'>fn</span> <span class='ident'>interface_name</span>() <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span>;
+    <span class='doccomment'>/// The maximum version of this interface handled by the library.</span>
+    <span class='kw'>fn</span> <span class='ident'>version</span>() <span class='op'>-&gt;</span> <span class='ident'>u32</span>;
+    <span class='doccomment'>/// Get the id of this proxy</span>
+    <span class='kw'>fn</span> <span class='ident'>id</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>ProxyId</span>;
+    <span class='doccomment'>/// Creates a proxy from a fresh ptr</span>
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>from_ptr</span>(<span class='ident'>ptr</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_proxy</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span>;
+    <span class='doccomment'>/// Creates a proxy from a ptr that is managed elsewhere</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// As opposed to `from_ptr`, this function will not try to</span>
+    <span class='doccomment'>/// set a listener/dispatcher for this proxy, and thus its</span>
+    <span class='doccomment'>/// events won&#39;t be available.</span>
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>from_ptr_no_own</span>(<span class='ident'>ptr</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_proxy</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span>;
+    <span class='doccomment'>/// Set the event iterator associated to this proxy</span>
+    <span class='kw'>fn</span> <span class='ident'>set_evt_iterator</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>iter</span>: <span class='kw-2'>&amp;</span><span class='ident'>EventIterator</span>);
 }
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;dlopen&quot;</span>)]</span>
-<span class='doccomment'>/// Returns whether the library `libwayland-client.so` has been found and could be loaded.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>,<span class='ident'>Clone</span>,<span class='ident'>PartialEq</span>,<span class='ident'>Eq</span>,<span class='ident'>Debug</span>,<span class='ident'>Hash</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ProxyId</span> { <span class='ident'>id</span>: <span class='ident'>usize</span> }
+
+<span class='kw'>fn</span> <span class='ident'>wrap_proxy</span>(<span class='ident'>ptr</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_proxy</span>) <span class='op'>-&gt;</span> <span class='ident'>ProxyId</span> {
+    <span class='ident'>ProxyId</span> { <span class='ident'>id</span>: <span class='ident'>ptr</span> <span class='kw'>as</span> <span class='ident'>usize</span>}
+}
+
+<span class='doccomment'>/// Checks if the wayland lib is available</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// This function is present only if the feature `dlopen` is activated</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_wayland_lib_available</span>() <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>ffi</span>::<span class='ident'>abi</span>::<span class='ident'>WAYLAND_CLIENT_OPTION</span>.<span class='ident'>is_some</span>()
-}</pre>
+<span class='doccomment'>/// If the `dlopen` feature is disabled, will always return `true`.</span>
+<span class='doccomment'>/// If it is enabled, will return `true` if the wayland-client lib</span>
+<span class='doccomment'>/// is available and can be used.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_available</span>() <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+    ::<span class='ident'>wayland_sys</span>::<span class='ident'>client</span>::<span class='ident'>is_lib_available</span>()
+}
+</pre>
 </section>
     <section id='search' class="content hidden"></section>
 
