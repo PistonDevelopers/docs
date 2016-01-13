@@ -295,10 +295,13 @@
     <span class='ident'>VecBuffer</span>
 };
 
-<span class='kw'>use</span> <span class='ident'>unionfind</span>::<span class='ident'>DisjointSetForest</span>;
+<span class='kw'>use</span> <span class='ident'>unionfind</span>::{
+    <span class='ident'>DisjointSetForest</span>
+};
 
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::{
+    <span class='ident'>cmp</span>
+};
 
 <span class='doccomment'>/// Whether we consider the NW, NE, SW, and SE neighbors of</span>
 <span class='doccomment'>/// a pixel to be connected to it, or just its N, S, E, and W</span>
@@ -323,7 +326,8 @@
     }
 
     <span class='kw'>let</span> <span class='ident'>background</span> <span class='op'>=</span> <span class='ident'>Luma</span>([<span class='number'>0u8</span>]);
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>forest</span> <span class='op'>=</span> <span class='ident'>DisjointSetForest</span>::<span class='ident'>new</span>((<span class='ident'>width</span> <span class='op'>*</span> <span class='ident'>height</span>) <span class='kw'>as</span> <span class='ident'>usize</span>);
+    <span class='kw'>let</span> <span class='ident'>image_size</span> <span class='op'>=</span> (<span class='ident'>width</span> <span class='op'>*</span> <span class='ident'>height</span>) <span class='kw'>as</span> <span class='ident'>usize</span>;
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>forest</span> <span class='op'>=</span> <span class='ident'>DisjointSetForest</span>::<span class='ident'>new</span>(<span class='ident'>image_size</span>);
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>adj_labels</span> <span class='op'>=</span> [<span class='number'>0u32</span>; <span class='number'>4</span>];
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>next_label</span> <span class='op'>=</span> <span class='number'>1</span>;
 
@@ -395,30 +399,26 @@
     }
 
     <span class='comment'>// Make components start at 1</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>root_name</span> <span class='op'>=</span> <span class='number'>1</span>;
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>root_idx</span>: <span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>usize</span>, <span class='ident'>usize</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>HashMap</span>::<span class='ident'>new</span>();
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>output_labels</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u32</span>; <span class='ident'>image_size</span>];
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>count</span> <span class='op'>=</span> <span class='number'>1</span>;
 
-    <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>height</span> {
-        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>width</span> {
-            <span class='kw'>let</span> <span class='ident'>label</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-                <span class='kw'>if</span> <span class='ident'>image</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>==</span> <span class='ident'>background</span> {
-                    <span class='kw'>continue</span>;
+    <span class='kw'>unsafe</span> {
+        <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>height</span> {
+            <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>width</span> {
+                <span class='kw'>let</span> <span class='ident'>label</span> <span class='op'>=</span> {
+                    <span class='kw'>if</span> <span class='ident'>image</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>==</span> <span class='ident'>background</span> {
+                        <span class='kw'>continue</span>;
+                    }
+                    <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>)[<span class='number'>0</span>]
+                };
+                <span class='kw'>let</span> <span class='ident'>root</span> <span class='op'>=</span> <span class='ident'>forest</span>.<span class='ident'>root</span>(<span class='ident'>label</span> <span class='kw'>as</span> <span class='ident'>usize</span>);
+                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>output_label</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>output_labels</span>.<span class='ident'>get_unchecked</span>(<span class='ident'>root</span>);
+                <span class='kw'>if</span> <span class='ident'>output_label</span> <span class='op'>&lt;</span> <span class='number'>1</span> {
+                    <span class='ident'>output_label</span> <span class='op'>=</span> <span class='ident'>count</span>;
+                    <span class='ident'>count</span> <span class='op'>+=</span> <span class='number'>1</span>;
                 }
-                <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>)[<span class='number'>0</span>]
-            };
-
-            <span class='kw'>let</span> <span class='ident'>root</span> <span class='op'>=</span> <span class='ident'>forest</span>.<span class='ident'>root</span>(<span class='ident'>label</span> <span class='kw'>as</span> <span class='ident'>usize</span>);
-
-            <span class='kw'>match</span> <span class='ident'>root_idx</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='ident'>root</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>x</span><span class='op'>|</span> <span class='op'>*</span><span class='ident'>x</span>) {
-                <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                    <span class='ident'>out</span>.<span class='ident'>put_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>Luma</span>([<span class='ident'>idx</span> <span class='kw'>as</span> <span class='ident'>u32</span>]));
-                }
-                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>root_name</span>;
-                    <span class='ident'>root_idx</span>.<span class='ident'>insert</span>(<span class='ident'>root</span>, <span class='ident'>idx</span>);
-                    <span class='kw'>unsafe</span> { <span class='ident'>out</span>.<span class='ident'>unsafe_put_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>Luma</span>([<span class='ident'>idx</span> <span class='kw'>as</span> <span class='ident'>u32</span>])); }
-                    <span class='ident'>root_name</span> <span class='op'>+=</span> <span class='number'>1</span>;
-                }
+                <span class='op'>*</span><span class='ident'>output_labels</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>root</span>) <span class='op'>=</span> <span class='ident'>output_label</span>;
+                <span class='ident'>out</span>.<span class='ident'>unsafe_put_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>Luma</span>([<span class='ident'>output_label</span>]));
             }
         }
     }
