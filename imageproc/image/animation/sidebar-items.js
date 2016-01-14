@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Frame","A single animation frame"],["Frames","Hold the frames of the animated image"]]});
+initSidebarItems({"struct":[["Frame","A single animation frame"],["Frames","Holds the frames of the animated image"]]});

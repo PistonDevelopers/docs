@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["Primitive","Primitive trait from old stdlib, added max_value"]]});
+initSidebarItems({"trait":[["Primitive","Primitive trait from old stdlib"]]});
