@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Whitespace","Stores information about whitespace."]]});

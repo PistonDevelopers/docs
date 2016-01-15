@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Number","Contains information about number."]]});

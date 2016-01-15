@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["convert","Converts meta data to rules."],["rules","Returns rules for parsing meta rules."]],"struct":[["Convert","Stores state when converting from meta data."]]});

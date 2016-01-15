@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["UntilAnyOrWhitespace","Stores information about reading until whitespace or any of some character."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Range","A representation of a range"]]});
