@@ -341,18 +341,6 @@
 <span id="298">298</span>
 <span id="299">299</span>
 <span id="300">300</span>
-<span id="301">301</span>
-<span id="302">302</span>
-<span id="303">303</span>
-<span id="304">304</span>
-<span id="305">305</span>
-<span id="306">306</span>
-<span id="307">307</span>
-<span id="308">308</span>
-<span id="309">309</span>
-<span id="310">310</span>
-<span id="311">311</span>
-<span id="312">312</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Functions for computing [integral images](https://en.wikipedia.org/wiki/Summed_area_table)</span>
 <span class='doccomment'>//! and running sums of rows and columns.</span>
@@ -387,10 +375,9 @@
     <span class='ident'>padded_integral_image</span>(<span class='ident'>image</span>, <span class='number'>0</span>, <span class='number'>0</span>)
 }
 
-<span class='doccomment'>/// Computes the integral image of the result of padding image</span>
-<span class='doccomment'>/// with its boundary pixels for x_padding columns on either</span>
-<span class='doccomment'>/// side and y_padding rows at its top and bottom.</span>
-<span class='doccomment'>/// Returned image has width image.width() + 2 * x_padding</span>
+<span class='doccomment'>/// Computes the integral image of the result of padding image with</span>
+<span class='doccomment'>/// its boundary pixels for x_padding columns on either side and y_padding</span>
+<span class='doccomment'>/// rows at its top and bottom. Returned image has width image.width() + 2 * x_padding</span>
 <span class='doccomment'>/// and height image.height() + 2 * y_padding.</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>padded_integral_image</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>x_padding</span>: <span class='ident'>u32</span>, <span class='ident'>y_padding</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;&gt;</span>
     <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span><span class='op'>&lt;</span><span class='ident'>Pixel</span><span class='op'>=</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>
@@ -405,52 +392,41 @@
         <span class='kw'>return</span> <span class='ident'>out</span>;
     }
 
-    <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>out_height</span> {
-        <span class='kw'>let</span> <span class='ident'>y_in</span>: <span class='ident'>u32</span>;
-        <span class='kw'>if</span> <span class='ident'>y</span> <span class='op'>&lt;</span> <span class='ident'>y_padding</span> {
-            <span class='ident'>y_in</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>top_sum</span> <span class='op'>=</span> <span class='number'>0u32</span>;
+    <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>out_width</span> {
+        <span class='kw'>let</span> <span class='ident'>x_in</span> <span class='op'>=</span> <span class='ident'>adjust_for_padding</span>(<span class='ident'>x</span>, <span class='ident'>x_padding</span>, <span class='ident'>in_width</span>);
+        <span class='kw'>unsafe</span> {
+            <span class='ident'>top_sum</span> <span class='op'>+=</span> <span class='ident'>image</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x_in</span>, <span class='number'>0</span>)[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>u32</span>;
+            <span class='ident'>out</span>.<span class='ident'>unsafe_put_pixel</span>(<span class='ident'>x</span>, <span class='number'>0</span>, <span class='ident'>Luma</span>([<span class='ident'>top_sum</span>]));
         }
-        <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>y</span> <span class='op'>&gt;=</span> <span class='ident'>in_height</span> <span class='op'>+</span> <span class='ident'>y_padding</span> {
-            <span class='ident'>y_in</span> <span class='op'>=</span> <span class='ident'>in_height</span> <span class='op'>-</span> <span class='number'>1</span>;
-        }
-        <span class='kw'>else</span> {
-            <span class='ident'>y_in</span> <span class='op'>=</span> <span class='ident'>y</span> <span class='op'>-</span> <span class='ident'>y_padding</span>;
-        }
-
-        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>out_width</span> {
-            <span class='kw'>let</span> <span class='ident'>x_in</span>: <span class='ident'>u32</span>;
-            <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>&lt;</span> <span class='ident'>x_padding</span> {
-                <span class='ident'>x_in</span> <span class='op'>=</span> <span class='number'>0</span>;
-            }
-            <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>&gt;=</span> <span class='ident'>in_width</span> <span class='op'>+</span> <span class='ident'>x_padding</span> {
-                <span class='ident'>x_in</span> <span class='op'>=</span> <span class='ident'>in_width</span> <span class='op'>-</span> <span class='number'>1</span>;
-            }
-            <span class='kw'>else</span> {
-                <span class='ident'>x_in</span> <span class='op'>=</span> <span class='ident'>x</span> <span class='op'>-</span> <span class='ident'>x_padding</span>;
-            }
-
-            <span class='kw'>unsafe</span> {
-                <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>image</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x_in</span>, <span class='ident'>y_in</span>);
-                <span class='ident'>out</span>.<span class='ident'>unsafe_put_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>Luma</span>([<span class='ident'>p</span>[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>u32</span>]));
-            }
-        }
-    }
-
-    <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>1</span>..<span class='ident'>out_width</span> {
-        (<span class='op'>*</span><span class='ident'>out</span>.<span class='ident'>get_pixel_mut</span>(<span class='ident'>x</span>, <span class='number'>0</span>))[<span class='number'>0</span>] <span class='op'>+=</span> <span class='kw'>unsafe</span> { <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span> <span class='op'>-</span> <span class='number'>1</span>, <span class='number'>0</span>)[<span class='number'>0</span>] };
     }
 
     <span class='kw'>for</span> <span class='ident'>y</span> <span class='kw'>in</span> <span class='number'>1</span>..<span class='ident'>out_height</span> {
-        (<span class='op'>*</span><span class='ident'>out</span>.<span class='ident'>get_pixel_mut</span>(<span class='number'>0</span>, <span class='ident'>y</span>))[<span class='number'>0</span>] <span class='op'>+=</span> <span class='kw'>unsafe</span> { <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='number'>0</span>, <span class='ident'>y</span> <span class='op'>-</span> <span class='number'>1</span>)[<span class='number'>0</span>] };
+        <span class='kw'>let</span> <span class='ident'>y_in</span> <span class='op'>=</span> <span class='ident'>adjust_for_padding</span>(<span class='ident'>y</span>, <span class='ident'>y_padding</span>, <span class='ident'>in_height</span>);
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>sum</span> <span class='op'>=</span> <span class='number'>0</span>;
 
-        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>1</span>..<span class='ident'>out_width</span> {
-            (<span class='op'>*</span><span class='ident'>out</span>.<span class='ident'>get_pixel_mut</span>(<span class='ident'>x</span>, <span class='ident'>y</span>))[<span class='number'>0</span>] <span class='op'>+=</span> <span class='kw'>unsafe</span> { <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span> <span class='op'>-</span> <span class='number'>1</span>)[<span class='number'>0</span>] };
-            (<span class='op'>*</span><span class='ident'>out</span>.<span class='ident'>get_pixel_mut</span>(<span class='ident'>x</span>, <span class='ident'>y</span>))[<span class='number'>0</span>] <span class='op'>+=</span> <span class='kw'>unsafe</span> { <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span> <span class='op'>-</span> <span class='number'>1</span>, <span class='ident'>y</span>)[<span class='number'>0</span>] };
-            (<span class='op'>*</span><span class='ident'>out</span>.<span class='ident'>get_pixel_mut</span>(<span class='ident'>x</span>, <span class='ident'>y</span>))[<span class='number'>0</span>] <span class='op'>-=</span> <span class='kw'>unsafe</span> { <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span> <span class='op'>-</span> <span class='number'>1</span>, <span class='ident'>y</span> <span class='op'>-</span> <span class='number'>1</span>)[<span class='number'>0</span>] };
+        <span class='kw'>for</span> <span class='ident'>x</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>out_width</span> {
+            <span class='kw'>let</span> <span class='ident'>x_in</span> <span class='op'>=</span> <span class='ident'>adjust_for_padding</span>(<span class='ident'>x</span>, <span class='ident'>x_padding</span>, <span class='ident'>in_width</span>);
+
+            <span class='kw'>unsafe</span> {
+                <span class='ident'>sum</span> <span class='op'>+=</span> <span class='ident'>image</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x_in</span>, <span class='ident'>y_in</span>)[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>u32</span>;
+                <span class='kw'>let</span> <span class='ident'>above</span> <span class='op'>=</span> <span class='ident'>out</span>.<span class='ident'>unsafe_get_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span> <span class='op'>-</span> <span class='number'>1</span>)[<span class='number'>0</span>];
+                <span class='ident'>out</span>.<span class='ident'>unsafe_put_pixel</span>(<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>Luma</span>([<span class='ident'>above</span> <span class='op'>+</span> <span class='ident'>sum</span>]))
+            }
         }
     }
 
     <span class='ident'>out</span>
+}
+
+<span class='attribute'>#[<span class='ident'>inline</span>(<span class='ident'>always</span>)]</span>
+<span class='kw'>fn</span> <span class='ident'>adjust_for_padding</span>(<span class='ident'>out_index</span>: <span class='ident'>u32</span>, <span class='ident'>padding</span>: <span class='ident'>u32</span>, <span class='ident'>upper</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> {
+    <span class='kw'>if</span> <span class='ident'>out_index</span> <span class='op'>&lt;</span> <span class='ident'>padding</span> {
+        <span class='kw'>return</span> <span class='number'>0</span>;
+    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>out_index</span> <span class='op'>&gt;=</span> <span class='ident'>upper</span> <span class='op'>+</span> <span class='ident'>padding</span> {
+        <span class='kw'>return</span> <span class='ident'>upper</span> <span class='op'>-</span> <span class='number'>1</span>;
+    }
+    <span class='kw'>return</span> <span class='ident'>out_index</span> <span class='op'>-</span> <span class='ident'>padding</span>;
 }
 
 <span class='doccomment'>/// Computes the running sum of one row of image, padded</span>
