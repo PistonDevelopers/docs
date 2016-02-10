@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["COLOR_DEFAULT",""],["RESET",""]],"enum":[["Command","Serialized device command."]],"struct":[["CommandBuffer",""]],"type":[["Access",""]]});

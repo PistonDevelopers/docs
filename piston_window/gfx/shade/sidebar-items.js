@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ProgramError","Program linking error"]],"struct":[["ShaderSource","A type storing shader source for different graphics APIs and versions."]],"trait":[["Formatted","A trait that statically links simple data types to constant formats."],["ToUniform",""]],"type":[["ConstFormat",""]]});

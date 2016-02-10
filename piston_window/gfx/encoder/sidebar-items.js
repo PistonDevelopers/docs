@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["UpdateError","An error occuring in buffer/texture updates."]],"struct":[["Encoder","Graphics commands encoder."]]});

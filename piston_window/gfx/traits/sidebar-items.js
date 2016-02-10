@@ -1,1 +1,1 @@
-initSidebarItems({});
+initSidebarItems({"trait":[["Device","An interface for performing draw calls using a specific graphics API"],["DeviceFence","Extension to the Device that allows for submitting of commands around a fence"],["Factory",""],["FactoryExt","Factory extension trait"]]});
