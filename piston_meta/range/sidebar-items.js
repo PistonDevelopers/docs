@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Range","A representation of a range"]]});
+initSidebarItems({"struct":[["Range","A representation of a rangeThe type parameter is used to wrap data related to the range."]]});
