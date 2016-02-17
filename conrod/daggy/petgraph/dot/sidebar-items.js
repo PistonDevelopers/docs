@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Config","`Dot` configuration."]],"struct":[["Dot","`Dot` implements output to graphviz .dot format for a graph."]]});
+initSidebarItems({"enum":[["Config","`Dot` configuration.This enum does not have an exhaustive definition (will be expanded)"]],"struct":[["Dot","`Dot` implements output to graphviz .dot format for a graph.Formatting and options are rather simple, this is mostly intended for debugging. Exact output may change."]]});

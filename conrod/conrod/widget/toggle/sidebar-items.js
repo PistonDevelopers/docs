@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Style","Styling for the Toggle including coloring, framing and labelling."],["Toggle","A pressable widget for toggling the state of a bool."]]});
+initSidebarItems({"struct":[["Style","Styling for the Toggle including coloring, framing and labelling."],["Toggle","A pressable widget for toggling the state of a bool.Like the Button widget, it's reaction is triggered upon release and will return the new bool state.Note that the Toggle will not mutate the bool for you, you should do this yourself within the react function."]]});
