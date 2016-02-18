@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["UiEvent","Enum containing all the events that `Widget`s can listen for."]],"struct":[["MouseClick","Contains all the relevant information for a mouse click."],["MouseDrag","Contains all the relevant information for a mouse drag."],["Scroll","Holds all the relevant information about a scroll event"]]});

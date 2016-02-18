@@ -886,6 +886,79 @@
 <span id="843">843</span>
 <span id="844">844</span>
 <span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
+<span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
+<span id="860">860</span>
+<span id="861">861</span>
+<span id="862">862</span>
+<span id="863">863</span>
+<span id="864">864</span>
+<span id="865">865</span>
+<span id="866">866</span>
+<span id="867">867</span>
+<span id="868">868</span>
+<span id="869">869</span>
+<span id="870">870</span>
+<span id="871">871</span>
+<span id="872">872</span>
+<span id="873">873</span>
+<span id="874">874</span>
+<span id="875">875</span>
+<span id="876">876</span>
+<span id="877">877</span>
+<span id="878">878</span>
+<span id="879">879</span>
+<span id="880">880</span>
+<span id="881">881</span>
+<span id="882">882</span>
+<span id="883">883</span>
+<span id="884">884</span>
+<span id="885">885</span>
+<span id="886">886</span>
+<span id="887">887</span>
+<span id="888">888</span>
+<span id="889">889</span>
+<span id="890">890</span>
+<span id="891">891</span>
+<span id="892">892</span>
+<span id="893">893</span>
+<span id="894">894</span>
+<span id="895">895</span>
+<span id="896">896</span>
+<span id="897">897</span>
+<span id="898">898</span>
+<span id="899">899</span>
+<span id="900">900</span>
+<span id="901">901</span>
+<span id="902">902</span>
+<span id="903">903</span>
+<span id="904">904</span>
+<span id="905">905</span>
+<span id="906">906</span>
+<span id="907">907</span>
+<span id="908">908</span>
+<span id="909">909</span>
+<span id="910">910</span>
+<span id="911">911</span>
+<span id="912">912</span>
+<span id="913">913</span>
+<span id="914">914</span>
+<span id="915">915</span>
+<span id="916">916</span>
+<span id="917">917</span>
+<span id="918">918</span>
 </pre><pre class='rust '>
 
 <span class='kw'>use</span> {<span class='ident'>CharacterCache</span>, <span class='ident'>Scalar</span>};
@@ -896,6 +969,8 @@
 <span class='kw'>use</span> <span class='ident'>mouse</span>::{<span class='self'>self</span>, <span class='ident'>Mouse</span>};
 <span class='kw'>use</span> <span class='ident'>input</span>;
 <span class='kw'>use</span> <span class='ident'>input</span>::{
+    <span class='ident'>Input</span>,
+    <span class='ident'>Motion</span>,
     <span class='ident'>GenericEvent</span>,
     <span class='ident'>MouseCursorEvent</span>,
     <span class='ident'>MouseScrollEvent</span>,
@@ -910,6 +985,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
 <span class='kw'>use</span> <span class='ident'>theme</span>::<span class='ident'>Theme</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
+<span class='kw'>use</span> ::<span class='ident'>events</span>::{<span class='ident'>UiEvent</span>, <span class='ident'>InputProvider</span>, <span class='ident'>GlobalInput</span>, <span class='ident'>WidgetInput</span>};
 
 
 <span class='doccomment'>/// Indicates whether or not the Mouse has been captured by a widget.</span>
@@ -940,6 +1016,8 @@
     <span class='kw'>pub</span> <span class='ident'>win_w</span>: <span class='ident'>f64</span>,
     <span class='doccomment'>/// Window height.</span>
     <span class='kw'>pub</span> <span class='ident'>win_h</span>: <span class='ident'>f64</span>,
+    <span class='doccomment'>/// Handles aggregation of events and providing them to Widgets</span>
+    <span class='kw'>pub</span> <span class='ident'>global_input</span>: <span class='ident'>GlobalInput</span>,
     <span class='doccomment'>/// The Widget cache, storing state for all widgets.</span>
     <span class='ident'>widget_graph</span>: <span class='ident'>Graph</span>,
     <span class='doccomment'>/// The latest received mouse state.</span>
@@ -1032,6 +1110,7 @@
     {
         <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='ident'>widget_graph</span>.<span class='ident'>add_placeholder</span>();
         <span class='kw'>let</span> <span class='ident'>prev_updated_widgets</span> <span class='op'>=</span> <span class='ident'>updated_widgets</span>.<span class='ident'>clone</span>();
+        <span class='kw'>let</span> <span class='ident'>mouse_drag_threshold</span> <span class='op'>=</span> <span class='ident'>theme</span>.<span class='ident'>mouse_drag_threshold</span>;
         <span class='ident'>Ui</span> {
             <span class='ident'>widget_graph</span>: <span class='ident'>widget_graph</span>,
             <span class='ident'>theme</span>: <span class='ident'>theme</span>,
@@ -1055,7 +1134,23 @@
             <span class='ident'>depth_order</span>: <span class='ident'>depth_order</span>,
             <span class='ident'>updated_widgets</span>: <span class='ident'>updated_widgets</span>,
             <span class='ident'>prev_updated_widgets</span>: <span class='ident'>prev_updated_widgets</span>,
+            <span class='ident'>global_input</span>: <span class='ident'>GlobalInput</span>::<span class='ident'>new</span>(<span class='ident'>mouse_drag_threshold</span>),
         }
+    }
+
+    <span class='doccomment'>/// Returns a `WidgetInput` for the given widget</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widget_input</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>widget</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='ident'>WidgetInput</span> {
+        <span class='kw'>let</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>into</span>();
+
+        <span class='comment'>// If there&#39;s no rectangle for a given widget, then we use one with zero area.</span>
+        <span class='comment'>// This means that the resulting `WidgetInput` will not include any mouse events</span>
+        <span class='comment'>// unless it has captured the mouse, since none will have occured over that area.</span>
+        <span class='kw'>let</span> <span class='ident'>rect</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>rect_of</span>(<span class='ident'>idx</span>).<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> {
+            <span class='kw'>let</span> <span class='ident'>right_edge</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='kw'>let</span> <span class='ident'>bottom_edge</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>/</span> <span class='number'>2.0</span>;
+            <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='ident'>right_edge</span>, <span class='ident'>bottom_edge</span>], [<span class='number'>0.0</span>, <span class='number'>0.0</span>])
+        });
+        <span class='ident'>WidgetInput</span>::<span class='ident'>for_widget</span>(<span class='ident'>idx</span>, <span class='ident'>rect</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>global_input</span>)
     }
 
     <span class='doccomment'>/// The **Rect** for the widget at the given index.</span>
@@ -1132,8 +1227,10 @@
 
     <span class='doccomment'>/// Handle game events and update the state.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle_event</span><span class='op'>&lt;</span><span class='ident'>E</span>: <span class='ident'>GenericEvent</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>event</span>: <span class='kw-2'>&amp;</span><span class='ident'>E</span>) {
+        <span class='kw'>use</span> <span class='ident'>input</span>::{<span class='ident'>CursorEvent</span>, <span class='ident'>FocusEvent</span>};
 
         <span class='ident'>event</span>.<span class='ident'>resize</span>(<span class='op'>|</span><span class='ident'>w</span>, <span class='ident'>h</span><span class='op'>|</span> {
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(<span class='ident'>Input</span>::<span class='ident'>Resize</span>(<span class='ident'>w</span>, <span class='ident'>h</span>)));
             <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>=</span> <span class='ident'>w</span> <span class='kw'>as</span> <span class='ident'>f64</span>;
             <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>=</span> <span class='ident'>h</span> <span class='kw'>as</span> <span class='ident'>f64</span>;
             <span class='self'>self</span>.<span class='ident'>needs_redraw</span>();
@@ -1146,10 +1243,19 @@
 
         <span class='ident'>event</span>.<span class='ident'>mouse_cursor</span>(<span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span><span class='op'>|</span> {
             <span class='comment'>// Convert mouse coords to (0, 0) origin.</span>
-            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span> <span class='op'>=</span> [<span class='ident'>x</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>/</span> <span class='number'>2.0</span>, <span class='op'>-</span>(<span class='ident'>y</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>/</span> <span class='number'>2.0</span>)];
+            <span class='kw'>let</span> <span class='ident'>center_origin_point</span> <span class='op'>=</span> [<span class='ident'>x</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>/</span> <span class='number'>2.0</span>, <span class='op'>-</span>(<span class='ident'>y</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>/</span> <span class='number'>2.0</span>)];
+            <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>center_origin_point</span>;
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(
+                <span class='ident'>Input</span>::<span class='ident'>Move</span>(
+                    <span class='ident'>Motion</span>::<span class='ident'>MouseRelative</span>(<span class='ident'>center_origin_point</span>[<span class='number'>0</span>], <span class='ident'>center_origin_point</span>[<span class='number'>1</span>])
+                )
+            ));
         });
 
         <span class='ident'>event</span>.<span class='ident'>mouse_scroll</span>(<span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span><span class='op'>|</span> {
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(
+                <span class='ident'>Input</span>::<span class='ident'>Move</span>(<span class='ident'>Motion</span>::<span class='ident'>MouseScroll</span>(<span class='ident'>x</span>, <span class='ident'>y</span>))
+            ));
             <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span>.<span class='ident'>x</span> <span class='op'>+=</span> <span class='ident'>x</span>;
             <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>scroll</span>.<span class='ident'>y</span> <span class='op'>+=</span> <span class='ident'>y</span>;
         });
@@ -1158,8 +1264,13 @@
             <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>Button</span>;
             <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>MouseButton</span>::{<span class='ident'>Left</span>, <span class='ident'>Middle</span>, <span class='ident'>Right</span>};
 
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(
+                <span class='ident'>Input</span>::<span class='ident'>Press</span>(<span class='ident'>button_type</span>)
+            ));
+
             <span class='kw'>match</span> <span class='ident'>button_type</span> {
                 <span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>button</span>) <span class='op'>=&gt;</span> {
+                    <span class='self'>self</span>.<span class='ident'>widget_under_mouse_captures_keyboard</span>();
                     <span class='kw'>let</span> <span class='ident'>mouse_button</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>button</span> {
                         <span class='ident'>Left</span> <span class='op'>=&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>left</span>,
                         <span class='ident'>Right</span> <span class='op'>=&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>right</span>,
@@ -1177,6 +1288,11 @@
         <span class='ident'>event</span>.<span class='ident'>release</span>(<span class='op'>|</span><span class='ident'>button_type</span><span class='op'>|</span> {
             <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>Button</span>;
             <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>MouseButton</span>::{<span class='ident'>Left</span>, <span class='ident'>Middle</span>, <span class='ident'>Right</span>};
+
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(
+                <span class='ident'>Input</span>::<span class='ident'>Release</span>(<span class='ident'>button_type</span>)
+            ));
+
             <span class='kw'>match</span> <span class='ident'>button_type</span> {
                 <span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>button</span>) <span class='op'>=&gt;</span> {
                     <span class='kw'>let</span> <span class='ident'>mouse_button</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>button</span> {
@@ -1194,10 +1310,38 @@
         });
 
         <span class='ident'>event</span>.<span class='ident'>text</span>(<span class='op'>|</span><span class='ident'>text</span><span class='op'>|</span> {
-            <span class='self'>self</span>.<span class='ident'>text_just_entered</span>.<span class='ident'>push</span>(<span class='ident'>text</span>.<span class='ident'>to_string</span>())
+            <span class='self'>self</span>.<span class='ident'>text_just_entered</span>.<span class='ident'>push</span>(<span class='ident'>text</span>.<span class='ident'>to_string</span>());
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(<span class='ident'>Input</span>::<span class='ident'>Text</span>(<span class='ident'>text</span>.<span class='ident'>to_string</span>())));
+        });
+
+        <span class='ident'>event</span>.<span class='ident'>focus</span>(<span class='op'>|</span><span class='ident'>focus</span><span class='op'>|</span> {
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(<span class='ident'>Input</span>::<span class='ident'>Focus</span>(<span class='ident'>focus</span>)));
+        });
+
+        <span class='ident'>event</span>.<span class='ident'>cursor</span>(<span class='op'>|</span><span class='ident'>cursor</span><span class='op'>|</span> {
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(<span class='ident'>Input</span>::<span class='ident'>Cursor</span>(<span class='ident'>cursor</span>)));
         });
     }
 
+    <span class='kw'>fn</span> <span class='ident'>widget_under_mouse_captures_keyboard</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='kw'>use</span> <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>pick_widget</span>;
+
+        <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>mouse_position</span>();
+        <span class='kw'>let</span> <span class='ident'>widget_under_mouse</span> <span class='op'>=</span>
+            <span class='ident'>pick_widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>, <span class='ident'>mouse_xy</span>);
+        <span class='kw'>let</span> <span class='ident'>currently_capturing_keyboard</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>currently_capturing_keyboard</span>();
+
+        <span class='kw'>if</span> <span class='ident'>currently_capturing_keyboard</span>.<span class='ident'>is_some</span>()
+                <span class='op'>&amp;&amp;</span> <span class='ident'>currently_capturing_keyboard</span> <span class='op'>!=</span> <span class='ident'>widget_under_mouse</span> {
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(
+                <span class='ident'>UiEvent</span>::<span class='ident'>WidgetUncapturesKeyboard</span>(<span class='ident'>currently_capturing_keyboard</span>.<span class='ident'>unwrap</span>())
+            );
+        }
+
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>widget_under_mouse</span> {
+            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>UiEvent</span>::<span class='ident'>WidgetCapturesKeyboard</span>(<span class='ident'>idx</span>));
+        }
+    }
 
     <span class='doccomment'>/// Get the centred xy coords for some given `Dimension`s, `Position` and alignment.</span>
     <span class='doccomment'>///</span>
@@ -1407,6 +1551,9 @@
         <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>middle</span>.<span class='ident'>reset_pressed_and_released</span>();
         <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>right</span>.<span class='ident'>reset_pressed_and_released</span>();
         <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>unknown</span>.<span class='ident'>reset_pressed_and_released</span>();
+
+        <span class='comment'>// reset the global input state</span>
+        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>reset</span>();
     }
 
 
@@ -1536,7 +1683,7 @@
 
 <span class='doccomment'>/// Attempts to infer the parent of a widget from its *x*/*y* `Position`s and the current state of</span>
 <span class='doccomment'>/// the `Ui`.</span>
-<span class='doccomment'>/// </span>
+<span class='doccomment'>///</span>
 <span class='doccomment'>/// If no parent can be inferred via the `Position`s, the `maybe_current_parent_idx` will be used.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// If `maybe_current_parent_idx` is `None`, the `Ui`&#39;s `window` widget will be used.</span>
@@ -1600,7 +1747,7 @@
             <span class='prelude-val'>Some</span>(<span class='ident'>Capturing</span>::<span class='ident'>Captured</span>(<span class='ident'>captured_idx</span>)) <span class='op'>=&gt;</span>
                 <span class='kw'>if</span> <span class='ident'>idx</span> <span class='op'>==</span> <span class='ident'>captured_idx</span> { <span class='prelude-val'>Some</span>(<span class='ident'>ui</span>.<span class='ident'>mouse</span>) } <span class='kw'>else</span> { <span class='prelude-val'>None</span> },
             _ <span class='op'>=&gt;</span>
-                <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>==</span> <span class='ident'>ui</span>.<span class='ident'>maybe_widget_under_mouse</span> 
+                <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>==</span> <span class='ident'>ui</span>.<span class='ident'>maybe_widget_under_mouse</span>
                 <span class='op'>||</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>==</span> <span class='ident'>ui</span>.<span class='ident'>maybe_top_scrollable_widget_under_mouse</span> {
                     <span class='prelude-val'>Some</span>(<span class='ident'>ui</span>.<span class='ident'>mouse</span>)
                 } <span class='kw'>else</span> {
@@ -1614,7 +1761,7 @@
 <span class='doccomment'>/// Indicate that the widget with the given widget::Index has captured the mouse.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// Returns true if the mouse was successfully captured.</span>
-<span class='doccomment'>/// </span>
+<span class='doccomment'>///</span>
 <span class='doccomment'>/// Returns false if the mouse was already captured.</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>mouse_captured_by</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Index</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
     <span class='comment'>// If the mouse isn&#39;t already captured, set idx as the capturing widget.</span>
@@ -1731,7 +1878,6 @@
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear_with</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>, <span class='ident'>color</span>: <span class='ident'>Color</span>) {
     <span class='ident'>ui</span>.<span class='ident'>maybe_background_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>color</span>);
 }
-
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
@@ -1776,7 +1922,7 @@
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
