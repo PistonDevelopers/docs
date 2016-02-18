@@ -295,6 +295,23 @@
 <span id="252">252</span>
 <span id="253">253</span>
 <span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Contains the `InputProvider` trait, which is used to provide input events to widgets.</span>
 
@@ -303,15 +320,20 @@
 <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>keyboard</span>::<span class='ident'>Key</span>;
 <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>mouse</span>::<span class='ident'>MouseButton</span>;
 <span class='kw'>use</span> <span class='ident'>position</span>::<span class='ident'>Point</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
 
 
 <span class='doccomment'>/// Trait for something that provides events to be consumed by a widget.</span>
+<span class='doccomment'>///</span>
 <span class='doccomment'>/// Provides a bunch of convenience methods for filtering out specific types of events.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>InputProvider</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>InputProvider</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// An iterator yielding references to the `InputProvider`&#39;s `UiEvent`s.</span>
+    <span class='kw'>type</span> <span class='ident'>Events</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span>;
+
     <span class='doccomment'>/// This is the only method that needs to be implemented.</span>
     <span class='doccomment'>/// Just provided a reference to a `Vec&lt;UiEvent&gt;` that contains</span>
     <span class='doccomment'>/// all the events for this update cycle.</span>
-    <span class='kw'>fn</span> <span class='ident'>all_events</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span>;
+    <span class='kw'>fn</span> <span class='ident'>all_events</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Self</span>::<span class='ident'>Events</span>;
 
     <span class='doccomment'>/// Returns the current input state. The returned state is assumed to be up to</span>
     <span class='doccomment'>/// date with all of the events so far.</span>
@@ -325,54 +347,43 @@
     <span class='comment'>// Methods that just check the stream of events //</span>
     <span class='comment'>//////////////////////////////////////////////////</span>
 
-    <span class='doccomment'>/// Returns a `String` containing _all_ the text that was entered since</span>
-    <span class='doccomment'>/// the last update cycle.</span>
-    <span class='kw'>fn</span> <span class='ident'>text_just_entered</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>all_text</span>: <span class='ident'>String</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>all_events</span>().<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>evt</span><span class='op'>|</span> {
-            <span class='kw'>match</span> <span class='op'>*</span><span class='ident'>evt</span> {
-                <span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(<span class='ident'>Input</span>::<span class='ident'>Text</span>(<span class='kw-2'>ref</span> <span class='ident'>text</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>text</span>),
-                _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>
-            }
-        }).<span class='ident'>fold</span>(<span class='ident'>String</span>::<span class='ident'>new</span>(), <span class='op'>|</span><span class='ident'>acc</span>, <span class='ident'>item</span><span class='op'>|</span> {
-            <span class='ident'>acc</span> <span class='op'>+</span> <span class='ident'>item</span>
-        });
-
-        <span class='kw'>if</span> <span class='ident'>all_text</span>.<span class='ident'>is_empty</span>() {
-            <span class='prelude-val'>None</span>
-        } <span class='kw'>else</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>all_text</span>)
+    <span class='doccomment'>/// Returns a reference to each slice of `Text` that was entered since the last update.</span>
+    <span class='kw'>fn</span> <span class='ident'>text_just_entered</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>TextJustEntered</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>Self</span>::<span class='ident'>Events</span><span class='op'>&gt;</span> {
+        <span class='ident'>TextJustEntered</span> {
+            <span class='ident'>events</span>: <span class='self'>self</span>.<span class='ident'>all_events</span>(),
+            <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span>,
         }
     }
 
     <span class='doccomment'>/// Returns all of the `Key`s that were released since the last update.</span>
-    <span class='kw'>fn</span> <span class='ident'>keys_just_released</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>KeysJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>keys_just_released</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>KeysJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>Self</span>::<span class='ident'>Events</span><span class='op'>&gt;</span> {
         <span class='ident'>KeysJustReleased</span>{
             <span class='ident'>event_iter</span>: <span class='self'>self</span>.<span class='ident'>all_events</span>(),
-            <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>
+            <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span>
         }
     }
 
     <span class='doccomment'>/// Returns all of the keyboard `Key`s that were pressed since the last update.</span>
-    <span class='kw'>fn</span> <span class='ident'>keys_just_pressed</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>KeysJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>keys_just_pressed</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>KeysJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>Self</span>::<span class='ident'>Events</span><span class='op'>&gt;</span> {
         <span class='ident'>KeysJustPressed</span> {
             <span class='ident'>event_iter</span>: <span class='self'>self</span>.<span class='ident'>all_events</span>(),
-            <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>
+            <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span>
         }
     }
 
     <span class='doccomment'>/// Returns all of the `MouseButton`s that were pressed since the last update.</span>
-    <span class='kw'>fn</span> <span class='ident'>mouse_buttons_just_pressed</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>MouseButtonsJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>mouse_buttons_just_pressed</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>MouseButtonsJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>Self</span>::<span class='ident'>Events</span><span class='op'>&gt;</span> {
         <span class='ident'>MouseButtonsJustPressed</span> {
             <span class='ident'>event_iter</span>: <span class='self'>self</span>.<span class='ident'>all_events</span>(),
-            <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>
+            <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span>
         }
     }
 
     <span class='doccomment'>/// Returns all of the `MouseButton`s that were released since the last update.</span>
-    <span class='kw'>fn</span> <span class='ident'>mouse_buttons_just_released</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>MouseButtonsJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>mouse_buttons_just_released</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>MouseButtonsJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>Self</span>::<span class='ident'>Events</span><span class='op'>&gt;</span> {
         <span class='ident'>MouseButtonsJustReleased</span> {
             <span class='ident'>event_iter</span>: <span class='self'>self</span>.<span class='ident'>all_events</span>(),
-            <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>
+            <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span>
         }
     }
 
@@ -471,11 +482,34 @@
 
 }
 
+<span class='doccomment'>/// An iterator yielding the `&amp;str` of each `Text` event&#39;s `String` that was just entered.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>TextJustEntered</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>I</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span>,
+{
+    <span class='ident'>events</span>: <span class='ident'>I</span>,
+    <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>,
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>I</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>TextJustEntered</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>I</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span>,
+{
+    <span class='kw'>type</span> <span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
+    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Self</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
+        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>event</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>events</span>.<span class='ident'>next</span>() {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>UiEvent</span>::<span class='ident'>Raw</span>(<span class='ident'>Input</span>::<span class='ident'>Text</span>(<span class='kw-2'>ref</span> <span class='ident'>text</span>)) <span class='op'>=</span> <span class='op'>*</span><span class='ident'>event</span> {
+                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>text</span>);
+            }
+        }
+        <span class='prelude-val'>None</span>
+    }
+}
+
 <span class='doccomment'>/// An Iterator over `input::keyboard::Key`s that were just released.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>KeysJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span><span class='op'>&gt;</span> {
     <span class='ident'>event_iter</span>: <span class='ident'>T</span>,
-    <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
+    <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>KeysJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span> {
@@ -492,10 +526,10 @@
 }
 
 <span class='doccomment'>/// An Iterator over `input::keyboard::Key`s that were just pressed.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>KeysJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span><span class='op'>&gt;</span> {
     <span class='ident'>event_iter</span>: <span class='ident'>T</span>,
-    <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
+    <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>KeysJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span> {
@@ -512,10 +546,10 @@
 }
 
 <span class='doccomment'>/// An Iterator over `input::mouse::MouseButton`s that were just pressed.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>MouseButtonsJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span><span class='op'>&gt;</span> {
     <span class='ident'>event_iter</span>: <span class='ident'>T</span>,
-    <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
+    <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>MouseButtonsJustPressed</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span> {
@@ -532,10 +566,10 @@
 }
 
 <span class='doccomment'>/// An Iterator over `input::mouse::MouseButton`s that were just released.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>MouseButtonsJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span><span class='op'>&gt;</span> {
     <span class='ident'>event_iter</span>: <span class='ident'>T</span>,
-    <span class='ident'>lifetime</span>: ::<span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
+    <span class='ident'>lifetime</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> ()<span class='op'>&gt;</span>
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>MouseButtonsJustReleased</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Iterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>UiEvent</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Sized</span> {
