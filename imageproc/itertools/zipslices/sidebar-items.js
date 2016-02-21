@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ZipSlices","An iterator which iterates two slices simultaneously."]]});
+initSidebarItems({"struct":[["ZipSlices","An iterator which iterates two slices simultaneously.`ZipSlices` acts like a double-ended `.zip()` iterator, but more efficiently.Note that elements past the end of the shortest of the two slices are ignored.Iterator element type for `ZipSlices<T, U>` is `(T::Item, U::Item)`. For example, for a `ZipSlices<&'a [A], &'b mut [B]>`, the element type is `(&'a A, &'b mut B)`."]]});

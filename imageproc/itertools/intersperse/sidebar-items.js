@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Intersperse","An iterator adaptor to insert a particular value between each element of the adapted iterator."]]});
+initSidebarItems({"struct":[["Intersperse","An iterator adaptor to insert a particular value between each element of the adapted iterator.Iterator element type is `I::Item`This iterator is *fused*.See *.intersperse()* for more information."]]});

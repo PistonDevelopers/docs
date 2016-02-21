@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Format","Format all iterator elements lazily, separated by `sep`."]]});
+initSidebarItems({"struct":[["Format","Format all iterator elements lazily, separated by `sep`.See `.format()` for more information."]]});

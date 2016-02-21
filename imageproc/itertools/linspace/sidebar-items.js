@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["linspace","Return an iterator of evenly spaced floats."]],"struct":[["Linspace","An iterator of a sequence of evenly spaced floats."]]});
+initSidebarItems({"fn":[["linspace","Return an iterator of evenly spaced floats.The `Linspace` has `n` elements, where the first element is `a` and the last element is `b`.Iterator element type is `F`, where `F` must be either `f32` or `f64`."]],"struct":[["Linspace","An iterator of a sequence of evenly spaced floats.Iterator element type is `F`."]]});
