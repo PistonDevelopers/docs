@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["mem","Basic functions for dealing with memory"],["raw","Raw OS-specific types for the current platform/architecture"]]});
+initSidebarItems({"mod":[["mem","Basic functions for dealing with memoryThis module contains functions for querying the size and alignment of types, initializing and manipulating memory."],["raw","Raw OS-specific types for the current platform/architecture"]]});

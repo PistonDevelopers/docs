@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Blend","The blend setting to use when drawing."],["Stencil","Stencil buffer settings."]],"struct":[["DrawState","Graphics draw state used for blending, clipping and stencil rendering."]]});
+initSidebarItems({"enum":[["Blend","The blend setting to use when drawing.Using presets since some backends need one pipeline state object instance per blending technique."],["Stencil","Stencil buffer settings."]],"struct":[["DrawState","Graphics draw state used for blending, clipping and stencil rendering."]]});

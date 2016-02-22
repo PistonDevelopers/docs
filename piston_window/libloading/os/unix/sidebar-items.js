@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Library","A platform-specific equivalent of the cross-platform `Library`."],["Symbol","Symbol from a library."]]});
+initSidebarItems({"struct":[["Library","A platform-specific equivalent of the cross-platform `Library`."],["Symbol","Symbol from a library.A major difference compared to the cross-platform `Symbol` is that this does not ensure the `Symbol` does not outlive `Library` it comes from."]]});

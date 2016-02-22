@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["is_available","Checks if the wayland-egl lib is available and can be used"]],"struct":[["WlEglSurface",""]]});
+initSidebarItems({"fn":[["is_available","Checks if the wayland-egl lib is available and can be usedTrying to create an `WlEglSurface` while this function returns `false` will result in a panic."]],"struct":[["WlEglSurface",""]]});

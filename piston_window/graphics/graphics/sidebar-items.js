@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["Graphics","Implemented by all graphics back-ends."]]});
+initSidebarItems({"trait":[["Graphics","Implemented by all graphics back-ends.An example back-end using raw OpenGLBy default, this design uses triangles as graphics primitives. This is supported by all GPUs and easy to implement in shader languages.Default trait methods can be overridden for better performance or higher quality.When drawing, use this trait as generic constraint:"]]});
