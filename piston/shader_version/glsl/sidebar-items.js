@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["GLSL","For OpenGL version 3.3 and above, the GLSL version is the same as the OpenGL version."]]});
+initSidebarItems({"enum":[["GLSL","For OpenGL version 3.3 and above, the GLSL version is the same as the OpenGL version.Source: http://www.opengl.org/wiki/Core_Language_%28GLSL%29"]]});
