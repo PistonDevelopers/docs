@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Gfx2d","The data used for drawing 2D graphics."],["GfxGraphics","Used for rendering 2D graphics."]]});
+initSidebarItems({"struct":[["Gfx2d","The data used for drawing 2D graphics.Stores buffers and PSO objects needed for rendering 2D graphics."],["GfxGraphics","Used for rendering 2D graphics."]]});
