@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Tee","One half of an iterator pair where both return the same elements.See *.tee()* for more information."]]});
+initSidebarItems({"struct":[["Tee","One half of an iterator pair where both return the same elements."]]});

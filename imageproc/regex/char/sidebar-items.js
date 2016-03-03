@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Char","An inline representation of `Option<char>`.This eliminates the need to do case analysis on `Option<char>` to determine ordinality with other characters.(The `Option<char>` is not related to encoding. Instead, it is used in the matching engines to represent the beginning and ending boundaries of the search text.)"]]});
+initSidebarItems({"struct":[["Char","An inline representation of `Option<char>`."]]});

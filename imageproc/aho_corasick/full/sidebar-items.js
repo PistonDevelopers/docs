@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["FullAcAutomaton","A complete Aho-Corasick automaton.This uses a single transition matrix that permits each input character to move to the next state with a single lookup in the matrix.This is as fast as it gets, but it is guaranteed to use a lot of memory. Namely, it will use at least `4 * 256 * #states`, where the number of states is capped at length of all patterns concatenated."]]});
+initSidebarItems({"struct":[["FullAcAutomaton","A complete Aho-Corasick automaton."]]});

@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Ortho3","A 3D orthographic projection stored without any matrix.Reading or modifying its individual properties is cheap but applying the transformation is costly."],["OrthoMat3","A 3D orthographic projection stored as a 4D matrix.Reading or modifying its individual properties is costly but applying the transformation is cheap."]]});
+initSidebarItems({"struct":[["Ortho3","A 3D orthographic projection stored without any matrix."],["OrthoMat3","A 3D orthographic projection stored as a 4D matrix."]]});

@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["RcIter","A wrapper for `Rc<RefCell<I>>`, that implements the `Iterator` trait.See *.into_rc()* for more information."]]});
+initSidebarItems({"struct":[["RcIter","A wrapper for `Rc<RefCell<I>>`, that implements the `Iterator` trait."]]});
