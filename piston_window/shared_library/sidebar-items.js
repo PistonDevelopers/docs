@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["LoadingError","Error that can happen while loading the shared library."]],"macro":[["shared_library!",""]],"mod":[["dynamic_library","Dynamic library facilities.A simple wrapper over the platform's dynamic library facilities"]]});
+initSidebarItems({"enum":[["LoadingError","Error that can happen while loading the shared library."]],"macro":[["shared_library!",""]],"mod":[["dynamic_library","Dynamic library facilities."]]});

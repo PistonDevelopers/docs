@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["scope","Create a new `scope`, for deferred destructors.Scopes, in particular, support *scoped thread spawning*.ExamplesCreating and using a scope:"]],"struct":[["Scope",""],["ScopedJoinHandle","A handle to a scoped thread"]]});
+initSidebarItems({"fn":[["scope","Create a new `scope`, for deferred destructors."]],"struct":[["Scope",""],["ScopedJoinHandle","A handle to a scoped thread"]]});

@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Component","A representation of a JPEG component"],["JPEGDecoder","The representation of a JPEG decoderDoes not support decoding progressive JPEG images"]]});
+initSidebarItems({"struct":[["JPEGDecoder","JPEG decoder"]]});

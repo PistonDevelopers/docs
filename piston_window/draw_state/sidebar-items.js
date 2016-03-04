@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["preset","State presets"],["state","Fixed-function hardware state.Configures the primitive assembly (PA), rasterizer, and output merger (OM) blocks."],["target","Render target specification."]]});
+initSidebarItems({"mod":[["preset","State presets"],["state","Fixed-function hardware state."],["target","Render target specification."]]});

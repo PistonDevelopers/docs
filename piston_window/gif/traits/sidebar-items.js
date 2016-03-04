@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["Parameter","Configuration parameter trait.Use the list of implementors to see which parameters are available for which struct."],["SetParameter","Implemented for objects that have parameters.Provides a unified `set`-method to simplify the configuration."]]});
+initSidebarItems({"trait":[["Parameter","Configuration parameter trait."],["SetParameter","Implemented for objects that have parameters."]]});
