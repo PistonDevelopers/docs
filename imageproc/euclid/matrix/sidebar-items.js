@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Matrix4",""]]});
+initSidebarItems({"type":[["Matrix4",""]]});
