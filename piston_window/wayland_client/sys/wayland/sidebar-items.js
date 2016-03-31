@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["client",""]]});
+initSidebarItems({"mod":[["client",""],["interfaces",""]]});

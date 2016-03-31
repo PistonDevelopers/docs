@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx_core-0.1.2/src/shade.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx_core-0.2.0/src/shade.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>shade.rs.html -- source</title>
@@ -475,6 +475,15 @@
 <span id="432">432</span>
 <span id="433">433</span>
 <span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2014 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -591,6 +600,9 @@
     <span class='ident'>Geometry</span>,
     <span class='ident'>Pixel</span>,
 }
+
+<span class='doccomment'>/// A constant static array of all shader stages.</span>
+<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>STAGES</span>: [<span class='ident'>Stage</span>; <span class='number'>3</span>] <span class='op'>=</span> [<span class='ident'>Stage</span>::<span class='ident'>Vertex</span>, <span class='ident'>Stage</span>::<span class='ident'>Geometry</span>, <span class='ident'>Stage</span>::<span class='ident'>Pixel</span>];
 
 <span class='comment'>// Describing program data</span>
 
@@ -725,6 +737,28 @@
 <span class='macro'>impl_const_vector</span><span class='macro'>!</span>(<span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>);
 <span class='macro'>impl_const_matrix</span><span class='macro'>!</span>([<span class='number'>2</span>,<span class='number'>2</span>], [<span class='number'>3</span>,<span class='number'>3</span>], [<span class='number'>4</span>,<span class='number'>4</span>], [<span class='number'>4</span>,<span class='number'>3</span>]);
 
+<span class='macro'>bitflags</span><span class='macro'>!</span>(
+    <span class='doccomment'>/// Parameter usage flags.</span>
+    <span class='ident'>flags</span> <span class='ident'>Usage</span>: <span class='ident'>u8</span> {
+        <span class='doccomment'>/// Used by the vertex shader</span>
+        <span class='kw'>const</span> <span class='ident'>VERTEX</span>   <span class='op'>=</span> <span class='number'>0x1</span>,
+        <span class='doccomment'>/// Used by the geometry shader</span>
+        <span class='kw'>const</span> <span class='ident'>GEOMETRY</span> <span class='op'>=</span> <span class='number'>0x2</span>,
+        <span class='doccomment'>/// Used by the pixel shader</span>
+        <span class='kw'>const</span> <span class='ident'>PIXEL</span>    <span class='op'>=</span> <span class='number'>0x4</span>,
+    }
+);
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>Stage</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Usage</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>stage</span>: <span class='ident'>Stage</span>) <span class='op'>-&gt;</span> <span class='ident'>Usage</span> {
+        <span class='kw'>match</span> <span class='ident'>stage</span> {
+            <span class='ident'>Stage</span>::<span class='ident'>Vertex</span> <span class='op'>=&gt;</span> <span class='ident'>VERTEX</span>,
+            <span class='ident'>Stage</span>::<span class='ident'>Geometry</span> <span class='op'>=&gt;</span> <span class='ident'>GEOMETRY</span>,
+            <span class='ident'>Stage</span>::<span class='ident'>Pixel</span> <span class='op'>=&gt;</span> <span class='ident'>PIXEL</span>,
+        }
+    }
+}
+
 <span class='doccomment'>/// Vertex information that a shader takes as input.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>AttributeVar</span> {
@@ -732,8 +766,6 @@
     <span class='kw'>pub</span> <span class='ident'>name</span>: <span class='ident'>String</span>,
     <span class='doccomment'>/// Slot of the vertex attribute.</span>
     <span class='kw'>pub</span> <span class='ident'>slot</span>: <span class='ident'>AttributeSlot</span>,
-    <span class='doccomment'>/// Number of elements this attribute represents.</span>
-    <span class='kw'>pub</span> <span class='ident'>count</span>: <span class='ident'>usize</span>,
     <span class='doccomment'>/// Type that this attribute is composed of.</span>
     <span class='kw'>pub</span> <span class='ident'>base_type</span>: <span class='ident'>BaseType</span>,
     <span class='doccomment'>/// &quot;Scalarness&quot; of this attribute.</span>
@@ -765,8 +797,8 @@
     <span class='kw'>pub</span> <span class='ident'>slot</span>: <span class='ident'>ConstantBufferSlot</span>,
     <span class='doccomment'>/// Size (in bytes) of this buffer&#39;s data.</span>
     <span class='kw'>pub</span> <span class='ident'>size</span>: <span class='ident'>usize</span>,
-    <span class='doccomment'>/// What program stage this buffer can be used in, as a bitflag.</span>
-    <span class='kw'>pub</span> <span class='ident'>usage</span>: <span class='ident'>u8</span>,
+    <span class='doccomment'>/// What program stage this buffer is used in.</span>
+    <span class='kw'>pub</span> <span class='ident'>usage</span>: <span class='ident'>Usage</span>,
 }
 
 <span class='doccomment'>/// Texture shader parameter.</span>
@@ -780,6 +812,8 @@
     <span class='kw'>pub</span> <span class='ident'>base_type</span>: <span class='ident'>BaseType</span>,
     <span class='doccomment'>/// Type of this texture.</span>
     <span class='kw'>pub</span> <span class='ident'>ty</span>: <span class='ident'>TextureType</span>,
+    <span class='doccomment'>/// What program stage this texture is used in.</span>
+    <span class='kw'>pub</span> <span class='ident'>usage</span>: <span class='ident'>Usage</span>,
 }
 
 <span class='doccomment'>/// Unordered access shader parameter.</span>
@@ -789,6 +823,8 @@
     <span class='kw'>pub</span> <span class='ident'>name</span>: <span class='ident'>String</span>,
     <span class='doccomment'>/// Slot of this unordered variable.</span>
     <span class='kw'>pub</span> <span class='ident'>slot</span>: <span class='ident'>UnorderedViewSlot</span>,
+    <span class='doccomment'>/// What program stage this UAV is used in.</span>
+    <span class='kw'>pub</span> <span class='ident'>usage</span>: <span class='ident'>Usage</span>,
 }
 
 <span class='doccomment'>/// Sampler shader parameter.</span>
@@ -800,6 +836,8 @@
     <span class='kw'>pub</span> <span class='ident'>slot</span>: <span class='ident'>SamplerSlot</span>,
     <span class='doccomment'>/// Type of this sampler.</span>
     <span class='kw'>pub</span> <span class='ident'>ty</span>: <span class='ident'>SamplerType</span>,
+    <span class='doccomment'>/// What program stage this texture is used in.</span>
+    <span class='kw'>pub</span> <span class='ident'>usage</span>: <span class='ident'>Usage</span>,
 }
 
 <span class='doccomment'>/// Target output variable.</span>
@@ -809,6 +847,10 @@
     <span class='kw'>pub</span> <span class='ident'>name</span>: <span class='ident'>String</span>,
     <span class='doccomment'>/// Output color target index.</span>
     <span class='kw'>pub</span> <span class='ident'>slot</span>: <span class='ident'>ColorSlot</span>,
+    <span class='doccomment'>/// Type of the output component.</span>
+    <span class='kw'>pub</span> <span class='ident'>base_type</span>: <span class='ident'>BaseType</span>,
+    <span class='doccomment'>/// &quot;Scalarness&quot; of this output.</span>
+    <span class='kw'>pub</span> <span class='ident'>container</span>: <span class='ident'>ContainerType</span>,
 }
 
 <span class='doccomment'>/// Metadata about a program.</span>
@@ -878,38 +920,14 @@
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>CreateShaderError</span> {
     <span class='doccomment'>/// The device does not support the requested shader model.</span>
     <span class='ident'>ModelNotSupported</span>,
+    <span class='doccomment'>/// The device does not support the shader stage.</span>
+    <span class='ident'>StageNotSupported</span>(<span class='ident'>Stage</span>),
     <span class='doccomment'>/// The shader failed to compile.</span>
-    <span class='ident'>ShaderCompilationFailed</span>(<span class='ident'>String</span>)
+    <span class='ident'>CompilationFailed</span>(<span class='ident'>String</span>),
 }
 
 <span class='doccomment'>/// An error type for creating programs.</span>
 <span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>CreateProgramError</span> <span class='op'>=</span> <span class='ident'>String</span>;
-
-<span class='doccomment'>/// Shader model supported by the device, corresponds to the HLSL shader models.</span>
-<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_docs</span>)]</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>PartialEq</span>, <span class='ident'>PartialOrd</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>ShaderModel</span> {
-    <span class='ident'>Unsupported</span>,
-    <span class='ident'>Version30</span>,
-    <span class='ident'>Version40</span>,
-    <span class='ident'>Version41</span>,
-    <span class='ident'>Version50</span>,
-}
-
-<span class='kw'>impl</span> <span class='ident'>ShaderModel</span> {
-    <span class='doccomment'>/// Return the shader model as a numeric value.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Model30 turns to 30, etc.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>to_number</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u8</span> {
-        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
-            <span class='ident'>ShaderModel</span>::<span class='ident'>Unsupported</span> <span class='op'>=&gt;</span> <span class='number'>0</span>,  <span class='comment'>// before this age</span>
-            <span class='ident'>ShaderModel</span>::<span class='ident'>Version30</span> <span class='op'>=&gt;</span> <span class='number'>30</span>,
-            <span class='ident'>ShaderModel</span>::<span class='ident'>Version40</span> <span class='op'>=&gt;</span> <span class='number'>40</span>,
-            <span class='ident'>ShaderModel</span>::<span class='ident'>Version41</span> <span class='op'>=&gt;</span> <span class='number'>41</span>,
-            <span class='ident'>ShaderModel</span>::<span class='ident'>Version50</span> <span class='op'>=&gt;</span> <span class='number'>50</span>,
-        }
-    }
-}
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

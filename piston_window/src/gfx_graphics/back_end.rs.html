@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/piston2d-gfx_graphics-0.23.0/src/back_end.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/piston2d-gfx_graphics-0.25.0/src/back_end.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>back_end.rs.html -- source</title>
@@ -571,19 +571,89 @@
 <span id="528">528</span>
 <span id="529">529</span>
 <span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>graphics</span>::{ <span class='ident'>Context</span>, <span class='ident'>DrawState</span>, <span class='ident'>Graphics</span>, <span class='ident'>Viewport</span> };
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>BACK_END_MAX_VERTEX_COUNT</span> <span class='kw'>as</span> <span class='ident'>BUFFER_SIZE</span>;
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>draw_state</span>;
 <span class='kw'>use</span> <span class='ident'>graphics</span>::<span class='ident'>color</span>::<span class='ident'>gamma_srgb_to_linear</span>;
 <span class='kw'>use</span> { <span class='ident'>gfx</span>, <span class='ident'>Texture</span> };
-<span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>format</span>::{<span class='ident'>DepthStencil</span>, <span class='ident'>Srgb8</span>};
+<span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>format</span>::{<span class='ident'>DepthStencil</span>, <span class='ident'>Srgba8</span>};
 <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>pso</span>::<span class='ident'>PipelineState</span>;
 <span class='kw'>use</span> <span class='ident'>shader_version</span>::{ <span class='ident'>OpenGL</span>, <span class='ident'>Shaders</span> };
 <span class='kw'>use</span> <span class='ident'>shader_version</span>::<span class='ident'>glsl</span>::<span class='ident'>GLSL</span>;
 
 <span class='kw'>const</span> <span class='ident'>POS_COMPONENTS</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>2</span>;
 <span class='kw'>const</span> <span class='ident'>UV_COMPONENTS</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>2</span>;
+<span class='comment'>// The number of chunks to fill up before rendering.</span>
+<span class='comment'>// Amount of memory used: `BUFFER_SIZE * CHUNKS * 4 * (2 + 4)`</span>
+<span class='comment'>// `4` for bytes per f32, and `2 + 4` for position and color.</span>
+<span class='kw'>const</span> <span class='ident'>CHUNKS</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>100</span>;
 
 <span class='macro'>gfx_vertex_struct</span><span class='macro'>!</span>( <span class='ident'>PositionFormat</span> {
     <span class='ident'>pos</span>: [<span class='ident'>f32</span>; <span class='number'>2</span>] <span class='op'>=</span> <span class='string'>&quot;pos&quot;</span>,
@@ -599,8 +669,8 @@
 
 <span class='macro'>gfx_pipeline_base</span><span class='macro'>!</span>( <span class='ident'>pipe_colored</span> {
     <span class='ident'>pos</span>: <span class='ident'>gfx</span>::<span class='ident'>VertexBuffer</span><span class='op'>&lt;</span><span class='ident'>PositionFormat</span><span class='op'>&gt;</span>,
-    <span class='ident'>color</span>: <span class='ident'>gfx</span>::<span class='ident'>Global</span><span class='op'>&lt;</span>[<span class='ident'>f32</span>; <span class='number'>4</span>]<span class='op'>&gt;</span>,
-    <span class='ident'>blend_target</span>: <span class='ident'>gfx</span>::<span class='ident'>BlendTarget</span><span class='op'>&lt;</span><span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>Srgb8</span><span class='op'>&gt;</span>,
+    <span class='ident'>color</span>: <span class='ident'>gfx</span>::<span class='ident'>VertexBuffer</span><span class='op'>&lt;</span><span class='ident'>ColorFormat</span><span class='op'>&gt;</span>,
+    <span class='ident'>blend_target</span>: <span class='ident'>gfx</span>::<span class='ident'>BlendTarget</span><span class='op'>&lt;</span><span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>Srgba8</span><span class='op'>&gt;</span>,
     <span class='ident'>stencil_target</span>: <span class='ident'>gfx</span>::<span class='ident'>StencilTarget</span><span class='op'>&lt;</span><span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>DepthStencil</span><span class='op'>&gt;</span>,
     <span class='ident'>blend_ref</span>: <span class='ident'>gfx</span>::<span class='ident'>BlendRef</span>,
     <span class='ident'>scissor</span>: <span class='ident'>gfx</span>::<span class='ident'>Scissor</span>,
@@ -611,7 +681,7 @@
     <span class='ident'>uv</span>: <span class='ident'>gfx</span>::<span class='ident'>VertexBuffer</span><span class='op'>&lt;</span><span class='ident'>TexCoordsFormat</span><span class='op'>&gt;</span>,
     <span class='ident'>color</span>: <span class='ident'>gfx</span>::<span class='ident'>Global</span><span class='op'>&lt;</span>[<span class='ident'>f32</span>; <span class='number'>4</span>]<span class='op'>&gt;</span>,
     <span class='ident'>texture</span>: <span class='ident'>gfx</span>::<span class='ident'>TextureSampler</span><span class='op'>&lt;</span>[<span class='ident'>f32</span>; <span class='number'>4</span>]<span class='op'>&gt;</span>,
-    <span class='ident'>blend_target</span>: <span class='ident'>gfx</span>::<span class='ident'>BlendTarget</span><span class='op'>&lt;</span><span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>Srgb8</span><span class='op'>&gt;</span>,
+    <span class='ident'>blend_target</span>: <span class='ident'>gfx</span>::<span class='ident'>BlendTarget</span><span class='op'>&lt;</span><span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>Srgba8</span><span class='op'>&gt;</span>,
     <span class='ident'>stencil_target</span>: <span class='ident'>gfx</span>::<span class='ident'>StencilTarget</span><span class='op'>&lt;</span><span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>DepthStencil</span><span class='op'>&gt;</span>,
     <span class='ident'>blend_ref</span>: <span class='ident'>gfx</span>::<span class='ident'>BlendRef</span>,
     <span class='ident'>scissor</span>: <span class='ident'>gfx</span>::<span class='ident'>Scissor</span>,
@@ -741,7 +811,12 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// Stores buffers and PSO objects needed for rendering 2D graphics.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Gfx2d</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>gfx</span>::<span class='ident'>Resources</span><span class='op'>&gt;</span> {
+    <span class='comment'>// The offset in vertices for colored rendering.</span>
+    <span class='ident'>colored_offset</span>: <span class='ident'>usize</span>,
+    <span class='comment'>// The current draw state for colored rendering.</span>
+    <span class='ident'>colored_draw_state</span>: <span class='ident'>DrawState</span>,
     <span class='ident'>buffer_pos</span>: <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>PositionFormat</span><span class='op'>&gt;</span>,
+    <span class='ident'>buffer_color</span>: <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>ColorFormat</span><span class='op'>&gt;</span>,
     <span class='ident'>buffer_uv</span>: <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>TexCoordsFormat</span><span class='op'>&gt;</span>,
     <span class='ident'>colored</span>: <span class='ident'>PsoStencil</span><span class='op'>&lt;</span><span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>pipe_colored</span>::<span class='ident'>Meta</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>textured</span>: <span class='ident'>PsoStencil</span><span class='op'>&lt;</span><span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>pipe_textured</span>::<span class='ident'>Meta</span><span class='op'>&gt;&gt;</span>,
@@ -761,7 +836,7 @@
 
         <span class='kw'>let</span> <span class='ident'>glsl</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>to_glsl</span>();
 
-        <span class='kw'>let</span> <span class='ident'>colored_shader_set</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_shader_set</span>(
+        <span class='kw'>let</span> <span class='ident'>colored_program</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>link_program</span>(
                 <span class='ident'>Shaders</span>::<span class='ident'>new</span>()
                     .<span class='ident'>set</span>(<span class='ident'>GLSL</span>::<span class='ident'>V1_20</span>, <span class='ident'>colored</span>::<span class='ident'>VERTEX_GLSL_120</span>)
                     .<span class='ident'>set</span>(<span class='ident'>GLSL</span>::<span class='ident'>V1_50</span>, <span class='ident'>colored</span>::<span class='ident'>VERTEX_GLSL_150_CORE</span>)
@@ -777,13 +852,13 @@
                                 <span class='ident'>stencil</span>: <span class='ident'>Stencil</span>,
                                 <span class='ident'>color_mask</span>: <span class='ident'>gfx</span>::<span class='ident'>state</span>::<span class='ident'>ColorMask</span><span class='op'>|</span>
         <span class='op'>-&gt;</span> <span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>pipe_colored</span>::<span class='ident'>Meta</span><span class='op'>&gt;</span> {
-            <span class='ident'>factory</span>.<span class='ident'>create_pipeline_state</span>(
-                <span class='kw-2'>&amp;</span><span class='ident'>colored_shader_set</span>,
+            <span class='ident'>factory</span>.<span class='ident'>create_pipeline_from_program</span>(
+                <span class='kw-2'>&amp;</span><span class='ident'>colored_program</span>,
                 <span class='ident'>Primitive</span>::<span class='ident'>TriangleList</span>,
                 <span class='ident'>Rasterizer</span>::<span class='ident'>new_fill</span>(<span class='ident'>gfx</span>::<span class='ident'>state</span>::<span class='ident'>CullFace</span>::<span class='ident'>Nothing</span>),
                 <span class='ident'>pipe_colored</span>::<span class='ident'>Init</span> {
                     <span class='ident'>pos</span>: (),
-                    <span class='ident'>color</span>: <span class='string'>&quot;color&quot;</span>,
+                    <span class='ident'>color</span>: (),
                     <span class='ident'>blend_target</span>: (<span class='string'>&quot;o_Color&quot;</span>, <span class='ident'>color_mask</span>, <span class='ident'>blend_preset</span>),
                     <span class='ident'>stencil_target</span>: <span class='ident'>stencil</span>,
                     <span class='ident'>blend_ref</span>: (),
@@ -794,7 +869,7 @@
 
         <span class='kw'>let</span> <span class='ident'>colored</span> <span class='op'>=</span> <span class='ident'>PsoStencil</span>::<span class='ident'>new</span>(<span class='ident'>factory</span>, <span class='ident'>colored_pipeline</span>);
 
-        <span class='kw'>let</span> <span class='ident'>textured_shader_set</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_shader_set</span>(
+        <span class='kw'>let</span> <span class='ident'>textured_program</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>link_program</span>(
                 <span class='ident'>Shaders</span>::<span class='ident'>new</span>()
                     .<span class='ident'>set</span>(<span class='ident'>GLSL</span>::<span class='ident'>V1_20</span>, <span class='ident'>textured</span>::<span class='ident'>VERTEX_GLSL_120</span>)
                     .<span class='ident'>set</span>(<span class='ident'>GLSL</span>::<span class='ident'>V1_50</span>, <span class='ident'>textured</span>::<span class='ident'>VERTEX_GLSL_150_CORE</span>)
@@ -810,8 +885,8 @@
                                  <span class='ident'>stencil</span>: <span class='ident'>Stencil</span>,
                                  <span class='ident'>color_mask</span>: <span class='ident'>gfx</span>::<span class='ident'>state</span>::<span class='ident'>ColorMask</span><span class='op'>|</span>
         <span class='op'>-&gt;</span> <span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>pipe_textured</span>::<span class='ident'>Meta</span><span class='op'>&gt;</span> {
-            <span class='ident'>factory</span>.<span class='ident'>create_pipeline_state</span>(
-                <span class='kw-2'>&amp;</span><span class='ident'>textured_shader_set</span>,
+            <span class='ident'>factory</span>.<span class='ident'>create_pipeline_from_program</span>(
+                <span class='kw-2'>&amp;</span><span class='ident'>textured_program</span>,
                 <span class='ident'>Primitive</span>::<span class='ident'>TriangleList</span>,
                 <span class='ident'>Rasterizer</span>::<span class='ident'>new_fill</span>(<span class='ident'>gfx</span>::<span class='ident'>state</span>::<span class='ident'>CullFace</span>::<span class='ident'>Nothing</span>),
                 <span class='ident'>pipe_textured</span>::<span class='ident'>Init</span> {
@@ -830,13 +905,20 @@
         <span class='kw'>let</span> <span class='ident'>textured</span> <span class='op'>=</span> <span class='ident'>PsoStencil</span>::<span class='ident'>new</span>(<span class='ident'>factory</span>, <span class='ident'>textured_pipeline</span>);
 
         <span class='kw'>let</span> <span class='ident'>buffer_pos</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(
-            <span class='ident'>POS_COMPONENTS</span> <span class='op'>*</span> <span class='ident'>BUFFER_SIZE</span>,
-            <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Vertex</span>
-        );
+            <span class='ident'>BUFFER_SIZE</span> <span class='op'>*</span> <span class='ident'>CHUNKS</span>,
+            <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Vertex</span>,
+            <span class='ident'>gfx</span>::<span class='ident'>Bind</span>::<span class='ident'>empty</span>()
+        ).<span class='ident'>expect</span>(<span class='string'>&quot;Could not create `buffer_pos`&quot;</span>);
+        <span class='kw'>let</span> <span class='ident'>buffer_color</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(
+            <span class='ident'>BUFFER_SIZE</span> <span class='op'>*</span> <span class='ident'>CHUNKS</span>,
+            <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Vertex</span>,
+            <span class='ident'>gfx</span>::<span class='ident'>Bind</span>::<span class='ident'>empty</span>()
+        ).<span class='ident'>expect</span>(<span class='string'>&quot;Could not create `buffer_color`&quot;</span>);
         <span class='kw'>let</span> <span class='ident'>buffer_uv</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_buffer_dynamic</span>(
-            <span class='ident'>UV_COMPONENTS</span> <span class='op'>*</span> <span class='ident'>BUFFER_SIZE</span>,
-            <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Vertex</span>
-        );
+            <span class='ident'>BUFFER_SIZE</span>,
+            <span class='ident'>gfx</span>::<span class='ident'>BufferRole</span>::<span class='ident'>Vertex</span>,
+            <span class='ident'>gfx</span>::<span class='ident'>Bind</span>::<span class='ident'>empty</span>()
+        ).<span class='ident'>expect</span>(<span class='string'>&quot;Could not create `buffer_uv`&quot;</span>);
 
         <span class='kw'>let</span> <span class='ident'>sampler_info</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span>::<span class='ident'>new</span>(
             <span class='ident'>gfx</span>::<span class='ident'>tex</span>::<span class='ident'>FilterMethod</span>::<span class='ident'>Bilinear</span>,
@@ -845,7 +927,10 @@
         <span class='kw'>let</span> <span class='ident'>sampler</span> <span class='op'>=</span> <span class='ident'>factory</span>.<span class='ident'>create_sampler</span>(<span class='ident'>sampler_info</span>);
 
         <span class='ident'>Gfx2d</span> {
+            <span class='ident'>colored_offset</span>: <span class='number'>0</span>,
+            <span class='ident'>colored_draw_state</span>: <span class='ident'>Default</span>::<span class='ident'>default</span>(),
             <span class='ident'>buffer_pos</span>: <span class='ident'>buffer_pos</span>,
+            <span class='ident'>buffer_color</span>: <span class='ident'>buffer_color</span>,
             <span class='ident'>buffer_uv</span>: <span class='ident'>buffer_uv</span>,
             <span class='ident'>colored</span>: <span class='ident'>colored</span>,
             <span class='ident'>textured</span>: <span class='ident'>textured</span>,
@@ -857,7 +942,7 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>C</span>, <span class='ident'>F</span><span class='op'>&gt;</span>(
         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
         <span class='ident'>encoder</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>gfx</span>::<span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span>,
-        <span class='ident'>output_color</span>: <span class='kw-2'>&amp;</span><span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>Srgb8</span><span class='op'>&gt;</span>,
+        <span class='ident'>output_color</span>: <span class='kw-2'>&amp;</span><span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>Srgba8</span><span class='op'>&gt;</span>,
         <span class='ident'>output_stencil</span>: <span class='kw-2'>&amp;</span><span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>DepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>DepthStencil</span><span class='op'>&gt;</span>,
         <span class='ident'>viewport</span>: <span class='ident'>Viewport</span>,
         <span class='ident'>f</span>: <span class='ident'>F</span>
@@ -873,6 +958,9 @@
         );
         <span class='kw'>let</span> <span class='ident'>c</span> <span class='op'>=</span> <span class='ident'>Context</span>::<span class='ident'>new_viewport</span>(<span class='ident'>viewport</span>);
         <span class='ident'>f</span>(<span class='ident'>c</span>, <span class='ident'>g</span>);
+        <span class='kw'>if</span> <span class='ident'>g</span>.<span class='ident'>g2d</span>.<span class='ident'>colored_offset</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
+            <span class='ident'>g</span>.<span class='ident'>flush_colored</span>();
+        }
     }
 }
 
@@ -887,7 +975,7 @@
           <span class='ident'>R</span>::<span class='ident'>Sampler</span>: <span class='lifetime'>&#39;a</span>
 {
     <span class='ident'>encoder</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>gfx</span>::<span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span>,
-    <span class='ident'>output_color</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>Srgb8</span><span class='op'>&gt;</span>,
+    <span class='ident'>output_color</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>Srgba8</span><span class='op'>&gt;</span>,
     <span class='ident'>output_stencil</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>DepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>DepthStencil</span><span class='op'>&gt;</span>,
     <span class='ident'>g2d</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>Gfx2d</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
 }
@@ -898,7 +986,7 @@
 {
     <span class='doccomment'>/// Creates a new object for rendering 2D graphics.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>encoder</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>gfx</span>::<span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span>,
-               <span class='ident'>output_color</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>Srgb8</span><span class='op'>&gt;</span>,
+               <span class='ident'>output_color</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>Srgba8</span><span class='op'>&gt;</span>,
                <span class='ident'>output_stencil</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>gfx</span>::<span class='ident'>handle</span>::<span class='ident'>DepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>DepthStencil</span><span class='op'>&gt;</span>,
                <span class='ident'>g2d</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>Gfx2d</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
         <span class='ident'>GfxGraphics</span> {
@@ -910,25 +998,61 @@
     }
 
     <span class='doccomment'>/// Returns true if texture has alpha channel.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>has_texture_alpha</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>texture</span>: <span class='kw-2'>&amp;</span><span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>format</span>::<span class='ident'>SurfaceType</span>::<span class='op'>*</span>;
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>has_texture_alpha</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>texture</span>: <span class='kw-2'>&amp;</span><span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
+        <span class='kw'>where</span> <span class='ident'>R</span>: <span class='ident'>gfx</span>::<span class='ident'>Resources</span>
+    {
+        <span class='ident'>texture</span>.<span class='ident'>surface</span>.<span class='ident'>get_info</span>().<span class='ident'>format</span>.<span class='ident'>get_alpha_stencil_bits</span>() <span class='op'>&gt;</span> <span class='number'>0</span>
+    }
 
-        <span class='kw'>match</span> <span class='ident'>texture</span>.<span class='ident'>surface</span>.<span class='ident'>get_info</span>().<span class='ident'>format</span> {
-            <span class='ident'>R4_G4_B4_A4</span>
-            <span class='op'>|</span> <span class='ident'>R5_G5_B5_A1</span>
-            <span class='op'>|</span> <span class='ident'>R8_G8_B8_A8</span>
-            <span class='op'>|</span> <span class='ident'>R10_G10_B10_A2</span>
-            <span class='op'>|</span> <span class='ident'>R16_G16_B16_A16</span>
-            <span class='op'>|</span> <span class='ident'>R32_G32_B32_A32</span> <span class='op'>=&gt;</span> <span class='boolval'>true</span>,
-            <span class='ident'>R3_G3_B2</span>
-            <span class='op'>|</span> <span class='ident'>R4_G4</span>
-            <span class='op'>|</span> <span class='ident'>R5_G6_B5</span>
-            <span class='op'>|</span> <span class='ident'>R8</span> <span class='op'>|</span> <span class='ident'>R8_G8</span> <span class='op'>|</span> <span class='ident'>R8_G8_B8</span>
-            <span class='op'>|</span> <span class='ident'>R11_G11_B10</span>
-            <span class='op'>|</span> <span class='ident'>R16</span> <span class='op'>|</span> <span class='ident'>R16_G16</span> <span class='op'>|</span> <span class='ident'>R16_G16_B16</span>
-            <span class='op'>|</span> <span class='ident'>R32</span> <span class='op'>|</span> <span class='ident'>R32_G32</span> <span class='op'>|</span> <span class='ident'>R32_G32_B32</span>
-            <span class='op'>|</span> <span class='ident'>D16</span> <span class='op'>|</span> <span class='ident'>D24</span> <span class='op'>|</span> <span class='ident'>D24_S8</span> <span class='op'>|</span> <span class='ident'>D32</span> <span class='op'>=&gt;</span> <span class='boolval'>false</span>,
-        }
+    <span class='kw'>fn</span> <span class='ident'>flush_colored</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>core</span>::<span class='ident'>target</span>::<span class='ident'>Rect</span>;
+        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>u16</span>;
+
+        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>GfxGraphics</span> {
+            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>encoder</span>,
+            <span class='ident'>output_color</span>,
+            <span class='ident'>output_stencil</span>,
+            <span class='ident'>g2d</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Gfx2d</span> {
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>colored_offset</span>,
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>colored_draw_state</span>,
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>buffer_pos</span>,
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>buffer_color</span>,
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>colored</span>,
+                ..
+            },
+            ..
+        } <span class='op'>=</span> <span class='self'>self</span>;
+
+        <span class='kw'>let</span> (<span class='ident'>pso_colored</span>, <span class='ident'>stencil_val</span>) <span class='op'>=</span> <span class='ident'>colored</span>.<span class='ident'>stencil_blend</span>(
+            <span class='ident'>colored_draw_state</span>.<span class='ident'>stencil</span>,
+            <span class='ident'>colored_draw_state</span>.<span class='ident'>blend</span>
+        );
+
+        <span class='kw'>let</span> <span class='ident'>scissor</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>colored_draw_state</span>.<span class='ident'>scissor</span> {
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>Rect</span> { <span class='ident'>x</span>: <span class='number'>0</span>, <span class='ident'>y</span>: <span class='number'>0</span>, <span class='ident'>w</span>: <span class='ident'>u16</span>::<span class='ident'>MAX</span>, <span class='ident'>h</span>: <span class='ident'>u16</span>::<span class='ident'>MAX</span> },
+            <span class='prelude-val'>Some</span>(<span class='ident'>r</span>) <span class='op'>=&gt;</span> <span class='ident'>Rect</span> { <span class='ident'>x</span>: <span class='ident'>r</span>[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>y</span>: <span class='ident'>r</span>[<span class='number'>1</span>] <span class='kw'>as</span> <span class='ident'>u16</span>,
+                <span class='ident'>w</span>: <span class='ident'>r</span>[<span class='number'>2</span>] <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>h</span>: <span class='ident'>r</span>[<span class='number'>3</span>] <span class='kw'>as</span> <span class='ident'>u16</span> }
+        };
+
+        <span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>pipe_colored</span>::<span class='ident'>Data</span> {
+            <span class='ident'>pos</span>: <span class='ident'>buffer_pos</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>color</span>: <span class='ident'>buffer_color</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>blend_target</span>: <span class='ident'>output_color</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>stencil_target</span>: (<span class='ident'>output_stencil</span>.<span class='ident'>clone</span>(),
+                             (<span class='ident'>stencil_val</span>, <span class='ident'>stencil_val</span>)),
+            <span class='comment'>// Use white color for blend reference to make invert work.</span>
+            <span class='ident'>blend_ref</span>: [<span class='number'>1.0</span>; <span class='number'>4</span>],
+            <span class='ident'>scissor</span>: <span class='ident'>scissor</span>,
+        };
+
+        <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>Slice</span> {
+            <span class='ident'>instances</span>: <span class='prelude-val'>None</span>,
+            <span class='ident'>start</span>: <span class='number'>0</span>,
+            <span class='ident'>end</span>: <span class='op'>*</span><span class='ident'>colored_offset</span> <span class='kw'>as</span> <span class='ident'>u32</span>,
+            <span class='ident'>kind</span>: <span class='ident'>gfx</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Vertex</span>
+        };
+        <span class='ident'>encoder</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='ident'>slice</span>, <span class='ident'>pso_colored</span>, <span class='kw-2'>&amp;</span><span class='ident'>data</span>);
+        <span class='op'>*</span><span class='ident'>colored_offset</span> <span class='op'>=</span> <span class='number'>0</span>;
     }
 }
 
@@ -950,7 +1074,7 @@
             <span class='ident'>output_color</span>,
             ..
         } <span class='op'>=</span> <span class='self'>self</span>;
-        <span class='ident'>encoder</span>.<span class='ident'>clear</span>(<span class='ident'>output_color</span>, [<span class='ident'>color</span>[<span class='number'>0</span>], <span class='ident'>color</span>[<span class='number'>1</span>], <span class='ident'>color</span>[<span class='number'>2</span>]]);
+        <span class='ident'>encoder</span>.<span class='ident'>clear</span>(<span class='ident'>output_color</span>, <span class='ident'>color</span>);
     }
 
     <span class='kw'>fn</span> <span class='ident'>clear_stencil</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>u8</span>) {
@@ -970,60 +1094,53 @@
     )
         <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>f32</span>]))
     {
-        <span class='kw'>use</span> <span class='ident'>gfx</span>::<span class='ident'>core</span>::<span class='ident'>target</span>::<span class='ident'>Rect</span>;
-        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>u16</span>;
-
         <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>gamma_srgb_to_linear</span>(<span class='op'>*</span><span class='ident'>color</span>);
-        <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>GfxGraphics</span> {
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>encoder</span>,
-            <span class='ident'>output_color</span>,
-            <span class='ident'>output_stencil</span>,
-            <span class='ident'>g2d</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Gfx2d</span> {
-                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>buffer_pos</span>,
-                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>colored</span>,
-                ..
-            },
-            ..
-        } <span class='op'>=</span> <span class='self'>self</span>;
 
-        <span class='kw'>let</span> (<span class='ident'>pso_colored</span>, <span class='ident'>stencil_val</span>) <span class='op'>=</span> <span class='ident'>colored</span>.<span class='ident'>stencil_blend</span>(
-            <span class='ident'>draw_state</span>.<span class='ident'>stencil</span>,
-            <span class='ident'>draw_state</span>.<span class='ident'>blend</span>
-        );
-
-        <span class='kw'>let</span> <span class='ident'>scissor</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>draw_state</span>.<span class='ident'>scissor</span> {
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>Rect</span> { <span class='ident'>x</span>: <span class='number'>0</span>, <span class='ident'>y</span>: <span class='number'>0</span>, <span class='ident'>w</span>: <span class='ident'>u16</span>::<span class='ident'>MAX</span>, <span class='ident'>h</span>: <span class='ident'>u16</span>::<span class='ident'>MAX</span> },
-            <span class='prelude-val'>Some</span>(<span class='ident'>r</span>) <span class='op'>=&gt;</span> <span class='ident'>Rect</span> { <span class='ident'>x</span>: <span class='ident'>r</span>[<span class='number'>0</span>] <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>y</span>: <span class='ident'>r</span>[<span class='number'>1</span>] <span class='kw'>as</span> <span class='ident'>u16</span>,
-                <span class='ident'>w</span>: <span class='ident'>r</span>[<span class='number'>2</span>] <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>h</span>: <span class='ident'>r</span>[<span class='number'>3</span>] <span class='kw'>as</span> <span class='ident'>u16</span> }
-        };
-
+        <span class='comment'>// Flush when draw state changes.</span>
+        <span class='kw'>if</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>g2d</span>.<span class='ident'>colored_draw_state</span> <span class='op'>!=</span> <span class='ident'>draw_state</span> {
+            <span class='self'>self</span>.<span class='ident'>flush_colored</span>();
+            <span class='self'>self</span>.<span class='ident'>g2d</span>.<span class='ident'>colored_draw_state</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>draw_state</span>;
+        }
         <span class='ident'>f</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>|</span><span class='ident'>vertices</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>f32</span>]<span class='op'>|</span> {
-            <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>::<span class='ident'>transmute</span>;
+            <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>vertices</span>.<span class='ident'>len</span>() <span class='op'>/</span> <span class='ident'>POS_COMPONENTS</span>;
 
-            <span class='kw'>unsafe</span> {
-                <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(<span class='kw-2'>&amp;</span><span class='ident'>buffer_pos</span>, <span class='ident'>transmute</span>(<span class='ident'>vertices</span>), <span class='number'>0</span>)
-                    .<span class='ident'>unwrap</span>();
+            <span class='comment'>// Render if there is not enough room.</span>
+            <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>g2d</span>.<span class='ident'>colored_offset</span> <span class='op'>+</span> <span class='ident'>n</span> <span class='op'>&gt;</span> <span class='ident'>BUFFER_SIZE</span> <span class='op'>*</span> <span class='ident'>CHUNKS</span> {
+                <span class='self'>self</span>.<span class='ident'>flush_colored</span>();
             }
 
-            <span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>pipe_colored</span>::<span class='ident'>Data</span> {
-                <span class='ident'>pos</span>: <span class='ident'>buffer_pos</span>.<span class='ident'>clone</span>(),
-                <span class='ident'>color</span>: <span class='ident'>color</span>,
-                <span class='ident'>blend_target</span>: <span class='ident'>output_color</span>.<span class='ident'>clone</span>(),
-                <span class='ident'>stencil_target</span>: (<span class='ident'>output_stencil</span>.<span class='ident'>clone</span>(),
-                                 (<span class='ident'>stencil_val</span>, <span class='ident'>stencil_val</span>)),
-                <span class='comment'>// Use white color for blend reference to make invert work.</span>
-                <span class='ident'>blend_ref</span>: [<span class='number'>1.0</span>; <span class='number'>4</span>],
-                <span class='ident'>scissor</span>: <span class='ident'>scissor</span>,
-            };
+            {
+                <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>;
 
-            <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>vertices</span>.<span class='ident'>len</span>() <span class='op'>/</span> <span class='ident'>POS_COMPONENTS</span>;
-            <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>Slice</span> {
-                    <span class='ident'>instances</span>: <span class='prelude-val'>None</span>,
-                    <span class='ident'>start</span>: <span class='number'>0</span>,
-                    <span class='ident'>end</span>: <span class='ident'>n</span> <span class='kw'>as</span> <span class='ident'>u32</span>,
-                    <span class='ident'>kind</span>: <span class='ident'>gfx</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Vertex</span>
-            };
-            <span class='ident'>encoder</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='ident'>slice</span>, <span class='ident'>pso_colored</span>, <span class='kw-2'>&amp;</span><span class='ident'>data</span>);
+                <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>GfxGraphics</span> {
+                    <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>encoder</span>,
+                    <span class='ident'>g2d</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Gfx2d</span> {
+                        <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>colored_offset</span>,
+                        <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>buffer_pos</span>,
+                        <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>buffer_color</span>,
+                        ..
+                    },
+                    ..
+                } <span class='op'>=</span> <span class='self'>self</span>;
+
+                <span class='kw'>unsafe</span> {
+                    <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(
+                        <span class='kw-2'>&amp;</span><span class='ident'>buffer_pos</span>,
+                        <span class='ident'>from_raw_parts</span>(
+                            <span class='ident'>vertices</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>PositionFormat</span>,
+                            <span class='ident'>n</span>
+                        ),
+                        <span class='op'>*</span><span class='ident'>colored_offset</span>
+                    ).<span class='ident'>unwrap</span>();
+                }
+
+                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>n</span> {
+                    <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(<span class='kw-2'>&amp;</span><span class='ident'>buffer_color</span>, <span class='kw-2'>&amp;</span>[<span class='ident'>ColorFormat</span> {
+                            <span class='ident'>color</span>: <span class='ident'>color</span>
+                        }], <span class='op'>*</span><span class='ident'>colored_offset</span> <span class='op'>+</span> <span class='ident'>i</span>).<span class='ident'>unwrap</span>();
+                }
+                <span class='op'>*</span><span class='ident'>colored_offset</span> <span class='op'>+=</span> <span class='ident'>n</span>;
+            }
         })
     }
 
@@ -1040,6 +1157,9 @@
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>u16</span>;
 
         <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>gamma_srgb_to_linear</span>(<span class='op'>*</span><span class='ident'>color</span>);
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>g2d</span>.<span class='ident'>colored_offset</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
+            <span class='self'>self</span>.<span class='ident'>flush_colored</span>();
+        }
         <span class='kw'>let</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>GfxGraphics</span> {
             <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>encoder</span>,
             <span class='ident'>output_color</span>,
@@ -1065,38 +1185,50 @@
                 <span class='ident'>w</span>: <span class='ident'>r</span>[<span class='number'>2</span>] <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>h</span>: <span class='ident'>r</span>[<span class='number'>3</span>] <span class='kw'>as</span> <span class='ident'>u16</span> }
         };
 
+        <span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>pipe_textured</span>::<span class='ident'>Data</span> {
+            <span class='ident'>pos</span>: <span class='ident'>buffer_pos</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>uv</span>: <span class='ident'>buffer_uv</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>color</span>: <span class='ident'>color</span>,
+            <span class='ident'>texture</span>: (<span class='ident'>texture</span>.<span class='ident'>view</span>.<span class='ident'>clone</span>(), <span class='ident'>sampler</span>.<span class='ident'>clone</span>()),
+            <span class='ident'>blend_target</span>: <span class='ident'>output_color</span>.<span class='ident'>clone</span>(),
+            <span class='ident'>stencil_target</span>: (<span class='ident'>output_stencil</span>.<span class='ident'>clone</span>(),
+                             (<span class='ident'>stencil_val</span>, <span class='ident'>stencil_val</span>)),
+            <span class='ident'>blend_ref</span>: [<span class='number'>1.0</span>; <span class='number'>4</span>],
+            <span class='ident'>scissor</span>: <span class='ident'>scissor</span>,
+        };
+
         <span class='ident'>f</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>|</span><span class='ident'>vertices</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>f32</span>], <span class='ident'>texture_coords</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>f32</span>]<span class='op'>|</span> {
-            <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>::<span class='ident'>transmute</span>;
+            <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>;
 
             <span class='macro'>assert_eq</span><span class='macro'>!</span>(
                 <span class='ident'>vertices</span>.<span class='ident'>len</span>() <span class='op'>*</span> <span class='ident'>UV_COMPONENTS</span>,
                 <span class='ident'>texture_coords</span>.<span class='ident'>len</span>() <span class='op'>*</span> <span class='ident'>POS_COMPONENTS</span>
             );
+            <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>vertices</span>.<span class='ident'>len</span>() <span class='op'>/</span> <span class='ident'>POS_COMPONENTS</span>;
             <span class='kw'>unsafe</span> {
-                <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(<span class='kw-2'>&amp;</span><span class='ident'>buffer_pos</span>, <span class='ident'>transmute</span>(<span class='ident'>vertices</span>), <span class='number'>0</span>)
-                    .<span class='ident'>unwrap</span>();
-                <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(<span class='kw-2'>&amp;</span><span class='ident'>buffer_uv</span>, <span class='ident'>transmute</span>(<span class='ident'>texture_coords</span>), <span class='number'>0</span>)
-                    .<span class='ident'>unwrap</span>();
+                <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(
+                    <span class='kw-2'>&amp;</span><span class='ident'>buffer_pos</span>,
+                    <span class='ident'>from_raw_parts</span>(
+                        <span class='ident'>vertices</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>PositionFormat</span>,
+                        <span class='ident'>n</span>
+                    ),
+                    <span class='number'>0</span>
+                ).<span class='ident'>unwrap</span>();
+                <span class='ident'>encoder</span>.<span class='ident'>update_buffer</span>(
+                    <span class='kw-2'>&amp;</span><span class='ident'>buffer_uv</span>,
+                    <span class='ident'>from_raw_parts</span>(
+                        <span class='ident'>texture_coords</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>TexCoordsFormat</span>,
+                        <span class='ident'>n</span>
+                    ),
+                    <span class='number'>0</span>
+                ).<span class='ident'>unwrap</span>();
             }
 
-            <span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>pipe_textured</span>::<span class='ident'>Data</span> {
-                <span class='ident'>pos</span>: <span class='ident'>buffer_pos</span>.<span class='ident'>clone</span>(),
-                <span class='ident'>uv</span>: <span class='ident'>buffer_uv</span>.<span class='ident'>clone</span>(),
-                <span class='ident'>color</span>: <span class='ident'>color</span>,
-                <span class='ident'>texture</span>: (<span class='ident'>texture</span>.<span class='ident'>view</span>.<span class='ident'>clone</span>(), <span class='ident'>sampler</span>.<span class='ident'>clone</span>()),
-                <span class='ident'>blend_target</span>: <span class='ident'>output_color</span>.<span class='ident'>clone</span>(),
-                <span class='ident'>stencil_target</span>: (<span class='ident'>output_stencil</span>.<span class='ident'>clone</span>(),
-                                 (<span class='ident'>stencil_val</span>, <span class='ident'>stencil_val</span>)),
-                <span class='ident'>blend_ref</span>: [<span class='number'>1.0</span>; <span class='number'>4</span>],
-                <span class='ident'>scissor</span>: <span class='ident'>scissor</span>,
-            };
-
-            <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>vertices</span>.<span class='ident'>len</span>() <span class='op'>/</span> <span class='ident'>POS_COMPONENTS</span>;
             <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='ident'>gfx</span>::<span class='ident'>Slice</span> {
-                    <span class='ident'>instances</span>: <span class='prelude-val'>None</span>,
-                    <span class='ident'>start</span>: <span class='number'>0</span>,
-                    <span class='ident'>end</span>: <span class='ident'>n</span> <span class='kw'>as</span> <span class='ident'>u32</span>,
-                    <span class='ident'>kind</span>: <span class='ident'>gfx</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Vertex</span>
+                <span class='ident'>instances</span>: <span class='prelude-val'>None</span>,
+                <span class='ident'>start</span>: <span class='number'>0</span>,
+                <span class='ident'>end</span>: <span class='ident'>n</span> <span class='kw'>as</span> <span class='ident'>u32</span>,
+                <span class='ident'>kind</span>: <span class='ident'>gfx</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Vertex</span>
             };
             <span class='ident'>encoder</span>.<span class='ident'>draw</span>(<span class='kw-2'>&amp;</span><span class='ident'>slice</span>, <span class='ident'>pso_textured</span>, <span class='kw-2'>&amp;</span><span class='ident'>data</span>);
         })

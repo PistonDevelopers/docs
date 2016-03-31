@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx_core-0.1.2/src/pso.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx_core-0.2.0/src/pso.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>pso.rs.html -- source</title>
@@ -270,41 +270,6 @@
 <span id="227">227</span>
 <span id="228">228</span>
 <span id="229">229</span>
-<span id="230">230</span>
-<span id="231">231</span>
-<span id="232">232</span>
-<span id="233">233</span>
-<span id="234">234</span>
-<span id="235">235</span>
-<span id="236">236</span>
-<span id="237">237</span>
-<span id="238">238</span>
-<span id="239">239</span>
-<span id="240">240</span>
-<span id="241">241</span>
-<span id="242">242</span>
-<span id="243">243</span>
-<span id="244">244</span>
-<span id="245">245</span>
-<span id="246">246</span>
-<span id="247">247</span>
-<span id="248">248</span>
-<span id="249">249</span>
-<span id="250">250</span>
-<span id="251">251</span>
-<span id="252">252</span>
-<span id="253">253</span>
-<span id="254">254</span>
-<span id="255">255</span>
-<span id="256">256</span>
-<span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
-<span id="261">261</span>
-<span id="262">262</span>
-<span id="263">263</span>
-<span id="264">264</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2015 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -322,10 +287,12 @@
 
 <span class='doccomment'>//! Pipeline State Objects</span>
 
-<span class='kw'>use</span> {<span class='ident'>MAX_COLOR_TARGETS</span>, <span class='ident'>MAX_VERTEX_ATTRIBUTES</span>, <span class='ident'>MAX_CONSTANT_BUFFERS</span>,
-     <span class='ident'>MAX_RESOURCE_VIEWS</span>, <span class='ident'>MAX_UNORDERED_VIEWS</span>, <span class='ident'>MAX_SAMPLERS</span>};
-<span class='kw'>use</span> {<span class='ident'>ColorSlot</span>, <span class='ident'>Primitive</span>, <span class='ident'>Resources</span>};
+<span class='kw'>use</span> {<span class='ident'>MAX_COLOR_TARGETS</span>, <span class='ident'>MAX_VERTEX_ATTRIBUTES</span>};
+<span class='kw'>use</span> {<span class='ident'>ConstantBufferSlot</span>, <span class='ident'>ColorSlot</span>, <span class='ident'>ResourceViewSlot</span>,
+     <span class='ident'>UnorderedViewSlot</span>, <span class='ident'>SamplerSlot</span>,
+     <span class='ident'>Primitive</span>, <span class='ident'>Resources</span>};
 <span class='kw'>use</span> {<span class='ident'>format</span>, <span class='ident'>state</span> <span class='kw'>as</span> <span class='ident'>s</span>, <span class='ident'>tex</span>};
+<span class='kw'>use</span> <span class='ident'>shade</span>::<span class='ident'>Usage</span>;
 
 
 <span class='doccomment'>/// An offset inside a vertex buffer, in bytes.</span>
@@ -435,6 +402,8 @@
     <span class='kw'>pub</span> <span class='ident'>primitive</span>: <span class='ident'>Primitive</span>,
     <span class='doccomment'>/// Rasterizer setup</span>
     <span class='kw'>pub</span> <span class='ident'>rasterizer</span>: <span class='ident'>s</span>::<span class='ident'>Rasterizer</span>,
+    <span class='doccomment'>/// Enable scissor test</span>
+    <span class='kw'>pub</span> <span class='ident'>scissor</span>: <span class='ident'>bool</span>,
     <span class='doccomment'>/// Vertex attributes</span>
     <span class='kw'>pub</span> <span class='ident'>attributes</span>: [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AttributeDesc</span><span class='op'>&gt;</span>; <span class='ident'>MAX_VERTEX_ATTRIBUTES</span>],
     <span class='doccomment'>/// Render target views (RTV)</span>
@@ -449,6 +418,7 @@
         <span class='ident'>Descriptor</span> {
             <span class='ident'>primitive</span>: <span class='ident'>primitive</span>,
             <span class='ident'>rasterizer</span>: <span class='ident'>rast</span>,
+            <span class='ident'>scissor</span>: <span class='boolval'>false</span>,
             <span class='ident'>attributes</span>: [<span class='prelude-val'>None</span>; <span class='ident'>MAX_VERTEX_ATTRIBUTES</span>],
             <span class='ident'>color_targets</span>: [<span class='prelude-val'>None</span>; <span class='ident'>MAX_COLOR_TARGETS</span>],
             <span class='ident'>depth_stencil</span>: <span class='prelude-val'>None</span>,
@@ -470,61 +440,21 @@
     }
 }
 
-<span class='doccomment'>/// A complete set of constant buffers to be used for the constants binding in PSO.</span>
+<span class='doccomment'>/// A constant buffer run-time parameter for PSO.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ConstantBufferSet</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(
-    <span class='doccomment'>/// Array of buffer handles</span>
-    <span class='kw'>pub</span> [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Buffer</span><span class='op'>&gt;</span>; <span class='ident'>MAX_CONSTANT_BUFFERS</span>]
-);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ConstantBufferParam</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='kw'>pub</span> <span class='ident'>R</span>::<span class='ident'>Buffer</span>, <span class='kw'>pub</span> <span class='ident'>Usage</span>, <span class='kw'>pub</span> <span class='ident'>ConstantBufferSlot</span>);
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ConstantBufferSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create an empty set</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>ConstantBufferSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>ConstantBufferSet</span>([<span class='prelude-val'>None</span>; <span class='ident'>MAX_CONSTANT_BUFFERS</span>])
-    }
-}
-
-<span class='doccomment'>/// A complete set of shader resource views to be used in PSO.</span>
+<span class='doccomment'>/// A shader resource view (SRV) run-time parameter for PSO.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ResourceViewSet</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(
-    <span class='doccomment'>/// Array of SRVs</span>
-    <span class='kw'>pub</span> [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span><span class='op'>&gt;</span>; <span class='ident'>MAX_RESOURCE_VIEWS</span>],
-);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ResourceViewParam</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='kw'>pub</span> <span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>, <span class='kw'>pub</span> <span class='ident'>Usage</span>, <span class='kw'>pub</span> <span class='ident'>ResourceViewSlot</span>);
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ResourceViewSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create an empty set</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>ResourceViewSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>ResourceViewSet</span>([<span class='prelude-val'>None</span>; <span class='ident'>MAX_RESOURCE_VIEWS</span>])
-    }
-}
-
-<span class='doccomment'>/// A complete set of unordered access views to be used in PSO.</span>
+<span class='doccomment'>/// An unordered access view (UAV) run-time parameter for PSO.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>UnorderedViewSet</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(
-    <span class='doccomment'>/// Array of UAVs</span>
-    <span class='kw'>pub</span> [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span><span class='op'>&gt;</span>; <span class='ident'>MAX_UNORDERED_VIEWS</span>],
-);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>UnorderedViewParam</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='kw'>pub</span> <span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>, <span class='kw'>pub</span> <span class='ident'>Usage</span>, <span class='kw'>pub</span> <span class='ident'>UnorderedViewSlot</span>);
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>UnorderedViewSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create an empty set</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>UnorderedViewSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>UnorderedViewSet</span>([<span class='prelude-val'>None</span>; <span class='ident'>MAX_UNORDERED_VIEWS</span>])
-    }
-}
-
-<span class='doccomment'>/// A complete set of samplers to be used for PSO.</span>
+<span class='doccomment'>/// A sampler run-time parameter for PSO.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>SamplerSet</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(
-    <span class='doccomment'>/// Array of samplers</span>
-    <span class='kw'>pub</span> [<span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Sampler</span><span class='op'>&gt;</span>; <span class='ident'>MAX_SAMPLERS</span>]
-);
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>SamplerSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create an empty set</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>SamplerSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>SamplerSet</span>([<span class='prelude-val'>None</span>; <span class='ident'>MAX_SAMPLERS</span>])
-    }
-}
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>SamplerParam</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='kw'>pub</span> <span class='ident'>R</span>::<span class='ident'>Sampler</span>, <span class='kw'>pub</span> <span class='ident'>Usage</span>, <span class='kw'>pub</span> <span class='ident'>SamplerSlot</span>);
 
 <span class='doccomment'>/// A complete set of render targets to be used for pixel export in PSO.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
