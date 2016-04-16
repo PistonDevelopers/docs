@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Corner","Either of the four corners of a **Rect**."]],"struct":[["Rect","Defines a Rectangle's bounds across the x and y axes.This is a conrod-specific Rectangle in that it's designed to help with layout."]]});
+initSidebarItems({"enum":[["Corner","Either of the four corners of a **Rect**."]],"struct":[["Rect","Defines a Rectangle's bounds across the x and y axes."]]});

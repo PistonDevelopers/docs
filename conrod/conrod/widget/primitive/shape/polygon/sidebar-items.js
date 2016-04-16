@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Polygon","A basic, non-interactive, arbitarry **Polygon** widget.The **Polygon** is described by specifying its corners in order.**Polygon** will automatically close all shapes, so the given list of points does not need to start and end with the same position."]]});
+initSidebarItems({"struct":[["Polygon","A basic, non-interactive, arbitarry **Polygon** widget."]]});

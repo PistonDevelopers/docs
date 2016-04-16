@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["NumberDialer","A widget for precision control over any digit within a value.The reaction is triggered when the value is updated or if the mouse button is released while the cursor is above the widget."],["Style","Unique graphical styling for the NumberDialer."]]});
+initSidebarItems({"struct":[["NumberDialer","A widget for precision control over any digit within a value."],["Style","Unique graphical styling for the NumberDialer."]]});

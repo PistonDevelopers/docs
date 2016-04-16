@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Visitable","Parts of the graph that are significant when visiting and sorting by depth.The reason a widget and its scrollbar are separate here is because a widget's scrollbar may sometimes appear on *top* of the widget's children."]],"struct":[["DepthOrder","Contains Node indices in order of depth, starting with the deepest."]]});
+initSidebarItems({"enum":[["Visitable","Parts of the graph that are significant when visiting and sorting by depth."]],"struct":[["DepthOrder","Contains Node indices in order of depth, starting with the deepest."]]});
