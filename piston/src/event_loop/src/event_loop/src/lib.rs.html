@@ -315,6 +315,21 @@
 <span id="271">271</span>
 <span id="272">272</span>
 <span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A generic event loop for games and interactive applications</span>
 
@@ -351,14 +366,22 @@
     <span class='ident'>Yes</span>
 }
 
+<span class='comment'>// Stores the update state right after sleep.</span>
+<span class='comment'>// This is used to avoid logic error when changing settings</span>
+<span class='comment'>// in the event loop followed by an update.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>struct</span> <span class='ident'>UpdateState</span> {
+    <span class='ident'>dt_update_in_ns</span>: <span class='ident'>u64</span>,
+    <span class='ident'>dt</span>: <span class='ident'>f64</span>,
+}
 
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>enum</span> <span class='ident'>State</span> {
     <span class='ident'>Render</span>,
     <span class='ident'>SwapBuffers</span>,
     <span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>),
-    <span class='ident'>HandleEvents</span>,
-    <span class='ident'>Update</span>,
+    <span class='ident'>HandleEvents</span>(<span class='ident'>UpdateState</span>),
+    <span class='ident'>Update</span>(<span class='ident'>UpdateState</span>),
 }
 
 <span class='doccomment'>/// Methods implements for event loop settings.</span>
@@ -472,10 +495,9 @@
         <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Window</span>
     {
         <span class='kw'>loop</span> {
+            <span class='kw'>if</span> <span class='ident'>window</span>.<span class='ident'>should_close</span>() { <span class='kw'>return</span> <span class='prelude-val'>None</span>; }
             <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>state</span> {
                 <span class='ident'>State</span>::<span class='ident'>Render</span> <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='ident'>window</span>.<span class='ident'>should_close</span>() { <span class='kw'>return</span> <span class='prelude-val'>None</span>; }
-
                     <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>bench_mode</span> {
                         <span class='comment'>// In benchmark mode, pretend FPS is perfect.</span>
                         <span class='self'>self</span>.<span class='ident'>last_frame</span> <span class='op'>+=</span> <span class='self'>self</span>.<span class='ident'>dt_frame_in_ns</span>;
@@ -521,7 +543,10 @@
                         <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
                             <span class='ident'>State</span>::<span class='ident'>Render</span>
                         } <span class='kw'>else</span> {
-                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
+                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>UpdateState</span> {
+                                <span class='ident'>dt_update_in_ns</span>: <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>,
+                                <span class='ident'>dt</span>: <span class='self'>self</span>.<span class='ident'>dt</span>,
+                            })
                         }
                     } <span class='kw'>else</span> {
                         <span class='kw'>let</span> <span class='ident'>current_time</span> <span class='op'>=</span> <span class='ident'>time</span>::<span class='ident'>precise_time_ns</span>();
@@ -542,29 +567,34 @@
                         } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
                             <span class='ident'>State</span>::<span class='ident'>Render</span>
                         } <span class='kw'>else</span> {
-                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
+                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>UpdateState</span> {
+                                <span class='ident'>dt_update_in_ns</span>: <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>,
+                                <span class='ident'>dt</span>: <span class='self'>self</span>.<span class='ident'>dt</span>,
+                            })
                         }
                     }
                 }
-                <span class='ident'>State</span>::<span class='ident'>HandleEvents</span> <span class='op'>=&gt;</span> {
+                <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>update_state</span>) <span class='op'>=&gt;</span> {
                     <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>bench_mode</span> {
                         <span class='comment'>// Ignore input to prevent it affecting the benchmark.</span>
                         <span class='kw'>match</span> <span class='ident'>window</span>.<span class='ident'>poll_event</span>() {
-                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
-                            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>,
+                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>(<span class='ident'>update_state</span>),
+                            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>update_state</span>),
                         }
                     } <span class='kw'>else</span> {
                         <span class='comment'>// Handle all events before updating.</span>
                         <span class='kw'>match</span> <span class='ident'>window</span>.<span class='ident'>poll_event</span>() {
-                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
+                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>(<span class='ident'>update_state</span>),
                             <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> { <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Input</span>(<span class='ident'>x</span>)); },
                         }
                     }
                 }
-                <span class='ident'>State</span>::<span class='ident'>Update</span> <span class='op'>=&gt;</span> {
+                <span class='ident'>State</span>::<span class='ident'>Update</span>(<span class='ident'>update_state</span>) <span class='op'>=&gt;</span> {
                     <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>::<span class='ident'>No</span>);
-                    <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+=</span> <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>;
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Update</span>(<span class='ident'>UpdateArgs</span>{ <span class='ident'>dt</span>: <span class='self'>self</span>.<span class='ident'>dt</span> }));
+                    <span class='comment'>// Use the update state stored right after sleep.</span>
+                    <span class='comment'>// If there are any changes in settings, these will be applied on next update.</span>
+                    <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+=</span> <span class='ident'>update_state</span>.<span class='ident'>dt_update_in_ns</span>;
+                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Update</span>(<span class='ident'>UpdateArgs</span>{ <span class='ident'>dt</span>: <span class='ident'>update_state</span>.<span class='ident'>dt</span> }));
                 }
             };
         }
