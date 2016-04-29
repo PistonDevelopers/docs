@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ProgramError","Program linking error"]],"struct":[["Usage","Parameter usage flags."]],"trait":[["Formatted","A trait that statically links simple data types to constant formats."],["ToUniform",""]],"type":[["ConstFormat",""]]});

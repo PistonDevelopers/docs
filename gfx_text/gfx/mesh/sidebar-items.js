@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["SliceKind","Source of vertex ordering for a slice"]],"struct":[["Slice","Description of a subset of `Mesh` data to render."]],"trait":[["ToIndexSlice","A helper trait to build index slices from data."]]});
