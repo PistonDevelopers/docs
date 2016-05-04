@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors['libc'] = [];implementors['conrod'] = [];
+implementors['libc'] = [];implementors['input'] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.BitOrAssign.html' title='core::ops::BitOrAssign'>BitOrAssign</a> for <a class='struct' href='input/keyboard/struct.ModifierKey.html' title='input::keyboard::ModifierKey'>ModifierKey</a>",];implementors['conrod'] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
