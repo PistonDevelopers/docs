@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors['rand'] = [];
+implementors['rand'] = [];implementors['bitflags'] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
