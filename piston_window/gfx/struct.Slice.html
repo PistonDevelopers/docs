@@ -47,35 +47,64 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a id='src-323' class='srclink' href='../src/gfx/mesh.rs.html#37-46' title='goto source code'>[src]</a></span></h1>
+               </span><a id='src-321' class='srclink' href='../src/gfx/slice.rs.html#58-73' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct Slice&lt;R: <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; {
     pub start: <a class='type' href='../gfx/type.VertexCount.html' title='gfx::VertexCount'>VertexCount</a>,
     pub end: <a class='type' href='../gfx/type.VertexCount.html' title='gfx::VertexCount'>VertexCount</a>,
+    pub base_vertex: <a class='type' href='../gfx/type.VertexCount.html' title='gfx::VertexCount'>VertexCount</a>,
     pub instances: <a class='type' href='../gfx/type.InstanceOption.html' title='gfx::InstanceOption'>InstanceOption</a>,
-    pub kind: <a class='enum' href='../gfx/enum.SliceKind.html' title='gfx::SliceKind'>SliceKind</a>&lt;R&gt;,
-}</pre><div class='docblock'><p>Description of a subset of <code>Mesh</code> data to render.</p>
+    pub buffer: <a class='enum' href='../gfx/enum.IndexBuffer.html' title='gfx::IndexBuffer'>IndexBuffer</a>&lt;R&gt;,
+}</pre><div class='docblock'><p>A <code>Slice</code> dictates in which and in what order vertices get processed. It is required for
+processing a PSO.</p>
 
-<p>Only vertices between <code>start</code> and <code>end</code> are rendered. The
-source of the vertex data is dependent on the <code>kind</code> value.</p>
+<h1 id='overview' class='section-header'><a href='#overview'>Overview</a></h1>
+<p>A <code>Slice</code> object in essence dictates in what order the vertices in a <code>VertexBuffer</code> get
+processed. To do this, it contains an internal index-buffer. This <code>Buffer</code> is a list of
+indices into this <code>VertexBuffer</code> (vertex-index). A vertex-index of 0 represents the first
+vertex in the <code>VertexBuffer</code>, a vertex-index of 1 represents the second, 2 represents the
+third, and so on. The vertex-indices in the index-buffer are read in order; every vertex-index
+tells the pipeline which vertex to process next. </p>
 
-<p>The <code>primitive</code> defines how the mesh contents are interpreted.
-For example,  <code>Point</code> typed vertex slice can be used to do shape
-blending, while still rendereing it as an indexed <code>TriangleList</code>.</p>
+<p>Because the same index can re-appear multiple times, duplicate-vertices can be avoided. For
+instance, if you want to draw a square, you need two triangles, and thus six vertices. Because
+the same index can reappear multiple times, this means we can instead use 4 vertices, and 6
+vertex-indices.</p>
+
+<p>This index-buffer has a few variants. See the <code>IndexBuffer</code> documentation for a detailed
+description.</p>
+
+<p>The <code>start</code> and <code>end</code> fields say where in the index-buffer to start and stop reading.
+Setting <code>start</code> to 0, and <code>end</code> to the length of the index-buffer, will cause the entire
+index-buffer to be processed. The <code>base_vertex</code> dictates the index of the first vertex
+in the <code>VertexBuffer</code>. This essentially moves the the start of the <code>VertexBuffer</code>, to the
+vertex with this index.</p>
+
+<h1 id='constuction--handling' class='section-header'><a href='#constuction--handling'>Constuction &amp; Handling</a></h1>
+<p>The <code>Slice</code> structure can be constructed automatically when using a <code>Factory</code> to create a
+vertex buffer. If needed, it can also be created manually.</p>
+
+<p>A <code>Slice</code> is required to process a PSO, as it contains the needed information on in what order
+to draw which vertices. As such, every <code>draw</code> call on an <code>Encoder</code> requires a <code>Slice</code>.</p>
 </div><h2 class='fields'>Fields</h2>
 <table><tr class='stab '>
-                             <td id='structfield.start'><code>start</code></td><td><div class='docblock'><p>Start index of vertices to draw.</p>
+                             <td id='structfield.start'><code>start</code></td><td><div class='docblock'><p>The start index of the index-buffer. Processing will start at this location in the
+index-buffer. </p>
 </div></td></tr><tr class='stab '>
-                             <td id='structfield.end'><code>end</code></td><td><div class='docblock'><p>End index of vertices to draw.</p>
+                             <td id='structfield.end'><code>end</code></td><td><div class='docblock'><p>The end index in the index-buffer. Processing will stop at this location (exclusive) in
+the index buffer.</p>
+</div></td></tr><tr class='stab '>
+                             <td id='structfield.base_vertex'><code>base_vertex</code></td><td><div class='docblock'><p>This is the index of the first vertex in the <code>VertexBuffer</code>. This value will be added to
+every index in the index-buffer, effectively moving the start of the <code>VertexBuffer</code> to this
+base-vertex.</p>
 </div></td></tr><tr class='stab '>
                              <td id='structfield.instances'><code>instances</code></td><td><div class='docblock'><p>Instancing configuration.</p>
 </div></td></tr><tr class='stab '>
-                             <td id='structfield.kind'><code>kind</code></td><td><div class='docblock'><p>Source of the vertex ordering when drawing.</p>
-</div></td></tr></table><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl&lt;R: <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.get_prim_count' class='method'><code>fn <a href='#method.get_prim_count' class='fnname'>get_prim_count</a>(&amp;self, prim: <a class='enum' href='../gfx/enum.Primitive.html' title='gfx::Primitive'>Primitive</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a></code></h4>
-<div class='docblock'><p>Get the number of primitives in this slice.</p>
-</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;R: <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html' title='core::convert::From'>From</a>&lt;<a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt; for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.from' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html#tymethod.from' class='fnname'>from</a>(buf: <a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;) -&gt; <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h4>
-</div><h3 class='impl'><code>impl&lt;R: <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html' title='core::convert::From'>From</a>&lt;<a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u16.html'>u16</a>&gt;&gt; for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.from-1' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html#tymethod.from' class='fnname'>from</a>(buf: <a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u16.html'>u16</a>&gt;) -&gt; <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h4>
-</div><h3 class='impl'><code>impl&lt;R: <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html' title='core::convert::From'>From</a>&lt;<a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>&gt;&gt; for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.from-2' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html#tymethod.from' class='fnname'>from</a>(buf: <a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>&gt;) -&gt; <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h4>
-</div><h3 id='derived_implementations'>Derived Implementations </h3><h3 class='impl'><code>impl&lt;R: <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='core::cmp::PartialEq'>PartialEq</a> + <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='core::cmp::PartialEq'>PartialEq</a> for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.eq' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+                             <td id='structfield.buffer'><code>buffer</code></td><td><div class='docblock'><p>Represents the type of index-buffer used.</p>
+</div></td></tr></table><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl&lt;R: <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.new_match_vertex_buffer' class='method'><code>fn <a href='#method.new_match_vertex_buffer' class='fnname'>new_match_vertex_buffer</a>&lt;V&gt;(vbuf: &amp;<a class='struct' href='../gfx/handle/struct.Buffer.html' title='gfx::handle::Buffer'>Buffer</a>&lt;R, V&gt;) -&gt; Self <span class='where'>where V: <a class='trait' href='../gfx/pso/buffer/trait.Structure.html' title='gfx::pso::buffer::Structure'>Structure</a>&lt;<a class='struct' href='../gfx/format/struct.Format.html' title='gfx::format::Format'>Format</a>&gt;</span></code></h4>
+<div class='docblock'><p>Creates a new <code>Slice</code> to match the supplied vertex buffer, from start to end, in order.</p>
+</div><h4 id='method.get_prim_count' class='method'><code>fn <a href='#method.get_prim_count' class='fnname'>get_prim_count</a>(&amp;self, prim: <a class='enum' href='../gfx/enum.Primitive.html' title='gfx::Primitive'>Primitive</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a></code></h4>
+<div class='docblock'><p>Calculates the number of primitives of the specified type in this <code>Slice</code>.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 id='derived_implementations'>Derived Implementations </h3><h3 class='impl'><code>impl&lt;R: <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='core::cmp::PartialEq'>PartialEq</a> + <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='core::cmp::PartialEq'>PartialEq</a> for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.eq' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
 <h4 id='method.ne' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
 </div><h3 class='impl'><code>impl&lt;R: <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='core::fmt::Debug'>Debug</a> + <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='core::fmt::Debug'>Debug</a> for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.fmt' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class='struct' href='https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html' title='core::fmt::Formatter'>Formatter</a>) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/core/fmt/type.Result.html' title='core::fmt::Result'>Result</a></code></h4>
 </div><h3 class='impl'><code>impl&lt;R: <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> + <a class='trait' href='../gfx/trait.Resources.html' title='gfx::Resources'>Resources</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../gfx/struct.Slice.html' title='gfx::Slice'>Slice</a>&lt;R&gt;</code></h4>

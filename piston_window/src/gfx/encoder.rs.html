@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx-0.10.2/src/encoder.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.11.0/src/encoder.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>encoder.rs.html -- source</title>
@@ -263,6 +263,22 @@
 <span id="219">219</span>
 <span id="220">220</span>
 <span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2014 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -288,7 +304,7 @@
 <span class='kw'>use</span> <span class='ident'>gfx_core</span>::{<span class='ident'>Device</span>, <span class='ident'>IndexType</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
 <span class='kw'>use</span> <span class='ident'>gfx_core</span>::{<span class='ident'>draw</span>, <span class='ident'>format</span>, <span class='ident'>handle</span>, <span class='ident'>tex</span>};
 <span class='kw'>use</span> <span class='ident'>gfx_core</span>::<span class='ident'>factory</span>::{<span class='ident'>cast_slice</span>, <span class='ident'>Typed</span>};
-<span class='kw'>use</span> <span class='ident'>mesh</span>;
+<span class='kw'>use</span> <span class='ident'>slice</span>;
 <span class='kw'>use</span> <span class='ident'>pso</span>;
 
 
@@ -306,8 +322,20 @@
     },
 }
 
-
-<span class='doccomment'>/// Graphics commands encoder.</span>
+<span class='doccomment'>/// Graphics Command Encoder</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// # Overview</span>
+<span class='doccomment'>/// The `Encoder` is a wrapper structure around a `CommandBuffer`. It is responsible for sending</span>
+<span class='doccomment'>/// commands to the `CommandBuffer`. </span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// # Construction &amp; Handling</span>
+<span class='doccomment'>/// The `Encoder` implements `From&lt;CommandBuffer&gt;`, which is how it is constructed. There is no</span>
+<span class='doccomment'>/// cross-API way to create a `CommandBuffer`, however, an API back-end should expose a function to</span>
+<span class='doccomment'>/// create one in its `Factory` type. See the specific back-end for details on how to construct a</span>
+<span class='doccomment'>/// `CommandBuffer`.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// The encoder exposes multiple functions that add commands to its internal `CommandBuffer`. To </span>
+<span class='doccomment'>/// submit these commands to the GPU so they can be rendered, call `flush`. </span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>draw</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> {
     <span class='ident'>command_buffer</span>: <span class='ident'>C</span>,
     <span class='ident'>raw_pso_data</span>: <span class='ident'>pso</span>::<span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
@@ -325,7 +353,13 @@
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>draw</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Flush the encoded commands onto the device, and clean.</span>
+    <span class='doccomment'>/// Submits the commands in this `Encoder`&#39;s internal `CommandBuffer` to the GPU, so they can</span>
+    <span class='doccomment'>/// be executed. </span>
+    <span class='doccomment'>/// </span>
+    <span class='doccomment'>/// Calling `flush` before swapping buffers is critical as without it the commands of the</span>
+    <span class='doccomment'>/// internal ´CommandBuffer´ will not be sent to the GPU, and as a result they will not be</span>
+    <span class='doccomment'>/// processed. Calling flush too often however will result in a performance hit. It is</span>
+    <span class='doccomment'>/// generally recommended to call flush once per frame, when all draw calls have been made. </span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>flush</span><span class='op'>&lt;</span><span class='ident'>D</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>device</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>D</span>) <span class='kw'>where</span>
         <span class='ident'>D</span>: <span class='ident'>Device</span><span class='op'>&lt;</span><span class='ident'>Resources</span><span class='op'>=</span><span class='ident'>R</span>, <span class='ident'>CommandBuffer</span><span class='op'>=</span><span class='ident'>C</span><span class='op'>&gt;</span>
     {
@@ -421,26 +455,24 @@
     }
 
     <span class='kw'>fn</span> <span class='ident'>draw_indexed</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>ty</span>: <span class='ident'>IndexType</span>,
-                    <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>mesh</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>base</span>: <span class='ident'>VertexCount</span>,
+                    <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>slice</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>base</span>: <span class='ident'>VertexCount</span>,
                     <span class='ident'>instances</span>: <span class='ident'>draw</span>::<span class='ident'>InstanceOption</span>) {
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_index</span>(<span class='self'>self</span>.<span class='ident'>handles</span>.<span class='ident'>ref_buffer</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>()).<span class='ident'>clone</span>(), <span class='ident'>ty</span>);
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>call_draw_indexed</span>(<span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>slice</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>base</span>, <span class='ident'>instances</span>);
     }
 
-    <span class='kw'>fn</span> <span class='ident'>draw_slice</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>mesh</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>instances</span>: <span class='ident'>draw</span>::<span class='ident'>InstanceOption</span>) {
-        <span class='kw'>match</span> <span class='ident'>slice</span>.<span class='ident'>kind</span> {
-            <span class='ident'>mesh</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Vertex</span> <span class='op'>=&gt;</span> <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>call_draw</span>(
-                <span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>slice</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>instances</span>),
-            <span class='ident'>mesh</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Index8</span>(<span class='kw-2'>ref</span> <span class='ident'>buf</span>, <span class='ident'>base</span>) <span class='op'>=&gt;</span>
-                <span class='self'>self</span>.<span class='ident'>draw_indexed</span>(<span class='ident'>buf</span>, <span class='ident'>IndexType</span>::<span class='ident'>U8</span>, <span class='ident'>slice</span>, <span class='ident'>base</span>, <span class='ident'>instances</span>),
-            <span class='ident'>mesh</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Index16</span>(<span class='kw-2'>ref</span> <span class='ident'>buf</span>, <span class='ident'>base</span>) <span class='op'>=&gt;</span>
-                <span class='self'>self</span>.<span class='ident'>draw_indexed</span>(<span class='ident'>buf</span>, <span class='ident'>IndexType</span>::<span class='ident'>U16</span>, <span class='ident'>slice</span>, <span class='ident'>base</span>, <span class='ident'>instances</span>),
-            <span class='ident'>mesh</span>::<span class='ident'>SliceKind</span>::<span class='ident'>Index32</span>(<span class='kw-2'>ref</span> <span class='ident'>buf</span>, <span class='ident'>base</span>) <span class='op'>=&gt;</span>
-                <span class='self'>self</span>.<span class='ident'>draw_indexed</span>(<span class='ident'>buf</span>, <span class='ident'>IndexType</span>::<span class='ident'>U32</span>, <span class='ident'>slice</span>, <span class='ident'>base</span>, <span class='ident'>instances</span>),
+    <span class='kw'>fn</span> <span class='ident'>draw_slice</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>slice</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>instances</span>: <span class='ident'>draw</span>::<span class='ident'>InstanceOption</span>) {
+        <span class='kw'>match</span> <span class='ident'>slice</span>.<span class='ident'>buffer</span> {
+            <span class='ident'>slice</span>::<span class='ident'>IndexBuffer</span>::<span class='ident'>Auto</span> <span class='op'>=&gt;</span> <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>call_draw</span>(
+                <span class='ident'>slice</span>.<span class='ident'>start</span> <span class='op'>+</span> <span class='ident'>slice</span>.<span class='ident'>base_vertex</span>, <span class='ident'>slice</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>instances</span>),
+            <span class='ident'>slice</span>::<span class='ident'>IndexBuffer</span>::<span class='ident'>Index16</span>(<span class='kw-2'>ref</span> <span class='ident'>buf</span>) <span class='op'>=&gt;</span>
+                <span class='self'>self</span>.<span class='ident'>draw_indexed</span>(<span class='ident'>buf</span>, <span class='ident'>IndexType</span>::<span class='ident'>U16</span>, <span class='ident'>slice</span>, <span class='ident'>slice</span>.<span class='ident'>base_vertex</span>, <span class='ident'>instances</span>),
+            <span class='ident'>slice</span>::<span class='ident'>IndexBuffer</span>::<span class='ident'>Index32</span>(<span class='kw-2'>ref</span> <span class='ident'>buf</span>) <span class='op'>=&gt;</span>
+                <span class='self'>self</span>.<span class='ident'>draw_indexed</span>(<span class='ident'>buf</span>, <span class='ident'>IndexType</span>::<span class='ident'>U32</span>, <span class='ident'>slice</span>, <span class='ident'>slice</span>.<span class='ident'>base_vertex</span>, <span class='ident'>instances</span>),
         }
     }
 
-    <span class='doccomment'>/// Clear a target view with a specified value.</span>
+    <span class='doccomment'>/// Clears the supplied `RenderTargetView` to the supplied `ClearColor`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>format</span>::<span class='ident'>RenderFormat</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
                  <span class='ident'>view</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>value</span>: <span class='ident'>T</span>::<span class='ident'>View</span>)
     <span class='kw'>where</span> <span class='ident'>T</span>::<span class='ident'>View</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>draw</span>::<span class='ident'>ClearColor</span><span class='op'>&gt;</span> {
@@ -461,8 +493,8 @@
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>clear_depth_stencil</span>(<span class='ident'>target</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>Some</span>(<span class='ident'>stencil</span>))
     }
 
-    <span class='doccomment'>/// Draw a mesh slice using a typed pipeline state object (PSO).</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>D</span>: <span class='ident'>pso</span>::<span class='ident'>PipelineData</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>mesh</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// Draws a `slice::Slice` using a pipeline state object, and its matching `Data` structure.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>draw</span><span class='op'>&lt;</span><span class='ident'>D</span>: <span class='ident'>pso</span>::<span class='ident'>PipelineData</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>slice</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
                 <span class='ident'>pipeline</span>: <span class='kw-2'>&amp;</span><span class='ident'>pso</span>::<span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>D</span>::<span class='ident'>Meta</span><span class='op'>&gt;</span>, <span class='ident'>user_data</span>: <span class='kw-2'>&amp;</span><span class='ident'>D</span>)
     {
         <span class='kw'>let</span> (<span class='ident'>pso</span>, _) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>handles</span>.<span class='ident'>ref_pso</span>(<span class='ident'>pipeline</span>.<span class='ident'>get_handle</span>());

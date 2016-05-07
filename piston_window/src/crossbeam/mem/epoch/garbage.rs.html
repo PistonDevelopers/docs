@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/crossbeam-0.1.6/src/mem/epoch/garbage.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/crossbeam-0.2.9/src/mem/epoch/garbage.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>garbage.rs.html -- source</title>
@@ -181,11 +181,6 @@
 <span id="137">137</span>
 <span id="138">138</span>
 <span id="139">139</span>
-<span id="140">140</span>
-<span id="141">141</span>
-<span id="142">142</span>
-<span id="143">143</span>
-<span id="144">144</span>
 </pre><pre class='rust '>
 <span class='comment'>// Data structures for storing garbage to be freed later (once the</span>
 <span class='comment'>// epochs have sufficiently advanced).</span>
@@ -198,7 +193,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ptr</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>AtomicPtr</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>::{<span class='ident'>Relaxed</span>, <span class='ident'>Release</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>::{<span class='ident'>Relaxed</span>, <span class='ident'>Release</span>, <span class='ident'>Acquire</span>};
 
 <span class='kw'>use</span> <span class='ident'>mem</span>::<span class='ident'>ZerosValid</span>;
 
@@ -251,7 +246,6 @@
 <span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Bag</span> {}
 
 <span class='doccomment'>/// A thread-local set of garbage bags.</span>
-<span class='comment'>// FIXME: switch this to use modular arithmetic and accessors instead</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Local</span> {
     <span class='doccomment'>/// Garbage added at least one epoch behind the current local epoch</span>
     <span class='kw'>pub</span> <span class='ident'>old</span>: <span class='ident'>Bag</span>,
@@ -270,7 +264,7 @@
         }
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>reclaim</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>elem</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>insert</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>elem</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>) {
         <span class='self'>self</span>.<span class='ident'>new</span>.<span class='ident'>insert</span>(<span class='ident'>elem</span>)
     }
 
@@ -283,7 +277,7 @@
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='self'>self</span>.<span class='ident'>old</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>cur</span>.<span class='ident'>len</span>()
+        <span class='self'>self</span>.<span class='ident'>old</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>cur</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>new</span>.<span class='ident'>len</span>()
     }
 }
 
@@ -303,33 +297,29 @@
 
 <span class='kw'>impl</span> <span class='ident'>ConcBag</span> {
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>insert</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>t</span>: <span class='ident'>Bag</span>){
-        <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>into_raw</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(
+        <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>Box</span>::<span class='ident'>into_raw</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(
             <span class='ident'>Node</span> { <span class='ident'>data</span>: <span class='ident'>t</span>, <span class='ident'>next</span>: <span class='ident'>AtomicPtr</span>::<span class='ident'>new</span>(<span class='ident'>ptr</span>::<span class='ident'>null_mut</span>()) }));
         <span class='kw'>loop</span> {
-            <span class='kw'>let</span> <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>);
+            <span class='kw'>let</span> <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>load</span>(<span class='ident'>Acquire</span>);
             <span class='kw'>unsafe</span> { (<span class='op'>*</span><span class='ident'>n</span>).<span class='ident'>next</span>.<span class='ident'>store</span>(<span class='ident'>head</span>, <span class='ident'>Relaxed</span>) };
             <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>compare_and_swap</span>(<span class='ident'>head</span>, <span class='ident'>n</span>, <span class='ident'>Release</span>) <span class='op'>==</span> <span class='ident'>head</span> { <span class='kw'>break</span> }
         }
     }
 
     <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>collect</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='comment'>// check to avoid xchg instruction</span>
+        <span class='comment'>// when no garbage exists</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>);
-        <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>store</span>(<span class='ident'>ptr</span>::<span class='ident'>null_mut</span>(), <span class='ident'>Relaxed</span>);
+        <span class='kw'>if</span> <span class='ident'>head</span> <span class='op'>!=</span> <span class='ident'>ptr</span>::<span class='ident'>null_mut</span>() {
+            <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>swap</span>(<span class='ident'>ptr</span>::<span class='ident'>null_mut</span>(), <span class='ident'>Acquire</span>);
 
-        <span class='kw'>while</span> <span class='ident'>head</span> <span class='op'>!=</span> <span class='ident'>ptr</span>::<span class='ident'>null_mut</span>() {
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>from_raw</span>(<span class='ident'>head</span>);
-            <span class='ident'>n</span>.<span class='ident'>data</span>.<span class='ident'>collect</span>();
-            <span class='ident'>head</span> <span class='op'>=</span> <span class='ident'>n</span>.<span class='ident'>next</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>);
+            <span class='kw'>while</span> <span class='ident'>head</span> <span class='op'>!=</span> <span class='ident'>ptr</span>::<span class='ident'>null_mut</span>() {
+                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>Box</span>::<span class='ident'>from_raw</span>(<span class='ident'>head</span>);
+                <span class='ident'>n</span>.<span class='ident'>data</span>.<span class='ident'>collect</span>();
+                <span class='ident'>head</span> <span class='op'>=</span> <span class='ident'>n</span>.<span class='ident'>next</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>);
+            }
         }
     }
-}
-
-<span class='kw'>fn</span> <span class='ident'>into_raw</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>b</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span> {
-    <span class='kw'>unsafe</span> { <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>b</span>) }
-}
-
-<span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>from_raw</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>p</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>p</span>)
 }
 </pre>
 </section>

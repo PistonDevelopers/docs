@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/crossbeam-0.1.6/src/mem/epoch/participant.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/crossbeam-0.2.9/src/mem/epoch/participant.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>participant.rs.html -- source</title>
@@ -157,6 +157,17 @@
 <span id="113">113</span>
 <span id="114">114</span>
 <span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
 </pre><pre class='rust '>
 <span class='comment'>// Manages a single participant in the epoch scheme. This is where all</span>
 <span class='comment'>// of the actual epoch management logic happens!</span>
@@ -191,6 +202,8 @@
 
 <span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Participant</span> {}
 
+<span class='kw'>const</span> <span class='ident'>GC_THRESH</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>32</span>;
+
 <span class='kw'>impl</span> <span class='ident'>Participant</span> {
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>Participant</span> {
         <span class='ident'>Participant</span> {
@@ -205,10 +218,13 @@
     <span class='doccomment'>/// Enter a critical section.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// This method is reentrant, allowing for nested critical sections.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>enter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns `true` is this is the first entry on the stack (as opposed to a</span>
+    <span class='doccomment'>/// re-entrant call).</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>enter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='kw'>let</span> <span class='ident'>new_count</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>in_critical</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>) <span class='op'>+</span> <span class='number'>1</span>;
         <span class='self'>self</span>.<span class='ident'>in_critical</span>.<span class='ident'>store</span>(<span class='ident'>new_count</span>, <span class='ident'>Relaxed</span>);
-        <span class='kw'>if</span> <span class='ident'>new_count</span> <span class='op'>&gt;</span> <span class='number'>1</span> { <span class='kw'>return</span> }
+        <span class='kw'>if</span> <span class='ident'>new_count</span> <span class='op'>&gt;</span> <span class='number'>1</span> { <span class='kw'>return</span> <span class='boolval'>false</span> }
 
         <span class='ident'>atomic</span>::<span class='ident'>fence</span>(<span class='ident'>SeqCst</span>);
 
@@ -217,6 +233,8 @@
             <span class='self'>self</span>.<span class='ident'>epoch</span>.<span class='ident'>store</span>(<span class='ident'>global_epoch</span>, <span class='ident'>Relaxed</span>);
             <span class='kw'>unsafe</span> { (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>garbage</span>.<span class='ident'>get</span>()).<span class='ident'>collect</span>(); }
         }
+
+        <span class='boolval'>true</span>
     }
 
     <span class='doccomment'>/// Exit the current (nested) critical section.</span>
@@ -229,7 +247,7 @@
 
     <span class='doccomment'>/// Begin the reclamation process for a piece of data.</span>
     <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>reclaim</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>data</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>) {
-        (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>garbage</span>.<span class='ident'>get</span>()).<span class='ident'>reclaim</span>(<span class='ident'>data</span>);
+        (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>garbage</span>.<span class='ident'>get</span>()).<span class='ident'>insert</span>(<span class='ident'>data</span>);
     }
 
     <span class='doccomment'>/// Attempt to collect garbage by moving the global epoch forward.</span>
@@ -250,11 +268,11 @@
             <span class='kw'>return</span> <span class='boolval'>false</span>
         }
 
-        <span class='self'>self</span>.<span class='ident'>epoch</span>.<span class='ident'>store</span>(<span class='ident'>new_epoch</span>, <span class='ident'>Relaxed</span>);
-
         <span class='kw'>unsafe</span> {
+            (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>garbage</span>.<span class='ident'>get</span>()).<span class='ident'>collect</span>();
             <span class='ident'>global</span>::<span class='ident'>get</span>().<span class='ident'>garbage</span>[<span class='ident'>new_epoch</span>.<span class='ident'>wrapping_add</span>(<span class='number'>1</span>) <span class='op'>%</span> <span class='number'>3</span>].<span class='ident'>collect</span>();
         }
+        <span class='self'>self</span>.<span class='ident'>epoch</span>.<span class='ident'>store</span>(<span class='ident'>new_epoch</span>, <span class='ident'>Release</span>);
 
         <span class='boolval'>true</span>
     }
@@ -271,6 +289,10 @@
     <span class='doccomment'>/// How much garbage is this participant currently storing?</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>garbage_size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
         <span class='kw'>unsafe</span> { (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>garbage</span>.<span class='ident'>get</span>()).<span class='ident'>size</span>() }
+    }
+    <span class='doccomment'>/// Is this participant past its local GC threshhold?</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>should_gc</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>garbage_size</span>() <span class='op'>&gt;=</span> <span class='ident'>GC_THRESH</span>
     }
 }
 </pre>
