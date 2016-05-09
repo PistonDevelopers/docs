@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx-0.10.2/src/pso/resource.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.11.0/src/pso/resource.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>resource.rs.html -- source</title>
@@ -199,6 +199,35 @@
 <span id="155">155</span>
 <span id="156">156</span>
 <span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2015 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -214,7 +243,7 @@
 <span class='comment'>// See the License for the specific language governing permissions and</span>
 <span class='comment'>// limitations under the License.</span>
 
-<span class='doccomment'>//! Resource components for PSO macro.</span>
+<span class='doccomment'>//! Resource components for a PSO.</span>
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
 <span class='kw'>use</span> <span class='ident'>gfx_core</span>::{<span class='ident'>ResourceViewSlot</span>, <span class='ident'>UnorderedViewSlot</span>, <span class='ident'>SamplerSlot</span>, <span class='ident'>Resources</span>};
@@ -227,7 +256,11 @@
 <span class='doccomment'>/// but can also be a buffer.</span>
 <span class='doccomment'>/// - init: `&amp;str` = name of the resource</span>
 <span class='doccomment'>/// - data: `ShaderResourceView&lt;T&gt;`</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ShaderResource</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>ResourceViewSlot</span>, <span class='ident'>shade</span>::<span class='ident'>Usage</span>)<span class='op'>&gt;</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ShaderResource</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>RawShaderResource</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
+<span class='doccomment'>/// Raw (untyped) shader resource (SRV).</span>
+<span class='doccomment'>/// - init: `&amp;str` = name of the resource. This may change in the future.</span>
+<span class='doccomment'>/// - data: `RawShaderResourceView`</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawShaderResource</span>(<span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>ResourceViewSlot</span>, <span class='ident'>shade</span>::<span class='ident'>Usage</span>)<span class='op'>&gt;</span>);
 <span class='doccomment'>/// Unordered access component (UAV). A writable resource (texture/buffer)</span>
 <span class='doccomment'>/// with no defined access order across simultaneously executing shaders.</span>
 <span class='doccomment'>/// Supported on DX10 and higher.</span>
@@ -249,13 +282,35 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ShaderResource</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
-    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
-        <span class='ident'>ShaderResource</span>(<span class='prelude-val'>None</span>, <span class='ident'>PhantomData</span>)
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>ShaderResource</span>(<span class='ident'>RawShaderResource</span>(<span class='prelude-val'>None</span>), <span class='ident'>PhantomData</span>)
+    }
+    <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_active</span>()
+    }
+    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>)
+                          <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Format</span><span class='op'>&gt;&gt;</span> {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>link_resource_view</span>(<span class='ident'>var</span>, <span class='ident'>init</span>)
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ShaderResource</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>ShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>bind_to</span>(<span class='ident'>out</span>, <span class='ident'>data</span>.<span class='ident'>raw</span>(), <span class='ident'>man</span>)
+    }
+}
+
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>RawShaderResource</span> {
+    <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>RawShaderResource</span>(<span class='prelude-val'>None</span>)
     }
     <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_some</span>()
     }
-    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>)
+    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>)
                           <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Format</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>init</span> <span class='op'>==</span> <span class='ident'>var</span>.<span class='ident'>name</span> {
             <span class='self'>self</span>.<span class='number'>0</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>var</span>.<span class='ident'>slot</span>, <span class='ident'>var</span>.<span class='ident'>usage</span>));
@@ -266,25 +321,26 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ShaderResource</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>ShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>RawShaderResource</span> {
+    <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>slot</span>, <span class='ident'>usage</span>)) <span class='op'>=</span> <span class='self'>self</span>.<span class='number'>0</span> {
-            <span class='kw'>let</span> <span class='ident'>view</span> <span class='op'>=</span> <span class='ident'>man</span>.<span class='ident'>ref_srv</span>(<span class='ident'>data</span>.<span class='ident'>raw</span>()).<span class='ident'>clone</span>();
+            <span class='kw'>let</span> <span class='ident'>view</span> <span class='op'>=</span> <span class='ident'>man</span>.<span class='ident'>ref_srv</span>(<span class='ident'>data</span>).<span class='ident'>clone</span>();
             <span class='ident'>out</span>.<span class='ident'>resource_views</span>.<span class='ident'>push</span>(<span class='ident'>pso</span>::<span class='ident'>ResourceViewParam</span>(<span class='ident'>view</span>, <span class='ident'>usage</span>, <span class='ident'>slot</span>));
         }
     }
 }
 
+
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>UnorderedAccess</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
-    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='ident'>UnorderedAccess</span>(<span class='prelude-val'>None</span>, <span class='ident'>PhantomData</span>)
     }
     <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_some</span>()
     }
-    <span class='kw'>fn</span> <span class='ident'>link_unordered_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>UnorderedVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>)
+    <span class='kw'>fn</span> <span class='ident'>link_unordered_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>UnorderedVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>)
                            <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Format</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>init</span> <span class='op'>==</span> <span class='ident'>var</span>.<span class='ident'>name</span> {
             <span class='self'>self</span>.<span class='number'>0</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>var</span>.<span class='ident'>slot</span>, <span class='ident'>var</span>.<span class='ident'>usage</span>));
@@ -297,7 +353,7 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>UnorderedAccess</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>UnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>slot</span>, <span class='ident'>usage</span>)) <span class='op'>=</span> <span class='self'>self</span>.<span class='number'>0</span> {
             <span class='kw'>let</span> <span class='ident'>view</span> <span class='op'>=</span>  <span class='ident'>man</span>.<span class='ident'>ref_uav</span>(<span class='ident'>data</span>.<span class='ident'>raw</span>()).<span class='ident'>clone</span>();
             <span class='ident'>out</span>.<span class='ident'>unordered_views</span>.<span class='ident'>push</span>(<span class='ident'>pso</span>::<span class='ident'>UnorderedViewParam</span>(<span class='ident'>view</span>, <span class='ident'>usage</span>, <span class='ident'>slot</span>));
@@ -305,15 +361,16 @@
     }
 }
 
+
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Sampler</span> {
     <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
-    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='ident'>Sampler</span>(<span class='prelude-val'>None</span>)
     }
     <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_some</span>()
     }
-    <span class='kw'>fn</span> <span class='ident'>link_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>SamplerVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>link_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>SamplerVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
         <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>init</span> <span class='op'>==</span> <span class='ident'>var</span>.<span class='ident'>name</span> {
             <span class='self'>self</span>.<span class='number'>0</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>var</span>.<span class='ident'>slot</span>, <span class='ident'>var</span>.<span class='ident'>usage</span>));
             <span class='prelude-val'>Some</span>(())
@@ -325,7 +382,7 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Sampler</span> {
     <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>slot</span>, <span class='ident'>usage</span>)) <span class='op'>=</span> <span class='self'>self</span>.<span class='number'>0</span> {
             <span class='kw'>let</span> <span class='ident'>sm</span> <span class='op'>=</span> <span class='ident'>man</span>.<span class='ident'>ref_sampler</span>(<span class='ident'>data</span>).<span class='ident'>clone</span>();
             <span class='ident'>out</span>.<span class='ident'>samplers</span>.<span class='ident'>push</span>(<span class='ident'>pso</span>::<span class='ident'>SamplerParam</span>(<span class='ident'>sm</span>, <span class='ident'>usage</span>, <span class='ident'>slot</span>));
@@ -333,26 +390,27 @@
     }
 }
 
+
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>TextureSampler</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
-    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='kw'>Self</span> {
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='ident'>TextureSampler</span>(<span class='ident'>ShaderResource</span>::<span class='ident'>new</span>(), <span class='ident'>Sampler</span>::<span class='ident'>new</span>())
     }
     <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_active</span>()
     }
-    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>)
+    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>)
                           <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Format</span><span class='op'>&gt;&gt;</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>link_resource_view</span>(<span class='ident'>var</span>, <span class='ident'>init</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>link_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>SamplerVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>link_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>var</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>SamplerVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='number'>1</span>.<span class='ident'>link_sampler</span>(<span class='ident'>var</span>, <span class='ident'>init</span>)
     }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>TextureSampler</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> (<span class='ident'>handle</span>::<span class='ident'>ShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>handle</span>::<span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
-    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>bind_to</span>(<span class='ident'>out</span>, <span class='kw-2'>&amp;</span><span class='ident'>data</span>.<span class='number'>0</span>, <span class='ident'>man</span>);
         <span class='self'>self</span>.<span class='number'>1</span>.<span class='ident'>bind_to</span>(<span class='ident'>out</span>, <span class='kw-2'>&amp;</span><span class='ident'>data</span>.<span class='number'>1</span>, <span class='ident'>man</span>);
     }

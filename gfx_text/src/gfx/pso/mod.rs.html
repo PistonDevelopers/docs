@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-88ac128001ac3a9a/gfx-0.10.2/src/pso/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.11.0/src/pso/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -232,6 +232,19 @@
 <span id="188">188</span>
 <span id="189">189</span>
 <span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2015 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -247,24 +260,37 @@
 <span class='comment'>// See the License for the specific language governing permissions and</span>
 <span class='comment'>// limitations under the License.</span>
 
-<span class='doccomment'>//! Pipeline State Objects - typed higher-level version.</span>
+<span class='doccomment'>//! A typed high-level graphics pipeline interface.</span>
 <span class='doccomment'>//!</span>
-<span class='doccomment'>//! A typed PSO is defined by a macro (like `gfx_pipeline`)</span>
-<span class='doccomment'>//! and generates 3 structures:</span>
-<span class='doccomment'>//!  - &quot;init&quot; - containing all the information about resource types,</span>
-<span class='doccomment'>//!    formats, layouts - everything needed for PSO initialization.</span>
-<span class='doccomment'>//!  - &quot;meta&quot; - mapping the exact shader inputs to the PSO data. The exact</span>
-<span class='doccomment'>//!    type of the PSO is `gfx::PipelineState&lt;R, Meta&gt;`.</span>
-<span class='doccomment'>//!  - &quot;data&quot; - having the user-provided version of the run-time data</span>
-<span class='doccomment'>//!    for PSO rendering, mostly consists of resource handles.</span>
+<span class='doccomment'>//! # Overview</span>
+<span class='doccomment'>//! A `PipelineState` holds all information needed to manage a graphics pipeline. It contains</span>
+<span class='doccomment'>//! information about the shaders used, and on how to bind variables to these shaders. A </span>
+<span class='doccomment'>//! `PipelineState` manifests itself in the form of a Pipeline State Object, or PSO in short.</span>
 <span class='doccomment'>//!</span>
-<span class='doccomment'>//! A typed PSO is made of individual components, each is represented</span>
-<span class='doccomment'>//! by the same-named field in all three generated structures.</span>
-<span class='doccomment'>//! The submodules here define these components grouped by area.</span>
+<span class='doccomment'>//! A Pipeline State Object exists out of different components. Every component represents</span>
+<span class='doccomment'>//! a resource handle: a shader input or output/target. The types of these components can be found</span>
+<span class='doccomment'>//! in this module&#39;s submodules, grouped by category.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Before all, a Pipeline State Object must be defined. This is done using the `gfx_pipeline`</span>
+<span class='doccomment'>//! macro. This macro creates three different structures:</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! - The `Init` structure contains the location of every PSO component. During shader linking,</span>
+<span class='doccomment'>//!   this is used to construct the `Meta` structure. </span>
+<span class='doccomment'>//! - The `Meta` structure contains the layout of every PSO. Using the `Meta` structure, the right</span>
+<span class='doccomment'>//!   data is mapped to the right components.</span>
+<span class='doccomment'>//! - The `Data` structure contains the data of all components, to be sent to the GPU. </span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! # Construction and Handling</span>
+<span class='doccomment'>//! A Pipeline State Object is constructed by a factory, from its `Init` structure, a `Rasterizer`,</span>
+<span class='doccomment'>//! a primitive type and a shader program.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! After construction an `Encoder` can use the PSO along with a `Data` structure matching that</span>
+<span class='doccomment'>//! PSO to process the shader pipeline, for instance, using the `draw` method.</span>
 
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>buffer</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>resource</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>target</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>bundle</span>;
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>default</span>::<span class='ident'>Default</span>;
 <span class='kw'>use</span> <span class='ident'>gfx_core</span> <span class='kw'>as</span> <span class='ident'>d</span>;
@@ -346,7 +372,7 @@
     <span class='doccomment'>/// represented by `ProgramInfo`. Returns an instance of the</span>
     <span class='doccomment'>/// &quot;meta&quot; struct upon successful mapping.</span>
     <span class='kw'>fn</span> <span class='ident'>link_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Descriptor</span>, <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span>)
-               <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='kw'>Self</span>::<span class='ident'>Meta</span>, <span class='ident'>InitError</span><span class='op'>&gt;</span>;
+               <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='self'>Self</span>::<span class='ident'>Meta</span>, <span class='ident'>InitError</span><span class='op'>&gt;</span>;
 }
 
 <span class='doccomment'>/// a service trait implemented the &quot;data&quot; structure of PSO.</span>
@@ -355,10 +381,10 @@
     <span class='kw'>type</span> <span class='ident'>Meta</span>;
     <span class='doccomment'>/// Dump all the contained data into the raw data set,</span>
     <span class='doccomment'>/// given the mapping (&quot;meta&quot;), and a handle manager.</span>
-    <span class='kw'>fn</span> <span class='ident'>bake_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>meta</span>: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Meta</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>d</span>::<span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
+    <span class='kw'>fn</span> <span class='ident'>bake_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>meta</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Meta</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>d</span>::<span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
 }
 
-<span class='doccomment'>/// Strongly-typed compiled pipeline state.</span>
+<span class='doccomment'>/// A strongly typed Pipleline State Object. See the module documentation for more information.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>d</span>::<span class='ident'>Resources</span>, <span class='ident'>M</span><span class='op'>&gt;</span>(
     <span class='ident'>d</span>::<span class='ident'>handle</span>::<span class='ident'>RawPipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>d</span>::<span class='ident'>Primitive</span>, <span class='ident'>M</span>);
 
@@ -385,34 +411,34 @@
     <span class='doccomment'>/// The assotiated &quot;init&quot; type - a member of the PSO &quot;init&quot; struct.</span>
     <span class='kw'>type</span> <span class='ident'>Init</span>: <span class='lifetime'>&#39;a</span>;
     <span class='doccomment'>/// Create a new empty data link.</span>
-    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='kw'>Self</span>;
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span>;
     <span class='doccomment'>/// Check if this link is actually used by the shader.</span>
     <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
     <span class='doccomment'>/// Attempt to link with a vertex attribute.</span>
-    <span class='kw'>fn</span> <span class='ident'>link_input</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>AttributeVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_input</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>AttributeVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                   <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>d</span>::<span class='ident'>pso</span>::<span class='ident'>AttributeDesc</span>, <span class='ident'>d</span>::<span class='ident'>format</span>::<span class='ident'>Format</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with a constant buffer.</span>
-    <span class='kw'>fn</span> <span class='ident'>link_constant_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ConstantBufferVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_constant_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ConstantBufferVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                             <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with a global constant.</span>
-    <span class='kw'>fn</span> <span class='ident'>link_global_constant</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ConstVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_global_constant</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ConstVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                             <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>UniformValue</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with an output render target (RTV).</span>
-    <span class='kw'>fn</span> <span class='ident'>link_output</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>OutputVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_output</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>OutputVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                    <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>d</span>::<span class='ident'>pso</span>::<span class='ident'>ColorTargetDesc</span>, <span class='ident'>d</span>::<span class='ident'>format</span>::<span class='ident'>Format</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with a depth-stencil target (DSV).</span>
-    <span class='kw'>fn</span> <span class='ident'>link_depth_stencil</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_depth_stencil</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                           <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>d</span>::<span class='ident'>pso</span>::<span class='ident'>DepthStencilDesc</span><span class='op'>&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with a shader resource (SRV).</span>
-    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_resource_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>TextureVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                           <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>d</span>::<span class='ident'>format</span>::<span class='ident'>Format</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with an unordered access (UAV).</span>
-    <span class='kw'>fn</span> <span class='ident'>link_unordered_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>UnorderedVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>link_unordered_view</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>UnorderedVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
                            <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>d</span>::<span class='ident'>format</span>::<span class='ident'>Format</span><span class='op'>&gt;&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to link with a sampler.</span>
-    <span class='kw'>fn</span> <span class='ident'>link_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>SamplerVar</span>, _: <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> { <span class='prelude-val'>None</span> }
+    <span class='kw'>fn</span> <span class='ident'>link_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>SamplerVar</span>, _: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> { <span class='prelude-val'>None</span> }
     <span class='doccomment'>/// Attempt to enable scissor test.</span>
-    <span class='kw'>fn</span> <span class='ident'>link_scissor</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> { <span class='boolval'>false</span> }
+    <span class='kw'>fn</span> <span class='ident'>link_scissor</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> { <span class='boolvalue'>false</span> }
 }
 
 <span class='doccomment'>/// The &quot;bind&quot; logic portion of the PSO component.</span>
@@ -421,7 +447,7 @@
     <span class='doccomment'>/// The associated &quot;data&quot; type - a member of the PSO &quot;data&quot; struct.</span>
     <span class='kw'>type</span> <span class='ident'>Data</span>;
     <span class='doccomment'>/// Dump the given data into the raw data set.</span>
-    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='kw-2'>&amp;</span><span class='kw'>Self</span>::<span class='ident'>Data</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>d</span>::<span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>d</span>::<span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
 }
 </pre>
 </section>

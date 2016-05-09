@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["MIRROR_X",""],["MIRROR_Y",""]],"struct":[["Mirror","Mirroring flags, used for blitting"],["Rect","A screen space rectangle"]],"type":[["ColorValue",""],["Depth",""],["Layer",""],["Level",""],["Stencil",""]]});

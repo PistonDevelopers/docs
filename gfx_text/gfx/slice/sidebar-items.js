@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["IndexBuffer","Type of index-buffer used in a Slice."]],"struct":[["Slice","A `Slice` dictates in which and in what order vertices get processed. It is required for processing a PSO."]],"trait":[["IntoIndexBuffer","A helper trait to create `IndexBuffers` from different kinds of data."]]});
