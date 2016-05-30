@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["NoWindow","The tiny NoWindow structure."]]});
