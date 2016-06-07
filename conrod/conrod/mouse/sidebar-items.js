@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["ButtonPosition","Represents the current state of a mouse button."]],"struct":[["ButtonState","The current state of a Mouse button."],["Mouse","Represents the current state of the Mouse."],["Scroll","The amount of scrolling that has occurred since the last render event."]]});

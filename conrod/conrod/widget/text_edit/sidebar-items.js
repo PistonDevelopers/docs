@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Style","Unique graphical styling for the TextEdit."],["TextEdit","A widget for displaying and mutating multi-line text, given as a `String`."]]});

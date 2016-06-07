@@ -317,6 +317,37 @@
 <span id="273">273</span>
 <span id="274">274</span>
 <span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! This module was created in order to keep the `graph` module clean and focused upon the</span>
 <span class='doccomment'>//! **Graph** data structure behaviour.</span>
@@ -327,10 +358,113 @@
 
 <span class='kw'>use</span> <span class='ident'>daggy</span>::<span class='ident'>Walker</span>;
 <span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Point</span>, <span class='ident'>Rect</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span>;
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>depth_order</span>::<span class='ident'>Visitable</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>;
 <span class='kw'>use</span> <span class='kw'>super</span>::{<span class='ident'>EdgeIndex</span>, <span class='ident'>Graph</span>, <span class='ident'>GraphIndex</span>, <span class='ident'>NodeIndex</span>};
 <span class='kw'>use</span> <span class='ident'>widget</span>;
+
+
+<span class='doccomment'>/// A node &quot;walker&quot; that yields all widgets under the given `xy` position in order from top to</span>
+<span class='doccomment'>/// bottom.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
+<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_copy_implementations</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>PickWidgets</span> {
+    <span class='ident'>xy</span>: <span class='ident'>Point</span>,
+    <span class='ident'>idx</span>: <span class='ident'>usize</span>,
+}
+
+<span class='doccomment'>/// A node &quot;walker&quot; that yields all scrollable widgets under the given `xy` position in order from</span>
+<span class='doccomment'>/// top to bottom.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
+<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_copy_implementations</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>PickScrollableWidgets</span> {
+    <span class='ident'>pick_widgets</span>: <span class='ident'>PickWidgets</span>,
+}
+
+
+<span class='kw'>impl</span> <span class='ident'>PickWidgets</span> {
+
+    <span class='doccomment'>/// The next `NodeIndex` under the `xy` location.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// This is called within `PickWidgets::next`.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next_node_index</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                           <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
+                           <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>NodeIndex</span>]) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>
+    {
+        <span class='kw'>while</span> <span class='self'>self</span>.<span class='ident'>idx</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
+            <span class='self'>self</span>.<span class='ident'>idx</span> <span class='op'>-=</span> <span class='number'>1</span>;
+            <span class='kw'>match</span> <span class='ident'>depth_order</span>.<span class='ident'>get</span>(<span class='self'>self</span>.<span class='ident'>idx</span>) {
+                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>break</span>,
+                <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>visible_rect</span>) <span class='op'>=</span> <span class='ident'>cropped_area_of_widget</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>) {
+                        <span class='kw'>if</span> <span class='ident'>visible_rect</span>.<span class='ident'>is_over</span>(<span class='self'>self</span>.<span class='ident'>xy</span>) {
+                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>);
+                        }
+                    }
+                },
+            }
+        }
+        <span class='prelude-val'>None</span>
+    }
+
+    <span class='doccomment'>/// The `widget::Index` of the next `Widget` under the `xy` location.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `Graph` is traversed from the top down.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If the next widget is some graphic element of another widget, the graphic parent will be</span>
+    <span class='doccomment'>/// returned.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>NodeIndex</span>]) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>next_node_index</span>(<span class='ident'>graph</span>, <span class='ident'>depth_order</span>)
+            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> {
+                <span class='comment'>// Ensure that if we&#39;ve picked some widget that is a **Graphic** child of some</span>
+                <span class='comment'>// other widget, we return the **Graphic** parent.</span>
+                <span class='ident'>graph</span>.<span class='ident'>graphic_parent_recursion</span>(<span class='ident'>idx</span>)
+                    .<span class='ident'>last_node</span>(<span class='ident'>graph</span>)
+                    .<span class='ident'>unwrap_or</span>(<span class='ident'>idx</span>)
+            })
+            .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>graph</span>.<span class='ident'>widget_index</span>(<span class='ident'>idx</span>))
+    }
+
+}
+
+<span class='kw'>impl</span> <span class='ident'>PickScrollableWidgets</span> {
+
+    <span class='doccomment'>/// The `widget::Index` of the next scrollable `Widget` under the `xy` location.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `Graph` is traversed from the top down.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>NodeIndex</span>]) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span> {
+        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>pick_widgets</span>.<span class='ident'>next_node_index</span>(<span class='ident'>graph</span>, <span class='ident'>depth_order</span>) {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
+                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>()
+                <span class='op'>||</span> <span class='ident'>container</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget_index</span>(<span class='ident'>idx</span>) {
+                        <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>);
+                    }
+                }
+            }
+        }
+
+        <span class='prelude-val'>None</span>
+    }
+
+}
+
+
+<span class='doccomment'>/// Produces a graph node &quot;walker&quot; that yields all widgets under the given `xy` position in order</span>
+<span class='doccomment'>/// from top to bottom.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pick_widgets</span>(<span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>NodeIndex</span>], <span class='ident'>xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='ident'>PickWidgets</span> {
+    <span class='ident'>PickWidgets</span> {
+        <span class='ident'>xy</span>: <span class='ident'>xy</span>,
+        <span class='ident'>idx</span>: <span class='ident'>depth_order</span>.<span class='ident'>len</span>(),
+    }
+}
+
+<span class='doccomment'>/// Produces a graph node &quot;walker&quot; that yields all scrollable widgets under the given `xy` position</span>
+<span class='doccomment'>/// in order from top to bottom.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pick_scrollable_widgets</span>(<span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>NodeIndex</span>], <span class='ident'>xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='ident'>PickScrollableWidgets</span> {
+    <span class='ident'>PickScrollableWidgets</span> {
+        <span class='ident'>pick_widgets</span>: <span class='ident'>pick_widgets</span>(<span class='ident'>depth_order</span>, <span class='ident'>xy</span>),
+    }
+}
 
 
 <span class='doccomment'>/// The rectangle that represents the maximum visible area for the widget with the given index.</span>
@@ -406,78 +540,6 @@
 }
 
 
-<span class='doccomment'>/// If the given Point is currently on a Widget, return an index to that widget.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// If the picked widget has a **Graphic** parent, that parent&#39;s index will be returned instead.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This function assumes that the given `depth_order` is up-to-date for the given `graph`.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pick_widget</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Visitable</span>], <span class='ident'>xy</span>: <span class='ident'>Point</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span> {
-    <span class='ident'>depth_order</span>.<span class='ident'>iter</span>().<span class='ident'>rev</span>()
-        .<span class='ident'>find</span>(<span class='op'>|</span><span class='op'>&amp;&amp;</span><span class='ident'>visitable</span><span class='op'>|</span> {
-            <span class='kw'>match</span> <span class='ident'>visitable</span> {
-                <span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>visible_rect</span>) <span class='op'>=</span> <span class='ident'>cropped_area_of_widget</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>) {
-                        <span class='kw'>if</span> <span class='ident'>visible_rect</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
-                            <span class='kw'>return</span> <span class='boolval'>true</span>
-                        }
-                    }
-                },
-                <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>x_scroll_state</span>) <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span> {
-                            <span class='kw'>if</span> <span class='ident'>x_scroll_state</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>, <span class='ident'>widget</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>) {
-                                <span class='kw'>return</span> <span class='boolval'>true</span>;
-                            }
-                        }
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>y_scroll_state</span>) <span class='op'>=</span> <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span> {
-                            <span class='kw'>if</span> <span class='ident'>y_scroll_state</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>, <span class='ident'>widget</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>) {
-                                <span class='kw'>return</span> <span class='boolval'>true</span>;
-                            }
-                        }
-                    }
-                },
-            }
-            <span class='boolval'>false</span>
-        })
-        <span class='comment'>// Extract the node index from the `Visitable`.</span>
-        .<span class='ident'>map</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>visitable</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>visitable</span> {
-            <span class='comment'>// Ensure that if we&#39;ve picked some widget that is a **Graphic** child of some other</span>
-            <span class='comment'>// widget, we return the **Graphic** parent.</span>
-            <span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>graph</span>.<span class='ident'>graphic_parent_recursion</span>(<span class='ident'>idx</span>)
-                .<span class='ident'>last_node</span>(<span class='ident'>graph</span>)
-                .<span class='ident'>unwrap_or</span>(<span class='ident'>idx</span>),
-            <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='ident'>idx</span>,
-        })
-        .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>graph</span>.<span class='ident'>widget_index</span>(<span class='ident'>idx</span>))
-}
-
-
-<span class='doccomment'>/// If the given **Point** is currently over a scrollable widget, return an index to that widget.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This function assumes that the given `depth_order` is up-to-date for the given `graph`.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pick_scrollable_widget</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Visitable</span>], <span class='ident'>xy</span>: <span class='ident'>Point</span>)
-    <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Index</span><span class='op'>&gt;</span>
-{
-    <span class='ident'>depth_order</span>.<span class='ident'>iter</span>().<span class='ident'>rev</span>()
-        .<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>visitable</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>visitable</span> {
-            <span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>),
-            <span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-        })
-        .<span class='ident'>find</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>idx</span><span class='op'>|</span> {
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
-                <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>()
-                <span class='op'>||</span> <span class='ident'>container</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
-                    <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>rect</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>) {
-                        <span class='kw'>return</span> <span class='boolval'>true</span>;
-                    }
-                }
-            }
-            <span class='boolval'>false</span>
-        })
-        .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>graph</span>.<span class='ident'>widget_index</span>(<span class='ident'>idx</span>))
-}
-
-
 <span class='doccomment'>/// Find the absolute `Rect` that bounds all widgets that are `Depth` children of the widget at the</span>
 <span class='doccomment'>/// given `idx`.</span>
 <span class='doccomment'>///</span>
@@ -485,7 +547,7 @@
 <span class='doccomment'>/// depth_children for the total bounding box. This should use a proper `Dfs` type with it&#39;s own</span>
 <span class='doccomment'>/// stack for safer traversal that won&#39;t blow the stack on hugely deep GUIs.</span>
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>kids_bounding_box</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
-                            <span class='ident'>prev_updated</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
+                            <span class='ident'>prev_updated</span>: <span class='kw-2'>&amp;</span><span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
                             <span class='ident'>idx</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>
     <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GraphIndex</span>,
 {
@@ -569,10 +631,10 @@
                             <span class='kw'>if</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent_recursion</span>(<span class='ident'>position_parent</span>)
                                 .<span class='ident'>any</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>_g</span>, <span class='ident'>_e</span>, <span class='ident'>n</span><span class='op'>|</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='ident'>depth_parent</span>)
                             {
-                                <span class='kw'>return</span> <span class='boolval'>true</span>;
+                                <span class='kw'>return</span> <span class='boolvalue'>true</span>;
                             }
                         }
-                        <span class='boolval'>false</span>
+                        <span class='boolvalue'>false</span>
                     };
 
                     <span class='kw'>let</span> <span class='ident'>x_offset</span> <span class='op'>=</span> <span class='ident'>depth_parent_widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>scroll</span><span class='op'>|</span> {
@@ -617,6 +679,8 @@
                     <dd>Move down in search results</dd>
                     <dt>&#9166;</dt>
                     <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
                 </dl>
             </div>
 

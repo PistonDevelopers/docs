@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["State","The current drag interaction for the Widget."]],"fn":[["drag_widget","Drag the widget from its position `xy` and return the new position."]]});

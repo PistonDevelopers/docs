@@ -179,94 +179,21 @@
 <span id="135">135</span>
 <span id="136">136</span>
 <span id="137">137</span>
-<span id="138">138</span>
-<span id="139">139</span>
-<span id="140">140</span>
-<span id="141">141</span>
-<span id="142">142</span>
-<span id="143">143</span>
-<span id="144">144</span>
-<span id="145">145</span>
-<span id="146">146</span>
-<span id="147">147</span>
-<span id="148">148</span>
-<span id="149">149</span>
-<span id="150">150</span>
-<span id="151">151</span>
-<span id="152">152</span>
-<span id="153">153</span>
-<span id="154">154</span>
-<span id="155">155</span>
-<span id="156">156</span>
-<span id="157">157</span>
-<span id="158">158</span>
-<span id="159">159</span>
-<span id="160">160</span>
-<span id="161">161</span>
-<span id="162">162</span>
-<span id="163">163</span>
-<span id="164">164</span>
-<span id="165">165</span>
-<span id="166">166</span>
-<span id="167">167</span>
-<span id="168">168</span>
-<span id="169">169</span>
-<span id="170">170</span>
-<span id="171">171</span>
-<span id="172">172</span>
-<span id="173">173</span>
-<span id="174">174</span>
-<span id="175">175</span>
-<span id="176">176</span>
-<span id="177">177</span>
-<span id="178">178</span>
-<span id="179">179</span>
-<span id="180">180</span>
-<span id="181">181</span>
-<span id="182">182</span>
-<span id="183">183</span>
-<span id="184">184</span>
-<span id="185">185</span>
-<span id="186">186</span>
-<span id="187">187</span>
-<span id="188">188</span>
-<span id="189">189</span>
-<span id="190">190</span>
-<span id="191">191</span>
-<span id="192">192</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Types and functionality related to the calculation of a **Graph**&#39;s rendering depth order.</span>
 
 <span class='kw'>use</span> <span class='ident'>daggy</span>::<span class='ident'>Walker</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span>;
-<span class='kw'>use</span> <span class='kw'>super</span>::{
-    <span class='ident'>Graph</span>,
-    <span class='ident'>GraphIndex</span>,
-    <span class='ident'>Node</span>,
-    <span class='ident'>NodeIndex</span>,
-};
+<span class='kw'>use</span> <span class='ident'>std</span>;
+<span class='kw'>use</span> <span class='kw'>super</span>::{<span class='ident'>Graph</span>, <span class='ident'>Node</span>, <span class='ident'>NodeIndex</span>};
 
 
 <span class='doccomment'>/// Contains Node indices in order of depth, starting with the deepest.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>DepthOrder</span> {
     <span class='doccomment'>/// The primary **Vec** storing the **DepthOrder**&#39;s ordered indices.</span>
-    <span class='kw'>pub</span> <span class='ident'>indices</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Visitable</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>indices</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Used for storing indices of &quot;floating&quot; widgets during depth sorting so that they may be</span>
     <span class='doccomment'>/// visited after widgets of the root tree.</span>
     <span class='ident'>floating</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-}
-
-
-<span class='doccomment'>/// Parts of the graph that are significant when visiting and sorting by depth.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The reason a widget and its scrollbar are separate here is because a widget&#39;s scrollbar may</span>
-<span class='doccomment'>/// sometimes appear on *top* of the widget&#39;s children.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Visitable</span> {
-    <span class='doccomment'>/// The index of some widget in the graph.</span>
-    <span class='ident'>Widget</span>(<span class='ident'>NodeIndex</span>),
-    <span class='doccomment'>/// The scrollbar for the widget at the given NodeIndex.</span>
-    <span class='ident'>Scrollbar</span>(<span class='ident'>NodeIndex</span>),
 }
 
 
@@ -303,19 +230,12 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// The `visit_by_depth` algorithm should not be recursive and instead use either looping,</span>
     <span class='doccomment'>/// walking or iteration.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update</span><span class='op'>&lt;</span><span class='ident'>M</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-                        <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
-                        <span class='ident'>root</span>: <span class='ident'>NodeIndex</span>,
-                        <span class='ident'>updated_widgets</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-                        <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>M</span><span class='op'>&gt;</span>,
-                        <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>)
-        <span class='kw'>where</span> <span class='ident'>M</span>: <span class='ident'>GraphIndex</span>,
-              <span class='ident'>K</span>: <span class='ident'>GraphIndex</span>,
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                  <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
+                  <span class='ident'>root</span>: <span class='ident'>NodeIndex</span>,
+                  <span class='ident'>updated_widgets</span>: <span class='kw-2'>&amp;</span><span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>)
     {
         <span class='kw'>let</span> <span class='ident'>DepthOrder</span> { <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>indices</span>, <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>floating</span> } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-
-        <span class='kw'>let</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>=</span> <span class='ident'>maybe_captured_mouse</span>.<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>graph</span>.<span class='ident'>node_index</span>(<span class='ident'>idx</span>));
-        <span class='kw'>let</span> <span class='ident'>maybe_captured_keyboard</span> <span class='op'>=</span> <span class='ident'>maybe_captured_keyboard</span>.<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='ident'>graph</span>.<span class='ident'>node_index</span>(<span class='ident'>idx</span>));
 
         <span class='comment'>// Clear the buffers and ensure they&#39;ve enough memory allocated.</span>
         <span class='kw'>let</span> <span class='ident'>num_nodes</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>node_count</span>();
@@ -326,13 +246,7 @@
 
         <span class='comment'>// Visit each node in order of depth and add their indices to depth_order.</span>
         <span class='comment'>// If the widget is floating, then store it in the floating deque instead.</span>
-        <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>,
-                       <span class='ident'>root</span>,
-                       <span class='ident'>updated_widgets</span>,
-                       <span class='ident'>maybe_captured_mouse</span>,
-                       <span class='ident'>maybe_captured_keyboard</span>,
-                       <span class='ident'>indices</span>,
-                       <span class='ident'>floating</span>);
+        <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>, <span class='ident'>root</span>, <span class='ident'>updated_widgets</span>, <span class='ident'>indices</span>, <span class='ident'>floating</span>);
 
         <span class='comment'>// Sort the floating widgets so that the ones clicked last come last.</span>
         <span class='ident'>floating</span>.<span class='ident'>sort_by</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>a</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span><span class='op'>|</span> <span class='kw'>match</span> (<span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>b</span>]) {
@@ -341,19 +255,13 @@
                 <span class='kw'>let</span> <span class='ident'>b_floating</span> <span class='op'>=</span> <span class='ident'>b</span>.<span class='ident'>maybe_floating</span>.<span class='ident'>expect</span>(<span class='string'>&quot;Not floating&quot;</span>);
                 <span class='ident'>a_floating</span>.<span class='ident'>time_last_clicked</span>.<span class='ident'>cmp</span>(<span class='kw-2'>&amp;</span><span class='ident'>b_floating</span>.<span class='ident'>time_last_clicked</span>)
             },
-            _ <span class='op'>=&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::<span class='ident'>Equal</span>,
+            _ <span class='op'>=&gt;</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::<span class='ident'>Equal</span>,
         });
 
         <span class='comment'>// Visit all of the floating widgets last.</span>
         <span class='kw'>while</span> <span class='op'>!</span><span class='ident'>floating</span>.<span class='ident'>is_empty</span>() {
             <span class='kw'>let</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>floating</span>.<span class='ident'>remove</span>(<span class='number'>0</span>);
-            <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>,
-                           <span class='ident'>idx</span>,
-                           <span class='ident'>updated_widgets</span>,
-                           <span class='ident'>maybe_captured_mouse</span>,
-                           <span class='ident'>maybe_captured_keyboard</span>,
-                           <span class='ident'>indices</span>,
-                           <span class='ident'>floating</span>);
+            <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>, <span class='ident'>idx</span>, <span class='ident'>updated_widgets</span>, <span class='ident'>indices</span>, <span class='ident'>floating</span>);
         }
     }
 
@@ -363,18 +271,16 @@
 <span class='doccomment'>/// Recursive function for visiting all nodes within the dag.</span>
 <span class='kw'>fn</span> <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>,
                   <span class='ident'>idx</span>: <span class='ident'>NodeIndex</span>,
-                  <span class='ident'>updated_widgets</span>: <span class='kw-2'>&amp;</span><span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-                  <span class='ident'>maybe_captured_mouse</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-                  <span class='ident'>maybe_captured_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-                  <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Visitable</span><span class='op'>&gt;</span>,
+                  <span class='ident'>updated_widgets</span>: <span class='kw-2'>&amp;</span><span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
+                  <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
                   <span class='ident'>floating_deque</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>)
 {
     <span class='comment'>// First, if the current node is a widget and it was set in the current `set_widgets` stage,</span>
     <span class='comment'>// store its index.</span>
     <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>).<span class='ident'>is_some</span>() <span class='op'>&amp;&amp;</span> <span class='ident'>updated_widgets</span>.<span class='ident'>contains</span>(<span class='kw-2'>&amp;</span><span class='ident'>idx</span>) {
-        <span class='boolval'>true</span> <span class='op'>=&gt;</span> <span class='ident'>depth_order</span>.<span class='ident'>push</span>(<span class='ident'>Visitable</span>::<span class='ident'>Widget</span>(<span class='ident'>idx</span>)),
+        <span class='boolvalue'>true</span> <span class='op'>=&gt;</span> <span class='ident'>depth_order</span>.<span class='ident'>push</span>(<span class='ident'>idx</span>),
         <span class='comment'>// If the current node is not an updated widget, we&#39;re done with this branch.</span>
-        <span class='boolval'>false</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
+        <span class='boolvalue'>false</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
     }
 
     <span class='comment'>// Sort the children of the current node by their `.depth` members.</span>
@@ -385,9 +291,7 @@
     <span class='ident'>child_sorter</span>.<span class='ident'>sort_by</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>a</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span><span class='op'>|</span> {
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>Ordering</span>;
 
-        <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>a</span>) <span class='op'>==</span> <span class='ident'>maybe_captured_mouse</span> <span class='op'>||</span> <span class='prelude-val'>Some</span>(<span class='ident'>a</span>) <span class='op'>==</span> <span class='ident'>maybe_captured_keyboard</span> {
-            <span class='ident'>Ordering</span>::<span class='ident'>Greater</span>
-        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='kw'>let</span> (<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>a</span>), <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>b</span>)) <span class='op'>=</span> (<span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>b</span>]) {
+        <span class='kw'>if</span> <span class='kw'>let</span> (<span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>a</span>), <span class='kw-2'>&amp;</span><span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>b</span>)) <span class='op'>=</span> (<span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>a</span>], <span class='kw-2'>&amp;</span><span class='ident'>graph</span>[<span class='ident'>b</span>]) {
             <span class='kw'>match</span> <span class='ident'>b</span>.<span class='ident'>depth</span>.<span class='ident'>partial_cmp</span>(<span class='kw-2'>&amp;</span><span class='ident'>a</span>.<span class='ident'>depth</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Depth was NaN!&quot;</span>) {
                 <span class='ident'>Ordering</span>::<span class='ident'>Equal</span> <span class='op'>=&gt;</span> <span class='ident'>a</span>.<span class='ident'>instantiation_order_idx</span>.<span class='ident'>cmp</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>.<span class='ident'>instantiation_order_idx</span>),
                 <span class='ident'>ordering</span> <span class='op'>=&gt;</span> <span class='ident'>ordering</span>,
@@ -406,22 +310,8 @@
 
         <span class='comment'>// Store floating widgets int he floating_deque for visiting after the current tree.</span>
         <span class='kw'>match</span> <span class='ident'>maybe_is_floating</span> {
-            <span class='prelude-val'>Some</span>(<span class='boolval'>true</span>) <span class='op'>=&gt;</span> <span class='ident'>floating_deque</span>.<span class='ident'>push</span>(<span class='ident'>child_idx</span>),
-            _          <span class='op'>=&gt;</span> <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>,
-                                         <span class='ident'>child_idx</span>,
-                                         <span class='ident'>updated_widgets</span>,
-                                         <span class='ident'>maybe_captured_mouse</span>,
-                                         <span class='ident'>maybe_captured_keyboard</span>,
-                                         <span class='ident'>depth_order</span>,
-                                         <span class='ident'>floating_deque</span>),
-        }
-    }
-
-    <span class='comment'>// If the widget is scrollable, we should add its scrollbar to the visit order also.</span>
-    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
-        <span class='kw'>if</span> <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>()
-        <span class='op'>||</span> <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
-            <span class='ident'>depth_order</span>.<span class='ident'>push</span>(<span class='ident'>Visitable</span>::<span class='ident'>Scrollbar</span>(<span class='ident'>idx</span>));
+            <span class='prelude-val'>Some</span>(<span class='boolvalue'>true</span>) <span class='op'>=&gt;</span> <span class='ident'>floating_deque</span>.<span class='ident'>push</span>(<span class='ident'>child_idx</span>),
+            _ <span class='op'>=&gt;</span> <span class='ident'>visit_by_depth</span>(<span class='ident'>graph</span>, <span class='ident'>child_idx</span>, <span class='ident'>updated_widgets</span>, <span class='ident'>depth_order</span>, <span class='ident'>floating_deque</span>),
         }
     }
 }
@@ -451,6 +341,8 @@
                     <dd>Move down in search results</dd>
                     <dt>&#9166;</dt>
                     <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
                 </dl>
             </div>
 

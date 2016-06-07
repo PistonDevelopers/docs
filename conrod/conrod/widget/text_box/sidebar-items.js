@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Style","Unique graphical styling for the TextBox."],["TextBox","A widget for displaying and mutating a given one-line text `String`. It's reaction is triggered upon pressing of the `Enter`/`Return` key."]]});
+initSidebarItems({"struct":[["Style","Unique graphical styling for the TextBox."],["TextBox","A widget for displaying and mutating a small, one-line field of text, given by the user in the form of a `String`."]]});
