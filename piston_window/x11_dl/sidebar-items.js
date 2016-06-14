@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["error",""],["glx",""],["keysym",""],["xcursor",""],["xf86vmode",""],["xfixes",""],["xinerama",""],["xinput",""],["xinput2",""],["xlib",""],["xmu",""],["xrandr",""],["xrecord",""],["xrender",""],["xt",""],["xtest",""]]});
+initSidebarItems({"mod":[["error",""],["glx",""],["keysym",""],["xcursor",""],["xf86vmode",""],["xfixes",""],["xft",""],["xinerama",""],["xinput",""],["xinput2",""],["xlib",""],["xmu",""],["xrandr",""],["xrecord",""],["xrender",""],["xt",""],["xtest",""]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error","An enum to represent various possible run-time errors that may occur."]],"struct":[["GlyphCache","A struct used for caching a rendered font."]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["Inactive","do not set keyboard focus"]],"struct":[["WlShellSurfaceTransient",""]]});

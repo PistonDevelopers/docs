@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["pipe_colored",""],["pipe_textured",""]],"struct":[["Gfx2d","The data used for drawing 2D graphics."],["GfxGraphics","Used for rendering 2D graphics."]]});

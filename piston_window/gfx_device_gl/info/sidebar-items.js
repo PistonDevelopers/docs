@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Info","OpenGL implementation information"],["PlatformName","A unique platform identifier that does not change between releases"],["Version","A version number for a specific component of an OpenGL implementation"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["Colored","Implemented by contexts that contains color."]]});
