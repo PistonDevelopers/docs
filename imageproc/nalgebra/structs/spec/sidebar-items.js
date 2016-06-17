@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["primitives","nalgebra trait implementation for primitive types."],["vec",""]]});

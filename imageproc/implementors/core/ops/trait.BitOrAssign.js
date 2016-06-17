@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors['libc'] = [];implementors['png'] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.BitOrAssign.html' title='core::ops::BitOrAssign'>BitOrAssign</a> for <a class='struct' href='png/struct.Transformations.html' title='png::Transformations'>Transformations</a>",];implementors['enum_primitive'] = [];
+implementors["libc"] = [];implementors["png"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.BitOrAssign.html' title='core::ops::BitOrAssign'>BitOrAssign</a> for <a class='struct' href='png/struct.Transformations.html' title='png::Transformations'>Transformations</a>",];implementors["serde"] = [];implementors["enum_primitive"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

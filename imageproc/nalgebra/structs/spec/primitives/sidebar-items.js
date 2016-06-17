@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["f32Cast",""],["f64Cast",""],["i16Cast",""],["i32Cast",""],["i64Cast",""],["i8Cast",""],["isizeCast",""],["u16Cast",""],["u32Cast",""],["u64Cast",""],["u8Cast",""],["usizeCast",""]]});
