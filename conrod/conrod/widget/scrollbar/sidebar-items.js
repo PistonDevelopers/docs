@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Scrollbar","A widget that allows for scrolling via dragging the mouse."],["Style","Styling for the DropDownList, necessary for constructing its renderable Element."]]});

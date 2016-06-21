@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["IdleArgs","Idle arguments, such as expected idle time in seconds."]],"trait":[["IdleEvent","When background tasks should be performed"]]});

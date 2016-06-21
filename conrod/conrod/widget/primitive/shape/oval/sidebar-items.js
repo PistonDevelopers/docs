@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Oval","A simple, non-interactive widget for drawing a single **Oval**."]]});

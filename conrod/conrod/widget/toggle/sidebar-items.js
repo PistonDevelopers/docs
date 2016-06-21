@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Style","Styling for the Toggle including coloring, framing and labelling."],["Toggle","A pressable widget for toggling the state of a bool."]]});

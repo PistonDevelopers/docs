@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["PlotPath","A widget that plots a series of lines using the given function *x -> y*."],["Style","Unique styling parameters for the `PlotPath` widget."]]});

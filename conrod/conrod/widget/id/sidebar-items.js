@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Id","Unique, public widget identifier. Each widget must use a unique `WidgetId` so that it's state can be cached within the `Ui` type. The reason we use a usize is because widgets are cached within a `Graph` whose max number of `Node`s is indexed by usize."]]});

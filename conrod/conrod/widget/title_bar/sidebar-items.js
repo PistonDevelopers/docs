@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Style","Unique styling for the **TitleBar** widget."],["TitleBar","A simple title bar widget that automatically sizes itself to the top of some other widget."]]});

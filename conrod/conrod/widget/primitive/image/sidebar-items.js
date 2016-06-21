@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Image","A primitive and basic widget for drawing an `Image`."],["Style","Unique styling for the `Image` widget."]]});

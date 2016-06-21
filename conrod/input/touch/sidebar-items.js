@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Touch","Stores the touch state."]],"struct":[["TouchArgs","Touch arguments"]],"trait":[["TouchEvent","When a touch is started, moved, ended or cancelled."]]});

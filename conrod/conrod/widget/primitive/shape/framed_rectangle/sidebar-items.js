@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["FramedRectangle","A filled rectangle widget that may or may not have some frame."],["Style","Unique styling for the **FramedRectangle** widget."]]});

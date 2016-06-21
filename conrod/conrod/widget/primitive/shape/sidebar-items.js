@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Style","The style for some 2D shape."]],"mod":[["circle",""],["framed_rectangle",""],["oval",""],["polygon",""],["rectangle",""]]});

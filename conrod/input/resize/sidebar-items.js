@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["ResizeEvent","When the window is resized"]]});
