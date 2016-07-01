@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["PipelineStateError","Error creating a PipelineState"]],"trait":[["FactoryExt","This trait is responsible for creating and managing graphics resources, much like the `Factory` trait in the `gfx` crate. Every `Factory` automatically implements `FactoryExt`. "]]});
