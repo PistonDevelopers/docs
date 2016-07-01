@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["NoWindow","A window without user interface, often used in server event loops."]]});
