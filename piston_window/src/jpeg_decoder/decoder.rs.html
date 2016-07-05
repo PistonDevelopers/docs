@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/jpeg-decoder-0.1.4/src/decoder.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/jpeg-decoder-0.1.5/src/decoder.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>decoder.rs.html -- source</title>
@@ -893,17 +893,12 @@
 <span id="849">849</span>
 <span id="850">850</span>
 <span id="851">851</span>
-<span id="852">852</span>
-<span id="853">853</span>
-<span id="854">854</span>
-<span id="855">855</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>byteorder</span>::<span class='ident'>ReadBytesExt</span>;
 <span class='kw'>use</span> <span class='ident'>error</span>::{<span class='ident'>Error</span>, <span class='prelude-ty'>Result</span>, <span class='ident'>UnsupportedFeature</span>};
-<span class='kw'>use</span> <span class='ident'>euclid</span>::{<span class='ident'>Point2D</span>, <span class='ident'>Rect</span>, <span class='ident'>Size2D</span>};
 <span class='kw'>use</span> <span class='ident'>huffman</span>::{<span class='ident'>HuffmanDecoder</span>, <span class='ident'>HuffmanTable</span>};
 <span class='kw'>use</span> <span class='ident'>marker</span>::<span class='ident'>Marker</span>;
-<span class='kw'>use</span> <span class='ident'>parser</span>::{<span class='ident'>AdobeColorTransform</span>, <span class='ident'>AppData</span>, <span class='ident'>CodingProcess</span>, <span class='ident'>Component</span>, <span class='ident'>EntropyCoding</span>, <span class='ident'>FrameInfo</span>,
+<span class='kw'>use</span> <span class='ident'>parser</span>::{<span class='ident'>AdobeColorTransform</span>, <span class='ident'>AppData</span>, <span class='ident'>CodingProcess</span>, <span class='ident'>Component</span>, <span class='ident'>Dimensions</span>, <span class='ident'>EntropyCoding</span>, <span class='ident'>FrameInfo</span>,
              <span class='ident'>parse_app</span>, <span class='ident'>parse_com</span>, <span class='ident'>parse_dht</span>, <span class='ident'>parse_dqt</span>, <span class='ident'>parse_dri</span>, <span class='ident'>parse_sof</span>, <span class='ident'>parse_sos</span>, <span class='ident'>ScanInfo</span>};
 <span class='kw'>use</span> <span class='ident'>rayon</span>::<span class='ident'>par_iter</span>::<span class='op'>*</span>;
 <span class='kw'>use</span> <span class='ident'>resampler</span>::<span class='ident'>Resampler</span>;
@@ -1057,9 +1052,9 @@
                     <span class='kw'>if</span> <span class='ident'>component_count</span> <span class='op'>!=</span> <span class='number'>1</span> <span class='op'>&amp;&amp;</span> <span class='ident'>component_count</span> <span class='op'>!=</span> <span class='number'>3</span> <span class='op'>&amp;&amp;</span> <span class='ident'>component_count</span> <span class='op'>!=</span> <span class='number'>4</span> {
                         <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>Error</span>::<span class='ident'>Unsupported</span>(<span class='ident'>UnsupportedFeature</span>::<span class='ident'>ComponentCount</span>(<span class='ident'>component_count</span> <span class='kw'>as</span> <span class='ident'>u8</span>)));
                     }
-                    <span class='kw'>if</span> <span class='ident'>Resampler</span>::<span class='ident'>new</span>(<span class='kw-2'>&amp;</span><span class='ident'>frame</span>.<span class='ident'>components</span>).<span class='ident'>is_none</span>() {
-                        <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>Error</span>::<span class='ident'>Unsupported</span>(<span class='ident'>UnsupportedFeature</span>::<span class='ident'>SubsamplingRatio</span>));
-                    }
+
+                    <span class='comment'>// Make sure we support the subsampling ratios used.</span>
+                    <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>Resampler</span>::<span class='ident'>new</span>(<span class='kw-2'>&amp;</span><span class='ident'>frame</span>.<span class='ident'>components</span>));
 
                     <span class='kw'>if</span> <span class='ident'>frame</span>.<span class='ident'>coding_process</span> <span class='op'>==</span> <span class='ident'>CodingProcess</span>::<span class='ident'>DctProgressive</span> {
                         <span class='self'>self</span>.<span class='ident'>coefficients</span> <span class='op'>=</span> <span class='ident'>frame</span>.<span class='ident'>components</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>c</span><span class='op'>|</span> {
@@ -1290,32 +1285,29 @@
             <span class='kw'>for</span> <span class='ident'>mcu_x</span> <span class='kw'>in</span> <span class='number'>0</span> .. <span class='ident'>frame</span>.<span class='ident'>mcu_size</span>.<span class='ident'>width</span> {
                 <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>component</span>) <span class='kw'>in</span> <span class='ident'>components</span>.<span class='ident'>iter</span>().<span class='ident'>enumerate</span>() {
                     <span class='kw'>for</span> <span class='ident'>j</span> <span class='kw'>in</span> <span class='number'>0</span> .. <span class='ident'>blocks_per_mcu</span>[<span class='ident'>i</span>] {
-                        <span class='kw'>let</span> <span class='ident'>block_coords</span>;
-
-                        <span class='kw'>if</span> <span class='ident'>is_interleaved</span> {
+                        <span class='kw'>let</span> (<span class='ident'>block_x</span>, <span class='ident'>block_y</span>) <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>is_interleaved</span> {
                             <span class='comment'>// Section A.2.3</span>
-
-                            <span class='ident'>block_coords</span> <span class='op'>=</span> <span class='ident'>Point2D</span>::<span class='ident'>new</span>(
-                                    <span class='ident'>mcu_x</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>horizontal_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>+</span> <span class='ident'>j</span> <span class='op'>%</span> <span class='ident'>component</span>.<span class='ident'>horizontal_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span>,
-                                    <span class='ident'>mcu_y</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>vertical_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>+</span> <span class='ident'>j</span> <span class='op'>/</span> <span class='ident'>component</span>.<span class='ident'>horizontal_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span>);
+                            (<span class='ident'>mcu_x</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>horizontal_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>+</span> <span class='ident'>j</span> <span class='op'>%</span> <span class='ident'>component</span>.<span class='ident'>horizontal_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span>,
+                             <span class='ident'>mcu_y</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>vertical_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>+</span> <span class='ident'>j</span> <span class='op'>/</span> <span class='ident'>component</span>.<span class='ident'>horizontal_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>u16</span>)
                         }
                         <span class='kw'>else</span> {
                             <span class='comment'>// Section A.2.2</span>
 
                             <span class='kw'>let</span> <span class='ident'>blocks_per_row</span> <span class='op'>=</span> <span class='ident'>component</span>.<span class='ident'>block_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>;
-                            <span class='kw'>let</span> <span class='ident'>block_num</span> <span class='op'>=</span> (<span class='ident'>mcu_y</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>frame</span>.<span class='ident'>mcu_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>+</span> <span class='ident'>mcu_x</span> <span class='kw'>as</span> <span class='ident'>usize</span>) <span class='op'>*</span> <span class='ident'>blocks_per_mcu</span>[<span class='ident'>i</span>] <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>+</span> <span class='ident'>j</span> <span class='kw'>as</span> <span class='ident'>usize</span>;
+                            <span class='kw'>let</span> <span class='ident'>block_num</span> <span class='op'>=</span> (<span class='ident'>mcu_y</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>frame</span>.<span class='ident'>mcu_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>+</span>
+                                <span class='ident'>mcu_x</span> <span class='kw'>as</span> <span class='ident'>usize</span>) <span class='op'>*</span> <span class='ident'>blocks_per_mcu</span>[<span class='ident'>i</span>] <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>+</span> <span class='ident'>j</span> <span class='kw'>as</span> <span class='ident'>usize</span>;
 
-                            <span class='ident'>block_coords</span> <span class='op'>=</span> <span class='ident'>Point2D</span>::<span class='ident'>new</span>((<span class='ident'>block_num</span> <span class='op'>%</span> <span class='ident'>blocks_per_row</span>) <span class='kw'>as</span> <span class='ident'>u16</span>, (<span class='ident'>block_num</span> <span class='op'>/</span> <span class='ident'>blocks_per_row</span>) <span class='kw'>as</span> <span class='ident'>u16</span>);
+                            <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> (<span class='ident'>block_num</span> <span class='op'>%</span> <span class='ident'>blocks_per_row</span>) <span class='kw'>as</span> <span class='ident'>u16</span>;
+                            <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> (<span class='ident'>block_num</span> <span class='op'>/</span> <span class='ident'>blocks_per_row</span>) <span class='kw'>as</span> <span class='ident'>u16</span>;
 
-                            <span class='kw'>let</span> <span class='ident'>pixel_coords</span> <span class='op'>=</span> <span class='ident'>block_coords</span> <span class='op'>*</span> <span class='number'>8</span>;
-                            <span class='kw'>let</span> <span class='ident'>component_rect</span> <span class='op'>=</span> <span class='ident'>Rect</span>::<span class='ident'>new</span>(<span class='ident'>Point2D</span>::<span class='ident'>zero</span>(), <span class='ident'>component</span>.<span class='ident'>size</span>);
-
-                            <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>component_rect</span>.<span class='ident'>contains</span>(<span class='kw-2'>&amp;</span><span class='ident'>pixel_coords</span>) {
+                            <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>*</span> <span class='number'>8</span> <span class='op'>&gt;=</span> <span class='ident'>component</span>.<span class='ident'>size</span>.<span class='ident'>width</span> <span class='op'>||</span> <span class='ident'>y</span> <span class='op'>*</span> <span class='number'>8</span> <span class='op'>&gt;=</span> <span class='ident'>component</span>.<span class='ident'>size</span>.<span class='ident'>height</span> {
                                 <span class='kw'>continue</span>;
                             }
-                        }
 
-                        <span class='kw'>let</span> <span class='ident'>block_offset</span> <span class='op'>=</span> (<span class='ident'>block_coords</span>.<span class='ident'>y</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>block_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>+</span> <span class='ident'>block_coords</span>.<span class='ident'>x</span> <span class='kw'>as</span> <span class='ident'>usize</span>) <span class='op'>*</span> <span class='number'>64</span>;
+                            (<span class='ident'>x</span>, <span class='ident'>y</span>)
+                        };
+
+                        <span class='kw'>let</span> <span class='ident'>block_offset</span> <span class='op'>=</span> (<span class='ident'>block_y</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>block_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>+</span> <span class='ident'>block_x</span> <span class='kw'>as</span> <span class='ident'>usize</span>) <span class='op'>*</span> <span class='number'>64</span>;
                         <span class='kw'>let</span> <span class='ident'>mcu_row_offset</span> <span class='op'>=</span> <span class='ident'>mcu_y</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>block_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>component</span>.<span class='ident'>vertical_sampling_factor</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='number'>64</span>;
                         <span class='kw'>let</span> <span class='ident'>coefficients</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>is_progressive</span> {
                             <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>coefficients</span>[<span class='ident'>scan</span>.<span class='ident'>component_indices</span>[<span class='ident'>i</span>]][<span class='ident'>block_offset</span> .. <span class='ident'>block_offset</span> <span class='op'>+</span> <span class='number'>64</span>]
@@ -1627,7 +1619,7 @@
 
 <span class='kw'>fn</span> <span class='ident'>compute_image</span>(<span class='ident'>components</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Component</span>],
                  <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>],
-                 <span class='ident'>output_size</span>: <span class='ident'>Size2D</span><span class='op'>&lt;</span><span class='ident'>u16</span><span class='op'>&gt;</span>,
+                 <span class='ident'>output_size</span>: <span class='ident'>Dimensions</span>,
                  <span class='ident'>is_jfif</span>: <span class='ident'>bool</span>,
                  <span class='ident'>color_transform</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AdobeColorTransform</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> {
     <span class='kw'>if</span> <span class='ident'>data</span>.<span class='ident'>iter</span>().<span class='ident'>any</span>(<span class='op'>|</span><span class='ident'>data</span><span class='op'>|</span> <span class='ident'>data</span>.<span class='ident'>is_empty</span>()) {
@@ -1654,7 +1646,7 @@
     }
     <span class='kw'>else</span> {
         <span class='kw'>let</span> <span class='ident'>color_convert_func</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>choose_color_convert_func</span>(<span class='ident'>components</span>.<span class='ident'>len</span>(), <span class='ident'>is_jfif</span>, <span class='ident'>color_transform</span>));
-        <span class='kw'>let</span> <span class='ident'>resampler</span> <span class='op'>=</span> <span class='ident'>Resampler</span>::<span class='ident'>new</span>(<span class='ident'>components</span>).<span class='ident'>unwrap</span>();
+        <span class='kw'>let</span> <span class='ident'>resampler</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>Resampler</span>::<span class='ident'>new</span>(<span class='ident'>components</span>));
         <span class='kw'>let</span> <span class='ident'>line_size</span> <span class='op'>=</span> <span class='ident'>output_size</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>*</span> <span class='ident'>components</span>.<span class='ident'>len</span>();
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>image</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u8</span>; <span class='ident'>line_size</span> <span class='op'>*</span> <span class='ident'>output_size</span>.<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
 
