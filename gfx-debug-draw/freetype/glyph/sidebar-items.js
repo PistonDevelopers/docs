@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Glyph",""]]});
+initSidebarItems({"struct":[["Glyph","Represents a retrieved glyph from the library"]]});
