@@ -303,10 +303,41 @@
 <span id="259">259</span>
 <span id="260">260</span>
 <span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {
     <span class='ident'>Align</span>,
-    <span class='ident'>Backend</span>,
     <span class='ident'>Color</span>,
     <span class='ident'>Colorable</span>,
     <span class='ident'>Dimension</span>,
@@ -353,6 +384,8 @@
         <span class='op'>-</span> <span class='ident'>line_spacing</span>: <span class='ident'>Scalar</span> { <span class='number'>1.0</span> }
         <span class='doccomment'>/// Alignment of the text along the *x* axis.</span>
         <span class='op'>-</span> <span class='ident'>text_align</span>: <span class='ident'>Align</span> { <span class='ident'>Align</span>::<span class='ident'>Start</span> }
+        <span class='doccomment'>/// The id of the font to use for rendring and layout.</span>
+        <span class='op'>-</span> <span class='ident'>font_id</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> { <span class='ident'>theme</span>.<span class='ident'>font_id</span> }
         <span class='comment'>// /// The typeface with which the Text is rendered.</span>
         <span class='comment'>// - typeface: Path,</span>
         <span class='comment'>// /// The line styling for the text.</span>
@@ -476,19 +509,42 @@
     }
 
     <span class='doccomment'>/// If no specific width was given, we&#39;ll use the width of the widest line as a default.</span>
-    <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span><span class='op'>&lt;</span><span class='ident'>B</span>: <span class='ident'>Backend</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>B</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `Font` used by the `Text` is retrieved in order to determine the width of each line. If</span>
+    <span class='doccomment'>/// the font used by the `Text` cannot be found, a dimension of `Absolute(0.0)` is returned.</span>
+    <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
+        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>font_id</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>)
+            .<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>ids</span>().<span class='ident'>next</span>())
+            .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>id</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>id</span>))
+        {
+            <span class='prelude-val'>Some</span>(<span class='ident'>font</span>) <span class='op'>=&gt;</span> <span class='ident'>font</span>,
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='number'>0.0</span>),
+        };
+
         <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>max_width</span> <span class='op'>=</span> <span class='number'>0.0</span>;
         <span class='kw'>for</span> <span class='ident'>line</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>text</span>.<span class='ident'>lines</span>() {
-            <span class='kw'>let</span> <span class='ident'>width</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>.<span class='ident'>width</span>(<span class='ident'>font_size</span>, <span class='ident'>line</span>);
+            <span class='kw'>let</span> <span class='ident'>width</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>width</span>(<span class='ident'>line</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>);
             <span class='ident'>max_width</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>partial_max</span>(<span class='ident'>max_width</span>, <span class='ident'>width</span>);
         }
         <span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='ident'>max_width</span>)
     }
 
     <span class='doccomment'>/// If no specific height was given, we&#39;ll use the total height of the text as a default.</span>
-    <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span><span class='op'>&lt;</span><span class='ident'>B</span>: <span class='ident'>Backend</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span><span class='op'>&lt;</span><span class='ident'>B</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The `Font` used by the `Text` is retrieved in order to determine the width of each line. If</span>
+    <span class='doccomment'>/// the font used by the `Text` cannot be found, a dimension of `Absolute(0.0)` is returned.</span>
+    <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
         <span class='kw'>use</span> <span class='ident'>position</span>::<span class='ident'>Sizeable</span>;
+
+        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>font_id</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>)
+            .<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>ids</span>().<span class='ident'>next</span>())
+            .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>id</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>id</span>))
+        {
+            <span class='prelude-val'>Some</span>(<span class='ident'>font</span>) <span class='op'>=&gt;</span> <span class='ident'>font</span>,
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='number'>0.0</span>),
+        };
+
         <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>text</span>;
         <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
         <span class='kw'>let</span> <span class='ident'>num_lines</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>maybe_wrap</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>) {
@@ -497,11 +553,11 @@
                 <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>text</span>.<span class='ident'>lines</span>().<span class='ident'>count</span>(),
                 <span class='prelude-val'>Some</span>(<span class='ident'>max_w</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>wrap</span> {
                     <span class='ident'>Wrap</span>::<span class='ident'>Character</span> <span class='op'>=&gt;</span>
-                        <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>, <span class='ident'>font_size</span>)
+                        <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>)
                             .<span class='ident'>wrap_by_character</span>(<span class='ident'>max_w</span>)
                             .<span class='ident'>count</span>(),
                     <span class='ident'>Wrap</span>::<span class='ident'>Whitespace</span> <span class='op'>=&gt;</span>
-                        <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>, <span class='ident'>font_size</span>)
+                        <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>)
                             .<span class='ident'>wrap_by_whitespace</span>(<span class='ident'>max_w</span>)
                             .<span class='ident'>count</span>(),
                 },
@@ -513,21 +569,29 @@
     }
 
     <span class='doccomment'>/// Update the state of the Text.</span>
-    <span class='kw'>fn</span> <span class='ident'>update</span><span class='op'>&lt;</span><span class='ident'>B</span>: <span class='ident'>Backend</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span>, <span class='ident'>B</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) {
         <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>rect</span>, <span class='ident'>state</span>, <span class='ident'>style</span>, <span class='ident'>ui</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
         <span class='kw'>let</span> <span class='ident'>Text</span> { <span class='ident'>text</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
 
         <span class='kw'>let</span> <span class='ident'>maybe_wrap</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>maybe_wrap</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
         <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
 
+        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>font_id</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>)
+            .<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>ids</span>().<span class='ident'>next</span>())
+            .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>id</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>id</span>))
+        {
+            <span class='prelude-val'>Some</span>(<span class='ident'>font</span>) <span class='op'>=&gt;</span> <span class='ident'>font</span>,
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
+        };
+
         <span class='comment'>// Produces an iterator yielding info for each line within the `text`.</span>
         <span class='kw'>let</span> <span class='ident'>new_line_infos</span> <span class='op'>=</span> <span class='op'>||</span> <span class='kw'>match</span> <span class='ident'>maybe_wrap</span> {
             <span class='prelude-val'>None</span> <span class='op'>=&gt;</span>
-                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>),
+                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>),
             <span class='prelude-val'>Some</span>(<span class='ident'>Wrap</span>::<span class='ident'>Character</span>) <span class='op'>=&gt;</span>
-                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>).<span class='ident'>wrap_by_character</span>(<span class='ident'>rect</span>.<span class='ident'>w</span>()),
+                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>).<span class='ident'>wrap_by_character</span>(<span class='ident'>rect</span>.<span class='ident'>w</span>()),
             <span class='prelude-val'>Some</span>(<span class='ident'>Wrap</span>::<span class='ident'>Whitespace</span>) <span class='op'>=&gt;</span>
-                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>).<span class='ident'>wrap_by_whitespace</span>(<span class='ident'>rect</span>.<span class='ident'>w</span>()),
+                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>).<span class='ident'>wrap_by_whitespace</span>(<span class='ident'>rect</span>.<span class='ident'>w</span>()),
         };
 
         <span class='comment'>// If the string is different, we must update both the string and the line breaks.</span>

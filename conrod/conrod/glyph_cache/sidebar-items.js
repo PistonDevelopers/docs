@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["GlyphCache","A wrapper over some CharacterCache, exposing it's functionality via a RefCell."]]});

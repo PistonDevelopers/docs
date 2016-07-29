@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["event","The backend for conrod's event system."],["graphics","Conrod's generic graphics backend."]],"trait":[["Backend","A trait to be implemented by all backends to conrod."],["CharacterCache","Stores characters in a buffer and loads them by demand."],["Graphics","Implemented by all graphics back-ends."]]});
+initSidebarItems({"mod":[["piston","Functionality for simplifying the work involved when using conrod along-side piston."],["piston_window","Helper functions for using conrod with the `piston_window` crate."]]});

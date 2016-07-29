@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["convert","Converts any `GenericEvent` to a `Raw` conrod event."]],"trait":[["GenericEvent","Implemented by all events"]]});

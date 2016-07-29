@@ -765,15 +765,28 @@
 <span id="721">721</span>
 <span id="722">722</span>
 <span id="723">723</span>
+<span id="724">724</span>
+<span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {
     <span class='ident'>Align</span>,
-    <span class='ident'>Backend</span>,
-    <span class='ident'>CharacterCache</span>,
     <span class='ident'>Color</span>,
     <span class='ident'>Colorable</span>,
     <span class='ident'>FontSize</span>,
-    <span class='ident'>GlyphCache</span>,
     <span class='ident'>IndexSlot</span>,
     <span class='ident'>Line</span>,
     <span class='ident'>NodeIndex</span>,
@@ -829,6 +842,8 @@
         <span class='op'>-</span> <span class='ident'>line_wrap</span>: <span class='ident'>Wrap</span> { <span class='ident'>Wrap</span>::<span class='ident'>Whitespace</span> }
         <span class='doccomment'>/// Do not allow to enter text that would exceed the bounds of the `TextEdit`&#39;s `Rect`.</span>
         <span class='op'>-</span> <span class='ident'>restrict_to_height</span>: <span class='ident'>bool</span> { <span class='bool-val'>true</span> }
+        <span class='doccomment'>/// The font used for the `Text`.</span>
+        <span class='op'>-</span> <span class='ident'>font_id</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> { <span class='ident'>theme</span>.<span class='ident'>font_id</span> }
     }
 }
 
@@ -983,9 +998,20 @@
     }
 
     <span class='doccomment'>/// Update the state of the TextEdit.</span>
-    <span class='kw'>fn</span> <span class='ident'>update</span><span class='op'>&lt;</span><span class='ident'>B</span>: <span class='ident'>Backend</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span>, <span class='ident'>B</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) {
         <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>idx</span>, <span class='ident'>state</span>, <span class='ident'>rect</span>, <span class='ident'>style</span>, <span class='kw-2'>mut</span> <span class='ident'>ui</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
         <span class='kw'>let</span> <span class='ident'>TextEdit</span> { <span class='ident'>text</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
+
+        <span class='comment'>// Retrieve the `font_id`, as long as a valid `Font` for it still exists.</span>
+        <span class='comment'>//</span>
+        <span class='comment'>// If we&#39;ve no font to use for text logic, bail out without updating.</span>
+        <span class='kw'>let</span> <span class='ident'>font_id</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>style</span>.<span class='ident'>font_id</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>)
+            .<span class='ident'>or</span>(<span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>ids</span>().<span class='ident'>next</span>())
+            .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>id</span><span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>id</span>).<span class='ident'>map</span>(<span class='op'>|</span>_<span class='op'>|</span> <span class='ident'>id</span>))
+        {
+            <span class='prelude-val'>Some</span>(<span class='ident'>font_id</span>) <span class='op'>=&gt;</span> <span class='ident'>font_id</span>,
+            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
+        };
 
         <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
         <span class='kw'>let</span> <span class='ident'>line_wrap</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>line_wrap</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
@@ -997,15 +1023,14 @@
 
         <span class='doccomment'>/// Returns an iterator yielding the `text::line::Info` for each line in the given text</span>
         <span class='doccomment'>/// with the given styling.</span>
-        <span class='kw'>type</span> <span class='ident'>LineInfos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Infos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span>, <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>NextBreakFnPtr</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;&gt;</span>;
-        <span class='kw'>fn</span> <span class='ident'>line_infos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span>(<span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>,
-                             <span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span>,
-                             <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>,
-                             <span class='ident'>line_wrap</span>: <span class='ident'>Wrap</span>,
-                             <span class='ident'>max_width</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>LineInfos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>C</span><span class='op'>&gt;</span>
-            <span class='kw'>where</span> <span class='ident'>C</span>: <span class='ident'>CharacterCache</span>,
+        <span class='kw'>type</span> <span class='ident'>LineInfos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Infos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>NextBreakFnPtr</span><span class='op'>&gt;</span>;
+        <span class='kw'>fn</span> <span class='ident'>line_infos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>,
+                          <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>text</span>::<span class='ident'>Font</span>,
+                          <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>,
+                          <span class='ident'>line_wrap</span>: <span class='ident'>Wrap</span>,
+                          <span class='ident'>max_width</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>LineInfos</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>
         {
-            <span class='kw'>let</span> <span class='ident'>infos</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>glyph_cache</span>, <span class='ident'>font_size</span>);
+            <span class='kw'>let</span> <span class='ident'>infos</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>);
             <span class='kw'>match</span> <span class='ident'>line_wrap</span> {
                 <span class='ident'>Wrap</span>::<span class='ident'>Whitespace</span> <span class='op'>=&gt;</span> <span class='ident'>infos</span>.<span class='ident'>wrap_by_whitespace</span>(<span class='ident'>max_width</span>),
                 <span class='ident'>Wrap</span>::<span class='ident'>Character</span> <span class='op'>=&gt;</span> <span class='ident'>infos</span>.<span class='ident'>wrap_by_character</span>(<span class='ident'>max_width</span>),
@@ -1016,8 +1041,8 @@
         {
             <span class='kw'>let</span> <span class='ident'>maybe_new_line_infos</span> <span class='op'>=</span> {
                 <span class='kw'>let</span> <span class='ident'>line_info_slice</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>[..];
-                <span class='kw'>let</span> <span class='ident'>new_line_infos</span> <span class='op'>=</span>
-                    <span class='ident'>line_infos</span>(<span class='ident'>text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>());
+                <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                <span class='kw'>let</span> <span class='ident'>new_line_infos</span> <span class='op'>=</span> <span class='ident'>line_infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>());
                 <span class='kw'>match</span> <span class='ident'>utils</span>::<span class='ident'>write_if_different</span>(<span class='ident'>line_info_slice</span>, <span class='ident'>new_line_infos</span>) {
                     <span class='ident'>std</span>::<span class='ident'>borrow</span>::<span class='ident'>Cow</span>::<span class='ident'>Owned</span>(<span class='ident'>new</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>new</span>),
                     _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
@@ -1035,7 +1060,7 @@
         <span class='kw'>let</span> <span class='ident'>closest_cursor_index_and_xy</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>xy</span>: <span class='ident'>Point</span>,
                                            <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>,
                                            <span class='ident'>line_infos</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span>],
-                                           <span class='ident'>glyph_cache</span>: <span class='kw-2'>&amp;</span><span class='ident'>GlyphCache</span><span class='op'>&lt;</span><span class='ident'>B</span>::<span class='ident'>CharacterCache</span><span class='op'>&gt;</span><span class='op'>|</span>
+                                           <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='ident'>text</span>::<span class='ident'>Font</span><span class='op'>|</span>
             <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span>, <span class='ident'>Point</span>)<span class='op'>&gt;</span>
         {
             <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
@@ -1046,7 +1071,7 @@
 
             <span class='comment'>// Find the index of the line that is closest on the *y* axis.</span>
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>xys_per_line_enumerated</span> <span class='op'>=</span>
-                <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>glyph_cache</span>, <span class='ident'>font_size</span>).<span class='ident'>enumerate</span>();
+                <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>).<span class='ident'>enumerate</span>();
 
             <span class='ident'>xys_per_line_enumerated</span>.<span class='ident'>next</span>().<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>first_line_idx</span>, (_, <span class='ident'>first_line_y</span>))<span class='op'>|</span> {
                 <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>closest_line_idx</span> <span class='op'>=</span> <span class='ident'>first_line_idx</span>;
@@ -1067,8 +1092,10 @@
                 }
 
                 <span class='comment'>// Find the index of the cursor position along the closest line.</span>
-                <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>info</span><span class='op'>|</span> <span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>info</span>.<span class='ident'>byte_range</span>()]).<span class='ident'>zip</span>(<span class='ident'>line_rects</span>);
-                <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>glyph_cache</span>, <span class='ident'>font_size</span>)
+                <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>line_infos</span>
+                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>info</span><span class='op'>|</span> <span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>info</span>.<span class='ident'>byte_range</span>()])
+                    .<span class='ident'>zip</span>(<span class='ident'>line_rects</span>);
+                <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>)
                     .<span class='ident'>nth</span>(<span class='ident'>closest_line_idx</span>)
                     .<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>xs</span>, <span class='ident'>line_y</span>)<span class='op'>|</span> {
                         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>xs_enumerated</span> <span class='op'>=</span> <span class='ident'>xs</span>.<span class='ident'>enumerate</span>();
@@ -1115,8 +1142,8 @@
                     <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>input</span>::<span class='ident'>MouseButton</span>::<span class='ident'>Left</span>, <span class='ident'>rel_xy</span>) <span class='op'>=&gt;</span> {
                         <span class='kw'>let</span> <span class='ident'>abs_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_add</span>(<span class='ident'>rel_xy</span>, <span class='ident'>rect</span>.<span class='ident'>xy</span>());
                         <span class='kw'>let</span> <span class='ident'>infos</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>;
-                        <span class='kw'>let</span> <span class='ident'>cache</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>();
-                        <span class='kw'>let</span> <span class='ident'>closest</span> <span class='op'>=</span> <span class='ident'>closest_cursor_index_and_xy</span>(<span class='ident'>abs_xy</span>, <span class='ident'>text</span>, <span class='ident'>infos</span>, <span class='ident'>cache</span>);
+                        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                        <span class='kw'>let</span> <span class='ident'>closest</span> <span class='op'>=</span> <span class='ident'>closest_cursor_index_and_xy</span>(<span class='ident'>abs_xy</span>, <span class='ident'>text</span>, <span class='ident'>infos</span>, <span class='ident'>font</span>);
                         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>closest_cursor</span>, _)) <span class='op'>=</span> <span class='ident'>closest</span> {
                             <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>closest_cursor</span>);
                         }
@@ -1136,7 +1163,7 @@
                                 <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>cursor_idx</span>) <span class='op'>=&gt;</span> {
                                     <span class='kw'>let</span> <span class='ident'>idx_after_cursor</span> <span class='op'>=</span> {
                                         <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-                                        <span class='ident'>text</span>::<span class='ident'>char</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>, <span class='ident'>cursor_idx</span>)
+                                        <span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>, <span class='ident'>cursor_idx</span>)
                                     };
                                     <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>idx_after_cursor</span> {
                                         <span class='kw'>let</span> <span class='ident'>idx_to_remove</span> <span class='op'>=</span> <span class='ident'>idx</span> <span class='op'>-</span> <span class='number'>1</span>;
@@ -1150,9 +1177,11 @@
                                                 .<span class='ident'>chain</span>(<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>skip</span>(<span class='ident'>idx</span>))
                                                 .<span class='ident'>collect</span>();
                                             <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> {
+                                                <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                                                <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>w</span>();
                                                 <span class='ident'>state</span>.<span class='ident'>line_infos</span> <span class='op'>=</span>
-                                                    <span class='ident'>line_infos</span>(<span class='ident'>text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>,
-                                                               <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>()).<span class='ident'>collect</span>();
+                                                    <span class='ident'>line_infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>w</span>)
+                                                        .<span class='ident'>collect</span>();
                                             });
                                         }
                                     }
@@ -1161,9 +1190,9 @@
                                 <span class='ident'>Cursor</span>::<span class='ident'>Selection</span> { <span class='ident'>start</span>, <span class='ident'>end</span> } <span class='op'>=&gt;</span> {
                                     <span class='kw'>let</span> (<span class='ident'>start_idx</span>, <span class='ident'>end_idx</span>) <span class='op'>=</span> {
                                         <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-                                        (<span class='ident'>text</span>::<span class='ident'>char</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>start</span>)
+                                        (<span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>start</span>)
                                             .<span class='ident'>expect</span>(<span class='string'>&quot;text::cursor::Index was out of range&quot;</span>),
-                                         <span class='ident'>text</span>::<span class='ident'>char</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>, <span class='ident'>end</span>)
+                                         <span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>, <span class='ident'>end</span>)
                                             .<span class='ident'>expect</span>(<span class='string'>&quot;text::cursor::Index was out of range&quot;</span>))
                                     };
                                     <span class='kw'>let</span> (<span class='ident'>start_idx</span>, <span class='ident'>end_idx</span>) <span class='op'>=</span>
@@ -1181,9 +1210,11 @@
                                         .<span class='ident'>chain</span>(<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>skip</span>(<span class='ident'>end_idx</span>))
                                         .<span class='ident'>collect</span>();
                                     <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> {
+                                        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                                        <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>w</span>();
                                         <span class='ident'>state</span>.<span class='ident'>line_infos</span> <span class='op'>=</span>
-                                            <span class='ident'>line_infos</span>(<span class='ident'>text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>,
-                                                       <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>()).<span class='ident'>collect</span>();
+                                            <span class='ident'>line_infos</span>(<span class='ident'>text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>w</span>)
+                                                .<span class='ident'>collect</span>();
                                     });
                                 },
 
@@ -1305,9 +1336,9 @@
                         <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
 
                         <span class='kw'>let</span> (<span class='ident'>start_idx</span>, <span class='ident'>end_idx</span>) <span class='op'>=</span>
-                            (<span class='ident'>text</span>::<span class='ident'>char</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_start</span>)
+                            (<span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_start</span>)
                                 .<span class='ident'>unwrap_or</span>(<span class='number'>0</span>),
-                             <span class='ident'>text</span>::<span class='ident'>char</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_end</span>)
+                             <span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_end</span>)
                                 .<span class='ident'>unwrap_or</span>(<span class='number'>0</span>));
 
                         <span class='kw'>let</span> <span class='ident'>new_cursor_char_idx</span> <span class='op'>=</span> <span class='ident'>start_idx</span> <span class='op'>+</span> <span class='ident'>string_char_count</span>;
@@ -1320,9 +1351,10 @@
                     };
 
                     <span class='comment'>// Calculate the new `line_infos` for the `new_text`.</span>
-                    <span class='kw'>let</span> <span class='ident'>new_line_infos</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span> <span class='op'>=</span> 
-                        <span class='ident'>line_infos</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_text</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>())
-                            .<span class='ident'>collect</span>();
+                    <span class='kw'>let</span> <span class='ident'>new_line_infos</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span> <span class='op'>=</span> {
+                        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                        <span class='ident'>line_infos</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>()).<span class='ident'>collect</span>()
+                    };
 
                     <span class='comment'>// Check that the new text would not exceed the `inner_rect` bounds.</span>
                     <span class='kw'>let</span> <span class='ident'>num_lines</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>.<span class='ident'>len</span>();
@@ -1359,8 +1391,8 @@
                                 };
                                 <span class='kw'>let</span> <span class='ident'>abs_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_add</span>(<span class='ident'>drag_event</span>.<span class='ident'>to</span>, <span class='ident'>rect</span>.<span class='ident'>xy</span>());
                                 <span class='kw'>let</span> <span class='ident'>infos</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>;
-                                <span class='kw'>let</span> <span class='ident'>cache</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>();
-                                <span class='kw'>match</span> <span class='ident'>closest_cursor_index_and_xy</span>(<span class='ident'>abs_xy</span>, <span class='ident'>text</span>, <span class='ident'>infos</span>, <span class='ident'>cache</span>) {
+                                <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                                <span class='kw'>match</span> <span class='ident'>closest_cursor_index_and_xy</span>(<span class='ident'>abs_xy</span>, <span class='ident'>text</span>, <span class='ident'>infos</span>, <span class='ident'>font</span>) {
                                     <span class='prelude-val'>Some</span>((<span class='ident'>end_cursor_idx</span>, _)) <span class='op'>=&gt;</span>
                                         <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>Cursor</span>::<span class='ident'>Selection</span> {
                                             <span class='ident'>start</span>: <span class='ident'>start_cursor_idx</span>,
@@ -1430,7 +1462,8 @@
             <span class='kw'>let</span> <span class='ident'>line_rects</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>rects</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>font_size</span>, <span class='ident'>rect</span>,
                                                <span class='ident'>x_align</span>, <span class='ident'>y_align</span>, <span class='ident'>line_spacing</span>);
             <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>lines</span>.<span class='ident'>zip</span>(<span class='ident'>line_rects</span>.<span class='ident'>clone</span>());
-            <span class='kw'>let</span> <span class='ident'>xys_per_line</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>(), <span class='ident'>font_size</span>);
+            <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+            <span class='kw'>let</span> <span class='ident'>xys_per_line</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>);
             <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xy_at</span>(<span class='ident'>xys_per_line</span>, <span class='ident'>cursor_idx</span>)
                 .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> {
                     <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>left</span>();
@@ -1458,9 +1491,8 @@
                 <span class='kw'>let</span> <span class='ident'>line_rects</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>rects</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>font_size</span>, <span class='ident'>rect</span>,
                                                    <span class='ident'>x_align</span>, <span class='ident'>y_align</span>, <span class='ident'>line_spacing</span>);
                 <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>lines</span>.<span class='ident'>zip</span>(<span class='ident'>line_rects</span>.<span class='ident'>clone</span>());
-                <span class='kw'>let</span> <span class='ident'>cache</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>glyph_cache</span>();
-                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>selected_rects</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>cache</span>, <span class='ident'>font_size</span>, <span class='ident'>start</span>, <span class='ident'>end</span>)
-                    .<span class='ident'>collect</span>()
+                <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>selected_rects</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>start</span>, <span class='ident'>end</span>).<span class='ident'>collect</span>()
             };
 
             <span class='comment'>// Draw a semi-transparent `Rectangle` for the selected range across each line.</span>

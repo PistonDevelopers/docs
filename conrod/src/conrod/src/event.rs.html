@@ -482,19 +482,146 @@
 <span id="438">438</span>
 <span id="439">439</span>
 <span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Contains all the structs and enums to describe all of the input events that `Widget`s</span>
 <span class='doccomment'>//! can handle.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! The core of this module is the `Event` enum, which encapsulates all of those events.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! The backend for conrod&#39;s event system.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Conrod&#39;s event system looks like this:</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! *RawEvent -&gt; Ui -&gt; UiEvent -&gt; Widget*</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! The **Ui** receives **RawEvent**s such as `Press` and `Release` via the `Ui::handle_event`</span>
+<span class='doccomment'>//! method. It interprets these **RawEvent**s to create higher-level **UiEvent**s such as</span>
+<span class='doccomment'>//! `DoubleClick`, `WidgetCapturesKeyboard`, etc. These **UiEvent**s are stored and then fed to</span>
+<span class='doccomment'>//! each **Widget** when `Ui::set_widgets` is called. At the end of `Ui::set_widgets` the stored</span>
+<span class='doccomment'>//! **UiEvent**s are flushed ready for the next incoming **RawEvent**s.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Conrod uses the `pistoncore-input` crate&#39;s `Event` type as the [**RawEvent**</span>
+<span class='doccomment'>//! type](./type.RawEvent.html). There are a few reasons for this:</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! 1. This `Event` type already provides a number of useful variants of events that we wish to</span>
+<span class='doccomment'>//!    provide and handle within conrod, and we do not yet see any great need to re-write it and</span>
+<span class='doccomment'>//!    duplicate code.</span>
+<span class='doccomment'>//! 2. The `Event` type is already compatible with all `pistoncore-window` backends including</span>
+<span class='doccomment'>//!    `glfw_window`, `sdl2_window` and `glutin_window`.</span>
+<span class='doccomment'>//! 3. The `pistoncore-input` crate also provides a `GenericEvent` trait which allows us to easily</span>
+<span class='doccomment'>//!    provide a blanket implementation of `ToRawEvent` for all event types that already implement</span>
+<span class='doccomment'>//!    this trait.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Because we use the `pistoncore-input` `Event` type, we also re-export its associated data</span>
+<span class='doccomment'>//! types (`Button`, `ControllerAxisArgs`, `Key`, etc).</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! The [**ToRawEvent** trait](./trait.ToRawEvent.html) should be implemented for event types that</span>
+<span class='doccomment'>//! are to be passed to the `Ui::handle_event` method. As mentioned above, a blanket implementation</span>
+<span class='doccomment'>//! is already provided for all types that implement `pistoncore-input::GenericEvent`, so users of</span>
+<span class='doccomment'>//! `glfw_window`, `sdl2_window` and `glutin_window` need not concern themselves with this trait.</span>
 
 <span class='kw'>use</span> <span class='ident'>input</span>;
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Dimensions</span>, <span class='ident'>Point</span>};
+<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Dimensions</span>, <span class='ident'>Point</span>, <span class='ident'>Scalar</span>};
 <span class='kw'>use</span> <span class='ident'>utils</span>::<span class='ident'>vec2_sub</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>;
 
+<span class='kw'>use</span> <span class='ident'>piston_input</span>;
+
+
+<span class='doccomment'>/// The event type that is used by conrod to track inputs from the world. Events yielded by polling</span>
+<span class='doccomment'>/// window backends should be converted to this type. This can be thought of as the event type</span>
+<span class='doccomment'>/// which is supplied by the window backend to drive the state of the `Ui` forward.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// This type is solely used within the `Ui::handle_event` method which immediately converts</span>
+<span class='doccomment'>/// given user events to `RawEvent`s via the [**ToRawEvent** trait](./trait.ToRawEvent.html) bound.</span>
+<span class='doccomment'>/// The `RawEvent`s are interpreted to create higher level `Event`s (such as DoubleClick,</span>
+<span class='doccomment'>/// WidgetCapturesKeyboard, etc) which are stored for later processing by `Widget`s, which will</span>
+<span class='doccomment'>/// occur during the call to `Ui::set_widgets`.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// **Note:** `Raw` events that contain co-ordinates must be oriented with (0, 0) at the middle of</span>
+<span class='doccomment'>/// the window with the *y* axis pointing upwards (Cartesian co-ordinates). Many windows provide</span>
+<span class='doccomment'>/// coordinates with the origin in the top left with *y* pointing down, so you might need to</span>
+<span class='doccomment'>/// translate these co-ordinates when implementing this method. Also be sure to invert the *y* axis</span>
+<span class='doccomment'>/// of MouseScroll events.</span>
+<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>Raw</span> <span class='op'>=</span> <span class='ident'>piston_input</span>::<span class='ident'>Event</span><span class='op'>&lt;</span><span class='ident'>piston_input</span>::<span class='ident'>Input</span><span class='op'>&gt;</span>;
+
+<span class='doccomment'>/// Unfortunately we&#39;re unable to access variants of the `Event` enum via the `RawEvent` type</span>
+<span class='doccomment'>/// alias above, thus we must also re-export `Event` itself so that a user may use it if they</span>
+<span class='doccomment'>/// require accessing its variants.</span>
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>piston_input</span>::<span class='ident'>Event</span> <span class='kw'>as</span> <span class='ident'>RawEvent</span>;
 <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>inline</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>backend</span>::<span class='ident'>event</span>::{<span class='ident'>Input</span>, <span class='ident'>Motion</span>};
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>piston_input</span>::{<span class='ident'>Input</span>, <span class='ident'>Motion</span>};
 
 
 <span class='doccomment'>/// Enum containing all the events that the `Ui` may provide.</span>
@@ -731,6 +858,17 @@
     <span class='kw'>pub</span> <span class='ident'>y</span>: <span class='ident'>f64</span>,
     <span class='doccomment'>/// Which modifier keys, if any, that were being held down while the scroll occured</span>
     <span class='kw'>pub</span> <span class='ident'>modifiers</span>: <span class='ident'>input</span>::<span class='ident'>keyboard</span>::<span class='ident'>ModifierKey</span>,
+}
+
+<span class='doccomment'>/// Constructor for a new `RawEvent::Render`.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>render</span>(<span class='ident'>dt_secs</span>: <span class='ident'>f64</span>, <span class='ident'>w_px</span>: <span class='ident'>u32</span>, <span class='ident'>h_px</span>: <span class='ident'>u32</span>, <span class='ident'>dpi</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>RawEvent</span> {
+    <span class='ident'>RawEvent</span>::<span class='ident'>Render</span>(<span class='ident'>input</span>::<span class='ident'>RenderArgs</span> {
+        <span class='ident'>ext_dt</span>: <span class='ident'>dt_secs</span>,
+        <span class='ident'>width</span>: (<span class='ident'>w_px</span> <span class='kw'>as</span> <span class='ident'>Scalar</span> <span class='op'>/</span> <span class='ident'>dpi</span>) <span class='kw'>as</span> <span class='ident'>u32</span>,
+        <span class='ident'>height</span>: (<span class='ident'>h_px</span> <span class='kw'>as</span> <span class='ident'>Scalar</span> <span class='op'>/</span> <span class='ident'>dpi</span>) <span class='kw'>as</span> <span class='ident'>u32</span>,
+        <span class='ident'>draw_width</span>: <span class='ident'>w_px</span>,
+        <span class='ident'>draw_height</span>: <span class='ident'>h_px</span>,
+    })
 }
 
 <span class='kw'>impl</span> <span class='ident'>Move</span> {

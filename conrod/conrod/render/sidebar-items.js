@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["PrimitiveKind","The unique kind for each primitive element in the Ui."]],"struct":[["Primitive","Data required for rendering a single primitive widget."],["Primitives","An iterator-like type that yields a reference to each primitive in order of depth for rendering."],["Text","A type used for producing a `PositionedGlyph` iterator."]]});
