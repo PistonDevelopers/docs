@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["libc"] = [];implementors["lazy_static"] = [];implementors["wayland_sys"] = [];implementors["gfx_gl"] = [];implementors["enum_primitive"] = [];implementors["wayland_kbd"] = [];implementors["glutin"] = [];
+implementors["lazy_static"] = [];implementors["libc"] = [];implementors["gfx_gl"] = [];implementors["enum_primitive"] = [];implementors["wayland_sys"] = [];implementors["wayland_kbd"] = [];implementors["glutin"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
