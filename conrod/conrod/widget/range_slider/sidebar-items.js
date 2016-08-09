@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Drag","The part of the `RangeSlider` that is in the process of being dragged."],["Edge","Either the `Start` or `End` `Edge` of the `RangeSlider`'s bar."]],"struct":[["RangeSlider","Linear range selection."],["State","Represents the state of the Slider widget."],["Style","Graphical styling unique to the RangeSlider widget."]]});

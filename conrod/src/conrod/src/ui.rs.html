@@ -1260,6 +1260,25 @@
 <span id="1216">1216</span>
 <span id="1217">1217</span>
 <span id="1218">1218</span>
+<span id="1219">1219</span>
+<span id="1220">1220</span>
+<span id="1221">1221</span>
+<span id="1222">1222</span>
+<span id="1223">1223</span>
+<span id="1224">1224</span>
+<span id="1225">1225</span>
+<span id="1226">1226</span>
+<span id="1227">1227</span>
+<span id="1228">1228</span>
+<span id="1229">1229</span>
+<span id="1230">1230</span>
+<span id="1231">1231</span>
+<span id="1232">1232</span>
+<span id="1233">1233</span>
+<span id="1234">1234</span>
+<span id="1235">1235</span>
+<span id="1236">1236</span>
+<span id="1237">1237</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
 <span class='kw'>use</span> <span class='ident'>event</span>;
@@ -1273,14 +1292,26 @@
 <span class='kw'>use</span> <span class='ident'>utils</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
 
-<span class='doccomment'>/// `UiBuilder` stores everything that needs to be customized when constructing</span>
-<span class='comment'>//// &#39;Ui&#39; type.</span>
-
+<span class='doccomment'>/// A constructor type for building a `Ui` instance with a set of optional parameters.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>UiBuilder</span> {
     <span class='doccomment'>/// The theme used to set default styling for widgets.</span>
-    <span class='ident'>maybe_theme</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Theme</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Number of widgets given as number</span>
-    <span class='ident'>maybe_widgets_capacity</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If this field is `None` when `build` is called, `Theme::default` will be used.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_theme</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Theme</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// An estimation of the maximum number of widgets that will be used with this `Ui` instance.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// This value is used to determine the size with which various collections should be</span>
+    <span class='doccomment'>/// reserved. This may make the first cycle of widget instantiations more efficient as the</span>
+    <span class='doccomment'>/// collections will not be required to grow dynamically. These collections include:</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// - the widget graph node and edge `Vec`s</span>
+    <span class='doccomment'>/// - the `HashSet` used to track updated widgets</span>
+    <span class='doccomment'>/// - the widget `DepthOrder` (a kind of toposort describing the order of widgets in their</span>
+    <span class='doccomment'>/// rendering order).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If this field is `None` when `build` is called, these collections will be initialised with</span>
+    <span class='doccomment'>/// no pre-reserved size and will instead grow organically as needed.</span>
+    <span class='kw'>pub</span> <span class='ident'>maybe_widgets_capacity</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>
 }
 
 <span class='doccomment'>/// `Ui` is the most important type within Conrod and is necessary for rendering and maintaining</span>
@@ -1360,10 +1391,8 @@
 <span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>SAFE_REDRAW_COUNT</span>: <span class='ident'>u8</span> <span class='op'>=</span> <span class='number'>3</span>;
 
 <span class='kw'>impl</span> <span class='ident'>UiBuilder</span> {
-    <span class='doccomment'>/// Create **Ui** builder with defaults.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// - maybe_theme: Theme::default()</span>
-    <span class='doccomment'>/// - maybe_widgets_capacity: None</span>
+
+    <span class='doccomment'>/// Begin building a new `Ui` instance.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='ident'>UiBuilder</span> {
             <span class='ident'>maybe_theme</span>: <span class='prelude-val'>None</span>,
@@ -1371,19 +1400,27 @@
         }
     }
 
-    <span class='doccomment'>/// Sets the theme of built **Ui**.</span>
+    <span class='doccomment'>/// The theme used to set default styling for widgets.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This method moves the current builder,</span>
-    <span class='doccomment'>/// so that it can be used in method chaining.</span>
+    <span class='doccomment'>/// If this field is `None` when `build` is called, `Theme::default` will be used.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>theme</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>Theme</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='self'>self</span>.<span class='ident'>maybe_theme</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>value</span>);
         <span class='self'>self</span>
     }
 
-    <span class='doccomment'>/// Sets widgets capacity of built **Ui**.</span>
+    <span class='doccomment'>/// An estimation of the maximum number of widgets that will be used with this `Ui` instance.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This method moves the current builder,</span>
-    <span class='doccomment'>/// so that it can be used in method chaining.</span>
+    <span class='doccomment'>/// This value is used to determine the size with which various collections should be</span>
+    <span class='doccomment'>/// reserved. This may make the first cycle of widget instantiations more efficient as the</span>
+    <span class='doccomment'>/// collections will not be required to grow dynamically. These collections include:</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// - the widget graph node and edge `Vec`s</span>
+    <span class='doccomment'>/// - the `HashSet` used to track updated widgets</span>
+    <span class='doccomment'>/// - the widget `DepthOrder` (a kind of toposort describing the order of widgets in their</span>
+    <span class='doccomment'>/// rendering order).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If this field is `None` when `build` is called, these collections will be initialised with</span>
+    <span class='doccomment'>/// no pre-reserved size and will instead grow organically as required.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widgets_capacity</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='self'>self</span>.<span class='ident'>maybe_widgets_capacity</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>value</span>);
         <span class='self'>self</span>
@@ -1393,6 +1430,7 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>build</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Ui</span> {
         <span class='ident'>Ui</span>::<span class='ident'>new</span>(<span class='self'>self</span>)
     }
+
 }
 
 <span class='kw'>impl</span> <span class='ident'>Ui</span> {
@@ -2180,8 +2218,8 @@
         <span class='comment'>// This widget acts as the parent-most widget and root node for the Ui&#39;s `widget_graph`,</span>
         <span class='comment'>// upon which all other widgets are placed.</span>
         {
-            <span class='kw'>use</span> {<span class='ident'>color</span>, <span class='ident'>Colorable</span>, <span class='ident'>Borderable</span>, <span class='ident'>BorderedRectangle</span>, <span class='ident'>Positionable</span>, <span class='ident'>Widget</span>};
-            <span class='kw'>type</span> <span class='ident'>Window</span> <span class='op'>=</span> <span class='ident'>BorderedRectangle</span>;
+            <span class='kw'>use</span> {<span class='ident'>color</span>, <span class='ident'>Colorable</span>, <span class='ident'>Borderable</span>, <span class='ident'>Positionable</span>, <span class='ident'>Widget</span>};
+            <span class='kw'>type</span> <span class='ident'>Window</span> <span class='op'>=</span> <span class='ident'>widget</span>::<span class='ident'>BorderedRectangle</span>;
             <span class='ident'>Window</span>::<span class='ident'>new</span>([<span class='self'>self</span>.<span class='ident'>win_w</span>, <span class='self'>self</span>.<span class='ident'>win_h</span>])
                 .<span class='ident'>no_parent</span>()
                 .<span class='ident'>x_y</span>(<span class='number'>0.0</span>, <span class='number'>0.0</span>)
