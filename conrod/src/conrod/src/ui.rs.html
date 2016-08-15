@@ -1277,8 +1277,6 @@
 <span id="1233">1233</span>
 <span id="1234">1234</span>
 <span id="1235">1235</span>
-<span id="1236">1236</span>
-<span id="1237">1237</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
 <span class='kw'>use</span> <span class='ident'>event</span>;
@@ -2199,9 +2197,7 @@
 
     <span class='doccomment'>/// A function within which all widgets are instantiated by the user, normally situated within</span>
     <span class='doccomment'>/// the &quot;update&quot; stage of an event loop.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_widgets</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>user_widgets_fn</span>: <span class='ident'>F</span>)
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>UiCell</span>),
-    {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_widgets</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>UiCell</span> {
         <span class='self'>self</span>.<span class='ident'>maybe_prev_widget_idx</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
         <span class='self'>self</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
 
@@ -2213,6 +2209,8 @@
             <span class='ident'>updated_widgets</span>.<span class='ident'>clear</span>();
         }
 
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ui_cell</span> <span class='op'>=</span> <span class='ident'>UiCell</span> { <span class='ident'>ui</span>: <span class='self'>self</span> };
+
         <span class='comment'>// Instantiate the root `Window` `Widget`.</span>
         <span class='comment'>//</span>
         <span class='comment'>// This widget acts as the parent-most widget and root node for the Ui&#39;s `widget_graph`,</span>
@@ -2220,46 +2218,18 @@
         {
             <span class='kw'>use</span> {<span class='ident'>color</span>, <span class='ident'>Colorable</span>, <span class='ident'>Borderable</span>, <span class='ident'>Positionable</span>, <span class='ident'>Widget</span>};
             <span class='kw'>type</span> <span class='ident'>Window</span> <span class='op'>=</span> <span class='ident'>widget</span>::<span class='ident'>BorderedRectangle</span>;
-            <span class='ident'>Window</span>::<span class='ident'>new</span>([<span class='self'>self</span>.<span class='ident'>win_w</span>, <span class='self'>self</span>.<span class='ident'>win_h</span>])
+            <span class='ident'>Window</span>::<span class='ident'>new</span>([<span class='ident'>ui_cell</span>.<span class='ident'>win_w</span>, <span class='ident'>ui_cell</span>.<span class='ident'>win_h</span>])
                 .<span class='ident'>no_parent</span>()
                 .<span class='ident'>x_y</span>(<span class='number'>0.0</span>, <span class='number'>0.0</span>)
                 .<span class='ident'>border</span>(<span class='number'>0.0</span>)
                 .<span class='ident'>border_color</span>(<span class='ident'>color</span>::<span class='ident'>BLACK</span>.<span class='ident'>alpha</span>(<span class='number'>0.0</span>))
-                .<span class='ident'>color</span>(<span class='self'>self</span>.<span class='ident'>maybe_background_color</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>color</span>::<span class='ident'>BLACK</span>.<span class='ident'>alpha</span>(<span class='number'>0.0</span>)))
-                .<span class='ident'>set</span>(<span class='self'>self</span>.<span class='ident'>window</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>UiCell</span> { <span class='ident'>ui</span>: <span class='self'>self</span> });
+                .<span class='ident'>color</span>(<span class='ident'>ui_cell</span>.<span class='ident'>maybe_background_color</span>.<span class='ident'>unwrap_or</span>(<span class='ident'>color</span>::<span class='ident'>BLACK</span>.<span class='ident'>alpha</span>(<span class='number'>0.0</span>)))
+                .<span class='ident'>set</span>(<span class='ident'>ui_cell</span>.<span class='ident'>window</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui_cell</span>);
         }
 
-        <span class='self'>self</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>into</span>());
+        <span class='ident'>ui_cell</span>.<span class='ident'>ui</span>.<span class='ident'>maybe_current_parent_idx</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>ui_cell</span>.<span class='ident'>window</span>.<span class='ident'>into</span>());
 
-        <span class='comment'>// Call the given user function for instantiating Widgets.</span>
-        <span class='ident'>user_widgets_fn</span>(<span class='ident'>UiCell</span> { <span class='ident'>ui</span>: <span class='self'>self</span> });
-
-        <span class='comment'>// We&#39;ll need to re-draw if we have gained or lost widgets.</span>
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>updated_widgets</span> <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>prev_updated_widgets</span> {
-            <span class='self'>self</span>.<span class='ident'>needs_redraw</span>();
-        }
-
-        <span class='comment'>// Update the **DepthOrder** so that it reflects the **Graph**&#39;s current state.</span>
-        {
-            <span class='kw'>let</span> <span class='ident'>Ui</span> {
-                <span class='kw-2'>ref</span> <span class='ident'>widget_graph</span>,
-                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>depth_order</span>,
-                <span class='ident'>window</span>,
-                <span class='kw-2'>ref</span> <span class='ident'>updated_widgets</span>,
-                ..
-            } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
-
-            <span class='ident'>depth_order</span>.<span class='ident'>update</span>(<span class='ident'>widget_graph</span>, <span class='ident'>window</span>, <span class='ident'>updated_widgets</span>);
-        }
-
-        <span class='comment'>// Reset the global input state. Note that this is the **only** time this should be called.</span>
-        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>clear_events_and_update_start_state</span>();
-
-        <span class='comment'>// Move all pending `Scroll` events that have been produced since the start of this method</span>
-        <span class='comment'>// into the `global_input` event buffer.</span>
-        <span class='kw'>for</span> <span class='ident'>scroll_event</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>pending_scroll_events</span>.<span class='ident'>drain</span>(<span class='number'>0</span>..) {
-            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>scroll_event</span>.<span class='ident'>into</span>());
-        }
+        <span class='ident'>ui_cell</span>
     }
 
 
@@ -2425,6 +2395,37 @@
 
 }
 
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>UiCell</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='comment'>// We&#39;ll need to re-draw if we have gained or lost widgets.</span>
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>ui</span>.<span class='ident'>updated_widgets</span> <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>ui</span>.<span class='ident'>prev_updated_widgets</span> {
+            <span class='self'>self</span>.<span class='ident'>ui</span>.<span class='ident'>needs_redraw</span>();
+        }
+
+        <span class='comment'>// Update the **DepthOrder** so that it reflects the **Graph**&#39;s current state.</span>
+        {
+            <span class='kw'>let</span> <span class='ident'>Ui</span> {
+                <span class='kw-2'>ref</span> <span class='ident'>widget_graph</span>,
+                <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>depth_order</span>,
+                <span class='ident'>window</span>,
+                <span class='kw-2'>ref</span> <span class='ident'>updated_widgets</span>,
+                ..
+            } <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>.<span class='ident'>ui</span>;
+
+            <span class='ident'>depth_order</span>.<span class='ident'>update</span>(<span class='ident'>widget_graph</span>, <span class='ident'>window</span>, <span class='ident'>updated_widgets</span>);
+        }
+
+        <span class='comment'>// Reset the global input state. Note that this is the **only** time this should be called.</span>
+        <span class='self'>self</span>.<span class='ident'>ui</span>.<span class='ident'>global_input</span>.<span class='ident'>clear_events_and_update_start_state</span>();
+
+        <span class='comment'>// Move all pending `Scroll` events that have been produced since the start of this method</span>
+        <span class='comment'>// into the `global_input` event buffer.</span>
+        <span class='kw'>for</span> <span class='ident'>scroll_event</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>ui</span>.<span class='ident'>pending_scroll_events</span>.<span class='ident'>drain</span>(<span class='number'>0</span>..) {
+            <span class='self'>self</span>.<span class='ident'>ui</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>scroll_event</span>.<span class='ident'>into</span>());
+        }
+    }
+}
+
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>UiCell</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>Ui</span>;
     <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Ui</span> {
@@ -2436,11 +2437,6 @@
     <span class='kw'>fn</span> <span class='ident'>as_ref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Ui</span> {
         <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>ui</span>
     }
-}
-
-<span class='doccomment'>/// A private constructor for the `UiCell` for internal use.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_ui_cell</span>(<span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>UiCell</span> {
-    <span class='ident'>UiCell</span> { <span class='ident'>ui</span>: <span class='ident'>ui</span> }
 }
 
 <span class='doccomment'>/// A function for retrieving the `&amp;mut Ui&lt;B&gt;` from a `UiCell&lt;B&gt;`.</span>
