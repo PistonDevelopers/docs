@@ -224,6 +224,18 @@
 <span id="180">180</span>
 <span id="181">181</span>
 <span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A button that allows for toggling boolean state.</span>
 
@@ -247,11 +259,10 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// Note that the Toggle will not mutate the bool for you, you should do this yourself within the</span>
 <span class='doccomment'>/// react function.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='ident'>common</span>: <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span>,
     <span class='ident'>value</span>: <span class='ident'>bool</span>,
-    <span class='doccomment'>/// Set the reaction for the Toggle. It will be triggered upon release of the button.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_react</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>,
     <span class='ident'>maybe_label</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span><span class='op'>&gt;</span>,
     <span class='ident'>style</span>: <span class='ident'>Style</span>,
     <span class='doccomment'>/// If true, will allow user inputs. If false, will disallow user inputs.</span>
@@ -277,19 +288,42 @@
 <span class='doccomment'>/// The state of the Toggle.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>State</span> {
-    <span class='ident'>value</span>: <span class='ident'>bool</span>,
     <span class='ident'>rectangle_idx</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>,
     <span class='ident'>label_idx</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>,
 }
 
+<span class='doccomment'>/// The `Event` type yielded by the `Toggle` widget.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Implements `Iterator` yielding a `bool` indicating the new state for each time the `Toggle` was</span>
+<span class='doccomment'>/// clicked with the left mouse button since the last update.</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_copy_implementations</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>TimesClicked</span> {
+    <span class='ident'>state</span>: <span class='ident'>bool</span>,
+    <span class='ident'>count</span>: <span class='ident'>u16</span>,
+}
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+
+<span class='kw'>impl</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>TimesClicked</span> {
+    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>bool</span>;
+    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='self'>Self</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>count</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
+            <span class='self'>self</span>.<span class='ident'>count</span> <span class='op'>-=</span> <span class='number'>1</span>;
+            <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>state</span>;
+            <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>state</span>)
+        } <span class='kw'>else</span> {
+            <span class='prelude-val'>None</span>
+        }
+    }
+}
+
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
 
     <span class='doccomment'>/// Construct a new Toggle widget.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>value</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>value</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
         <span class='ident'>Toggle</span> {
             <span class='ident'>common</span>: <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span>::<span class='ident'>new</span>(),
-            <span class='ident'>maybe_react</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>maybe_label</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>value</span>: <span class='ident'>value</span>,
             <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>new</span>(),
@@ -298,17 +332,15 @@
     }
 
     <span class='macro'>builder_methods</span><span class='macro'>!</span>{
-        <span class='kw'>pub</span> <span class='ident'>react</span> { <span class='ident'>maybe_react</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>F</span>) }
         <span class='kw'>pub</span> <span class='ident'>enabled</span> { <span class='ident'>enabled</span> <span class='op'>=</span> <span class='ident'>bool</span> }
     }
 
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Widget</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>bool</span>),
-{
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Widget</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>State</span> <span class='op'>=</span> <span class='ident'>State</span>;
     <span class='kw'>type</span> <span class='ident'>Style</span> <span class='op'>=</span> <span class='ident'>Style</span>;
+    <span class='kw'>type</span> <span class='ident'>Event</span> <span class='op'>=</span> <span class='ident'>TimesClicked</span>;
 
     <span class='kw'>fn</span> <span class='ident'>common</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span> {
         <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>common</span>
@@ -320,7 +352,6 @@
 
     <span class='kw'>fn</span> <span class='ident'>init_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>State</span> {
         <span class='ident'>State</span> {
-            <span class='ident'>value</span>: <span class='self'>self</span>.<span class='ident'>value</span>,
             <span class='ident'>rectangle_idx</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>::<span class='ident'>new</span>(),
             <span class='ident'>label_idx</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>::<span class='ident'>new</span>(),
         }
@@ -331,24 +362,14 @@
     }
 
     <span class='doccomment'>/// Update the state of the Toggle.</span>
-    <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>Event</span> {
         <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>idx</span>, <span class='ident'>state</span>, <span class='ident'>style</span>, <span class='ident'>rect</span>, <span class='kw-2'>mut</span> <span class='ident'>ui</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
-        <span class='kw'>let</span> <span class='ident'>Toggle</span> { <span class='ident'>value</span>, <span class='ident'>enabled</span>, <span class='ident'>maybe_label</span>, <span class='ident'>maybe_react</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Toggle</span> { <span class='ident'>value</span>, <span class='ident'>enabled</span>, <span class='ident'>maybe_label</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
 
-        <span class='kw'>let</span> <span class='ident'>new_value</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>ui</span>.<span class='ident'>widget_input</span>(<span class='ident'>idx</span>).<span class='ident'>clicks</span>().<span class='ident'>left</span>().<span class='ident'>next</span>().<span class='ident'>is_some</span>() <span class='op'>&amp;&amp;</span> <span class='ident'>enabled</span> {
-            <span class='kw'>let</span> <span class='ident'>new_value</span> <span class='op'>=</span> <span class='op'>!</span><span class='ident'>value</span>;
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>react</span>) <span class='op'>=</span> <span class='ident'>maybe_react</span> {
-                <span class='ident'>react</span>(<span class='ident'>new_value</span>)
-            }
-            <span class='ident'>new_value</span>
-        } <span class='kw'>else</span> {
-            <span class='ident'>value</span>
+        <span class='kw'>let</span> <span class='ident'>times_clicked</span> <span class='op'>=</span> <span class='ident'>TimesClicked</span> {
+            <span class='ident'>state</span>: <span class='ident'>value</span>,
+            <span class='ident'>count</span>: <span class='kw'>if</span> <span class='ident'>enabled</span> { <span class='ident'>ui</span>.<span class='ident'>widget_input</span>(<span class='ident'>idx</span>).<span class='ident'>clicks</span>().<span class='ident'>left</span>().<span class='ident'>count</span>() <span class='kw'>as</span> <span class='ident'>u16</span> } <span class='kw'>else</span> { <span class='number'>0</span> },
         };
-
-        <span class='comment'>// If the value has changed, update our state.</span>
-        <span class='kw'>if</span> <span class='ident'>state</span>.<span class='ident'>value</span> <span class='op'>!=</span> <span class='ident'>new_value</span> {
-            <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>new_value</span>);
-        }
 
         <span class='comment'>// BorderedRectangle widget.</span>
         <span class='kw'>let</span> <span class='ident'>rectangle_idx</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>rectangle_idx</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
@@ -356,6 +377,7 @@
         <span class='kw'>let</span> <span class='ident'>border</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>border</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
         <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> {
             <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>color</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
+            <span class='kw'>let</span> <span class='ident'>new_value</span> <span class='op'>=</span> <span class='ident'>times_clicked</span>.<span class='ident'>clone</span>().<span class='ident'>last</span>().<span class='ident'>unwrap_or</span>(<span class='ident'>value</span>);
             <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>new_value</span> { <span class='ident'>color</span> } <span class='kw'>else</span> { <span class='ident'>color</span>.<span class='ident'>with_luminance</span>(<span class='number'>0.1</span>) };
             <span class='kw'>match</span> <span class='ident'>ui</span>.<span class='ident'>widget_input</span>(<span class='ident'>idx</span>).<span class='ident'>mouse</span>() {
                 <span class='prelude-val'>Some</span>(<span class='ident'>mouse</span>) <span class='op'>=&gt;</span>
@@ -385,22 +407,24 @@
                 .<span class='ident'>font_size</span>(<span class='ident'>font_size</span>)
                 .<span class='ident'>set</span>(<span class='ident'>label_idx</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
         }
+
+        <span class='ident'>times_clicked</span>
     }
 }
 
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Colorable</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Colorable</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='macro'>builder_method</span><span class='macro'>!</span>(<span class='ident'>color</span> { <span class='ident'>style</span>.<span class='ident'>color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Color</span>) });
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Borderable</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Borderable</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='macro'>builder_methods</span><span class='macro'>!</span>{
         <span class='ident'>border</span> { <span class='ident'>style</span>.<span class='ident'>border</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Scalar</span>) }
         <span class='ident'>border_color</span> { <span class='ident'>style</span>.<span class='ident'>border_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Color</span>) }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> <span class='ident'>Labelable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>F</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Labelable</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Toggle</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='macro'>builder_methods</span><span class='macro'>!</span>{
         <span class='ident'>label</span> { <span class='ident'>maybe_label</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>) }
         <span class='ident'>label_color</span> { <span class='ident'>style</span>.<span class='ident'>label_color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Color</span>) }
