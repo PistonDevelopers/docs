@@ -773,17 +773,6 @@
 <span id="729">729</span>
 <span id="730">730</span>
 <span id="731">731</span>
-<span id="732">732</span>
-<span id="733">733</span>
-<span id="734">734</span>
-<span id="735">735</span>
-<span id="736">736</span>
-<span id="737">737</span>
-<span id="738">738</span>
-<span id="739">739</span>
-<span id="740">740</span>
-<span id="741">741</span>
-<span id="742">742</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A widget for displaying and mutating multi-line text, given as a `String`.</span>
 
@@ -1047,6 +1036,17 @@
             }
         }
 
+        <span class='kw'>let</span> <span class='ident'>xy_at</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>cursor_idx</span>: <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span>,
+                     <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>,
+                     <span class='ident'>line_infos</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span>],
+                     <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='ident'>text</span>::<span class='ident'>Font</span><span class='op'>|</span>
+            <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>Scalar</span>, <span class='ident'>Range</span>)<span class='op'>&gt;</span>
+        {
+            <span class='kw'>let</span> <span class='ident'>xys_per_line</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line_from_text</span>(<span class='ident'>text</span>,<span class='ident'>line_infos</span>,<span class='ident'>font</span>,<span class='ident'>font_size</span>,
+                                                                    <span class='ident'>x_align</span>,<span class='ident'>y_align</span>,<span class='ident'>line_spacing</span>,<span class='ident'>rect</span>);
+            <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xy_at</span>(<span class='ident'>xys_per_line</span>, <span class='ident'>cursor_idx</span>)
+        };
+
         <span class='comment'>// Find the closest cursor index to the given `xy` position.</span>
         <span class='comment'>//</span>
         <span class='comment'>// Returns `None` if the given `text` is empty.</span>
@@ -1056,68 +1056,78 @@
                                            <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='ident'>text</span>::<span class='ident'>Font</span><span class='op'>|</span>
             <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span>, <span class='ident'>Point</span>)<span class='op'>&gt;</span>
         {
-            <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-            <span class='kw'>let</span> <span class='ident'>lines</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>clone</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>info</span><span class='op'>|</span> <span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>info</span>.<span class='ident'>byte_range</span>()]);
-            <span class='kw'>let</span> <span class='ident'>line_rects</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>rects</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>font_size</span>, <span class='ident'>rect</span>,
-                                               <span class='ident'>x_align</span>, <span class='ident'>y_align</span>, <span class='ident'>line_spacing</span>);
-            <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>lines</span>.<span class='ident'>zip</span>(<span class='ident'>line_rects</span>.<span class='ident'>clone</span>());
+            <span class='kw'>let</span> <span class='ident'>xys_per_line</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line_from_text</span>(<span class='ident'>text</span>,<span class='ident'>line_infos</span>,<span class='ident'>font</span>,<span class='ident'>font_size</span>,
+                                                                    <span class='ident'>x_align</span>,<span class='ident'>y_align</span>,<span class='ident'>line_spacing</span>,<span class='ident'>rect</span>);
+            <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>closest_cursor_index_and_xy</span>(<span class='ident'>xy</span>,<span class='ident'>xys_per_line</span>)
+        };
 
-            <span class='comment'>// Find the index of the line that is closest on the *y* axis.</span>
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>xys_per_line_enumerated</span> <span class='op'>=</span>
-                <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>).<span class='ident'>enumerate</span>();
-
-            <span class='ident'>xys_per_line_enumerated</span>.<span class='ident'>next</span>().<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>first_line_idx</span>, (_, <span class='ident'>first_line_y</span>))<span class='op'>|</span> {
-                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>closest_line_idx</span> <span class='op'>=</span> <span class='ident'>first_line_idx</span>;
-                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>closest_diff</span> <span class='op'>=</span> (<span class='ident'>xy</span>[<span class='number'>1</span>] <span class='op'>-</span> <span class='ident'>first_line_y</span>.<span class='ident'>middle</span>()).<span class='ident'>abs</span>();
-                <span class='kw'>for</span> (<span class='ident'>line_idx</span>, (_, <span class='ident'>line_y</span>)) <span class='kw'>in</span> <span class='ident'>xys_per_line_enumerated</span> {
-                    <span class='kw'>if</span> <span class='ident'>line_y</span>.<span class='ident'>is_over</span>(<span class='ident'>xy</span>[<span class='number'>1</span>]) {
-                        <span class='ident'>closest_line_idx</span> <span class='op'>=</span> <span class='ident'>line_idx</span>;
-                        <span class='kw'>break</span>;
-                    } <span class='kw'>else</span> {
-                        <span class='kw'>let</span> <span class='ident'>diff</span> <span class='op'>=</span> (<span class='ident'>xy</span>[<span class='number'>1</span>] <span class='op'>-</span> <span class='ident'>line_y</span>.<span class='ident'>middle</span>()).<span class='ident'>abs</span>();
-                        <span class='kw'>if</span> <span class='ident'>diff</span> <span class='op'>&lt;</span> <span class='ident'>closest_diff</span> {
-                            <span class='ident'>closest_line_idx</span> <span class='op'>=</span> <span class='ident'>line_idx</span>;
-                            <span class='ident'>closest_diff</span> <span class='op'>=</span> <span class='ident'>diff</span>;
-                        } <span class='kw'>else</span> {
-                            <span class='kw'>break</span>;
-                        }
-                    }
-                }
-
-                <span class='comment'>// Find the index of the cursor position along the closest line.</span>
-                <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>line_infos</span>
-                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>info</span><span class='op'>|</span> <span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>info</span>.<span class='ident'>byte_range</span>()])
-                    .<span class='ident'>zip</span>(<span class='ident'>line_rects</span>);
-                <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>)
-                    .<span class='ident'>nth</span>(<span class='ident'>closest_line_idx</span>)
-                    .<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>xs</span>, <span class='ident'>line_y</span>)<span class='op'>|</span> {
-                        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>xs_enumerated</span> <span class='op'>=</span> <span class='ident'>xs</span>.<span class='ident'>enumerate</span>();
-                        <span class='comment'>// `xs` always yields at least one `x` (the start of the line).</span>
-                        <span class='kw'>let</span> (<span class='ident'>first_idx</span>, <span class='ident'>first_x</span>) <span class='op'>=</span> <span class='ident'>xs_enumerated</span>.<span class='ident'>next</span>().<span class='ident'>unwrap</span>();
-                        <span class='kw'>let</span> <span class='ident'>first_diff</span> <span class='op'>=</span> (<span class='ident'>xy</span>[<span class='number'>0</span>] <span class='op'>-</span> <span class='ident'>first_x</span>).<span class='ident'>abs</span>();
-                        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>closest_idx</span> <span class='op'>=</span> <span class='ident'>first_idx</span>;
-                        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>closest_x</span> <span class='op'>=</span> <span class='ident'>first_x</span>;
-                        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>closest_diff</span> <span class='op'>=</span> <span class='ident'>first_diff</span>;
-                        <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>x</span>) <span class='kw'>in</span> <span class='ident'>xs_enumerated</span> {
-                            <span class='kw'>let</span> <span class='ident'>diff</span> <span class='op'>=</span> (<span class='ident'>xy</span>[<span class='number'>0</span>] <span class='op'>-</span> <span class='ident'>x</span>).<span class='ident'>abs</span>();
-                            <span class='kw'>if</span> <span class='ident'>diff</span> <span class='op'>&lt;</span> <span class='ident'>closest_diff</span> {
-                                <span class='ident'>closest_idx</span> <span class='op'>=</span> <span class='ident'>i</span>;
-                                <span class='ident'>closest_x</span> <span class='op'>=</span> <span class='ident'>x</span>;
-                                <span class='ident'>closest_diff</span> <span class='op'>=</span> <span class='ident'>diff</span>;
-                            } <span class='kw'>else</span> {
-                                <span class='kw'>break</span>;
-                            }
-                        }
-
-                        <span class='kw'>let</span> <span class='ident'>index</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span> { <span class='ident'>line</span>: <span class='ident'>closest_line_idx</span>, <span class='ident'>char</span>: <span class='ident'>closest_idx</span> };
-                        <span class='kw'>let</span> <span class='ident'>point</span> <span class='op'>=</span> [<span class='ident'>closest_x</span>, <span class='ident'>line_y</span>.<span class='ident'>middle</span>()];
-                        (<span class='ident'>index</span>, <span class='ident'>point</span>)
-                    })
+        <span class='kw'>let</span> <span class='ident'>get_index_on_line</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>x_pos</span>: <span class='ident'>Scalar</span>,<span class='ident'>line_idx</span>: <span class='ident'>usize</span>,<span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>,
+                                 <span class='ident'>line_infos</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span>],
+                                 <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='ident'>text</span>::<span class='ident'>Font</span><span class='op'>|</span> <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span><span class='op'>&gt;</span> {
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>xys_per_line</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line_from_text</span>(<span class='ident'>text</span>, <span class='ident'>line_infos</span>, <span class='ident'>font</span>,
+                                                                        <span class='ident'>font_size</span>, <span class='ident'>x_align</span>, <span class='ident'>y_align</span>,
+                                                                        <span class='ident'>line_spacing</span>, <span class='ident'>rect</span>);
+            <span class='ident'>xys_per_line</span>.<span class='ident'>nth</span>(<span class='ident'>line_idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>line_xs</span>,_)<span class='op'>|</span> {
+                <span class='kw'>let</span> (<span class='ident'>char_idx</span>,_) <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>closest_cursor_index_on_line</span>(<span class='ident'>x_pos</span>,<span class='ident'>line_xs</span>);
+                <span class='prelude-val'>Some</span>(<span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span> { <span class='ident'>line</span>: <span class='ident'>line_idx</span>, <span class='ident'>char</span>: <span class='ident'>char_idx</span> })
             })
         };
 
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>cursor</span>;
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>drag</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>drag</span>;
+
+        <span class='kw'>let</span> <span class='ident'>insert_text</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>string</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>cursor</span>: <span class='ident'>Cursor</span>, <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>infos</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span>], <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='ident'>text</span>::<span class='ident'>Font</span><span class='op'>|</span>
+            <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>String</span>,<span class='ident'>Cursor</span>,<span class='ident'>std</span>::<span class='ident'>vec</span>::<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span><span class='op'>&gt;</span>)<span class='op'>&gt;</span>
+        {
+            <span class='kw'>let</span> <span class='ident'>string_char_count</span> <span class='op'>=</span> <span class='ident'>string</span>.<span class='ident'>chars</span>().<span class='ident'>count</span>();
+            <span class='comment'>// Construct the new text with the new string inserted at the cursor.</span>
+            <span class='kw'>let</span> (<span class='ident'>new_text</span>, <span class='ident'>new_cursor_char_idx</span>): (<span class='ident'>String</span>, <span class='ident'>usize</span>) <span class='op'>=</span> {
+                <span class='kw'>let</span> (<span class='ident'>cursor_start</span>, <span class='ident'>cursor_end</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>cursor</span> {
+                    <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> (<span class='ident'>idx</span>, <span class='ident'>idx</span>),
+                    <span class='ident'>Cursor</span>::<span class='ident'>Selection</span> { <span class='ident'>start</span>, <span class='ident'>end</span> } <span class='op'>=&gt;</span>
+                        (<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>min</span>(<span class='ident'>start</span>, <span class='ident'>end</span>), <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>(<span class='ident'>start</span>, <span class='ident'>end</span>)),
+                };
+
+                <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
+
+                <span class='kw'>let</span> (<span class='ident'>start_idx</span>, <span class='ident'>end_idx</span>) <span class='op'>=</span>
+                    (<span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_start</span>)
+                        .<span class='ident'>unwrap_or</span>(<span class='number'>0</span>),
+                     <span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_end</span>)
+                        .<span class='ident'>unwrap_or</span>(<span class='number'>0</span>));
+
+                <span class='kw'>let</span> <span class='ident'>new_cursor_char_idx</span> <span class='op'>=</span> <span class='ident'>start_idx</span> <span class='op'>+</span> <span class='ident'>string_char_count</span>;
+
+                <span class='kw'>let</span> <span class='ident'>new_text</span> <span class='op'>=</span> <span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>take</span>(<span class='ident'>start_idx</span>)
+                    .<span class='ident'>chain</span>(<span class='ident'>string</span>.<span class='ident'>chars</span>())
+                    .<span class='ident'>chain</span>(<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>skip</span>(<span class='ident'>end_idx</span>))
+                    .<span class='ident'>collect</span>();
+                (<span class='ident'>new_text</span>, <span class='ident'>new_cursor_char_idx</span>)
+            };
+
+            <span class='comment'>// Calculate the new `line_infos` for the `new_text`.</span>
+            <span class='kw'>let</span> <span class='ident'>new_line_infos</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span> <span class='op'>=</span> {
+                <span class='ident'>line_infos</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>()).<span class='ident'>collect</span>()
+            };
+
+            <span class='comment'>// Check that the new text would not exceed the `inner_rect` bounds.</span>
+            <span class='kw'>let</span> <span class='ident'>num_lines</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>.<span class='ident'>len</span>();
+            <span class='kw'>let</span> <span class='ident'>height</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>height</span>(<span class='ident'>num_lines</span>, <span class='ident'>font_size</span>, <span class='ident'>line_spacing</span>);
+            <span class='kw'>if</span> <span class='ident'>height</span> <span class='op'>&lt;</span> <span class='ident'>rect</span>.<span class='ident'>h</span>() <span class='op'>||</span> <span class='op'>!</span><span class='ident'>restrict_to_height</span> {
+                <span class='comment'>// Determine the new `Cursor` and its position.</span>
+                <span class='kw'>let</span> <span class='ident'>new_cursor_idx</span> <span class='op'>=</span> {
+                    <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
+                    <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>index_before_char</span>(<span class='ident'>line_infos</span>, <span class='ident'>new_cursor_char_idx</span>)
+                        .<span class='ident'>unwrap_or</span>(<span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span> {
+                            <span class='ident'>line</span>: <span class='number'>0</span>,
+                            <span class='ident'>char</span>: <span class='ident'>string_char_count</span>,
+                        })
+                };
+                <span class='prelude-val'>Some</span>((<span class='ident'>new_text</span>, <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>new_cursor_idx</span>), <span class='ident'>new_line_infos</span>))
+            } <span class='kw'>else</span> {
+                <span class='prelude-val'>None</span>
+            }
+        };
 
         <span class='comment'>// Check for the following events:</span>
         <span class='comment'>// - `Text` events for receiving new text.</span>
@@ -1263,9 +1273,22 @@
                             }
                         },
 
-                        <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Up</span> <span class='op'>=&gt;</span> {
-                        },
-                        <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Down</span> <span class='op'>=&gt;</span> {
+                        <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Up</span> <span class='op'>|</span> <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Down</span> <span class='op'>=&gt;</span> {
+                            <span class='kw'>let</span> <span class='ident'>cursor_idx</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>cursor</span> {
+                                <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>cursor_idx</span>) <span class='op'>=&gt;</span> <span class='ident'>cursor_idx</span>,
+                                <span class='ident'>Cursor</span>::<span class='ident'>Selection</span> { <span class='ident'>start</span>, .. } <span class='op'>=&gt;</span> <span class='ident'>start</span>,
+                            };
+                            <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
+                            <span class='kw'>let</span> <span class='ident'>new_cursor_idx</span> <span class='op'>=</span> <span class='ident'>xy_at</span>(<span class='ident'>cursor_idx</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>, <span class='ident'>font</span>).<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>x_pos</span>,_)<span class='op'>|</span> {
+                                <span class='kw'>let</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span> { <span class='ident'>line</span>, .. } <span class='op'>=</span> <span class='ident'>cursor_idx</span>;
+                                <span class='kw'>let</span> <span class='ident'>next_line</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>key</span> {
+                                    <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Up</span> <span class='op'>=&gt;</span> <span class='kw'>if</span> <span class='ident'>line</span> <span class='op'>&gt;</span> <span class='number'>0</span> { <span class='ident'>line</span> <span class='op'>-</span> <span class='number'>1</span> } <span class='kw'>else</span> { <span class='number'>0</span> },
+                                    <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Down</span> <span class='op'>=&gt;</span> <span class='ident'>line</span> <span class='op'>+</span> <span class='number'>1</span>,
+                                    _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>()
+                                };
+                                <span class='ident'>get_index_on_line</span>(<span class='ident'>x_pos</span>, <span class='ident'>next_line</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>, <span class='ident'>font</span>)
+                            }).<span class='ident'>unwrap_or</span>(<span class='ident'>cursor_idx</span>);
+                            <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>new_cursor_idx</span>);
                         },
 
                         <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>A</span> <span class='op'>=&gt;</span> {
@@ -1284,6 +1307,16 @@
                         <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>E</span> <span class='op'>=&gt;</span> {
                             <span class='comment'>// If cursor is `Idx`, move cursor to end.</span>
                             <span class='kw'>if</span> <span class='ident'>press</span>.<span class='ident'>modifiers</span>.<span class='ident'>contains</span>(<span class='ident'>input</span>::<span class='ident'>keyboard</span>::<span class='ident'>CTRL</span>) {
+                            }
+                        },
+
+                        <span class='ident'>input</span>::<span class='ident'>Key</span>::<span class='ident'>Return</span> <span class='op'>=&gt;</span> {
+                            <span class='kw'>match</span> <span class='ident'>insert_text</span>(<span class='string'>&quot;\n&quot;</span>, <span class='ident'>cursor</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>, <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>()) {
+                                <span class='prelude-val'>Some</span>((<span class='ident'>new_text</span>, <span class='ident'>new_cursor</span>, <span class='ident'>new_line_infos</span>)) <span class='op'>=&gt;</span> {
+                                    <span class='op'>*</span><span class='ident'>text</span>.<span class='ident'>to_mut</span>() <span class='op'>=</span> <span class='ident'>new_text</span>;
+                                    <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>new_cursor</span>;
+                                    <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>);
+                                }, _ <span class='op'>=&gt;</span> ()
                             }
                         },
 
@@ -1318,60 +1351,12 @@
                         <span class='string'>&quot;\u{f700}&quot;</span> <span class='op'>|</span> <span class='string'>&quot;\u{f701}&quot;</span> <span class='op'>|</span> <span class='string'>&quot;\u{f702}&quot;</span> <span class='op'>|</span> <span class='string'>&quot;\u{f703}&quot;</span> <span class='op'>=&gt;</span> <span class='kw'>continue</span> <span class='lifetime'>&#39;events</span>,
                         _ <span class='op'>=&gt;</span> ()
                     }
-
-                    <span class='kw'>let</span> <span class='ident'>string_char_count</span> <span class='op'>=</span> <span class='ident'>string</span>.<span class='ident'>chars</span>().<span class='ident'>count</span>();
-
-                    <span class='comment'>// Construct the new text with the new string inserted at the cursor.</span>
-                    <span class='kw'>let</span> (<span class='ident'>new_text</span>, <span class='ident'>new_cursor_char_idx</span>): (<span class='ident'>String</span>, <span class='ident'>usize</span>) <span class='op'>=</span> {
-                        <span class='kw'>let</span> (<span class='ident'>cursor_start</span>, <span class='ident'>cursor_end</span>) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>cursor</span> {
-                            <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>idx</span>) <span class='op'>=&gt;</span> (<span class='ident'>idx</span>, <span class='ident'>idx</span>),
-                            <span class='ident'>Cursor</span>::<span class='ident'>Selection</span> { <span class='ident'>start</span>, <span class='ident'>end</span> } <span class='op'>=&gt;</span>
-                                (<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>min</span>(<span class='ident'>start</span>, <span class='ident'>end</span>), <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>(<span class='ident'>start</span>, <span class='ident'>end</span>)),
-                        };
-
-                        <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-
-                        <span class='kw'>let</span> (<span class='ident'>start_idx</span>, <span class='ident'>end_idx</span>) <span class='op'>=</span>
-                            (<span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_start</span>)
-                                .<span class='ident'>unwrap_or</span>(<span class='number'>0</span>),
-                             <span class='ident'>text</span>::<span class='ident'>glyph</span>::<span class='ident'>index_after_cursor</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>cursor_end</span>)
-                                .<span class='ident'>unwrap_or</span>(<span class='number'>0</span>));
-
-                        <span class='kw'>let</span> <span class='ident'>new_cursor_char_idx</span> <span class='op'>=</span> <span class='ident'>start_idx</span> <span class='op'>+</span> <span class='ident'>string_char_count</span>;
-
-                        <span class='kw'>let</span> <span class='ident'>new_text</span> <span class='op'>=</span> <span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>take</span>(<span class='ident'>start_idx</span>)
-                            .<span class='ident'>chain</span>(<span class='ident'>string</span>.<span class='ident'>chars</span>())
-                            .<span class='ident'>chain</span>(<span class='ident'>text</span>.<span class='ident'>chars</span>().<span class='ident'>skip</span>(<span class='ident'>end_idx</span>))
-                            .<span class='ident'>collect</span>();
-                        (<span class='ident'>new_text</span>, <span class='ident'>new_cursor_char_idx</span>)
-                    };
-
-                    <span class='comment'>// Calculate the new `line_infos` for the `new_text`.</span>
-                    <span class='kw'>let</span> <span class='ident'>new_line_infos</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>_<span class='op'>&gt;</span> <span class='op'>=</span> {
-                        <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
-                        <span class='ident'>line_infos</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_text</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>, <span class='ident'>line_wrap</span>, <span class='ident'>rect</span>.<span class='ident'>w</span>()).<span class='ident'>collect</span>()
-                    };
-
-                    <span class='comment'>// Check that the new text would not exceed the `inner_rect` bounds.</span>
-                    <span class='kw'>let</span> <span class='ident'>num_lines</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>.<span class='ident'>len</span>();
-                    <span class='kw'>let</span> <span class='ident'>height</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>height</span>(<span class='ident'>num_lines</span>, <span class='ident'>font_size</span>, <span class='ident'>line_spacing</span>);
-                    <span class='kw'>if</span> <span class='ident'>height</span> <span class='op'>&lt;</span> <span class='ident'>rect</span>.<span class='ident'>h</span>() <span class='op'>||</span> <span class='op'>!</span><span class='ident'>restrict_to_height</span> {
-
-                        <span class='comment'>// Determine the new `Cursor` and its position.</span>
-                        <span class='kw'>let</span> <span class='ident'>new_cursor_idx</span> <span class='op'>=</span> {
-                            <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-                            <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>index_before_char</span>(<span class='ident'>line_infos</span>, <span class='ident'>new_cursor_char_idx</span>)
-                                .<span class='ident'>unwrap_or</span>(<span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>Index</span> {
-                                    <span class='ident'>line</span>: <span class='number'>0</span>,
-                                    <span class='ident'>char</span>: <span class='ident'>string_char_count</span>,
-                                })
-                        };
-                        <span class='kw'>let</span> <span class='ident'>new_cursor</span> <span class='op'>=</span> <span class='ident'>Cursor</span>::<span class='ident'>Idx</span>(<span class='ident'>new_cursor_idx</span>);
-
-                        <span class='comment'>// Update the text, cursor and line_infos.</span>
-                        <span class='op'>*</span><span class='ident'>text</span>.<span class='ident'>to_mut</span>() <span class='op'>=</span> <span class='ident'>new_text</span>;
-                        <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>new_cursor</span>;
-                        <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>);
+                    <span class='kw'>match</span> <span class='ident'>insert_text</span>(<span class='kw-2'>&amp;</span><span class='ident'>string</span>, <span class='ident'>cursor</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>, <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>()) {
+                        <span class='prelude-val'>Some</span>((<span class='ident'>new_text</span>, <span class='ident'>new_cursor</span>, <span class='ident'>new_line_infos</span>)) <span class='op'>=&gt;</span> {
+                            <span class='op'>*</span><span class='ident'>text</span>.<span class='ident'>to_mut</span>() <span class='op'>=</span> <span class='ident'>new_text</span>;
+                            <span class='ident'>cursor</span> <span class='op'>=</span> <span class='ident'>new_cursor</span>;
+                            <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>new_line_infos</span>);
+                        }, _ <span class='op'>=&gt;</span> ()
                     }
                 },
 
@@ -1459,16 +1444,9 @@
             <span class='kw'>return</span> <span class='ident'>take_if_owned</span>(<span class='ident'>text</span>);
         }
 
-        <span class='comment'>// TODO: Simplify this block.</span>
         <span class='kw'>let</span> (<span class='ident'>cursor_x</span>, <span class='ident'>cursor_y_range</span>) <span class='op'>=</span> {
-            <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-            <span class='kw'>let</span> <span class='ident'>lines</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>clone</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>info</span><span class='op'>|</span> <span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>info</span>.<span class='ident'>byte_range</span>()]);
-            <span class='kw'>let</span> <span class='ident'>line_rects</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>rects</span>(<span class='ident'>line_infos</span>.<span class='ident'>clone</span>(), <span class='ident'>font_size</span>, <span class='ident'>rect</span>,
-                                               <span class='ident'>x_align</span>, <span class='ident'>y_align</span>, <span class='ident'>line_spacing</span>);
-            <span class='kw'>let</span> <span class='ident'>lines_with_rects</span> <span class='op'>=</span> <span class='ident'>lines</span>.<span class='ident'>zip</span>(<span class='ident'>line_rects</span>.<span class='ident'>clone</span>());
             <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>).<span class='ident'>unwrap</span>();
-            <span class='kw'>let</span> <span class='ident'>xys_per_line</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xys_per_line</span>(<span class='ident'>lines_with_rects</span>, <span class='ident'>font</span>, <span class='ident'>font_size</span>);
-            <span class='ident'>text</span>::<span class='ident'>cursor</span>::<span class='ident'>xy_at</span>(<span class='ident'>xys_per_line</span>, <span class='ident'>cursor_idx</span>)
+            <span class='ident'>xy_at</span>(<span class='ident'>cursor_idx</span>, <span class='kw-2'>&amp;</span><span class='ident'>text</span>, <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>, <span class='ident'>font</span>)
                 .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> {
                     <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>left</span>();
                     <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='number'>0.0</span>, <span class='ident'>font_size</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>).<span class='ident'>align_to</span>(<span class='ident'>y_align</span>, <span class='ident'>rect</span>.<span class='ident'>y</span>);
