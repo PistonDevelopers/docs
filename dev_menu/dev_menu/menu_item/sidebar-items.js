@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["MenuItem","A single menu item instance"]]});

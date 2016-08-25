@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["RenderArgs","Render arguments"]],"trait":[["RenderEvent","When the next frame should be rendered"]]});
