@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.3.1/src/job.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.4.0/src/job.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>job.rs.html -- source</title>
@@ -160,7 +160,9 @@
 <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;nightly&quot;</span>)]</span>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
 <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;nightly&quot;</span>)]</span>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>panic</span>::{<span class='self'>self</span>, <span class='ident'>AssertRecoverSafe</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>panic</span>::{<span class='self'>self</span>, <span class='ident'>AssertUnwindSafe</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>UnsafeCell</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
 
 <span class='kw'>enum</span> <span class='ident'>JobResult</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='prelude-val'>None</span>,
@@ -174,24 +176,20 @@
 <span class='doccomment'>/// arranged in a deque, so that thieves can take from the top of the</span>
 <span class='doccomment'>/// deque while the main worker manages the bottom of the deque. This</span>
 <span class='doccomment'>/// deque is managed by the `thread_pool` module.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Note that we don&#39;t use a trait here due to `&amp;mut` aliasing issues. A thief</span>
-<span class='doccomment'>/// needs an `&amp;mut` to access the func and result fields, while the original</span>
-<span class='doccomment'>/// thread uses a `&amp;` to access the latch. We solve this by simply using a raw</span>
-<span class='doccomment'>/// pointer which allows us to get an &amp;mut for func and result while getting a</span>
-<span class='doccomment'>/// `&amp;` for the latch.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Job</span> {
-    <span class='kw'>pub</span> <span class='ident'>execute</span>: <span class='kw'>unsafe</span> <span class='kw'>fn</span>(<span class='op'>*</span><span class='kw-2'>mut</span> ()),
-    <span class='kw'>pub</span> <span class='ident'>data</span>: <span class='op'>*</span><span class='kw-2'>mut</span> (),
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Job</span> {
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>);
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>abort</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>);
 }
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Job</span> { }
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Job</span> { }
+
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>JobRef</span>(<span class='kw'>pub</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>Job</span>);
+<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>JobRef</span> {}
+<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>JobRef</span> {}
 
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>JobImpl</span><span class='op'>&lt;</span><span class='ident'>L</span>:<span class='ident'>Latch</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span> {
     <span class='kw'>pub</span> <span class='ident'>latch</span>: <span class='ident'>L</span>,
-    <span class='ident'>func</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>,
-    <span class='ident'>result</span>: <span class='ident'>JobResult</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
+    <span class='ident'>func</span>: <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>result</span>: <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='ident'>JobResult</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>L</span>:<span class='ident'>Latch</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span> <span class='ident'>JobImpl</span><span class='op'>&lt;</span><span class='ident'>L</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span>
@@ -200,54 +198,34 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>func</span>: <span class='ident'>F</span>, <span class='ident'>latch</span>: <span class='ident'>L</span>) <span class='op'>-&gt;</span> <span class='ident'>JobImpl</span><span class='op'>&lt;</span><span class='ident'>L</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='ident'>JobImpl</span> {
             <span class='ident'>latch</span>: <span class='ident'>latch</span>,
-            <span class='ident'>func</span>: <span class='prelude-val'>Some</span>(<span class='ident'>func</span>),
-            <span class='ident'>result</span>: <span class='ident'>JobResult</span>::<span class='prelude-val'>None</span>,
+            <span class='ident'>func</span>: <span class='ident'>UnsafeCell</span>::<span class='ident'>new</span>(<span class='prelude-val'>Some</span>(<span class='ident'>func</span>)),
+            <span class='ident'>result</span>: <span class='ident'>UnsafeCell</span>::<span class='ident'>new</span>(<span class='ident'>JobResult</span>::<span class='prelude-val'>None</span>),
         }
     }
 
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>as_job</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Job</span> {
-        <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span><span class='op'>&lt;</span><span class='ident'>L</span>:<span class='ident'>Latch</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span>(<span class='ident'>data</span>: <span class='op'>*</span><span class='kw-2'>mut</span> ())
-            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span>
-        {
-            <span class='kw'>let</span> <span class='ident'>job</span> <span class='op'>=</span> <span class='ident'>data</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>JobImpl</span><span class='op'>&lt;</span><span class='ident'>L</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span>;
-
-            <span class='comment'>// Use a guard here to ensure that the latch is always set, even if</span>
-            <span class='comment'>// the function panics.</span>
-            <span class='kw'>struct</span> <span class='ident'>PanicGuard</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>,<span class='ident'>L</span>:<span class='ident'>Latch</span> <span class='op'>+</span> <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>L</span>);
-            <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>,<span class='ident'>L</span>:<span class='ident'>Latch</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>PanicGuard</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>,<span class='ident'>L</span><span class='op'>&gt;</span> {
-                <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-                    <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>set</span>();
-                }
-            }
-            <span class='kw'>let</span> <span class='ident'>_guard</span> <span class='op'>=</span> <span class='ident'>PanicGuard</span>(<span class='kw-2'>&amp;</span>(<span class='op'>*</span><span class='ident'>job</span>).<span class='ident'>latch</span>);
-            <span class='kw'>let</span> <span class='ident'>func</span> <span class='op'>=</span> (<span class='op'>*</span><span class='ident'>job</span>).<span class='ident'>func</span>.<span class='ident'>take</span>().<span class='ident'>unwrap</span>();
-            (<span class='op'>*</span><span class='ident'>job</span>).<span class='ident'>result</span> <span class='op'>=</span> <span class='ident'>JobImpl</span>::<span class='op'>&lt;</span><span class='ident'>L</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span>::<span class='ident'>run_result</span>(<span class='ident'>func</span>);
-        }
-
-        <span class='ident'>Job</span> {
-            <span class='ident'>execute</span>: <span class='ident'>execute</span>::<span class='op'>&lt;</span><span class='ident'>L</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span>,
-            <span class='ident'>data</span>: <span class='self'>self</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> _ <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> (),
-        }
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>as_job_ref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>JobRef</span> {
+        <span class='kw'>let</span> <span class='ident'>job_ref</span>: <span class='op'>*</span><span class='kw'>const</span> (<span class='ident'>Job</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>) <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='self'>self</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>Job</span>);
+        <span class='ident'>JobRef</span>(<span class='ident'>job_ref</span>)
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>run_inline</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
-        <span class='self'>self</span>.<span class='ident'>func</span>.<span class='ident'>unwrap</span>()()
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>run_inline</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
+        <span class='self'>self</span>.<span class='ident'>func</span>.<span class='ident'>into_inner</span>().<span class='ident'>unwrap</span>()()
     }
 
     <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>not</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;nightly&quot;</span>))]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>into_result</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
-        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>result</span> {
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>into_result</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
+        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>result</span>.<span class='ident'>into_inner</span>() {
             <span class='ident'>JobResult</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;job function panicked&quot;</span>),
             <span class='ident'>JobResult</span>::<span class='prelude-val'>Ok</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>x</span>,
         }
     }
 
     <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;nightly&quot;</span>)]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>into_result</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
-        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>result</span> {
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>into_result</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
+        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>result</span>.<span class='ident'>into_inner</span>() {
             <span class='ident'>JobResult</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
             <span class='ident'>JobResult</span>::<span class='prelude-val'>Ok</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>x</span>,
-            <span class='ident'>JobResult</span>::<span class='ident'>Panic</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>panic</span>::<span class='ident'>propagate</span>(<span class='ident'>x</span>),
+            <span class='ident'>JobResult</span>::<span class='ident'>Panic</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>panic</span>::<span class='ident'>resume_unwind</span>(<span class='ident'>x</span>),
         }
     }
 
@@ -258,15 +236,37 @@
 
     <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;nightly&quot;</span>)]</span>
     <span class='kw'>fn</span> <span class='ident'>run_result</span>(<span class='ident'>func</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>JobResult</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='comment'>// We assert that func is recover-safe since it doesn&#39;t touch any of</span>
+        <span class='comment'>// We assert that func is unwind-safe since it doesn&#39;t touch any of</span>
         <span class='comment'>// our data and we will be propagating the panic back to the user at</span>
         <span class='comment'>// the join() call.</span>
-        <span class='comment'>// FIXME(rust-lang/rust#31728) Use into_inner() instead</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>wrapper</span> <span class='op'>=</span> <span class='ident'>AssertRecoverSafe</span>::<span class='ident'>new</span>(<span class='prelude-val'>Some</span>(<span class='ident'>func</span>));
-        <span class='kw'>match</span> <span class='ident'>panic</span>::<span class='ident'>recover</span>(<span class='kw'>move</span> <span class='op'>||</span> (<span class='op'>*</span><span class='ident'>wrapper</span>).<span class='ident'>take</span>().<span class='ident'>unwrap</span>()()) {
+        <span class='kw'>match</span> <span class='ident'>panic</span>::<span class='ident'>catch_unwind</span>(<span class='ident'>AssertUnwindSafe</span>(<span class='ident'>func</span>)) {
             <span class='prelude-val'>Ok</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>JobResult</span>::<span class='prelude-val'>Ok</span>(<span class='ident'>x</span>),
             <span class='prelude-val'>Err</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>JobResult</span>::<span class='ident'>Panic</span>(<span class='ident'>x</span>),
         }
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>L</span>:<span class='ident'>Latch</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span> <span class='ident'>Job</span> <span class='kw'>for</span> <span class='ident'>JobImpl</span><span class='op'>&lt;</span><span class='ident'>L</span>,<span class='ident'>F</span>,<span class='ident'>R</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span>
+{
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='comment'>// Use a guard here to ensure that the latch is always set, even if</span>
+        <span class='comment'>// the function panics.</span>
+        <span class='kw'>struct</span> <span class='ident'>PanicGuard</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>,<span class='ident'>L</span>:<span class='ident'>Latch</span> <span class='op'>+</span> <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>L</span>);
+        <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>,<span class='ident'>L</span>:<span class='ident'>Latch</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>PanicGuard</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>,<span class='ident'>L</span><span class='op'>&gt;</span> {
+            <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+                <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>set</span>();
+            }
+        }
+
+        <span class='kw'>let</span> <span class='ident'>_guard</span> <span class='op'>=</span> <span class='ident'>PanicGuard</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>latch</span>);
+        <span class='kw'>let</span> <span class='ident'>func</span> <span class='op'>=</span> (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>func</span>.<span class='ident'>get</span>()).<span class='ident'>take</span>().<span class='ident'>unwrap</span>();
+        (<span class='op'>*</span><span class='self'>self</span>.<span class='ident'>result</span>.<span class='ident'>get</span>()) <span class='op'>=</span> <span class='self'>Self</span>::<span class='ident'>run_result</span>(<span class='ident'>func</span>);
+    }
+
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>abort</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='comment'>// Just set the latch and leave the result as None</span>
+        <span class='self'>self</span>.<span class='ident'>latch</span>.<span class='ident'>set</span>();
     }
 }
 </pre>
