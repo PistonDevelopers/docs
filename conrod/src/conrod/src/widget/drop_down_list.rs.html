@@ -386,21 +386,6 @@
 <span id="342">342</span>
 <span id="343">343</span>
 <span id="344">344</span>
-<span id="345">345</span>
-<span id="346">346</span>
-<span id="347">347</span>
-<span id="348">348</span>
-<span id="349">349</span>
-<span id="350">350</span>
-<span id="351">351</span>
-<span id="352">352</span>
-<span id="353">353</span>
-<span id="354">354</span>
-<span id="355">355</span>
-<span id="356">356</span>
-<span id="357">357</span>
-<span id="358">358</span>
-<span id="359">359</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! The `DropDownList` and related items.</span>
 
@@ -411,7 +396,6 @@
     <span class='ident'>FontSize</span>,
     <span class='ident'>Borderable</span>,
     <span class='ident'>Labelable</span>,
-    <span class='ident'>NodeIndex</span>,
     <span class='ident'>Positionable</span>,
     <span class='ident'>Scalar</span>,
     <span class='ident'>Sizeable</span>,
@@ -437,7 +421,7 @@
     <span class='ident'>enabled</span>: <span class='ident'>bool</span>,
 }
 
-<span class='macro'>widget_style</span><span class='macro'>!</span>{
+<span class='macro'>widget_style</span><span class='macro'>!</span> {
     <span class='doccomment'>/// Styling for the DropDownList, necessary for constructing its renderable Element.</span>
     <span class='ident'>style</span> <span class='ident'>Style</span> {
         <span class='doccomment'>/// Color of the widget.</span>
@@ -461,13 +445,17 @@
     }
 }
 
+<span class='macro'>widget_ids</span><span class='macro'>!</span> {
+    <span class='ident'>Ids</span> {
+        <span class='ident'>closed_menu</span>,
+        <span class='ident'>list</span>,
+    }
+}
+
 <span class='doccomment'>/// Represents the state of the DropDownList.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>PartialEq</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>State</span> {
     <span class='ident'>menu_state</span>: <span class='ident'>MenuState</span>,
-    <span class='ident'>button_indices</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&gt;</span>,
-    <span class='ident'>closed_menu</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>,
-    <span class='ident'>list_idx</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>,
+    <span class='ident'>ids</span>: <span class='ident'>Ids</span>,
 }
 
 <span class='doccomment'>/// Representations of the max height of the visible area of the DropDownList.</span>
@@ -562,35 +550,26 @@
         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>common</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>init_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>State</span> {
+    <span class='kw'>fn</span> <span class='ident'>init_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>id_gen</span>: <span class='ident'>widget</span>::<span class='ident'>id</span>::<span class='ident'>Generator</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>State</span> {
         <span class='ident'>State</span> {
             <span class='ident'>menu_state</span>: <span class='ident'>MenuState</span>::<span class='ident'>Closed</span>,
-            <span class='ident'>button_indices</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
-            <span class='ident'>list_idx</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>::<span class='ident'>new</span>(),
-            <span class='ident'>closed_menu</span>: <span class='ident'>widget</span>::<span class='ident'>IndexSlot</span>::<span class='ident'>new</span>(),
+            <span class='ident'>ids</span>: <span class='ident'>Ids</span>::<span class='ident'>new</span>(<span class='ident'>id_gen</span>),
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>style</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Style</span> {
+    <span class='kw'>fn</span> <span class='ident'>style</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>Style</span> {
         <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>clone</span>()
     }
 
     <span class='doccomment'>/// Update the state of the DropDownList.</span>
     <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>Event</span> {
-        <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>idx</span>, <span class='ident'>state</span>, <span class='ident'>rect</span>, <span class='ident'>style</span>, <span class='kw-2'>mut</span> <span class='ident'>ui</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
+        <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>id</span>, <span class='ident'>state</span>, <span class='ident'>rect</span>, <span class='ident'>style</span>, <span class='ident'>ui</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
 
         <span class='kw'>let</span> <span class='ident'>num_items</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>items</span>.<span class='ident'>len</span>();
 
         <span class='comment'>// Check that the selected index, if given, is not greater than the number of items.</span>
         <span class='kw'>let</span> <span class='ident'>selected</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>selected</span>.<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>idx</span><span class='op'>|</span> <span class='kw'>if</span> <span class='ident'>idx</span> <span class='op'>&lt;</span> <span class='ident'>num_items</span> { <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) }
                                                     <span class='kw'>else</span> { <span class='prelude-val'>None</span> });
-
-        <span class='comment'>// Ensure we have at least an index for each item in the list.</span>
-        <span class='kw'>let</span> <span class='ident'>num_buttons</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>button_indices</span>.<span class='ident'>len</span>();
-        <span class='kw'>if</span> <span class='ident'>num_buttons</span> <span class='op'>&lt;</span> <span class='ident'>num_items</span> {
-            <span class='kw'>let</span> <span class='ident'>extension</span> <span class='op'>=</span> (<span class='ident'>num_buttons</span>..<span class='ident'>num_items</span>).<span class='ident'>map</span>(<span class='op'>|</span>_<span class='op'>|</span> <span class='ident'>ui</span>.<span class='ident'>new_unique_node_index</span>());
-            <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>button_indices</span>.<span class='ident'>extend</span>(<span class='ident'>extension</span>));
-        }
 
         <span class='comment'>// Track whether or not a list item was clicked.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>clicked_item</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
@@ -602,17 +581,9 @@
             <span class='comment'>// If closed, we only want the button at the selected index to be drawn.</span>
             <span class='ident'>MenuState</span>::<span class='ident'>Closed</span> <span class='op'>=&gt;</span> {
                 <span class='comment'>// Get the button index and the label for the closed menu&#39;s button.</span>
-                <span class='kw'>let</span> (<span class='ident'>button_idx</span>, <span class='ident'>label</span>) <span class='op'>=</span> <span class='ident'>selected</span>
-                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>i</span><span class='op'>|</span> {
-                        <span class='kw'>let</span> <span class='ident'>idx</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>button_indices</span>[<span class='ident'>i</span>];
-                        <span class='kw'>let</span> <span class='ident'>label</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>items</span>[<span class='ident'>i</span>].<span class='ident'>as_ref</span>();
-                        (<span class='ident'>idx</span>, <span class='ident'>label</span>)
-                    })
-                    .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> {
-                        <span class='kw'>let</span> <span class='ident'>closed_menu_idx</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>closed_menu</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
-                        <span class='kw'>let</span> <span class='ident'>label</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>maybe_label</span>.<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&quot;</span>);
-                        (<span class='ident'>closed_menu_idx</span>, <span class='ident'>label</span>)
-                    });
+                <span class='kw'>let</span> <span class='ident'>label</span> <span class='op'>=</span> <span class='ident'>selected</span>
+                    .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>i</span><span class='op'>|</span> <span class='self'>self</span>.<span class='ident'>items</span>[<span class='ident'>i</span>].<span class='ident'>as_ref</span>())
+                    .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='self'>self</span>.<span class='ident'>maybe_label</span>.<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&quot;</span>));
 
                 <span class='kw'>let</span> <span class='ident'>was_clicked</span> <span class='op'>=</span> {
                     <span class='comment'>// use the pre-existing Button widget</span>
@@ -620,9 +591,9 @@
                         .<span class='ident'>xy</span>(<span class='ident'>rect</span>.<span class='ident'>xy</span>())
                         .<span class='ident'>wh</span>(<span class='ident'>rect</span>.<span class='ident'>dim</span>())
                         .<span class='ident'>label</span>(<span class='ident'>label</span>)
-                        .<span class='ident'>parent</span>(<span class='ident'>idx</span>);
+                        .<span class='ident'>parent</span>(<span class='ident'>id</span>);
                     <span class='ident'>button</span>.<span class='ident'>style</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>button_style</span>(<span class='bool-val'>false</span>);
-                    <span class='ident'>button</span>.<span class='ident'>set</span>(<span class='ident'>button_idx</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>).<span class='ident'>was_clicked</span>()
+                    <span class='ident'>button</span>.<span class='ident'>set</span>(<span class='ident'>state</span>.<span class='ident'>ids</span>.<span class='ident'>closed_menu</span>, <span class='ident'>ui</span>).<span class='ident'>was_clicked</span>()
                 };
 
                 <span class='comment'>// If the button was clicked, then open, otherwise stay closed</span>
@@ -650,7 +621,6 @@
                 <span class='kw'>let</span> <span class='ident'>num_items</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>items</span>.<span class='ident'>len</span>();
                 <span class='kw'>let</span> <span class='ident'>item_h</span> <span class='op'>=</span> <span class='ident'>h</span>;
                 <span class='kw'>let</span> <span class='ident'>list_h</span> <span class='op'>=</span> <span class='ident'>max_visible_height</span>.<span class='ident'>min</span>(<span class='ident'>num_items</span> <span class='kw'>as</span> <span class='ident'>Scalar</span> <span class='op'>*</span> <span class='ident'>item_h</span>);
-                <span class='kw'>let</span> <span class='ident'>list_idx</span> <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>list_idx</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
                 <span class='kw'>let</span> <span class='ident'>scrollbar_color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>border_color</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
                 <span class='kw'>let</span> <span class='ident'>scrollbar_position</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>scrollbar_position</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>);
                 <span class='kw'>let</span> <span class='ident'>scrollbar_width</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>scrollbar_width</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>)
@@ -669,9 +639,9 @@
                     })
                     .<span class='ident'>scrollbar_color</span>(<span class='ident'>scrollbar_color</span>)
                     .<span class='ident'>scrollbar_width</span>(<span class='ident'>scrollbar_width</span>)
-                    .<span class='ident'>mid_top_of</span>(<span class='ident'>idx</span>)
+                    .<span class='ident'>mid_top_of</span>(<span class='ident'>id</span>)
                     .<span class='ident'>floating</span>(<span class='bool-val'>true</span>)
-                    .<span class='ident'>set</span>(<span class='ident'>list_idx</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
+                    .<span class='ident'>set</span>(<span class='ident'>state</span>.<span class='ident'>ids</span>.<span class='ident'>list</span>, <span class='ident'>ui</span>);
 
                 <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>event</span>) <span class='op'>=</span> <span class='ident'>events</span>.<span class='ident'>next</span>(<span class='ident'>ui</span>, <span class='op'>|</span><span class='ident'>i</span><span class='op'>|</span> <span class='prelude-val'>Some</span>(<span class='ident'>i</span>) <span class='op'>==</span> <span class='ident'>selected</span>) {
                     <span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>list_select</span>::<span class='ident'>Event</span>;
@@ -683,7 +653,7 @@
                             <span class='kw'>let</span> <span class='ident'>label</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>items</span>[<span class='ident'>i</span>].<span class='ident'>as_ref</span>();
                             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>button</span> <span class='op'>=</span> <span class='ident'>widget</span>::<span class='ident'>Button</span>::<span class='ident'>new</span>().<span class='ident'>label</span>(<span class='ident'>label</span>);
                             <span class='ident'>button</span>.<span class='ident'>style</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>button_style</span>(<span class='prelude-val'>Some</span>(<span class='ident'>i</span>) <span class='op'>==</span> <span class='ident'>selected</span>);
-                            <span class='ident'>item</span>.<span class='ident'>set</span>(<span class='ident'>button</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
+                            <span class='ident'>item</span>.<span class='ident'>set</span>(<span class='ident'>button</span>, <span class='ident'>ui</span>);
                         },
 
                         <span class='comment'>// The selection changed.</span>
@@ -695,7 +665,7 @@
 
                 <span class='comment'>// Instantiate the `Scrollbar` if there is one.</span>
                 <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>scrollbar</span>) <span class='op'>=</span> <span class='ident'>scrollbar</span> {
-                    <span class='ident'>scrollbar</span>.<span class='ident'>set</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>ui</span>);
+                    <span class='ident'>scrollbar</span>.<span class='ident'>set</span>(<span class='ident'>ui</span>);
                 }
 
                 <span class='comment'>// Close the menu if the mouse is pressed and the currently pressed widget is</span>
@@ -706,7 +676,7 @@
                     <span class='op'>&amp;&amp;</span> <span class='kw'>match</span> <span class='ident'>ui</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span> {
                         <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='bool-val'>true</span>,
                         <span class='prelude-val'>Some</span>(<span class='ident'>capturing</span>) <span class='op'>=&gt;</span> <span class='op'>!</span><span class='ident'>ui</span>.<span class='ident'>widget_graph</span>()
-                            .<span class='ident'>does_recursive_depth_edge_exist</span>(<span class='ident'>idx</span>, <span class='ident'>capturing</span>),
+                            .<span class='ident'>does_recursive_depth_edge_exist</span>(<span class='ident'>id</span>, <span class='ident'>capturing</span>),
                     };
 
                 <span class='comment'>// If a mouse button was pressed somewhere else, close the menu.</span>
