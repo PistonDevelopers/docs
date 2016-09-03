@@ -1,7 +1,7 @@
 # 文档
 这是一个关于piston引擎的中文开发文档
 
-[文档首页](http://docs.piston.rs)
+[文档首页](https://3442853561.github.io/pistondoc/)
 
 ## 添加新的工程
 
