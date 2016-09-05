@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["gl"] = [];implementors["shared_library"] = [];implementors["libloading"] = [];implementors["gfx_gl"] = [];implementors["tempfile"] = [];implementors["glutin"] = [];
+implementors["gl"] = [];implementors["libloading"] = [];implementors["tempfile"] = [];implementors["shared_library"] = [];implementors["gfx_gl"] = [];implementors["glutin"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
