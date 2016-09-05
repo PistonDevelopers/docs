@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rusttype-0.2.0/src/gpu_cache.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rusttype-0.2.1/src/gpu_cache.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>gpu_cache.rs.html -- source</title>
@@ -585,6 +585,50 @@
 <span id="541">541</span>
 <span id="542">542</span>
 <span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! This module provides capabilities for managing a cache of rendered glyphs in GPU memory, with the goal of</span>
 <span class='doccomment'>//! minimisng the size and frequency of glyph uploads to GPU memory from the CPU.</span>
@@ -618,8 +662,6 @@
 <span class='kw'>use</span> <span class='ident'>support</span>::<span class='ident'>bst</span>::<span class='ident'>Bound</span>::{<span class='ident'>Included</span>, <span class='ident'>Unbounded</span>};
 <span class='kw'>use</span> <span class='ident'>linked_hash_map</span>::<span class='ident'>LinkedHashMap</span>;
 
-<span class='kw'>use</span> <span class='ident'>ndarray</span>::{<span class='ident'>Ix</span>, <span class='ident'>OwnedArray</span>, <span class='ident'>zeros</span>};
-
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>PartialEq</span>, <span class='ident'>PartialOrd</span>, <span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>struct</span> <span class='ident'>PGlyphSpec</span> {
     <span class='ident'>font_id</span>: <span class='ident'>usize</span>,
@@ -636,10 +678,56 @@
     }
 }
 
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>Clone</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>)]</span>
+<span class='kw'>struct</span> <span class='ident'>ByteArray2d</span> {
+    <span class='ident'>inner_array</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
+    <span class='ident'>row</span>: <span class='ident'>usize</span>,
+    <span class='ident'>col</span>: <span class='ident'>usize</span>,
+}
+
+<span class='kw'>impl</span> <span class='ident'>ByteArray2d</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>zeros</span>(<span class='ident'>row</span>: <span class='ident'>usize</span>, <span class='ident'>col</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>ByteArray2d</span> {
+            <span class='ident'>inner_array</span>: <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0</span>; <span class='ident'>row</span> <span class='op'>*</span> <span class='ident'>col</span>],
+            <span class='ident'>row</span>: <span class='ident'>row</span>,
+            <span class='ident'>col</span>: <span class='ident'>col</span>,
+        }
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>] {
+        <span class='self'>self</span>.<span class='ident'>inner_array</span>.<span class='ident'>as_slice</span>()
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>get_vec_index</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>row</span>: <span class='ident'>usize</span>, <span class='ident'>col</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
+        <span class='kw'>if</span> <span class='ident'>row</span> <span class='op'>&gt;=</span> <span class='self'>self</span>.<span class='ident'>row</span> {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;row out of range: row={}, given={}&quot;</span>, <span class='self'>self</span>.<span class='ident'>row</span>, <span class='ident'>row</span>);
+        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>col</span> <span class='op'>&gt;=</span> <span class='self'>self</span>.<span class='ident'>col</span> {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;column out of range: col={}, given={}&quot;</span>, <span class='self'>self</span>.<span class='ident'>col</span>, <span class='ident'>col</span>);
+        } <span class='kw'>else</span> {
+            <span class='ident'>row</span> <span class='op'>*</span> <span class='self'>self</span>.<span class='ident'>col</span> <span class='op'>+</span> <span class='ident'>col</span>
+        }
+    }
+}
+
+<span class='kw'>impl</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Index</span><span class='op'>&lt;</span>(<span class='ident'>usize</span>, <span class='ident'>usize</span>)<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ByteArray2d</span> {
+    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>u8</span>;
+
+    <span class='kw'>fn</span> <span class='ident'>index</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, (<span class='ident'>row</span>, <span class='ident'>col</span>): (<span class='ident'>usize</span>, <span class='ident'>usize</span>)) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>u8</span> {
+        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>inner_array</span>[<span class='self'>self</span>.<span class='ident'>get_vec_index</span>(<span class='ident'>row</span>, <span class='ident'>col</span>)]
+    }
+}
+
+<span class='kw'>impl</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>IndexMut</span><span class='op'>&lt;</span>(<span class='ident'>usize</span>, <span class='ident'>usize</span>)<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ByteArray2d</span> {
+    <span class='kw'>fn</span> <span class='ident'>index_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, (<span class='ident'>row</span>, <span class='ident'>col</span>): (<span class='ident'>usize</span>, <span class='ident'>usize</span>)) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>u8</span> {
+        <span class='kw'>let</span> <span class='ident'>vec_index</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>get_vec_index</span>(<span class='ident'>row</span>, <span class='ident'>col</span>);
+        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>inner_array</span>[<span class='ident'>vec_index</span>]
+    }
+}
+
 <span class='kw'>struct</span> <span class='ident'>Row</span> {
     <span class='ident'>height</span>: <span class='ident'>u32</span>,
     <span class='ident'>width</span>: <span class='ident'>u32</span>,
-    <span class='ident'>glyphs</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>PGlyphSpec</span>, <span class='ident'>Rect</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>, <span class='ident'>OwnedArray</span><span class='op'>&lt;</span><span class='ident'>u8</span>, (<span class='ident'>Ix</span>, <span class='ident'>Ix</span>)<span class='op'>&gt;</span>)<span class='op'>&gt;</span>
+    <span class='ident'>glyphs</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>PGlyphSpec</span>, <span class='ident'>Rect</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>, <span class='ident'>ByteArray2d</span>)<span class='op'>&gt;</span>
 }
 
 <span class='doccomment'>/// An implementation of a dynamic GPU glyph cache. See the module documentation for more information.</span>
@@ -966,7 +1054,7 @@
                 <span class='ident'>max</span>: <span class='ident'>point</span>(<span class='ident'>row</span>.<span class='ident'>width</span> <span class='op'>+</span> <span class='ident'>width</span>, <span class='ident'>row_top</span> <span class='op'>+</span> <span class='ident'>height</span>)
             };
             <span class='comment'>// draw the glyph into main memory</span>
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>pixels</span> <span class='op'>=</span> <span class='ident'>zeros</span>((<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>));
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>pixels</span> <span class='op'>=</span> <span class='ident'>ByteArray2d</span>::<span class='ident'>zeros</span>(<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>);
             <span class='ident'>glyph</span>.<span class='ident'>draw</span>(<span class='op'>|</span><span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>v</span><span class='op'>|</span> {
                 <span class='kw'>let</span> <span class='ident'>v</span> <span class='op'>=</span> ((<span class='ident'>v</span> <span class='op'>*</span> <span class='number'>255.0</span>) <span class='op'>+</span> <span class='number'>0.5</span>).<span class='ident'>floor</span>().<span class='ident'>max</span>(<span class='number'>0.0</span>).<span class='ident'>min</span>(<span class='number'>255.0</span>) <span class='kw'>as</span> <span class='ident'>u8</span>;
                 <span class='ident'>pixels</span>[(<span class='ident'>y</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>x</span> <span class='kw'>as</span> <span class='ident'>usize</span>)] <span class='op'>=</span> <span class='ident'>v</span>;
@@ -974,7 +1062,7 @@
             <span class='comment'>// transfer</span>
             <span class='ident'>uploader</span>(
                 <span class='ident'>rect</span>,
-                <span class='kw-2'>&amp;</span><span class='ident'>pixels</span>.<span class='ident'>as_slice</span>().<span class='ident'>unwrap</span>());
+                <span class='kw-2'>&amp;</span><span class='ident'>pixels</span>.<span class='ident'>as_slice</span>());
             <span class='comment'>// add the glyph to the row</span>
             <span class='ident'>row</span>.<span class='ident'>glyphs</span>.<span class='ident'>push</span>((<span class='ident'>spec</span>, <span class='ident'>rect</span>, <span class='ident'>pixels</span>));
             <span class='ident'>row</span>.<span class='ident'>width</span> <span class='op'>+=</span> <span class='ident'>width</span>;
