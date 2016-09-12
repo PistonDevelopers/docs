@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Text","Stores information about text."]]});

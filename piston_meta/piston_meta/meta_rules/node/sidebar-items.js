@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Node","A node reference."]]});

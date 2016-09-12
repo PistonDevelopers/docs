@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Lines","Stores information about lines."]]});

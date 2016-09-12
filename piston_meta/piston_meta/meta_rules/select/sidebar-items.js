@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Select","Stores information about select."]]});

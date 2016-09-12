@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Optional","Stores information about optional."]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Rule","A rule describes how some section of a document should be parsed."]]});

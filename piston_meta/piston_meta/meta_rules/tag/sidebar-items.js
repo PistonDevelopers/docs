@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Tag","Stores information about tag."]]});
