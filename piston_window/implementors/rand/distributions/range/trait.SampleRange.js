@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["rand"] = [];
+implementors["rand"] = [];implementors["tempfile"] = [];implementors["wayland_window"] = [];implementors["glutin"] = [];implementors["glutin_window"] = [];implementors["image"] = [];implementors["piston_window"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

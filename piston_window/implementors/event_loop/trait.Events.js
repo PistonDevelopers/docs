@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["event_loop"] = [];
+implementors["event_loop"] = [];implementors["piston_window"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
