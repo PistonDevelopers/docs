@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/pistoncore-glutin_window-0.30.0/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/pistoncore-glutin_window-0.31.0/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
@@ -549,6 +549,26 @@
 <span id="505">505</span>
 <span id="506">506</span>
 <span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
 </pre><pre class='rust '>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>deny</span>(<span class='ident'>missing_docs</span>)]</span>
 
@@ -578,6 +598,8 @@
     <span class='ident'>Position</span>,
 };
 <span class='kw'>use</span> <span class='ident'>glutin</span>::{ <span class='ident'>Api</span>, <span class='ident'>GlRequest</span> };
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Duration</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>;
 
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>shader_version</span>::<span class='ident'>OpenGL</span>;
 
@@ -672,16 +694,32 @@
         })
     }
 
-    <span class='doccomment'>/// Wait for an event to be received by the window.</span>
-    <span class='doccomment'>/// Blocks the current thread until one arrives.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>wait_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Input</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>wait_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Input</span> {
         <span class='comment'>// First check for and handle any pending events.</span>
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>event</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>poll_event</span>() {
-            <span class='prelude-val'>Some</span>(<span class='ident'>event</span>)
-        } <span class='kw'>else</span> {
-            <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>wait_events</span>().<span class='ident'>next</span>();
-            <span class='self'>self</span>.<span class='ident'>handle_event</span>(<span class='ident'>event</span>)
+            <span class='kw'>return</span> <span class='ident'>event</span>;
         }
+        <span class='kw'>loop</span> {
+            <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>wait_events</span>().<span class='ident'>next</span>();
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>event</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>handle_event</span>(<span class='ident'>event</span>) {
+                <span class='kw'>return</span> <span class='ident'>event</span>;
+            }
+        }
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>wait_event_timeout</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>timeout</span>: <span class='ident'>Duration</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Input</span><span class='op'>&gt;</span> {
+        <span class='comment'>// First check for and handle any pending events.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>event</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>poll_event</span>() {
+            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>event</span>);
+        }
+        <span class='comment'>// schedule wake up from `wait_event`</span>
+        <span class='kw'>let</span> <span class='ident'>window_proxy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>create_window_proxy</span>();
+        <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+            <span class='ident'>thread</span>::<span class='ident'>sleep</span>(<span class='ident'>timeout</span>);
+            <span class='ident'>window_proxy</span>.<span class='ident'>wakeup_event_loop</span>();
+        });
+        <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>wait_events</span>().<span class='ident'>next</span>();
+        <span class='self'>self</span>.<span class='ident'>handle_event</span>(<span class='ident'>event</span>)
     }
 
     <span class='kw'>fn</span> <span class='ident'>poll_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Input</span><span class='op'>&gt;</span> {
@@ -846,6 +884,8 @@
     <span class='kw'>fn</span> <span class='ident'>should_close</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> { <span class='self'>self</span>.<span class='ident'>should_close</span> }
     <span class='kw'>fn</span> <span class='ident'>set_should_close</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>bool</span>) { <span class='self'>self</span>.<span class='ident'>should_close</span> <span class='op'>=</span> <span class='ident'>value</span>; }
     <span class='kw'>fn</span> <span class='ident'>swap_buffers</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) { <span class='kw'>let</span> _ <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>window</span>.<span class='ident'>swap_buffers</span>(); }
+    <span class='kw'>fn</span> <span class='ident'>wait_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Input</span> { <span class='self'>self</span>.<span class='ident'>wait_event</span>() }
+    <span class='kw'>fn</span> <span class='ident'>wait_event_timeout</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>timeout</span>: <span class='ident'>Duration</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Input</span><span class='op'>&gt;</span> { <span class='self'>self</span>.<span class='ident'>wait_event_timeout</span>(<span class='ident'>timeout</span>) }
     <span class='kw'>fn</span> <span class='ident'>poll_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Input</span><span class='op'>&gt;</span> { <span class='self'>self</span>.<span class='ident'>poll_event</span>() }
 }
 
@@ -1118,7 +1158,7 @@
     </script>
     <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
-    
+    <script src="../../extra.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>
 </html>

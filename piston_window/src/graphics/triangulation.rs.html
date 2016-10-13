@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/piston2d-graphics-0.17.1/./src/triangulation.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/piston2d-graphics-0.17.3/./src/triangulation.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>triangulation.rs.html -- source</title>
@@ -767,6 +767,9 @@
 <span id="723">723</span>
 <span id="724">724</span>
 <span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Methods for converting shapes into triangles.</span>
 
@@ -1139,21 +1142,24 @@
     <span class='kw'>let</span> (<span class='ident'>cw1</span>, <span class='ident'>ch1</span>) <span class='op'>=</span> (<span class='ident'>cw</span> <span class='op'>+</span> <span class='ident'>border_radius</span>, <span class='ident'>ch</span> <span class='op'>+</span> <span class='ident'>border_radius</span>);
     <span class='kw'>let</span> (<span class='ident'>cw2</span>, <span class='ident'>ch2</span>) <span class='op'>=</span> (<span class='ident'>cw</span> <span class='op'>-</span> <span class='ident'>border_radius</span>, <span class='ident'>ch</span> <span class='op'>-</span> <span class='ident'>border_radius</span>);
     <span class='kw'>let</span> (<span class='ident'>cx</span>, <span class='ident'>cy</span>) <span class='op'>=</span> (<span class='ident'>x</span> <span class='op'>+</span> <span class='ident'>cw</span>, <span class='ident'>y</span> <span class='op'>+</span> <span class='ident'>ch</span>);
-    <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>resolution</span>;
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>i</span> <span class='op'>=</span> <span class='number'>0</span>;
-    <span class='kw'>let</span> (<span class='ident'>nearest_start_radians</span>, <span class='ident'>nearest_end_radians</span>) <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>start_radians</span> <span class='op'>&lt;</span> <span class='ident'>end_radians</span> {
-        (<span class='ident'>start_radians</span>, <span class='ident'>start_radians</span> <span class='op'>+</span> (<span class='ident'>end_radians</span> <span class='op'>-</span> <span class='ident'>start_radians</span>))
-    } <span class='kw'>else</span> {
-        (<span class='ident'>end_radians</span>, <span class='ident'>end_radians</span> <span class='op'>+</span> (<span class='ident'>start_radians</span> <span class='op'>-</span> <span class='ident'>end_radians</span>))
-    };
-    <span class='ident'>stream_quad_tri_list</span>(<span class='ident'>m</span>, <span class='op'>||</span> {
-        <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&gt;</span> <span class='ident'>n</span> { <span class='kw'>return</span> <span class='prelude-val'>None</span>; }
 
-        <span class='kw'>let</span> <span class='ident'>angle</span> <span class='op'>=</span> <span class='ident'>nearest_start_radians</span>
-            <span class='op'>+</span> <span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>Scalar</span> <span class='op'>/</span> <span class='ident'>n</span> <span class='kw'>as</span> <span class='ident'>Scalar</span> <span class='op'>*</span> <span class='op'>&lt;</span><span class='ident'>Scalar</span> <span class='kw'>as</span> <span class='ident'>Radians</span><span class='op'>&gt;</span>::<span class='ident'>_360</span>();
-        <span class='kw'>if</span> <span class='ident'>angle</span> <span class='op'>&gt;</span> <span class='ident'>nearest_end_radians</span> {
-            <span class='kw'>return</span> <span class='prelude-val'>None</span>;
-        }
+    <span class='kw'>let</span> <span class='ident'>twopi</span> <span class='op'>=</span> <span class='op'>&lt;</span><span class='ident'>Scalar</span> <span class='kw'>as</span> <span class='ident'>Radians</span><span class='op'>&gt;</span>::<span class='ident'>_360</span>();
+    <span class='kw'>let</span> <span class='ident'>max_seg_size</span> <span class='op'>=</span> <span class='ident'>twopi</span> <span class='op'>/</span> <span class='ident'>resolution</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>;
+
+    <span class='comment'>// Take true modulus by 2pi.</span>
+    <span class='kw'>let</span> <span class='ident'>delta</span> <span class='op'>=</span> (((<span class='ident'>end_radians</span> <span class='op'>-</span> <span class='ident'>start_radians</span>) <span class='op'>%</span> <span class='ident'>twopi</span>) <span class='op'>+</span> <span class='ident'>twopi</span>) <span class='op'>%</span> <span class='ident'>twopi</span>;
+
+    <span class='comment'>// Taking ceiling here implies that the resolution parameter provides a</span>
+    <span class='comment'>// lower bound on the drawn resolution.</span>
+    <span class='kw'>let</span> <span class='ident'>n_quads</span> <span class='op'>=</span> (<span class='ident'>delta</span> <span class='op'>/</span> <span class='ident'>max_seg_size</span>).<span class='ident'>ceil</span>() <span class='kw'>as</span> <span class='ident'>u64</span>;
+
+    <span class='comment'>// n_quads * seg_size exactly spans the included angle.</span>
+    <span class='kw'>let</span> <span class='ident'>seg_size</span> <span class='op'>=</span> <span class='ident'>delta</span> <span class='op'>/</span> <span class='ident'>n_quads</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>;
+    <span class='ident'>stream_quad_tri_list</span>(<span class='ident'>m</span>, <span class='op'>||</span> {
+        <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&gt;</span> <span class='ident'>n_quads</span> { <span class='kw'>return</span> <span class='prelude-val'>None</span>; }
+
+        <span class='kw'>let</span> <span class='ident'>angle</span> <span class='op'>=</span> <span class='ident'>start_radians</span> <span class='op'>+</span> (<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>Scalar</span> <span class='op'>*</span> <span class='ident'>seg_size</span>);
 
         <span class='kw'>let</span> <span class='ident'>cos</span> <span class='op'>=</span> <span class='ident'>angle</span>.<span class='ident'>cos</span>();
         <span class='kw'>let</span> <span class='ident'>sin</span> <span class='op'>=</span> <span class='ident'>angle</span>.<span class='ident'>sin</span>();
@@ -1554,7 +1560,7 @@
     </script>
     <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
-    
+    <script src="../../extra.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>
 </html>
