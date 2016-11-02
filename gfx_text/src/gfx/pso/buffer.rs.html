@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.12.0/src/pso/buffer.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.12.1/src/pso/buffer.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>buffer.rs.html -- source</title>
@@ -230,6 +230,31 @@
 <span id="186">186</span>
 <span id="187">187</span>
 <span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2015 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -280,7 +305,11 @@
 <span class='doccomment'>/// Constant buffer component.</span>
 <span class='doccomment'>/// - init: `&amp;str` = name of the buffer</span>
 <span class='doccomment'>/// - data: `Buffer&lt;T&gt;`</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ConstantBuffer</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Structure</span><span class='op'>&lt;</span><span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span>(<span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>Usage</span>, <span class='ident'>ConstantBufferSlot</span>)<span class='op'>&gt;</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ConstantBuffer</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Structure</span><span class='op'>&lt;</span><span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span>(<span class='ident'>RawConstantBuffer</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
+<span class='doccomment'>/// Raw constant buffer component.</span>
+<span class='doccomment'>/// - init: `&amp;str` = name of the buffer</span>
+<span class='doccomment'>/// - data: `RawBuffer`</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawConstantBuffer</span>(<span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>Usage</span>, <span class='ident'>ConstantBufferSlot</span>)<span class='op'>&gt;</span>);
 <span class='doccomment'>/// Global (uniform) constant component. Describes a free-standing value passed into</span>
 <span class='doccomment'>/// the shader, which is not enclosed into any constant buffer. Deprecated in DX10 and higher.</span>
 <span class='doccomment'>/// - init: `&amp;str` = name of the constant</span>
@@ -363,13 +392,35 @@
 <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ConstantBuffer</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
     <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>ConstantBuffer</span>(<span class='prelude-val'>None</span>, <span class='ident'>PhantomData</span>)
+        <span class='ident'>ConstantBuffer</span>(<span class='ident'>RawConstantBuffer</span>::<span class='ident'>new</span>(), <span class='ident'>PhantomData</span>)
+    }
+    <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_active</span>()
+    }
+    <span class='kw'>fn</span> <span class='ident'>link_constant_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>cb</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>ConstantBufferVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
+                            <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span> {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>link_constant_buffer</span>(<span class='ident'>cb</span>, <span class='ident'>init</span>)
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span>: <span class='ident'>Structure</span><span class='op'>&lt;</span><span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span>
+<span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ConstantBuffer</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>bind_to</span>(<span class='ident'>out</span>, <span class='ident'>data</span>.<span class='ident'>raw</span>(), <span class='ident'>man</span>)
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>DataLink</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>RawConstantBuffer</span> {
+    <span class='kw'>type</span> <span class='ident'>Init</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>;
+    <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>RawConstantBuffer</span>(<span class='prelude-val'>None</span>)
     }
     <span class='kw'>fn</span> <span class='ident'>is_active</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>is_some</span>()
     }
-    <span class='kw'>fn</span> <span class='ident'>link_constant_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>cb</span>: <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>ConstantBufferVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>) <span class='op'>-&gt;</span>
-                            <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>link_constant_buffer</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>cb</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>shade</span>::<span class='ident'>ConstantBufferVar</span>, <span class='ident'>init</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Init</span>)
+                            <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>if</span> <span class='kw-2'>&amp;</span><span class='ident'>cb</span>.<span class='ident'>name</span> <span class='op'>==</span> <span class='op'>*</span><span class='ident'>init</span> {
             <span class='self'>self</span>.<span class='number'>0</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>cb</span>.<span class='ident'>usage</span>, <span class='ident'>cb</span>.<span class='ident'>slot</span>));
             <span class='prelude-val'>Some</span>(<span class='prelude-val'>Ok</span>(()))
@@ -379,12 +430,11 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span>: <span class='ident'>Structure</span><span class='op'>&lt;</span><span class='ident'>shade</span>::<span class='ident'>ConstFormat</span><span class='op'>&gt;&gt;</span>
-<span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ConstantBuffer</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>DataBind</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>RawConstantBuffer</span> {
+    <span class='kw'>type</span> <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>handle</span>::<span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>bind_to</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>out</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Data</span>, <span class='ident'>man</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>usage</span>, <span class='ident'>slot</span>)) <span class='op'>=</span> <span class='self'>self</span>.<span class='number'>0</span> {
-            <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>man</span>.<span class='ident'>ref_buffer</span>(<span class='ident'>data</span>.<span class='ident'>raw</span>()).<span class='ident'>clone</span>();
+            <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>man</span>.<span class='ident'>ref_buffer</span>(<span class='ident'>data</span>).<span class='ident'>clone</span>();
             <span class='ident'>out</span>.<span class='ident'>constant_buffers</span>.<span class='ident'>push</span>(<span class='ident'>pso</span>::<span class='ident'>ConstantBufferParam</span>(<span class='ident'>buf</span>, <span class='ident'>usage</span>, <span class='ident'>slot</span>));
         }
     }
@@ -476,11 +526,9 @@
     <script>
         window.rootPath = "../../../";
         window.currentCrate = "gfx";
-        window.playgroundUrl = "";
     </script>
     <script src="../../../jquery.js"></script>
     <script src="../../../main.js"></script>
-    
     <script defer src="../../../search-index.js"></script>
 </body>
 </html>
