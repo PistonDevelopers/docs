@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/libloading-0.2.4/src/os/unix/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/libloading-0.3.1/src/os/unix/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -312,13 +312,7 @@
 <span id="268">268</span>
 <span id="269">269</span>
 <span id="270">270</span>
-<span id="271">271</span>
-<span id="272">272</span>
-<span id="273">273</span>
 </pre><pre class='rust '>
-<span class='doccomment'>/// UNIX implementation of dynamic library loading.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This module should eventually be expanded with more UNIX-specific functionality in the future.</span>
 <span class='kw'>use</span> <span class='ident'>util</span>::{<span class='ident'>CowCString</span>, <span class='ident'>CStringAsRef</span>};
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ffi</span>::{<span class='ident'>CStr</span>, <span class='ident'>OsStr</span>};
@@ -331,7 +325,7 @@
     <span class='kw'>static</span> <span class='kw-2'>ref</span> <span class='ident'>DLERROR_MUTEX</span>: <span class='ident'>Mutex</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>Mutex</span>::<span class='ident'>new</span>(());
 }
 
-<span class='comment'>// libdl is retarded.</span>
+<span class='comment'>// libdl is crazy.</span>
 <span class='comment'>//</span>
 <span class='comment'>// First of all, whole error handling scheme in libdl is done via setting and querying some global</span>
 <span class='comment'>// state, therefore it is not safe to use libdl in MT-capable environment at all. Only in POSIX</span>
@@ -373,8 +367,56 @@
     <span class='ident'>handle</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>raw</span>::<span class='ident'>c_void</span>
 }
 
+<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Library</span> {}
+
+<span class='comment'>// That being said... this section in the volume 2 of POSIX.1-2008 states:</span>
+<span class='comment'>//</span>
+<span class='comment'>// &gt; All functions defined by this volume of POSIX.1-2008 shall be thread-safe, except that the</span>
+<span class='comment'>// &gt; following functions need not be thread-safe.</span>
+<span class='comment'>//</span>
+<span class='comment'>// With notable absence of any dl* function other than dlerror in the list. By “this volume”</span>
+<span class='comment'>// I suppose they refer precisely to the “volume 2”. dl* family of functions are specified</span>
+<span class='comment'>// by this same volume, so the conclusion is indeed that dl* functions are required by POSIX</span>
+<span class='comment'>// to be thread-safe. Great!</span>
+<span class='comment'>//</span>
+<span class='comment'>// See for more details:</span>
+<span class='comment'>//</span>
+<span class='comment'>//  * https://github.com/nagisa/rust_libloading/pull/17</span>
+<span class='comment'>//  * http://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_09_01</span>
+<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Library</span> {}
+
 <span class='kw'>impl</span> <span class='ident'>Library</span> {
-    <span class='kw'>fn</span> <span class='ident'>open</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>(<span class='ident'>filename</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>flags</span>: <span class='ident'>raw</span>::<span class='ident'>c_int</span>) <span class='op'>-&gt;</span> ::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Library</span><span class='op'>&gt;</span>
+    <span class='doccomment'>/// Find and load a shared library (module).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Locations where library is searched for is platform specific and can’t be adjusted</span>
+    <span class='doccomment'>/// portably.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Corresponds to `dlopen(filename, RTLD_NOW)`.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>AsRef</span><span class='op'>&lt;</span><span class='ident'>OsStr</span><span class='op'>&gt;&gt;</span>(<span class='ident'>filename</span>: <span class='ident'>P</span>) <span class='op'>-&gt;</span> ::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Library</span><span class='op'>&gt;</span> {
+        <span class='ident'>Library</span>::<span class='ident'>open</span>(<span class='prelude-val'>Some</span>(<span class='ident'>filename</span>), <span class='ident'>RTLD_NOW</span>)
+    }
+
+    <span class='doccomment'>/// Load the dynamic libraries linked into main program.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// This allows retrieving symbols from any **dynamic** library linked into the program,</span>
+    <span class='doccomment'>/// without specifying the exact library.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Corresponds to `dlopen(NULL, RTLD_NOW)`.</span>
+    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>this</span>() <span class='op'>-&gt;</span> <span class='ident'>Library</span> {
+        <span class='ident'>Library</span>::<span class='ident'>open</span>(<span class='prelude-val'>None</span>::<span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>OsStr</span><span class='op'>&gt;</span>, <span class='ident'>RTLD_NOW</span>).<span class='ident'>unwrap</span>()
+    }
+
+    <span class='doccomment'>/// Find and load a shared library (module).</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Locations where library is searched for is platform specific and can’t be adjusted</span>
+    <span class='doccomment'>/// portably.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// If the `filename` is None, null pointer is passed to `dlopen`.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Corresponds to `dlopen(filename, flags)`.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>open</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>(<span class='ident'>filename</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>flags</span>: <span class='ident'>raw</span>::<span class='ident'>c_int</span>) <span class='op'>-&gt;</span> ::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Library</span><span class='op'>&gt;</span>
     <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>AsRef</span><span class='op'>&lt;</span><span class='ident'>OsStr</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>filename</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>filename</span> {
             <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
@@ -386,7 +428,7 @@
                     <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>ptr</span>::<span class='ident'>null</span>(),
                     <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>f</span>) <span class='op'>=&gt;</span> <span class='ident'>f</span>.<span class='ident'>cstring_ref</span>()
                 }, <span class='ident'>flags</span>);
-                <span class='comment'>// ensure filename livess until dlopen completes</span>
+                <span class='comment'>// ensure filename lives until dlopen completes</span>
                 <span class='ident'>drop</span>(<span class='ident'>filename</span>);
                 <span class='ident'>r</span>
             };
@@ -402,40 +444,23 @@
         ))
     }
 
-    <span class='doccomment'>/// Find and load a shared library (module).</span>
+    <span class='doccomment'>/// Get a pointer to function or static variable by symbol name.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Locations where library is searched for is platform specific and can’t be adjusted</span>
-    <span class='doccomment'>/// portably.</span>
+    <span class='doccomment'>/// The `symbol` may not contain any null bytes, with an exception of last byte. A null</span>
+    <span class='doccomment'>/// terminated `symbol` may avoid a string allocation in some cases.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Corresponds to `dlopen(filename)`.</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>AsRef</span><span class='op'>&lt;</span><span class='ident'>OsStr</span><span class='op'>&gt;&gt;</span>(<span class='ident'>filename</span>: <span class='ident'>P</span>) <span class='op'>-&gt;</span> ::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Library</span><span class='op'>&gt;</span> {
-        <span class='ident'>Library</span>::<span class='ident'>open</span>(<span class='prelude-val'>Some</span>(<span class='ident'>filename</span>), <span class='ident'>RTLD_LAZY</span>)
-    }
-
-    <span class='doccomment'>/// Load the dynamic libraries linked into main program.</span>
+    <span class='doccomment'>/// Symbol is interpreted as-is; no mangling is done. This means that symbols like `x::y` are</span>
+    <span class='doccomment'>/// most likely invalid.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This allows retrieving symbols from any **dynamic** library linked into the program,</span>
-    <span class='doccomment'>/// without specifying the exact library.</span>
+    <span class='doccomment'>/// ## Unsafety</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Corresponds to `dlopen(NULL)`.</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>this</span>() <span class='op'>-&gt;</span> <span class='ident'>Library</span> {
-        <span class='ident'>Library</span>::<span class='ident'>open</span>(<span class='prelude-val'>None</span>::<span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>OsStr</span><span class='op'>&gt;</span>, <span class='ident'>RTLD_NOW</span>).<span class='ident'>unwrap</span>()
-    }
-
-    <span class='doccomment'>/// Get a symbol by name.</span>
+    <span class='doccomment'>/// Pointer to a value of arbitrary type is returned. Using a value with wrong type is</span>
+    <span class='doccomment'>/// undefined.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Mangling or symbol rustification is not done: trying to `get` something like `x::y`</span>
-    <span class='doccomment'>/// will not work.</span>
+    <span class='doccomment'>/// ## Platform-specific behaviour</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// You may append a null byte at the end of the byte string to avoid string allocation in some</span>
-    <span class='doccomment'>/// cases. E.g. for symbol `sin` you may write `b&quot;sin\0&quot;` instead of `b&quot;sin&quot;`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Unsafety</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Symbol of arbitrary requested type is returned. Using a symbol with wrong type is not</span>
-    <span class='doccomment'>/// memory safe.</span>
+    <span class='doccomment'>/// OS X uses some sort of lazy initialization scheme, which makes loading TLS variables</span>
+    <span class='doccomment'>/// impossible. Using a TLS variable loaded this way on OS X is undefined behaviour.</span>
     <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>get</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>symbol</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> ::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>symbol</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>CowCString</span>::<span class='ident'>from_bytes</span>(<span class='ident'>symbol</span>));
         <span class='comment'>// `dlsym` may return nullptr in two cases: when a symbol genuinely points to a null</span>
@@ -486,10 +511,18 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// A major difference compared to the cross-platform `Symbol` is that this does not ensure the</span>
 <span class='doccomment'>/// `Symbol` does not outlive `Library` it comes from.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='ident'>pointer</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>raw</span>::<span class='ident'>c_void</span>,
     <span class='ident'>pd</span>: <span class='ident'>marker</span>::<span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>
+}
+
+<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {}
+<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Sync</span><span class='op'>&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+        <span class='ident'>Symbol</span> { ..<span class='op'>*</span><span class='self'>self</span> }
+    }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -533,8 +566,10 @@
     <span class='kw'>fn</span> <span class='ident'>dladdr</span>(<span class='ident'>addr</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>raw</span>::<span class='ident'>c_void</span>, <span class='ident'>info</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>DlInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>raw</span>::<span class='ident'>c_int</span>;
 }
 
-<span class='kw'>const</span> <span class='ident'>RTLD_LAZY</span>: <span class='ident'>raw</span>::<span class='ident'>c_int</span> <span class='op'>=</span> <span class='number'>1</span>;
+<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>not</span>(<span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;android&quot;</span>))]</span>
 <span class='kw'>const</span> <span class='ident'>RTLD_NOW</span>: <span class='ident'>raw</span>::<span class='ident'>c_int</span> <span class='op'>=</span> <span class='number'>2</span>;
+<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;android&quot;</span>)]</span>
+<span class='kw'>const</span> <span class='ident'>RTLD_NOW</span>: <span class='ident'>raw</span>::<span class='ident'>c_int</span> <span class='op'>=</span> <span class='number'>0</span>;
 
 <span class='attribute'>#[<span class='ident'>repr</span>(<span class='ident'>C</span>)]</span>
 <span class='kw'>struct</span> <span class='ident'>DlInfo</span> {
@@ -547,47 +582,6 @@
 <span class='attribute'>#[<span class='ident'>test</span>]</span>
 <span class='kw'>fn</span> <span class='ident'>this</span>() {
     <span class='ident'>Library</span>::<span class='ident'>this</span>();
-}
-
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>all</span>(<span class='ident'>test</span>,
-          <span class='ident'>not</span>(<span class='ident'>any</span>(<span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;macos&quot;</span>,
-                  <span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;ios&quot;</span>,
-                  <span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;android&quot;</span>))))]</span>
-<span class='kw'>const</span> <span class='ident'>LIBM</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;libm.so.6&quot;</span>;
-
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>all</span>(<span class='ident'>test</span>, <span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;android&quot;</span>))]</span>
-<span class='kw'>const</span> <span class='ident'>LIBM</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;libm.so&quot;</span>;
-
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>all</span>(<span class='ident'>test</span>, <span class='ident'>any</span>(<span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;macos&quot;</span>,
-                    <span class='ident'>target_os</span><span class='op'>=</span><span class='string'>&quot;ios&quot;</span>)))]</span>
-<span class='kw'>const</span> <span class='ident'>LIBM</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;libm.dylib&quot;</span>;
-
-<span class='attribute'>#[<span class='ident'>test</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>new_libm</span>() {
-    <span class='ident'>Library</span>::<span class='ident'>new</span>(<span class='ident'>LIBM</span>).<span class='ident'>unwrap</span>();
-}
-
-<span class='attribute'>#[<span class='ident'>test</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>new_m</span>() {
-    <span class='ident'>Library</span>::<span class='ident'>new</span>(<span class='string'>&quot;m&quot;</span>).<span class='ident'>err</span>().<span class='ident'>unwrap</span>();
-}
-
-<span class='attribute'>#[<span class='ident'>test</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>libm_ceil</span>() {
-    <span class='kw'>let</span> <span class='ident'>lib</span> <span class='op'>=</span> <span class='ident'>Library</span>::<span class='ident'>new</span>(<span class='ident'>LIBM</span>).<span class='ident'>unwrap</span>();
-    <span class='kw'>let</span> <span class='ident'>ceil</span>: <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='kw'>extern</span> <span class='kw'>fn</span>(<span class='ident'>f64</span>) <span class='op'>-&gt;</span> <span class='ident'>f64</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-        <span class='ident'>lib</span>.<span class='ident'>get</span>(<span class='string'>b&quot;ceil&quot;</span>).<span class='ident'>unwrap</span>()
-    };
-    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>ceil</span>(<span class='number'>0.45</span>), <span class='number'>1.0</span>);
-}
-
-<span class='attribute'>#[<span class='ident'>test</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>libm_ceil0</span>() {
-    <span class='kw'>let</span> <span class='ident'>lib</span> <span class='op'>=</span> <span class='ident'>Library</span>::<span class='ident'>new</span>(<span class='ident'>LIBM</span>).<span class='ident'>unwrap</span>();
-    <span class='kw'>let</span> <span class='ident'>ceil</span>: <span class='ident'>Symbol</span><span class='op'>&lt;</span><span class='kw'>extern</span> <span class='kw'>fn</span>(<span class='ident'>f64</span>) <span class='op'>-&gt;</span> <span class='ident'>f64</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-        <span class='ident'>lib</span>.<span class='ident'>get</span>(<span class='string'>b&quot;ceil\0&quot;</span>).<span class='ident'>unwrap</span>()
-    };
-    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>ceil</span>(<span class='number'>0.45</span>), <span class='number'>1.0</span>);
 }
 </pre>
 </section>
