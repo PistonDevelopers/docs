@@ -1252,22 +1252,6 @@
 <span id="1208">1208</span>
 <span id="1209">1209</span>
 <span id="1210">1210</span>
-<span id="1211">1211</span>
-<span id="1212">1212</span>
-<span id="1213">1213</span>
-<span id="1214">1214</span>
-<span id="1215">1215</span>
-<span id="1216">1216</span>
-<span id="1217">1217</span>
-<span id="1218">1218</span>
-<span id="1219">1219</span>
-<span id="1220">1220</span>
-<span id="1221">1221</span>
-<span id="1222">1222</span>
-<span id="1223">1223</span>
-<span id="1224">1224</span>
-<span id="1225">1225</span>
-<span id="1226">1226</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>color</span>::<span class='ident'>Color</span>;
 <span class='kw'>use</span> <span class='ident'>event</span>;
@@ -1283,6 +1267,8 @@
 
 <span class='doccomment'>/// A constructor type for building a `Ui` instance with a set of optional parameters.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>UiBuilder</span> {
+    <span class='doccomment'>/// The initial dimensions of the window in which the `Ui` exists.</span>
+    <span class='kw'>pub</span> <span class='ident'>window_dimensions</span>: <span class='ident'>Dimensions</span>,
     <span class='doccomment'>/// The theme used to set default styling for widgets.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// If this field is `None` when `build` is called, `Theme::default` will be used.</span>
@@ -1382,8 +1368,12 @@
 <span class='kw'>impl</span> <span class='ident'>UiBuilder</span> {
 
     <span class='doccomment'>/// Begin building a new `Ui` instance.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Give the initial dimensions of the window within which the `Ui` will be instantiated as a</span>
+    <span class='doccomment'>/// `Scalar` (DPI agnostic) value.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>window_dimensions</span>: <span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='ident'>UiBuilder</span> {
+            <span class='ident'>window_dimensions</span>: <span class='ident'>window_dimensions</span>,
             <span class='ident'>maybe_theme</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>maybe_widgets_capacity</span>: <span class='prelude-val'>None</span>
         }
@@ -1426,8 +1416,15 @@
 
     <span class='doccomment'>/// A new, empty **Ui**.</span>
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>builder</span>: <span class='ident'>UiBuilder</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+
+        <span class='kw'>let</span> <span class='ident'>UiBuilder</span> {
+            <span class='ident'>window_dimensions</span>,
+            <span class='ident'>maybe_widgets_capacity</span>,
+            <span class='ident'>maybe_theme</span>,
+        } <span class='op'>=</span> <span class='ident'>builder</span>;
+
         <span class='kw'>let</span> (<span class='kw-2'>mut</span> <span class='ident'>widget_graph</span>, <span class='ident'>depth_order</span>, <span class='ident'>updated_widgets</span>) <span class='op'>=</span>
-            <span class='ident'>builder</span>.<span class='ident'>maybe_widgets_capacity</span>.<span class='ident'>map_or_else</span>(
+            <span class='ident'>maybe_widgets_capacity</span>.<span class='ident'>map_or_else</span>(
                 <span class='op'>||</span> (<span class='ident'>Graph</span>::<span class='ident'>new</span>(),
                    <span class='ident'>graph</span>::<span class='ident'>DepthOrder</span>::<span class='ident'>new</span>(),
                    <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span>::<span class='ident'>new</span>()),
@@ -1439,11 +1436,11 @@
         <span class='kw'>let</span> <span class='ident'>prev_updated_widgets</span> <span class='op'>=</span> <span class='ident'>updated_widgets</span>.<span class='ident'>clone</span>();
         <span class='ident'>Ui</span> {
             <span class='ident'>widget_graph</span>: <span class='ident'>widget_graph</span>,
-            <span class='ident'>theme</span>: <span class='ident'>builder</span>.<span class='ident'>maybe_theme</span>.<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>Theme</span>::<span class='ident'>default</span>()),
+            <span class='ident'>theme</span>: <span class='ident'>maybe_theme</span>.<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>Theme</span>::<span class='ident'>default</span>()),
             <span class='ident'>fonts</span>: <span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Map</span>::<span class='ident'>new</span>(),
             <span class='ident'>window</span>: <span class='ident'>window</span>,
-            <span class='ident'>win_w</span>: <span class='number'>0.0</span>,
-            <span class='ident'>win_h</span>: <span class='number'>0.0</span>,
+            <span class='ident'>win_w</span>: <span class='ident'>window_dimensions</span>[<span class='number'>0</span>],
+            <span class='ident'>win_h</span>: <span class='ident'>window_dimensions</span>[<span class='number'>1</span>],
             <span class='ident'>maybe_prev_widget_id</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>maybe_current_parent_id</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>num_redraw_frames</span>: <span class='ident'>SAFE_REDRAW_COUNT</span>,
@@ -1580,9 +1577,10 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// The given `event` must implement the **ToRawEvent** trait so that it can be converted to a</span>
     <span class='doccomment'>/// `RawEvent` that can be used by the `Ui`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle_event</span><span class='op'>&lt;</span><span class='ident'>E</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>event</span>::<span class='ident'>Raw</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>event</span>: <span class='ident'>E</span>) {
-        <span class='kw'>use</span> <span class='ident'>event</span>::{<span class='ident'>Input</span>, <span class='ident'>Motion</span>};
-        <span class='kw'>use</span> <span class='ident'>input</span>::{<span class='ident'>Key</span>, <span class='ident'>ModifierKey</span>};
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>handle_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>event</span>: <span class='ident'>event</span>::<span class='ident'>Input</span>) {
+        <span class='kw'>use</span> <span class='ident'>event</span>::{<span class='self'>self</span>, <span class='ident'>Input</span>, <span class='ident'>Motion</span>};
+        <span class='kw'>use</span> <span class='ident'>input</span>::{<span class='ident'>Button</span>, <span class='ident'>Key</span>, <span class='ident'>ModifierKey</span>};
+        <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>state</span>::<span class='ident'>mouse</span>::<span class='ident'>Button</span> <span class='kw'>as</span> <span class='ident'>MouseButton</span>;
 
         <span class='comment'>// Determines which widget is currently under the mouse and sets it within the `Ui`&#39;s</span>
         <span class='comment'>// `input::Global`&#39;s `input::State`.</span>
@@ -1641,434 +1639,404 @@
             }
         }
 
-        <span class='comment'>// Convert the user given event to a `RawEvent` or return early if we cannot.</span>
-        <span class='kw'>let</span> <span class='ident'>event</span>: <span class='ident'>event</span>::<span class='ident'>Raw</span> <span class='op'>=</span> <span class='ident'>event</span>.<span class='ident'>into</span>();
-
+        <span class='comment'>// Here we handle all user input given to conrod.</span>
+        <span class='comment'>//</span>
+        <span class='comment'>// Not only do we store the `Input` event as an `Event::Raw`, we also use them to</span>
+        <span class='comment'>// interpret higher level events such as `Click` or `Drag`.</span>
+        <span class='comment'>//</span>
+        <span class='comment'>// Finally, we also ensure that the `current_state` is up-to-date.</span>
+        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>.<span class='ident'>clone</span>().<span class='ident'>into</span>());
         <span class='kw'>match</span> <span class='ident'>event</span> {
 
-            <span class='comment'>// On each `Render` we should check that our window dimensions are up to date.</span>
-            <span class='comment'>//</span>
-            <span class='comment'>// This event is also the first time that we receive the proper dimensions of the</span>
-            <span class='comment'>// window (when the `Ui` is created, the dimensions are set to `0`).</span>
-            <span class='ident'>event</span>::<span class='ident'>RawEvent</span>::<span class='ident'>Render</span>(<span class='ident'>args</span>) <span class='op'>=&gt;</span> {
-                <span class='kw'>let</span> (<span class='ident'>w</span>, <span class='ident'>h</span>) <span class='op'>=</span> (<span class='ident'>args</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>, <span class='ident'>args</span>.<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>);
-                <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>!=</span> <span class='ident'>w</span> <span class='op'>||</span> <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>!=</span> <span class='ident'>h</span> {
-                    <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>=</span> <span class='ident'>w</span>;
-                    <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>=</span> <span class='ident'>h</span>;
-                    <span class='ident'>track_widget_under_mouse_and_update_capturing</span>(<span class='self'>self</span>);
-                }
+            <span class='comment'>// Some button was pressed, whether keyboard, mouse or some other device.</span>
+            <span class='ident'>Input</span>::<span class='ident'>Press</span>(<span class='ident'>button_type</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>button_type</span> {
+
+                <span class='comment'>// Check to see whether we need to (un)capture the keyboard or mouse.</span>
+                <span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>) <span class='op'>=&gt;</span> {
+
+                    <span class='comment'>// Create a mouse `Press` event.</span>
+                    <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
+                    <span class='kw'>let</span> <span class='ident'>press</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Press</span> {
+                        <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>, <span class='ident'>mouse_xy</span>),
+                        <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                    };
+                    <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
+                    <span class='kw'>let</span> <span class='ident'>press_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Press</span>(<span class='ident'>widget</span>, <span class='ident'>press</span>).<span class='ident'>into</span>();
+                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>press_event</span>);
+
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>MouseButton</span>::<span class='ident'>Left</span> <span class='op'>=</span> <span class='ident'>mouse_button</span> {
+                        <span class='comment'>// Check to see if we need to uncapture the keyboard.</span>
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span> {
+                            <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span> {
+                                <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WidgetUncapturesKeyboard</span>(<span class='ident'>idx</span>).<span class='ident'>into</span>();
+                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
+                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+                            }
+                        }
+
+                        <span class='comment'>// Check to see if we need to capture the keyboard.</span>
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span> {
+                            <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WidgetCapturesKeyboard</span>(<span class='ident'>idx</span>).<span class='ident'>into</span>();
+                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
+                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>);
+                        }
+                    }
+
+                    <span class='comment'>// Keep track of pressed buttons in the current input::State.</span>
+                    <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
+                    <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span>;
+                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>press</span>(<span class='ident'>mouse_button</span>, <span class='ident'>xy</span>, <span class='ident'>widget</span>);
+                },
+
+                <span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>) <span class='op'>=&gt;</span> {
+
+                    <span class='comment'>// Create a keyboard `Press` event.</span>
+                    <span class='kw'>let</span> <span class='ident'>press</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Press</span> {
+                        <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>),
+                        <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                    };
+                    <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span>;
+                    <span class='kw'>let</span> <span class='ident'>press_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Press</span>(<span class='ident'>widget</span>, <span class='ident'>press</span>).<span class='ident'>into</span>();
+                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>press_event</span>);
+
+                    <span class='comment'>// If some modifier key was pressed, add it to the current modifiers.</span>
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>modifier</span>) <span class='op'>=</span> <span class='ident'>filter_modifier</span>(<span class='ident'>key</span>) {
+                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>.<span class='ident'>insert</span>(<span class='ident'>modifier</span>);
+                    }
+
+                    <span class='comment'>// If `Esc` was pressed, check to see if we need to cancel a `Drag` or</span>
+                    <span class='comment'>// uncapture a widget.</span>
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Key</span>::<span class='ident'>Escape</span> <span class='op'>=</span> <span class='ident'>key</span> {
+                        <span class='comment'>// TODO:</span>
+                        <span class='comment'>// 1. Cancel `Drag` if currently under way.</span>
+                        <span class='comment'>// 2. If mouse is captured due to pinning widget with left mouse button,</span>
+                        <span class='comment'>//    cancel capturing.</span>
+                    }
+                },
+
+                _ <span class='op'>=&gt;</span> {}
             },
 
-            <span class='comment'>// Here we handle all user input given to conrod.</span>
+            <span class='comment'>// Some button was released.</span>
             <span class='comment'>//</span>
-            <span class='comment'>// Not only do we store the `Input` event as a `Event::Raw`, we also use them to</span>
-            <span class='comment'>// interpret higher level events such as `Click` or `Drag`.</span>
-            <span class='comment'>//</span>
-            <span class='comment'>// Finally, we also ensure that the `current_state` is up-to-date.</span>
-            <span class='ident'>event</span>::<span class='ident'>RawEvent</span>::<span class='ident'>Input</span>(<span class='ident'>input_event</span>) <span class='op'>=&gt;</span> {
-                <span class='kw'>use</span> <span class='ident'>event</span>;
-                <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>Button</span>;
-                <span class='kw'>use</span> <span class='ident'>input</span>::<span class='ident'>state</span>::<span class='ident'>mouse</span>::<span class='ident'>Button</span> <span class='kw'>as</span> <span class='ident'>MouseButton</span>;
+            <span class='comment'>// Checks for events in the following order:</span>
+            <span class='comment'>// 1. Click</span>
+            <span class='comment'>// 2. DoubleClick</span>
+            <span class='comment'>// 2. WidgetUncapturesMouse</span>
+            <span class='ident'>Input</span>::<span class='ident'>Release</span>(<span class='ident'>button_type</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>button_type</span> {
+                <span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>) <span class='op'>=&gt;</span> {
 
-                <span class='comment'>// Update our global_input with the raw input event.</span>
-                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>input_event</span>.<span class='ident'>clone</span>().<span class='ident'>into</span>());
+                    <span class='comment'>// Create a `Release` event.</span>
+                    <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
+                    <span class='kw'>let</span> <span class='ident'>release</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Release</span> {
+                        <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>, <span class='ident'>mouse_xy</span>),
+                        <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                    };
+                    <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
+                    <span class='kw'>let</span> <span class='ident'>release_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Release</span>(<span class='ident'>widget</span>, <span class='ident'>release</span>).<span class='ident'>into</span>();
+                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>release_event</span>);
 
-                <span class='kw'>match</span> <span class='ident'>input_event</span> {
+                    <span class='comment'>// Check for `Click` and `DoubleClick` events.</span>
+                    <span class='kw'>let</span> <span class='ident'>down</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>[<span class='ident'>mouse_button</span>].<span class='ident'>if_down</span>();
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((_, <span class='ident'>widget</span>)) <span class='op'>=</span> <span class='ident'>down</span> {
 
-                    <span class='comment'>// Some button was pressed, whether keyboard, mouse or some other device.</span>
-                    <span class='ident'>Input</span>::<span class='ident'>Press</span>(<span class='ident'>button_type</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>button_type</span> {
+                        <span class='comment'>// The widget that&#39;s being clicked.</span>
+                        <span class='kw'>let</span> <span class='ident'>clicked_widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span>
+                            .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>released</span><span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>pressed</span><span class='op'>|</span> {
+                                <span class='kw'>if</span> <span class='ident'>pressed</span> <span class='op'>==</span> <span class='ident'>released</span> { <span class='prelude-val'>Some</span>(<span class='ident'>released</span>) } <span class='kw'>else</span> { <span class='prelude-val'>None</span> }
+                            }));
 
-                        <span class='comment'>// Check to see whether we need to (un)capture the keyboard or mouse.</span>
-                        <span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>) <span class='op'>=&gt;</span> {
-
-                            <span class='comment'>// Create a mouse `Press` event.</span>
-                            <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
-                            <span class='kw'>let</span> <span class='ident'>press</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Press</span> {
-                                <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>, <span class='ident'>mouse_xy</span>),
-                                <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                            };
-                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
-                            <span class='kw'>let</span> <span class='ident'>press_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Press</span>(<span class='ident'>widget</span>, <span class='ident'>press</span>).<span class='ident'>into</span>();
-                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>press_event</span>);
-
-                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>MouseButton</span>::<span class='ident'>Left</span> <span class='op'>=</span> <span class='ident'>mouse_button</span> {
-                                <span class='comment'>// Check to see if we need to uncapture the keyboard.</span>
-                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span> {
-                                    <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span> {
-                                        <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WidgetUncapturesKeyboard</span>(<span class='ident'>idx</span>).<span class='ident'>into</span>();
-                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
-                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-                                    }
-                                }
-
-                                <span class='comment'>// Check to see if we need to capture the keyboard.</span>
-                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span> {
-                                    <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WidgetCapturesKeyboard</span>(<span class='ident'>idx</span>).<span class='ident'>into</span>();
-                                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
-                                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>);
-                                }
-                            }
-
-                            <span class='comment'>// Keep track of pressed buttons in the current input::State.</span>
-                            <span class='kw'>let</span> <span class='ident'>xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
-                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span>;
-                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>press</span>(<span class='ident'>mouse_button</span>, <span class='ident'>xy</span>, <span class='ident'>widget</span>);
-                        },
-
-                        <span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>) <span class='op'>=&gt;</span> {
-
-                            <span class='comment'>// Create a keyboard `Press` event.</span>
-                            <span class='kw'>let</span> <span class='ident'>press</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Press</span> {
-                                <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>),
-                                <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                            };
-                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span>;
-                            <span class='kw'>let</span> <span class='ident'>press_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Press</span>(<span class='ident'>widget</span>, <span class='ident'>press</span>).<span class='ident'>into</span>();
-                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>press_event</span>);
-
-                            <span class='comment'>// If some modifier key was pressed, add it to the current modifiers.</span>
-                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>modifier</span>) <span class='op'>=</span> <span class='ident'>filter_modifier</span>(<span class='ident'>key</span>) {
-                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>.<span class='ident'>insert</span>(<span class='ident'>modifier</span>);
-                            }
-
-                            <span class='comment'>// If `Esc` was pressed, check to see if we need to cancel a `Drag` or</span>
-                            <span class='comment'>// uncapture a widget.</span>
-                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Key</span>::<span class='ident'>Escape</span> <span class='op'>=</span> <span class='ident'>key</span> {
-                                <span class='comment'>// TODO:</span>
-                                <span class='comment'>// 1. Cancel `Drag` if currently under way.</span>
-                                <span class='comment'>// 2. If mouse is captured due to pinning widget with left mouse button,</span>
-                                <span class='comment'>//    cancel capturing.</span>
-                            }
-                        },
-
-                        _ <span class='op'>=&gt;</span> {}
-                    },
-
-                    <span class='comment'>// Some button was released.</span>
-                    <span class='comment'>//</span>
-                    <span class='comment'>// Checks for events in the following order:</span>
-                    <span class='comment'>// 1. Click</span>
-                    <span class='comment'>// 2. DoubleClick</span>
-                    <span class='comment'>// 2. WidgetUncapturesMouse</span>
-                    <span class='ident'>Input</span>::<span class='ident'>Release</span>(<span class='ident'>button_type</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>button_type</span> {
-                        <span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>) <span class='op'>=&gt;</span> {
-
-                            <span class='comment'>// Create a `Release` event.</span>
-                            <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
-                            <span class='kw'>let</span> <span class='ident'>release</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Release</span> {
-                                <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>mouse_button</span>, <span class='ident'>mouse_xy</span>),
-                                <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                            };
-                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
-                            <span class='kw'>let</span> <span class='ident'>release_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Release</span>(<span class='ident'>widget</span>, <span class='ident'>release</span>).<span class='ident'>into</span>();
-                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>release_event</span>);
-
-                            <span class='comment'>// Check for `Click` and `DoubleClick` events.</span>
-                            <span class='kw'>let</span> <span class='ident'>down</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>[<span class='ident'>mouse_button</span>].<span class='ident'>if_down</span>();
-                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((_, <span class='ident'>widget</span>)) <span class='op'>=</span> <span class='ident'>down</span> {
-
-                                <span class='comment'>// The widget that&#39;s being clicked.</span>
-                                <span class='kw'>let</span> <span class='ident'>clicked_widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span>
-                                    .<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>released</span><span class='op'>|</span> <span class='ident'>widget</span>.<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>pressed</span><span class='op'>|</span> {
-                                        <span class='kw'>if</span> <span class='ident'>pressed</span> <span class='op'>==</span> <span class='ident'>released</span> { <span class='prelude-val'>Some</span>(<span class='ident'>released</span>) } <span class='kw'>else</span> { <span class='prelude-val'>None</span> }
-                                    }));
-
-                                <span class='kw'>let</span> <span class='ident'>click</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Click</span> {
-                                    <span class='ident'>button</span>: <span class='ident'>mouse_button</span>,
-                                    <span class='ident'>xy</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>,
-                                    <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                                };
-
-                                <span class='kw'>let</span> <span class='ident'>click_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Click</span>(<span class='ident'>clicked_widget</span>, <span class='ident'>click</span>).<span class='ident'>into</span>();
-                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>click_event</span>);
-
-                                <span class='kw'>let</span> <span class='ident'>now</span> <span class='op'>=</span> <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Instant</span>::<span class='ident'>now</span>();
-                                <span class='kw'>let</span> <span class='ident'>double_click</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>last_click</span>
-                                    .<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>last_time</span>, <span class='ident'>last_click</span>)<span class='op'>|</span> {
-
-                                        <span class='comment'>// If the button of this click is different to the button</span>
-                                        <span class='comment'>// of last click, don&#39;t create a `DoubleClick`.</span>
-                                        <span class='kw'>if</span> <span class='ident'>click</span>.<span class='ident'>button</span> <span class='op'>!=</span> <span class='ident'>last_click</span>.<span class='ident'>button</span> {
-                                            <span class='kw'>return</span> <span class='prelude-val'>None</span>;
-                                        }
-
-                                        <span class='comment'>// If the mouse has moved since the last click, don&#39;t</span>
-                                        <span class='comment'>// create a `DoubleClick`.</span>
-                                        <span class='kw'>if</span> <span class='ident'>click</span>.<span class='ident'>xy</span> <span class='op'>!=</span> <span class='ident'>last_click</span>.<span class='ident'>xy</span> {
-                                            <span class='kw'>return</span> <span class='prelude-val'>None</span>;
-                                        }
-
-                                        <span class='comment'>// If the duration since the last click is longer than the</span>
-                                        <span class='comment'>// double_click_threshold, don&#39;t create a `DoubleClick`.</span>
-                                        <span class='kw'>let</span> <span class='ident'>duration</span> <span class='op'>=</span> <span class='ident'>now</span>.<span class='ident'>duration_since</span>(<span class='ident'>last_time</span>);
-                                        <span class='comment'>// TODO: Work out how to get this threshold from the user&#39;s</span>
-                                        <span class='comment'>// system preferences.</span>
-                                        <span class='kw'>let</span> <span class='ident'>threshold</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>theme</span>.<span class='ident'>double_click_threshold</span>;
-                                        <span class='kw'>if</span> <span class='ident'>duration</span> <span class='op'>&gt;=</span> <span class='ident'>threshold</span> {
-                                            <span class='kw'>return</span> <span class='prelude-val'>None</span>;
-                                        }
-
-                                        <span class='prelude-val'>Some</span>(<span class='ident'>event</span>::<span class='ident'>DoubleClick</span> {
-                                            <span class='ident'>button</span>: <span class='ident'>click</span>.<span class='ident'>button</span>,
-                                            <span class='ident'>xy</span>: <span class='ident'>click</span>.<span class='ident'>xy</span>,
-                                            <span class='ident'>modifiers</span>: <span class='ident'>click</span>.<span class='ident'>modifiers</span>,
-                                        })
-                                    });
-
-                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>double_click</span>) <span class='op'>=</span> <span class='ident'>double_click</span> {
-                                    <span class='comment'>// Reset the `last_click` to `None`, as to not register another</span>
-                                    <span class='comment'>// `DoubleClick` on the next consecutive `Click`.</span>
-                                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>last_click</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-                                    <span class='kw'>let</span> <span class='ident'>double_click_event</span> <span class='op'>=</span>
-                                        <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>DoubleClick</span>(<span class='ident'>clicked_widget</span>, <span class='ident'>double_click</span>).<span class='ident'>into</span>();
-                                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>double_click_event</span>);
-
-                                } <span class='kw'>else</span> {
-                                    <span class='comment'>// Set the `Click` that we just stored as the `last_click`.</span>
-                                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>last_click</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>now</span>, <span class='ident'>click</span>));
-                                }
-                            }
-
-                            <span class='comment'>// Uncapture widget capturing mouse if MouseButton::Left is down and</span>
-                            <span class='comment'>// widget_under_mouse != capturing widget.</span>
-                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>MouseButton</span>::<span class='ident'>Left</span> <span class='op'>=</span> <span class='ident'>mouse_button</span> {
-                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span> {
-                                    <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span> {
-                                        <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WidgetUncapturesMouse</span>(<span class='ident'>idx</span>).<span class='ident'>into</span>();
-                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
-                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-                                    }
-                                }
-                            }
-
-                            <span class='comment'>// Release the given mouse_button from the input::State.</span>
-                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>release</span>(<span class='ident'>mouse_button</span>);
-                        },
-                        
-                        <span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>) <span class='op'>=&gt;</span> {
-
-                            <span class='comment'>// Create a `Release` event.</span>
-                            <span class='kw'>let</span> <span class='ident'>release</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Release</span> {
-                                <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>),
-                                <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                            };
-                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span>;
-                            <span class='kw'>let</span> <span class='ident'>release_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Release</span>(<span class='ident'>widget</span>, <span class='ident'>release</span>).<span class='ident'>into</span>();
-                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>release_event</span>);
-
-                            <span class='comment'>// If a modifier key was released, remove it from the current set.</span>
-                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>modifier</span>) <span class='op'>=</span> <span class='ident'>filter_modifier</span>(<span class='ident'>key</span>) {
-                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>.<span class='ident'>remove</span>(<span class='ident'>modifier</span>);
-                            }
-                        },
-
-                        _ <span class='op'>=&gt;</span> (),
-                    },
-
-                    <span class='comment'>// The window was resized.</span>
-                    <span class='ident'>Input</span>::<span class='ident'>Resize</span>(<span class='ident'>w</span>, <span class='ident'>h</span>) <span class='op'>=&gt;</span> {
-
-                        <span class='comment'>// Create a `WindowResized` event.</span>
-                        <span class='kw'>let</span> (<span class='ident'>w</span>, <span class='ident'>h</span>) <span class='op'>=</span> (<span class='ident'>w</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>, <span class='ident'>h</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>);
-                        <span class='kw'>let</span> <span class='ident'>window_resized</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WindowResized</span>([<span class='ident'>w</span>, <span class='ident'>h</span>]).<span class='ident'>into</span>();
-                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>window_resized</span>);
-
-                        <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>=</span> <span class='ident'>w</span>;
-                        <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>=</span> <span class='ident'>h</span>;
-                        <span class='self'>self</span>.<span class='ident'>needs_redraw</span>();
-                    },
-
-                    <span class='comment'>// The mouse cursor was moved to a new position.</span>
-                    <span class='comment'>//</span>
-                    <span class='comment'>// Checks for events in the following order:</span>
-                    <span class='comment'>// 1. `Drag`</span>
-                    <span class='comment'>// 2. `WidgetUncapturesMouse`</span>
-                    <span class='comment'>// 3. `WidgetCapturesMouse`</span>
-                    <span class='ident'>Input</span>::<span class='ident'>Move</span>(<span class='ident'>motion</span>) <span class='op'>=&gt;</span> {
-
-                        <span class='comment'>// Create a `Move` event.</span>
-                        <span class='kw'>let</span> <span class='ident'>move_</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Move</span> {
-                            <span class='ident'>motion</span>: <span class='ident'>motion</span>,
+                        <span class='kw'>let</span> <span class='ident'>click</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Click</span> {
+                            <span class='ident'>button</span>: <span class='ident'>mouse_button</span>,
+                            <span class='ident'>xy</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>,
                             <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
                         };
-                        <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
-                        <span class='kw'>let</span> <span class='ident'>move_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Move</span>(<span class='ident'>widget</span>, <span class='ident'>move_</span>).<span class='ident'>into</span>();
-                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>move_event</span>);
 
-                        <span class='kw'>match</span> <span class='ident'>motion</span> {
+                        <span class='kw'>let</span> <span class='ident'>click_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Click</span>(<span class='ident'>clicked_widget</span>, <span class='ident'>click</span>).<span class='ident'>into</span>();
+                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>click_event</span>);
 
-                            <span class='ident'>Motion</span>::<span class='ident'>MouseCursor</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>=&gt;</span> {
+                        <span class='kw'>let</span> <span class='ident'>now</span> <span class='op'>=</span> <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Instant</span>::<span class='ident'>now</span>();
+                        <span class='kw'>let</span> <span class='ident'>double_click</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>last_click</span>
+                            .<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>last_time</span>, <span class='ident'>last_click</span>)<span class='op'>|</span> {
 
-                                <span class='comment'>// Check for drag events.</span>
-                                <span class='kw'>let</span> <span class='ident'>last_mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
-                                <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> [<span class='ident'>x</span>, <span class='ident'>y</span>];
-                                <span class='kw'>let</span> <span class='ident'>delta_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_sub</span>(<span class='ident'>mouse_xy</span>, <span class='ident'>last_mouse_xy</span>);
-                                <span class='kw'>let</span> <span class='ident'>distance</span> <span class='op'>=</span> (<span class='ident'>delta_xy</span>[<span class='number'>0</span>] <span class='op'>+</span> <span class='ident'>delta_xy</span>[<span class='number'>1</span>]).<span class='ident'>abs</span>().<span class='ident'>sqrt</span>();
-                                <span class='kw'>if</span> <span class='ident'>distance</span> <span class='op'>&gt;</span> <span class='self'>self</span>.<span class='ident'>theme</span>.<span class='ident'>mouse_drag_threshold</span> {
-                                    <span class='comment'>// For each button that is down, trigger a drag event.</span>
-                                    <span class='kw'>let</span> <span class='ident'>buttons</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>clone</span>();
-                                    <span class='kw'>for</span> (<span class='ident'>btn</span>, <span class='ident'>btn_xy</span>, <span class='ident'>widget</span>) <span class='kw'>in</span> <span class='ident'>buttons</span>.<span class='ident'>pressed</span>() {
-                                        <span class='kw'>let</span> <span class='ident'>total_delta_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_sub</span>(<span class='ident'>mouse_xy</span>, <span class='ident'>btn_xy</span>);
-                                        <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Drag</span>(<span class='ident'>widget</span>, <span class='ident'>event</span>::<span class='ident'>Drag</span> {
-                                            <span class='ident'>button</span>: <span class='ident'>btn</span>,
-                                            <span class='ident'>origin</span>: <span class='ident'>btn_xy</span>,
-                                            <span class='ident'>from</span>: <span class='ident'>last_mouse_xy</span>,
-                                            <span class='ident'>to</span>: <span class='ident'>mouse_xy</span>,
-                                            <span class='ident'>delta_xy</span>: <span class='ident'>delta_xy</span>,
-                                            <span class='ident'>total_delta_xy</span>: <span class='ident'>total_delta_xy</span>,
-                                            <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                                        }).<span class='ident'>into</span>();
-                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
-                                    }
+                                <span class='comment'>// If the button of this click is different to the button</span>
+                                <span class='comment'>// of last click, don&#39;t create a `DoubleClick`.</span>
+                                <span class='kw'>if</span> <span class='ident'>click</span>.<span class='ident'>button</span> <span class='op'>!=</span> <span class='ident'>last_click</span>.<span class='ident'>button</span> {
+                                    <span class='kw'>return</span> <span class='prelude-val'>None</span>;
                                 }
 
-                                <span class='comment'>// Update the position of the mouse within the global_input&#39;s</span>
-                                <span class='comment'>// input::State.</span>
-                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>mouse_xy</span>;
+                                <span class='comment'>// If the mouse has moved since the last click, don&#39;t</span>
+                                <span class='comment'>// create a `DoubleClick`.</span>
+                                <span class='kw'>if</span> <span class='ident'>click</span>.<span class='ident'>xy</span> <span class='op'>!=</span> <span class='ident'>last_click</span>.<span class='ident'>xy</span> {
+                                    <span class='kw'>return</span> <span class='prelude-val'>None</span>;
+                                }
 
-                                <span class='ident'>track_widget_under_mouse_and_update_capturing</span>(<span class='self'>self</span>);
-                            },
+                                <span class='comment'>// If the duration since the last click is longer than the</span>
+                                <span class='comment'>// double_click_threshold, don&#39;t create a `DoubleClick`.</span>
+                                <span class='kw'>let</span> <span class='ident'>duration</span> <span class='op'>=</span> <span class='ident'>now</span>.<span class='ident'>duration_since</span>(<span class='ident'>last_time</span>);
+                                <span class='comment'>// TODO: Work out how to get this threshold from the user&#39;s</span>
+                                <span class='comment'>// system preferences.</span>
+                                <span class='kw'>let</span> <span class='ident'>threshold</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>theme</span>.<span class='ident'>double_click_threshold</span>;
+                                <span class='kw'>if</span> <span class='ident'>duration</span> <span class='op'>&gt;=</span> <span class='ident'>threshold</span> {
+                                    <span class='kw'>return</span> <span class='prelude-val'>None</span>;
+                                }
 
-                            <span class='comment'>// The mouse was scrolled.</span>
-                            <span class='ident'>Motion</span>::<span class='ident'>MouseScroll</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>=&gt;</span> {
+                                <span class='prelude-val'>Some</span>(<span class='ident'>event</span>::<span class='ident'>DoubleClick</span> {
+                                    <span class='ident'>button</span>: <span class='ident'>click</span>.<span class='ident'>button</span>,
+                                    <span class='ident'>xy</span>: <span class='ident'>click</span>.<span class='ident'>xy</span>,
+                                    <span class='ident'>modifiers</span>: <span class='ident'>click</span>.<span class='ident'>modifiers</span>,
+                                })
+                            });
 
-                                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scrollable_widgets</span> <span class='op'>=</span> {
-                                    <span class='kw'>let</span> <span class='ident'>depth_order</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>;
-                                    <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
-                                    <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>pick_scrollable_widgets</span>(<span class='ident'>depth_order</span>, <span class='ident'>mouse_xy</span>)
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>double_click</span>) <span class='op'>=</span> <span class='ident'>double_click</span> {
+                            <span class='comment'>// Reset the `last_click` to `None`, as to not register another</span>
+                            <span class='comment'>// `DoubleClick` on the next consecutive `Click`.</span>
+                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>last_click</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+                            <span class='kw'>let</span> <span class='ident'>double_click_event</span> <span class='op'>=</span>
+                                <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>DoubleClick</span>(<span class='ident'>clicked_widget</span>, <span class='ident'>double_click</span>).<span class='ident'>into</span>();
+                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>double_click_event</span>);
+
+                        } <span class='kw'>else</span> {
+                            <span class='comment'>// Set the `Click` that we just stored as the `last_click`.</span>
+                            <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>last_click</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>((<span class='ident'>now</span>, <span class='ident'>click</span>));
+                        }
+                    }
+
+                    <span class='comment'>// Uncapture widget capturing mouse if MouseButton::Left is down and</span>
+                    <span class='comment'>// widget_under_mouse != capturing widget.</span>
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>MouseButton</span>::<span class='ident'>Left</span> <span class='op'>=</span> <span class='ident'>mouse_button</span> {
+                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span> {
+                            <span class='kw'>if</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_under_mouse</span> {
+                                <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WidgetUncapturesMouse</span>(<span class='ident'>idx</span>).<span class='ident'>into</span>();
+                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
+                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+                            }
+                        }
+                    }
+
+                    <span class='comment'>// Release the given mouse_button from the input::State.</span>
+                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>release</span>(<span class='ident'>mouse_button</span>);
+                },
+
+                <span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>) <span class='op'>=&gt;</span> {
+
+                    <span class='comment'>// Create a `Release` event.</span>
+                    <span class='kw'>let</span> <span class='ident'>release</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Release</span> {
+                        <span class='ident'>button</span>: <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Keyboard</span>(<span class='ident'>key</span>),
+                        <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                    };
+                    <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span>;
+                    <span class='kw'>let</span> <span class='ident'>release_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Release</span>(<span class='ident'>widget</span>, <span class='ident'>release</span>).<span class='ident'>into</span>();
+                    <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>release_event</span>);
+
+                    <span class='comment'>// If a modifier key was released, remove it from the current set.</span>
+                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>modifier</span>) <span class='op'>=</span> <span class='ident'>filter_modifier</span>(<span class='ident'>key</span>) {
+                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>.<span class='ident'>remove</span>(<span class='ident'>modifier</span>);
+                    }
+                },
+
+                _ <span class='op'>=&gt;</span> (),
+            },
+
+            <span class='comment'>// The window was resized.</span>
+            <span class='ident'>Input</span>::<span class='ident'>Resize</span>(<span class='ident'>w</span>, <span class='ident'>h</span>) <span class='op'>=&gt;</span> {
+                <span class='comment'>// Create a `WindowResized` event.</span>
+                <span class='kw'>let</span> (<span class='ident'>w</span>, <span class='ident'>h</span>) <span class='op'>=</span> (<span class='ident'>w</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>, <span class='ident'>h</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>);
+                <span class='kw'>let</span> <span class='ident'>window_resized</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>WindowResized</span>([<span class='ident'>w</span>, <span class='ident'>h</span>]).<span class='ident'>into</span>();
+                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>window_resized</span>);
+
+                <span class='self'>self</span>.<span class='ident'>win_w</span> <span class='op'>=</span> <span class='ident'>w</span>;
+                <span class='self'>self</span>.<span class='ident'>win_h</span> <span class='op'>=</span> <span class='ident'>h</span>;
+                <span class='self'>self</span>.<span class='ident'>needs_redraw</span>();
+                <span class='ident'>track_widget_under_mouse_and_update_capturing</span>(<span class='self'>self</span>);
+            },
+
+            <span class='comment'>// The mouse cursor was moved to a new position.</span>
+            <span class='comment'>//</span>
+            <span class='comment'>// Checks for events in the following order:</span>
+            <span class='comment'>// 1. `Drag`</span>
+            <span class='comment'>// 2. `WidgetUncapturesMouse`</span>
+            <span class='comment'>// 3. `WidgetCapturesMouse`</span>
+            <span class='ident'>Input</span>::<span class='ident'>Move</span>(<span class='ident'>motion</span>) <span class='op'>=&gt;</span> {
+
+                <span class='comment'>// Create a `Move` event.</span>
+                <span class='kw'>let</span> <span class='ident'>move_</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Move</span> {
+                    <span class='ident'>motion</span>: <span class='ident'>motion</span>,
+                    <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                };
+                <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
+                <span class='kw'>let</span> <span class='ident'>move_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Move</span>(<span class='ident'>widget</span>, <span class='ident'>move_</span>).<span class='ident'>into</span>();
+                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>move_event</span>);
+
+                <span class='kw'>match</span> <span class='ident'>motion</span> {
+
+                    <span class='ident'>Motion</span>::<span class='ident'>MouseCursor</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>=&gt;</span> {
+
+                        <span class='comment'>// Check for drag events.</span>
+                        <span class='kw'>let</span> <span class='ident'>last_mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
+                        <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> [<span class='ident'>x</span>, <span class='ident'>y</span>];
+                        <span class='kw'>let</span> <span class='ident'>delta_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_sub</span>(<span class='ident'>mouse_xy</span>, <span class='ident'>last_mouse_xy</span>);
+                        <span class='kw'>let</span> <span class='ident'>distance</span> <span class='op'>=</span> (<span class='ident'>delta_xy</span>[<span class='number'>0</span>] <span class='op'>+</span> <span class='ident'>delta_xy</span>[<span class='number'>1</span>]).<span class='ident'>abs</span>().<span class='ident'>sqrt</span>();
+                        <span class='kw'>if</span> <span class='ident'>distance</span> <span class='op'>&gt;</span> <span class='self'>self</span>.<span class='ident'>theme</span>.<span class='ident'>mouse_drag_threshold</span> {
+                            <span class='comment'>// For each button that is down, trigger a drag event.</span>
+                            <span class='kw'>let</span> <span class='ident'>buttons</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>clone</span>();
+                            <span class='kw'>for</span> (<span class='ident'>btn</span>, <span class='ident'>btn_xy</span>, <span class='ident'>widget</span>) <span class='kw'>in</span> <span class='ident'>buttons</span>.<span class='ident'>pressed</span>() {
+                                <span class='kw'>let</span> <span class='ident'>total_delta_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_sub</span>(<span class='ident'>mouse_xy</span>, <span class='ident'>btn_xy</span>);
+                                <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Drag</span>(<span class='ident'>widget</span>, <span class='ident'>event</span>::<span class='ident'>Drag</span> {
+                                    <span class='ident'>button</span>: <span class='ident'>btn</span>,
+                                    <span class='ident'>origin</span>: <span class='ident'>btn_xy</span>,
+                                    <span class='ident'>from</span>: <span class='ident'>last_mouse_xy</span>,
+                                    <span class='ident'>to</span>: <span class='ident'>mouse_xy</span>,
+                                    <span class='ident'>delta_xy</span>: <span class='ident'>delta_xy</span>,
+                                    <span class='ident'>total_delta_xy</span>: <span class='ident'>total_delta_xy</span>,
+                                    <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                                }).<span class='ident'>into</span>();
+                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
+                            }
+                        }
+
+                        <span class='comment'>// Update the position of the mouse within the global_input&#39;s</span>
+                        <span class='comment'>// input::State.</span>
+                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>mouse_xy</span>;
+
+                        <span class='ident'>track_widget_under_mouse_and_update_capturing</span>(<span class='self'>self</span>);
+                    },
+
+                    <span class='comment'>// The mouse was scrolled.</span>
+                    <span class='ident'>Motion</span>::<span class='ident'>MouseScroll</span>(<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>=&gt;</span> {
+
+                        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scrollable_widgets</span> <span class='op'>=</span> {
+                            <span class='kw'>let</span> <span class='ident'>depth_order</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>;
+                            <span class='kw'>let</span> <span class='ident'>mouse_xy</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>;
+                            <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>pick_scrollable_widgets</span>(<span class='ident'>depth_order</span>, <span class='ident'>mouse_xy</span>)
+                        };
+
+                        <span class='comment'>// Iterate through the scrollable widgets from top to bottom.</span>
+                        <span class='comment'>//</span>
+                        <span class='comment'>// A scroll event will be created for the first scrollable widget</span>
+                        <span class='comment'>// that hasn&#39;t already reached the bound of the scroll event&#39;s</span>
+                        <span class='comment'>// direction.</span>
+                        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span>
+                            <span class='ident'>scrollable_widgets</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>,
+                                                    <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>)
+                        {
+
+                            <span class='kw'>let</span> (<span class='ident'>kid_area</span>, <span class='ident'>maybe_x_scroll</span>, <span class='ident'>maybe_y_scroll</span>) <span class='op'>=</span>
+                                <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
+                                    <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=&gt;</span> {
+                                        (<span class='ident'>widget</span>.<span class='ident'>kid_area</span>,
+                                         <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span>,
+                                         <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span>)
+                                    },
+                                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>continue</span>,
                                 };
 
-                                <span class='comment'>// Iterate through the scrollable widgets from top to bottom.</span>
-                                <span class='comment'>//</span>
-                                <span class='comment'>// A scroll event will be created for the first scrollable widget</span>
-                                <span class='comment'>// that hasn&#39;t already reached the bound of the scroll event&#39;s</span>
-                                <span class='comment'>// direction.</span>
-                                <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span>
-                                    <span class='ident'>scrollable_widgets</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>widget_graph</span>,
-                                                            <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>indices</span>)
-                                {
+                            <span class='kw'>fn</span> <span class='ident'>offset_is_at_bound</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='ident'>scroll</span>: <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+                                                     <span class='ident'>additional_offset</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
+                            {
+                                <span class='kw'>use</span> <span class='ident'>utils</span>;
 
-                                    <span class='kw'>let</span> (<span class='ident'>kid_area</span>, <span class='ident'>maybe_x_scroll</span>, <span class='ident'>maybe_y_scroll</span>) <span class='op'>=</span>
-                                        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
-                                            <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=&gt;</span> {
-                                                (<span class='ident'>widget</span>.<span class='ident'>kid_area</span>,
-                                                 <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span>,
-                                                 <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span>)
-                                            },
-                                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>continue</span>,
-                                        };
+                                <span class='kw'>fn</span> <span class='ident'>approx_eq</span>(<span class='ident'>a</span>: <span class='ident'>Scalar</span>, <span class='ident'>b</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+                                    (<span class='ident'>a</span> <span class='op'>-</span> <span class='ident'>b</span>).<span class='ident'>abs</span>() <span class='op'>&lt;</span> <span class='number'>0.000001</span>
+                                }
 
-                                    <span class='kw'>fn</span> <span class='ident'>offset_is_at_bound</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='ident'>scroll</span>: <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
-                                                             <span class='ident'>additional_offset</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-                                    {
-                                        <span class='kw'>use</span> <span class='ident'>utils</span>;
+                                <span class='kw'>if</span> <span class='ident'>additional_offset</span>.<span class='ident'>is_sign_positive</span>() {
+                                    <span class='kw'>let</span> <span class='ident'>max</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>partial_max</span>(<span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>start</span>,
+                                                                 <span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>end</span>);
+                                    <span class='ident'>approx_eq</span>(<span class='ident'>scroll</span>.<span class='ident'>offset</span>, <span class='ident'>max</span>)
+                                } <span class='kw'>else</span> {
+                                    <span class='kw'>let</span> <span class='ident'>min</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>partial_min</span>(<span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>start</span>,
+                                                                 <span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>end</span>);
+                                    <span class='ident'>approx_eq</span>(<span class='ident'>scroll</span>.<span class='ident'>offset</span>, <span class='ident'>min</span>)
+                                }
+                            }
 
-                                        <span class='kw'>fn</span> <span class='ident'>approx_eq</span>(<span class='ident'>a</span>: <span class='ident'>Scalar</span>, <span class='ident'>b</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-                                            (<span class='ident'>a</span> <span class='op'>-</span> <span class='ident'>b</span>).<span class='ident'>abs</span>() <span class='op'>&lt;</span> <span class='number'>0.000001</span>
-                                        }
+                            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scroll_x</span> <span class='op'>=</span> <span class='bool-val'>false</span>;
+                            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scroll_y</span> <span class='op'>=</span> <span class='bool-val'>false</span>;
 
-                                        <span class='kw'>if</span> <span class='ident'>additional_offset</span>.<span class='ident'>is_sign_positive</span>() {
-                                            <span class='kw'>let</span> <span class='ident'>max</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>partial_max</span>(<span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>start</span>,
-                                                                         <span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>end</span>);
-                                            <span class='ident'>approx_eq</span>(<span class='ident'>scroll</span>.<span class='ident'>offset</span>, <span class='ident'>max</span>)
-                                        } <span class='kw'>else</span> {
-                                            <span class='kw'>let</span> <span class='ident'>min</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>partial_min</span>(<span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>start</span>,
-                                                                         <span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>.<span class='ident'>end</span>);
-                                            <span class='ident'>approx_eq</span>(<span class='ident'>scroll</span>.<span class='ident'>offset</span>, <span class='ident'>min</span>)
-                                        }
-                                    }
+                            <span class='comment'>// Check whether the x axis is scrollable.</span>
+                            <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
+                                <span class='kw'>let</span> <span class='ident'>new_scroll</span> <span class='op'>=</span>
+                                    <span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>idx</span>, <span class='kw-2'>&amp;</span><span class='ident'>kid_area</span>,
+                                                                  <span class='ident'>maybe_x_scroll</span>, <span class='ident'>x</span>);
+                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>prev_scroll</span>) <span class='op'>=</span> <span class='ident'>maybe_x_scroll</span> {
+                                    <span class='kw'>let</span> (<span class='ident'>prev_is_at_bound</span>, <span class='ident'>new_is_at_bound</span>) <span class='op'>=</span>
+                                        (<span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>prev_scroll</span>, <span class='ident'>x</span>),
+                                         <span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_scroll</span>, <span class='ident'>x</span>));
+                                    <span class='ident'>scroll_x</span> <span class='op'>=</span> <span class='op'>!</span><span class='ident'>prev_is_at_bound</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>new_is_at_bound</span>;
+                                }
+                            }
 
-                                    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scroll_x</span> <span class='op'>=</span> <span class='bool-val'>false</span>;
-                                    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scroll_y</span> <span class='op'>=</span> <span class='bool-val'>false</span>;
+                            <span class='comment'>// Check whether the y axis is scrollable.</span>
+                            <span class='kw'>if</span> <span class='ident'>y</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
+                                <span class='kw'>let</span> <span class='ident'>new_scroll</span> <span class='op'>=</span>
+                                    <span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>idx</span>, <span class='kw-2'>&amp;</span><span class='ident'>kid_area</span>,
+                                                                  <span class='ident'>maybe_y_scroll</span>, <span class='ident'>y</span>);
+                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>prev_scroll</span>) <span class='op'>=</span> <span class='ident'>maybe_y_scroll</span> {
+                                    <span class='kw'>let</span> (<span class='ident'>prev_is_at_bound</span>, <span class='ident'>new_is_at_bound</span>) <span class='op'>=</span>
+                                        (<span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>prev_scroll</span>, <span class='ident'>y</span>),
+                                         <span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_scroll</span>, <span class='ident'>y</span>));
+                                    <span class='ident'>scroll_y</span> <span class='op'>=</span> <span class='op'>!</span><span class='ident'>prev_is_at_bound</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>new_is_at_bound</span>;
+                                }
+                            }
 
-                                    <span class='comment'>// Check whether the x axis is scrollable.</span>
-                                    <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
-                                        <span class='kw'>let</span> <span class='ident'>new_scroll</span> <span class='op'>=</span>
-                                            <span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>idx</span>, <span class='kw-2'>&amp;</span><span class='ident'>kid_area</span>,
-                                                                          <span class='ident'>maybe_x_scroll</span>, <span class='ident'>x</span>);
-                                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>prev_scroll</span>) <span class='op'>=</span> <span class='ident'>maybe_x_scroll</span> {
-                                            <span class='kw'>let</span> (<span class='ident'>prev_is_at_bound</span>, <span class='ident'>new_is_at_bound</span>) <span class='op'>=</span>
-                                                (<span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>prev_scroll</span>, <span class='ident'>x</span>),
-                                                 <span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_scroll</span>, <span class='ident'>x</span>));
-                                            <span class='ident'>scroll_x</span> <span class='op'>=</span> <span class='op'>!</span><span class='ident'>prev_is_at_bound</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>new_is_at_bound</span>;
-                                        }
-                                    }
+                            <span class='comment'>// Create a `Scroll` event if either axis is scrollable.</span>
+                            <span class='kw'>if</span> <span class='ident'>scroll_x</span> <span class='op'>||</span> <span class='ident'>scroll_y</span> {
+                                <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Scroll</span>(<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>), <span class='ident'>event</span>::<span class='ident'>Scroll</span> {
+                                    <span class='ident'>x</span>: <span class='ident'>x</span>,
+                                    <span class='ident'>y</span>: <span class='ident'>y</span>,
+                                    <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                                }).<span class='ident'>into</span>();
+                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
 
-                                    <span class='comment'>// Check whether the y axis is scrollable.</span>
-                                    <span class='kw'>if</span> <span class='ident'>y</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
-                                        <span class='kw'>let</span> <span class='ident'>new_scroll</span> <span class='op'>=</span>
-                                            <span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>State</span>::<span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>idx</span>, <span class='kw-2'>&amp;</span><span class='ident'>kid_area</span>,
-                                                                          <span class='ident'>maybe_y_scroll</span>, <span class='ident'>y</span>);
-                                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>prev_scroll</span>) <span class='op'>=</span> <span class='ident'>maybe_y_scroll</span> {
-                                            <span class='kw'>let</span> (<span class='ident'>prev_is_at_bound</span>, <span class='ident'>new_is_at_bound</span>) <span class='op'>=</span>
-                                                (<span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>prev_scroll</span>, <span class='ident'>y</span>),
-                                                 <span class='ident'>offset_is_at_bound</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_scroll</span>, <span class='ident'>y</span>));
-                                            <span class='ident'>scroll_y</span> <span class='op'>=</span> <span class='op'>!</span><span class='ident'>prev_is_at_bound</span> <span class='op'>||</span> <span class='op'>!</span><span class='ident'>new_is_at_bound</span>;
-                                        }
-                                    }
+                                <span class='comment'>// Now that we&#39;ve scrolled the top, scrollable widget,</span>
+                                <span class='comment'>// we&#39;re done with the loop.</span>
+                                <span class='kw'>break</span>;
+                            }
+                        }
 
-                                    <span class='comment'>// Create a `Scroll` event if either axis is scrollable.</span>
-                                    <span class='kw'>if</span> <span class='ident'>scroll_x</span> <span class='op'>||</span> <span class='ident'>scroll_y</span> {
-                                        <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Scroll</span>(<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>), <span class='ident'>event</span>::<span class='ident'>Scroll</span> {
+                        <span class='comment'>// If no scrollable widgets could be scrolled, emit the event to</span>
+                        <span class='comment'>// the widget that currently captures the mouse.</span>
+                        <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>!=</span> <span class='number'>0.0</span> <span class='op'>||</span> <span class='ident'>y</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
+                            <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
+                            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>widget</span> {
+                                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
+                                    <span class='comment'>// Only create the event if the widget is not</span>
+                                    <span class='comment'>// scrollable, as the event would have already been</span>
+                                    <span class='comment'>// created within the above loop.</span>
+                                    <span class='kw'>if</span> <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_none</span>()
+                                    <span class='op'>&amp;&amp;</span> <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_none</span>() {
+                                        <span class='kw'>let</span> <span class='ident'>scroll</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Scroll</span> {
                                             <span class='ident'>x</span>: <span class='ident'>x</span>,
                                             <span class='ident'>y</span>: <span class='ident'>y</span>,
                                             <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                                        }).<span class='ident'>into</span>();
-                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>);
-
-                                        <span class='comment'>// Now that we&#39;ve scrolled the top, scrollable widget,</span>
-                                        <span class='comment'>// we&#39;re done with the loop.</span>
-                                        <span class='kw'>break</span>;
+                                        };
+                                        <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Scroll</span>(<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>), <span class='ident'>scroll</span>);
+                                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>.<span class='ident'>into</span>());
                                     }
                                 }
-
-                                <span class='comment'>// If no scrollable widgets could be scrolled, emit the event to</span>
-                                <span class='comment'>// the widget that currently captures the mouse.</span>
-                                <span class='kw'>if</span> <span class='ident'>x</span> <span class='op'>!=</span> <span class='number'>0.0</span> <span class='op'>||</span> <span class='ident'>y</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
-                                    <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_mouse</span>;
-                                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>idx</span>) <span class='op'>=</span> <span class='ident'>widget</span> {
-                                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>widget_graph</span>.<span class='ident'>widget</span>(<span class='ident'>idx</span>) {
-                                            <span class='comment'>// Only create the event if the widget is not</span>
-                                            <span class='comment'>// scrollable, as the event would have already been</span>
-                                            <span class='comment'>// created within the above loop.</span>
-                                            <span class='kw'>if</span> <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_none</span>()
-                                            <span class='op'>&amp;&amp;</span> <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_none</span>() {
-                                                <span class='kw'>let</span> <span class='ident'>scroll</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Scroll</span> {
-                                                    <span class='ident'>x</span>: <span class='ident'>x</span>,
-                                                    <span class='ident'>y</span>: <span class='ident'>y</span>,
-                                                    <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                                                };
-                                                <span class='kw'>let</span> <span class='ident'>event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Scroll</span>(<span class='prelude-val'>Some</span>(<span class='ident'>idx</span>), <span class='ident'>scroll</span>);
-                                                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>event</span>.<span class='ident'>into</span>());
-                                            }
-                                        }
-                                    }
-                                }
-
-                                <span class='comment'>// Now that there might be a different widget under the mouse, we</span>
-                                <span class='comment'>// must update the capturing state.</span>
-                                <span class='ident'>track_widget_under_mouse_and_update_capturing</span>(<span class='self'>self</span>);
-                            },
-
-                            _ <span class='op'>=&gt;</span> (),
-
+                            }
                         }
-                    },
 
-                    <span class='ident'>Input</span>::<span class='ident'>Text</span>(<span class='ident'>string</span>) <span class='op'>=&gt;</span> {
-                        <span class='comment'>// Create a `Text` event.</span>
-                        <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Text</span> {
-                            <span class='ident'>string</span>: <span class='ident'>string</span>,
-                            <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
-                        };
-                        <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span>;
-                        <span class='kw'>let</span> <span class='ident'>text_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Text</span>(<span class='ident'>widget</span>, <span class='ident'>text</span>).<span class='ident'>into</span>();
-                        <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>text_event</span>);
+                        <span class='comment'>// Now that there might be a different widget under the mouse, we</span>
+                        <span class='comment'>// must update the capturing state.</span>
+                        <span class='ident'>track_widget_under_mouse_and_update_capturing</span>(<span class='self'>self</span>);
                     },
 
                     _ <span class='op'>=&gt;</span> (),
-                }
 
+                }
+            },
+
+            <span class='ident'>Input</span>::<span class='ident'>Text</span>(<span class='ident'>string</span>) <span class='op'>=&gt;</span> {
+                <span class='comment'>// Create a `Text` event.</span>
+                <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Text</span> {
+                    <span class='ident'>string</span>: <span class='ident'>string</span>,
+                    <span class='ident'>modifiers</span>: <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>modifiers</span>,
+                };
+                <span class='kw'>let</span> <span class='ident'>widget</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>current</span>.<span class='ident'>widget_capturing_keyboard</span>;
+                <span class='kw'>let</span> <span class='ident'>text_event</span> <span class='op'>=</span> <span class='ident'>event</span>::<span class='ident'>Ui</span>::<span class='ident'>Text</span>(<span class='ident'>widget</span>, <span class='ident'>text</span>).<span class='ident'>into</span>();
+                <span class='self'>self</span>.<span class='ident'>global_input</span>.<span class='ident'>push_event</span>(<span class='ident'>text_event</span>);
             },
 
             _ <span class='op'>=&gt;</span> (),

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["WlSubcompositor","sub-surface compositing"],["WlSubsurface","sub-surface interface to a wl_surface"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["WlSurfaceEvent",""]],"struct":[["WlCompositor","the compositor singleton"],["WlRegion","region interface"],["WlSurface","an onscreen surface"]]});

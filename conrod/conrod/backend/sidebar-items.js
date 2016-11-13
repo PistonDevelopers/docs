@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["piston","Functionality for simplifying the work involved when using conrod along-side piston."],["piston_window","Helper functions for using conrod with the `piston_window` crate."]]});
+initSidebarItems({"mod":[["piston","Functionality for simplifying the work involved when using conrod along-side piston."]]});

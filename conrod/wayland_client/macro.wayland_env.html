@@ -47,82 +47,41 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a id='src-3345' class='srclink' href='../src/wayland_client/env.rs.html#69-162' title='goto source code'>[src]</a></span></h1>
+               </span><a id='src-3818' class='srclink' href='../src/wayland_client/env.rs.html#151-204' title='goto source code'>[src]</a></span></h1>
 <pre class='rust macro'>
 <span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>wayland_env</span> {
-    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>structname</span>: <span class='ident'>ident</span>, $(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>name</span>: <span class='ident'>ident</span> : <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>interface</span>: <span class='ident'>ty</span>),<span class='op'>*</span>) <span class='op'>=&gt;</span> { ... };
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>name</span>: <span class='ident'>ident</span>) <span class='op'>=&gt;</span> { ... };
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>name</span>: <span class='ident'>ident</span>, $(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>global_name</span>: <span class='ident'>ident</span> : <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>global_type</span>: <span class='ident'>path</span>),<span class='op'>+</span>) <span class='op'>=&gt;</span> { ... };
 }</pre>
-<div class='docblock'><p>This macro allows you to create a simple wayland environment handler.</p>
+<div class='docblock'><p>Create an environment handling struct</p>
 
-<p>It will define a struct which upon creation communicates with the server
-to fetch the list of global objects and instanciate them with the newest
-interface version supported by both the server and the client library.</p>
+<p>To be used in conjunction with the <code>EnvHandler</code> utility.</p>
 
-<p>This struct comes with a static constructor <code>init(display)</code>, which takes
-a display, and returns the created struct and an <code>EventIterator</code> associated
-with the display and all the global objects.</p>
-
-<p>Note that none of the events associated with the newly created objects are
-dispatched (expect for the registry), allowing you to change the event iterators
-associated with them before dispatching them, if you want to.</p>
-
-<p>The struct has these public fields:</p>
-
-<ul>
-<li><code>display</code>: the <code>WlDisplay</code> provided as argument</li>
-<li><code>registry</code>: a instance of the <code>WlRegistry</code> associated</li>
-<li><code>globals</code>: a <code>Vec</code> containing the globals advertized by the server, in the format
-<code>(global_id, interface_name, version)</code>
-Note here that <code>version</code> is the version advertized by the server.</li>
-<li>One field for each of the objects you specified, of type <code>Option&lt;T, u32&gt;</code>, in the format
-<code>(proxy, version)</code>. The value is <code>None</code> if this global was not advertized by the server.</li>
-</ul>
-
-<p>Note that:</p>
-
-<ul>
-<li>If you specify several objects of the same interface, only the first one will be
-populated.</li>
-<li>If a global is advertized several times (like <code>wl_seat</code> or <code>wl_output</code> can be), only
-the first one will be automatically bound (but all will still be listed in the <code>globals</code>
-list).</li>
-</ul>
-
-<p>The struct also provides two methods:</p>
-
-<ul>
-<li><code>fn rebind&lt;T: Proxy&gt;(&amp;self) -&gt; Option&lt;(T, u32)&gt;</code> which will try to bind once more a global
-(this allows you to effectively clone a global, and is perfectly legal). It will match
-the first global of that type that was encountered. Returns <code>None</code> if this global type was
-not encountered.</li>
-<li><code>fn rebind_id&lt;T: Proxy&gt;(&amp;self, id: u32) -&gt; Option&lt;(T, u32)&gt;</code> which will try to bind once
-more a global with given id as listed in <code>globals</code>. Returns <code>None</code> if given id is not known
-or if its interface does not match with the provided type.</li>
-</ul>
-
-<p>Example of use:</p>
+<p>Declare the globals your application needs to use, like this, following the
+general pattern: <code>$name : $type</code>:</p>
 
 <pre class='rust rust-example-rendered'>
-<span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>wayland_client</span>;
-
-<span class='kw'>use</span> <span class='ident'>wayland_client</span>::<span class='ident'>wayland</span>::<span class='ident'>get_display</span>;
-<span class='kw'>use</span> <span class='ident'>wayland_client</span>::<span class='ident'>wayland</span>::<span class='ident'>compositor</span>::<span class='ident'>WlCompositor</span>;
-<span class='kw'>use</span> <span class='ident'>wayland_client</span>::<span class='ident'>wayland</span>::<span class='ident'>shell</span>::<span class='ident'>WlShell</span>;
+<span class='kw'>use</span> <span class='ident'>wayland_client</span>::<span class='ident'>protocol</span>::{<span class='ident'>Wl_compositor</span>,<span class='ident'>wl_shell</span>};
 
 <span class='macro'>wayland_env</span><span class='macro'>!</span>(<span class='ident'>WaylandEnv</span>,
-    <span class='ident'>compositor</span>: <span class='ident'>WlCompositor</span>,
-    <span class='ident'>shell</span>: <span class='ident'>WlShell</span>
-);
+    <span class='ident'>compositor</span>: <span class='ident'>wl_compositor</span>::<span class='ident'>WlCompositor</span>,
+    <span class='ident'>shell</span> : <span class='ident'>wl_shell</span>::<span class='ident'>WlShell</span>
+);</pre>
 
-<span class='kw'>fn</span> <span class='ident'>main</span>() {
-    <span class='kw'>let</span> <span class='ident'>display</span> <span class='op'>=</span> <span class='ident'>get_display</span>().<span class='ident'>expect</span>(<span class='string'>&quot;Unable to connect to waylans server.&quot;</span>);
-    <span class='kw'>let</span> (<span class='ident'>env</span>, <span class='ident'>iter</span>) <span class='op'>=</span> <span class='ident'>WaylandEnv</span>::<span class='ident'>init</span>(<span class='ident'>display</span>);
-    <span class='kw'>let</span> <span class='ident'>shell</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>env</span>.<span class='ident'>shell</span> {
-        <span class='prelude-val'>Some</span>((<span class='kw-2'>ref</span> <span class='ident'>comp</span>, <span class='ident'>version</span>)) <span class='kw'>if</span> <span class='ident'>version</span> <span class='op'>&gt;=</span> <span class='number'>2</span> <span class='op'>=&gt;</span> <span class='ident'>comp</span>,
-        _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;This app requires the wayland interface wl_shell of version &gt;= 2.&quot;</span>)
-    };
-    <span class='comment'>// etc...</span>
-}</pre>
+<p><code>$name</code> (<code>compositor</code> and <code>shell</code> in this example) are the name of the
+fields that will contain the global objects one initialisation is done.
+<code>$type</code> must be a wayland object type, implementing the <code>Proxy</code> trait.</p>
+
+<p>If more than one field with a given type are provided, the handler will expect
+the server to declare as many global objects of given type. If more globals of
+a given type are declared by the server than in this macro, only the first <code>N</code>
+will be bound in the environment struct.</p>
+
+<p>This utility will interpret all globals declared in this macro as <em>necessary</em>, and
+thus will not give you access to anything util they have all been declared by the compositor.
+As such, only declare globals that your application cannot run without, like probably
+<code>wl_compositor</code>, <code>wl_shm</code> or <code>wl_seat</code>. If there are globals that you can optionnaly
+use, you&#39;ll have to instanciate them manually via <code>WlRegistry::bind(..)</code>.</p>
 </div></section>
     <section id='search' class="content hidden"></section>
 

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.6.2/src/api/glx/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.7.0/src/api/glx/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -538,6 +538,21 @@
 <span id="494">494</span>
 <span id="495">495</span>
 <span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
 </pre><pre class='rust '>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>cfg</span>(<span class='ident'>any</span>(<span class='ident'>target_os</span> <span class='op'>=</span> <span class='string'>&quot;linux&quot;</span>, <span class='ident'>target_os</span> <span class='op'>=</span> <span class='string'>&quot;dragonfly&quot;</span>, <span class='ident'>target_os</span> <span class='op'>=</span> <span class='string'>&quot;freebsd&quot;</span>, <span class='ident'>target_os</span> <span class='op'>=</span> <span class='string'>&quot;openbsd&quot;</span>))]</span>
 
@@ -556,12 +571,23 @@
 <span class='kw'>use</span> <span class='ident'>libc</span>;
 <span class='kw'>use</span> <span class='ident'>libc</span>::<span class='ident'>c_int</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ffi</span>::{<span class='ident'>CStr</span>, <span class='ident'>CString</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>mem</span>, <span class='ident'>ptr</span>, <span class='ident'>slice</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>mem</span>, <span class='ident'>ptr</span>};
 
-<span class='kw'>use</span> <span class='ident'>api</span>::<span class='ident'>x11</span>::<span class='ident'>ffi</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>ffi</span> {
+    <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>x11_dl</span>::<span class='ident'>xlib</span>::<span class='op'>*</span>;
+    <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>glx</span>::<span class='ident'>types</span>::<span class='ident'>GLXContext</span>;
 
-<span class='kw'>use</span> <span class='ident'>platform</span>::<span class='ident'>Window</span> <span class='kw'>as</span> <span class='ident'>PlatformWindow</span>;
+    <span class='doccomment'>/// GLX bindings</span>
+    <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>glx</span> {
+        <span class='macro'>include</span><span class='macro'>!</span>(<span class='macro'>concat</span><span class='macro'>!</span>(<span class='macro'>env</span><span class='macro'>!</span>(<span class='string'>&quot;OUT_DIR&quot;</span>), <span class='string'>&quot;/glx_bindings.rs&quot;</span>));
+    }
 
+    <span class='doccomment'>/// Functions that are not necessarly always available</span>
+    <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>glx_extra</span> {
+        <span class='macro'>include</span><span class='macro'>!</span>(<span class='macro'>concat</span><span class='macro'>!</span>(<span class='macro'>env</span><span class='macro'>!</span>(<span class='string'>&quot;OUT_DIR&quot;</span>), <span class='string'>&quot;/glx_extra_bindings.rs&quot;</span>));
+    }
+}
+ 
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Context</span> {
     <span class='ident'>glx</span>: <span class='ident'>ffi</span>::<span class='ident'>glx</span>::<span class='ident'>Glx</span>,
     <span class='ident'>display</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>ffi</span>::<span class='ident'>Display</span>,
@@ -578,10 +604,14 @@
 }
 
 <span class='kw'>impl</span> <span class='ident'>Context</span> {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='ident'>glx</span>: <span class='ident'>ffi</span>::<span class='ident'>glx</span>::<span class='ident'>Glx</span>, <span class='ident'>xlib</span>: <span class='kw-2'>&amp;</span><span class='ident'>ffi</span>::<span class='ident'>Xlib</span>, <span class='ident'>pf_reqs</span>: <span class='kw-2'>&amp;</span><span class='ident'>PixelFormatRequirements</span>,
-                   <span class='ident'>opengl</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>GlAttributes</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Context</span><span class='op'>&gt;</span>, <span class='ident'>display</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>ffi</span>::<span class='ident'>Display</span>,
-                   <span class='ident'>screen_id</span>: <span class='ident'>libc</span>::<span class='ident'>c_int</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>ContextPrototype</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span>
-    {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(
+        <span class='ident'>glx</span>: <span class='ident'>ffi</span>::<span class='ident'>glx</span>::<span class='ident'>Glx</span>,
+        <span class='ident'>xlib</span>: <span class='kw-2'>&amp;</span><span class='ident'>ffi</span>::<span class='ident'>Xlib</span>,
+        <span class='ident'>pf_reqs</span>: <span class='kw-2'>&amp;</span><span class='ident'>PixelFormatRequirements</span>,
+        <span class='ident'>opengl</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>GlAttributes</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Context</span><span class='op'>&gt;</span>,
+        <span class='ident'>display</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>ffi</span>::<span class='ident'>Display</span>,
+        <span class='ident'>screen_id</span>: <span class='ident'>libc</span>::<span class='ident'>c_int</span>,
+) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>ContextPrototype</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span> {
         <span class='comment'>// This is completely ridiculous, but VirtualBox&#39;s OpenGL driver needs some call handled by</span>
         <span class='comment'>// *it* (i.e. not Mesa) to occur before anything else can happen. That is because</span>
         <span class='comment'>// VirtualBox&#39;s OpenGL driver is going to apply binary patches to Mesa in the DLL</span>
