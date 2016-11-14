@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["num"] = [];implementors["enum_primitive"] = [];implementors["image"] = [];implementors["glutin_window"] = [];implementors["conrod"] = [];
+implementors["num"] = [];implementors["enum_primitive"] = [];implementors["glutin_window"] = [];implementors["image"] = [];implementors["conrod"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
