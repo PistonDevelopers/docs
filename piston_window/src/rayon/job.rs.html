@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.4.3/src/job.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.5.0/src/job.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>job.rs.html -- source</title>
@@ -161,6 +161,45 @@
 <span id="117">117</span>
 <span id="118">118</span>
 <span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>latch</span>::<span class='ident'>Latch</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
@@ -232,7 +271,7 @@
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>L</span>: <span class='ident'>Latch</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span> <span class='ident'>StackJob</span><span class='op'>&lt;</span><span class='ident'>L</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span>
+    <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span> <span class='op'>+</span> <span class='ident'>Send</span>
 {
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>func</span>: <span class='ident'>F</span>, <span class='ident'>latch</span>: <span class='ident'>L</span>) <span class='op'>-&gt;</span> <span class='ident'>StackJob</span><span class='op'>&lt;</span><span class='ident'>L</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='ident'>StackJob</span> {
@@ -281,6 +320,45 @@
         }
     }
 }
+
+<span class='doccomment'>/// Represents a job stored in the heap. Used to implement</span>
+<span class='doccomment'>/// `scope`. Unlike `StackJob`, when executed, `HeapJob` simply</span>
+<span class='doccomment'>/// invokes a closure, which then triggers the appropriate logic to</span>
+<span class='doccomment'>/// signal that the job executed.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// (Probably `StackJob` should be refactored in a similar fashion.)</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>HeapJob</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>BODY</span>: <span class='ident'>FnOnce</span>(<span class='ident'>JobMode</span>)
+{
+    <span class='ident'>job</span>: <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;&gt;</span>,
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span> <span class='ident'>HeapJob</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>BODY</span>: <span class='ident'>FnOnce</span>(<span class='ident'>JobMode</span>)
+{
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>func</span>: <span class='ident'>BODY</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>HeapJob</span> { <span class='ident'>job</span>: <span class='ident'>UnsafeCell</span>::<span class='ident'>new</span>(<span class='prelude-val'>Some</span>(<span class='ident'>func</span>)) }
+    }
+
+    <span class='doccomment'>/// Creates a `JobRef` from this job -- note that this hides all</span>
+    <span class='doccomment'>/// lifetimes, so it is up to you to ensure that this JobRef</span>
+    <span class='doccomment'>/// doesn&#39;t outlive any data that it closes over.</span>
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>as_job_ref</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>JobRef</span> {
+        <span class='kw'>let</span> <span class='ident'>this</span>: <span class='op'>*</span><span class='kw'>const</span> <span class='self'>Self</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='self'>self</span>);
+        <span class='ident'>JobRef</span>::<span class='ident'>new</span>(<span class='ident'>this</span>)
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span> <span class='ident'>Job</span> <span class='kw'>for</span> <span class='ident'>HeapJob</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>BODY</span>: <span class='ident'>FnOnce</span>(<span class='ident'>JobMode</span>)
+{
+    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='ident'>this</span>: <span class='op'>*</span><span class='kw'>const</span> <span class='self'>Self</span>, <span class='ident'>mode</span>: <span class='ident'>JobMode</span>) {
+        <span class='kw'>let</span> <span class='ident'>this</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>this</span>);
+        <span class='kw'>let</span> <span class='ident'>job</span> <span class='op'>=</span> (<span class='op'>*</span><span class='ident'>this</span>.<span class='ident'>job</span>.<span class='ident'>get</span>()).<span class='ident'>take</span>().<span class='ident'>unwrap</span>();
+        <span class='ident'>job</span>(<span class='ident'>mode</span>);
+    }
+}
+
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

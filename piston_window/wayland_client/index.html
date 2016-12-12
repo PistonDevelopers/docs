@@ -47,75 +47,262 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a id='src-0' class='srclink' href='../src/wayland_client/lib.rs.html#1-59' title='goto source code'>[src]</a></span></h1>
-<h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+               </span><a class='srclink' href='../src/wayland_client/lib.rs.html#1-262' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Client-side Wayland connector</p>
+
+<h1 id='overview' class='section-header'><a href='#overview'>Overview</a></h1>
+<p>Connection to the Wayland compositor is achieved by
+the <code>default_connect()</code> function, which provides you
+with a <code>WlDisplay</code> and an <code>EventQueue</code>.</p>
+
+<p>From the display, you&#39;ll retrieve the registry, from
+which you can instanciate the globals you need. This
+step being really similar in most cases, this crate
+contains an utility struct <code>EnvHandler</code> which can do
+this job for you. See its documentation for details.</p>
+
+<p>You then register your handlers for events to the
+event queue, and integrate it in your main event loop.</p>
+
+<h1 id='handlers-and-event-queues' class='section-header'><a href='#handlers-and-event-queues'>Handlers and event queues</a></h1>
+<p>This crate mirrors the callback-oriented design of the
+Wayland C library by using handler structs: each wayland
+type defines a <code>Handler</code> trait in its module, which one
+method for each possible event this object can receive.</p>
+
+<p>To use it, you need to build a struct (or enum) that will
+implement all the traits for all the events you are interested
+in. All methods of handler traits provide a default
+implementation foing nothing, so you don&#39;t need to write
+empty methods for events you want to ignore. You also need
+to declare the handler capability for your struct using
+the <code>declare_handler!(..)</code> macro. A single struct can be
+handler for several wayland interfaces at once.</p>
+
+<h2 id='example-of-handler' class='section-header'><a href='#example-of-handler'>Example of handler</a></h2>
+<pre class='rust rust-example-rendered'>
+<span class='comment'>/*  writing a handler for an wl_foo interface */</span>
+<span class='comment'>// import the module of this interface</span>
+<span class='kw'>use</span> <span class='ident'>wl_foo</span>;
+
+<span class='kw'>struct</span> <span class='ident'>MyHandler</span> { <span class='comment'>/* some fields to store state */</span> }
+
+<span class='comment'>// implement handerl trait:</span>
+<span class='kw'>impl</span> <span class='ident'>wl_foo</span>::<span class='ident'>Handler</span> <span class='kw'>for</span> <span class='ident'>MyHandler</span> {
+    <span class='kw'>fn</span> <span class='ident'>an_event</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                <span class='ident'>evqh</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>EventQueueHandle</span>,
+                <span class='ident'>me</span>: <span class='kw-2'>&amp;</span><span class='ident'>wl_foo</span>::<span class='ident'>WlFoo</span>,
+                <span class='ident'>arg1</span>, <span class='ident'>arg2</span>, <span class='comment'>// the actual args of the event</span>
+    ) {
+        <span class='comment'>/* handle the event */</span>
+    }
+}
+
+<span class='comment'>// declare the handler capability</span>
+<span class='comment'>// this boring step is necessary because Rust&#39;s type system is</span>
+<span class='comment'>// not yet magical enough</span>
+<span class='macro'>declare_handler</span><span class='macro'>!</span>(<span class='ident'>MyHandler</span>, <span class='ident'>wl_foo</span>::<span class='ident'>Handler</span>, <span class='ident'>wl_foo</span>::<span class='ident'>WlFoo</span>);</pre>
+
+<h2 id='event-queues-and-handlers' class='section-header'><a href='#event-queues-and-handlers'>Event Queues and handlers</a></h2>
+<p>In your initialization code, you&#39;ll need to instanciate
+your handler and give it to the event queue:</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='kw'>let</span> <span class='ident'>handler_id</span> <span class='op'>=</span> <span class='ident'>event_queue</span>.<span class='ident'>add_handler</span>(<span class='ident'>MyHandler</span>::<span class='ident'>new</span>());</pre>
+
+<p>Then, you can register your wayland objects to this handler:</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='comment'>// This type info is necessary for safety, as at registration</span>
+<span class='comment'>// time the event_queue will check that the handler you</span>
+<span class='comment'>// specified using handler_id has the same type as provided</span>
+<span class='comment'>// as argument, and that this type implements the appropriate</span>
+<span class='comment'>// handler trait.</span>
+<span class='ident'>event_queue</span>.<span class='ident'>register</span>::<span class='op'>&lt;</span>_, <span class='ident'>MyHandler</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='ident'>my_object</span>, <span class='ident'>handler_id</span>);</pre>
+
+<p>You can have several handlers in the same event queue,
+but they cannot share their state without synchronisation
+primitives like <code>Arc</code>, <code>Mutex</code> and friends, so if two handlers
+need to share some state, you should consider building them
+as a single struct.</p>
+
+<p>A given wayland object can only be registered to a single
+handler at a given time, re-registering it to a new handler
+will overwrite the previous configuration.</p>
+
+<p>Handlers can be created, and objects registered to them
+from within a handler method, using the <code>&amp;EventQueueHandle</code>
+argument.</p>
+
+<h2 id='event-loop-integration' class='section-header'><a href='#event-loop-integration'>Event loop integration</a></h2>
+<p>Once this setup is done, you can integrate the event queue
+to the main event loop of your program:</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='kw'>loop</span> {
+    <span class='comment'>// flush events to the server</span>
+    <span class='ident'>display</span>.<span class='ident'>flush</span>().<span class='ident'>unwrap</span>();
+    <span class='comment'>// receive events from the server and dispatch them</span>
+    <span class='comment'>// to handlers (might block)</span>
+    <span class='ident'>event_queue</span>.<span class='ident'>dispatch</span>().<span class='ident'>unwrap</span>();
+}</pre>
+
+<p>For more precise control of the flow of the event queue
+(and importantly non-blocking options), see <code>EventQueue</code>
+documentation.</p>
+
+<h1 id='protocols-integration' class='section-header'><a href='#protocols-integration'>Protocols integration</a></h1>
+<p>This crate provides the basic primitives as well as the
+core wayland protocol (in the <code>protocol</code> module), but
+other protocols can be integrated from XML descriptions.</p>
+
+<p>The the crate <code>wayland_scanner</code> and its documentation for
+details about how to do so.</p>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
 <table>
                        <tr class=' module-item'>
                            <td><a class='mod' href='cursor/index.html'
                                   title='wayland_client::cursor'>cursor</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>Cursor utilities</p>
                            </td>
                        </tr>
                        <tr class=' module-item'>
                            <td><a class='mod' href='egl/index.html'
                                   title='wayland_client::egl'>egl</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>EGL utilities</p>
                            </td>
                        </tr>
                        <tr class=' module-item'>
-                           <td><a class='mod' href='wayland/index.html'
-                                  title='wayland_client::wayland'>wayland</a></td>
+                           <td><a class='mod' href='protocol/index.html'
+                                  title='wayland_client::protocol'>protocol</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>The wayland core protocol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='protocol_interfaces/index.html'
+                                  title='wayland_client::protocol_interfaces'>protocol_interfaces</a></td>
+                           <td class='docblock-short'>
+                                <p>Interfaces for the core protocol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='sys/index.html'
+                                  title='wayland_client::sys'>sys</a></td>
+                           <td class='docblock-short'>
+                                <p>Reexports of types and objects from wayland-sys</p>
                            </td>
                        </tr></table><h2 id='macros' class='section-header'><a href="#macros">Macros</a></h2>
 <table>
                        <tr class=' module-item'>
+                           <td><a class='macro' href='macro.declare_delegating_handler.html'
+                                  title='wayland_client::declare_delegating_handler'>declare_delegating_handler</a></td>
+                           <td class='docblock-short'>
+                                <p>Registers a handler type so it as delegating to one of its fields</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='macro' href='macro.declare_handler.html'
+                                  title='wayland_client::declare_handler'>declare_handler</a></td>
+                           <td class='docblock-short'>
+                                <p>Registers a handler type so it can be used in event queue</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
                            <td><a class='macro' href='macro.wayland_env.html'
                                   title='wayland_client::wayland_env'>wayland_env</a></td>
                            <td class='docblock-short'>
-                                <p>This macro allows you to create a simple wayland environment handler.</p>
+                                <p>Create an environment handling struct</p>
                            </td>
                        </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table>
                        <tr class=' module-item'>
-                           <td><a class='struct' href='struct.EventIterator.html'
-                                  title='wayland_client::EventIterator'>EventIterator</a></td>
+                           <td><a class='struct' href='struct.EnvHandler.html'
+                                  title='wayland_client::EnvHandler'>EnvHandler</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>Utility type to handle the registry and global objects</p>
                            </td>
                        </tr>
                        <tr class=' module-item'>
-                           <td><a class='struct' href='struct.ProxyId.html'
-                                  title='wayland_client::ProxyId'>ProxyId</a></td>
+                           <td><a class='struct' href='struct.EventQueue.html'
+                                  title='wayland_client::EventQueue'>EventQueue</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>An event queue managing wayland events</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.EventQueueHandle.html'
+                                  title='wayland_client::EventQueueHandle'>EventQueueHandle</a></td>
+                           <td class='docblock-short'>
+                                <p>Handle to an event queue</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ReadEventsGuard.html'
+                                  title='wayland_client::ReadEventsGuard'>ReadEventsGuard</a></td>
+                           <td class='docblock-short'>
+                                <p>A guard over a read intention.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.StateGuard.html'
+                                  title='wayland_client::StateGuard'>StateGuard</a></td>
+                           <td class='docblock-short'>
+                                <p>Guard to access internal state of an event queue</p>
                            </td>
                        </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
 <table>
                        <tr class=' module-item'>
-                           <td><a class='enum' href='enum.Event.html'
-                                  title='wayland_client::Event'>Event</a></td>
+                           <td><a class='enum' href='enum.ConnectError.html'
+                                  title='wayland_client::ConnectError'>ConnectError</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>Enum representing the possible reasons why connecting to the wayland server failed</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.FatalError.html'
+                                  title='wayland_client::FatalError'>FatalError</a></td>
+                           <td class='docblock-short'>
+                                <p>Enum representing possible errors fatal to a wayland session</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.RequestResult.html'
+                                  title='wayland_client::RequestResult'>RequestResult</a></td>
+                           <td class='docblock-short'>
+                                <p>Possible outcome of the call of a request on a proxy</p>
                            </td>
                        </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
 <table>
                        <tr class=' module-item'>
+                           <td><a class='trait' href='trait.Handler.html'
+                                  title='wayland_client::Handler'>Handler</a></td>
+                           <td class='docblock-short'>
+                                <p>Generic handler trait</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='trait' href='trait.Init.html'
+                                  title='wayland_client::Init'>Init</a></td>
+                           <td class='docblock-short'>
+                                <p>A trait to initialize handlers after they&#39;ve been inserted in an event queue</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
                            <td><a class='trait' href='trait.Proxy.html'
                                   title='wayland_client::Proxy'>Proxy</a></td>
                            <td class='docblock-short'>
-                                
+                                <p>Common routines for wayland proxy objects.</p>
                            </td>
                        </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
 <table>
                        <tr class=' module-item'>
-                           <td><a class='fn' href='fn.is_available.html'
-                                  title='wayland_client::is_available'>is_available</a></td>
+                           <td><a class='fn' href='fn.default_connect.html'
+                                  title='wayland_client::default_connect'>default_connect</a></td>
                            <td class='docblock-short'>
-                                <p>Checks if the wayland lib is available</p>
+                                <p>Connect to the compositor socket</p>
                            </td>
                        </tr></table></section>
     <section id='search' class="content hidden"></section>

@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["Current","indicates this is the current mode"],["Preferred","indicates this is the preferred mode"]],"struct":[["WlOutputMode",""]]});

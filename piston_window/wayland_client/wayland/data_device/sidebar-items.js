@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["WlDataDeviceEvent",""],["WlDataOfferEvent",""],["WlDataSourceEvent",""]],"struct":[["WlDataDevice","data transfer device"],["WlDataDeviceManager","data transfer interface"],["WlDataOffer","offer to transfer data"],["WlDataSource","offer to transfer data"]]});
