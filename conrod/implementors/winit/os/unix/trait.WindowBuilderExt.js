@@ -1,5 +1,8 @@
 (function() {var implementors = {};
-implementors["winit"] = [];implementors["glutin"] = [];implementors["glutin_window"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["glutin"] = [];
+implementors["glutin_window"] = [];
+implementors["winit"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

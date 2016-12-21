@@ -1,5 +1,6 @@
 (function() {var implementors = {};
-implementors["daggy"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["daggy"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

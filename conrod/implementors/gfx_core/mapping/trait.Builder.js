@@ -1,5 +1,7 @@
 (function() {var implementors = {};
-implementors["gfx_core"] = [];implementors["gfx"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["gfx"] = [];
+implementors["gfx_core"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

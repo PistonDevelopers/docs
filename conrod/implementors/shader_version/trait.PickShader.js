@@ -1,5 +1,7 @@
 (function() {var implementors = {};
-implementors["shader_version"] = [];implementors["glutin_window"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["glutin_window"] = [];
+implementors["shader_version"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

@@ -1,5 +1,7 @@
 (function() {var implementors = {};
-implementors["input"] = [];implementors["glutin_window"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["glutin_window"] = [];
+implementors["input"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

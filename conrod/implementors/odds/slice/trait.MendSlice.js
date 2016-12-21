@@ -1,5 +1,7 @@
 (function() {var implementors = {};
-implementors["odds"] = [];implementors["arrayvec"] = [];implementors["conrod"] = [];
+implementors["arrayvec"] = [];
+implementors["conrod"] = [];
+implementors["odds"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

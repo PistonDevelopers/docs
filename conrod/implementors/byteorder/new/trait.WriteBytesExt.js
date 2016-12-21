@@ -1,5 +1,10 @@
 (function() {var implementors = {};
-implementors["image"] = [];implementors["wayland_window"] = [];implementors["winit"] = [];implementors["glutin"] = [];implementors["glutin_window"] = [];implementors["conrod"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["glutin"] = [];
+implementors["glutin_window"] = [];
+implementors["image"] = [];
+implementors["wayland_window"] = [];
+implementors["winit"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

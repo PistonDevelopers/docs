@@ -1,5 +1,10 @@
 (function() {var implementors = {};
-implementors["rustc_serialize"] = [];implementors["num"] = [];implementors["enum_primitive"] = [];implementors["image"] = [];implementors["glutin_window"] = [];implementors["conrod"] = [];
+implementors["conrod"] = [];
+implementors["enum_primitive"] = [];
+implementors["glutin_window"] = [];
+implementors["image"] = [];
+implementors["num"] = [];
+implementors["rustc_serialize"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
