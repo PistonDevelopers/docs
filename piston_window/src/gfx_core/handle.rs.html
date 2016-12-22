@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.4.0/src/handle.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.5.0/src/handle.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>handle.rs.html -- source</title>
@@ -560,6 +560,47 @@
 <span id="516">516</span>
 <span id="517">517</span>
 <span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2015 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -577,26 +618,25 @@
 
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>deny</span>(<span class='ident'>missing_docs</span>, <span class='ident'>missing_copy_implementations</span>)]</span>
 
-<span class='doccomment'>//! Device resource handles</span>
+<span class='doccomment'>//! Resource handles</span>
 
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>Arc</span>;
-<span class='kw'>use</span> {<span class='ident'>shade</span>, <span class='ident'>tex</span>, <span class='ident'>Resources</span>};
-<span class='kw'>use</span> <span class='ident'>factory</span>::{<span class='ident'>BufferInfo</span>, <span class='ident'>Typed</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::{<span class='ident'>Arc</span>, <span class='ident'>Weak</span>};
+<span class='kw'>use</span> {<span class='ident'>buffer</span>, <span class='ident'>mapping</span>, <span class='ident'>shade</span>, <span class='ident'>texture</span>, <span class='ident'>Resources</span>};
+<span class='kw'>use</span> <span class='ident'>memory</span>::{<span class='self'>self</span>, <span class='ident'>Typed</span>};
 
+<span class='doccomment'>/// Untyped buffer handle</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>buffer</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>);
 
-<span class='doccomment'>/// Raw (untyped) Buffer Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Buffer</span><span class='op'>&gt;</span>, <span class='ident'>BufferInfo</span>);
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Get raw buffer info</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>BufferInfo</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>1</span> }
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>buffer</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Target</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='doccomment'>/// Type-safe buffer handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Hash</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Typed</span> <span class='kw'>for</span> <span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -604,83 +644,78 @@
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>handle</span>: <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>Buffer</span>(<span class='ident'>handle</span>, <span class='ident'>PhantomData</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>
-    }
+
+    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get the associated information about the buffer</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>BufferInfo</span> {
-        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>get_info</span>()
-    }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>buffer</span>::<span class='ident'>Info</span> { <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_info</span>() }
 
     <span class='doccomment'>/// Get the number of elements in the buffer.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Fails if `T` is zero-sized.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>() <span class='op'>!=</span> <span class='number'>0</span>, <span class='string'>&quot;Cannot determine the length of zero-sized buffers.&quot;</span>);
-        <span class='self'>self</span>.<span class='ident'>get_info</span>().<span class='ident'>size</span> <span class='op'>/</span> <span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>()
+        <span class='kw'>unsafe</span> { <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>len</span>::<span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>() }
     }
 }
 
 <span class='doccomment'>/// Shader Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Shader</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Shader</span><span class='op'>&gt;</span>);
 
 <span class='doccomment'>/// Program Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Program</span><span class='op'>&gt;</span>, <span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span>);
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>shade</span>::<span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>);
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Get program info</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>1</span> }
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>shade</span>::<span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Target</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='doccomment'>/// Raw Pipeline State Handle</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawPipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span><span class='op'>&gt;</span>, <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Program</span><span class='op'>&gt;</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawPipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span><span class='op'>&gt;</span>, <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
 
-<span class='doccomment'>/// Raw texture object</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>, <span class='ident'>tex</span>::<span class='ident'>Descriptor</span>);
+<span class='doccomment'>/// Raw texture handle</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>texture</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>);
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>texture</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Target</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
+}
 
 <span class='doccomment'>/// Typed texture object</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>S</span><span class='op'>&gt;</span>(<span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>S</span><span class='op'>&gt;</span>);
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Get texture descriptor</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>tex</span>::<span class='ident'>Descriptor</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>1</span> }
-}
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>S</span><span class='op'>&gt;</span> <span class='ident'>Typed</span> <span class='kw'>for</span> <span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>S</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Raw</span> <span class='op'>=</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>handle</span>: <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>S</span><span class='op'>&gt;</span> {
         <span class='ident'>Texture</span>(<span class='ident'>handle</span>, <span class='ident'>PhantomData</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>
-    }
+
+    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>S</span><span class='op'>&gt;</span> <span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>S</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get texture descriptor</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>tex</span>::<span class='ident'>Descriptor</span> { <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_info</span>() }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>texture</span>::<span class='ident'>Info</span> { <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_info</span>() }
 }
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>enum</span> <span class='ident'>ViewSource</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
-    <span class='ident'>Buffer</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Buffer</span><span class='op'>&gt;</span>),
-    <span class='ident'>Texture</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>),
+    <span class='ident'>Buffer</span>(<span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
+    <span class='ident'>Texture</span>(<span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
 }
 
 <span class='doccomment'>/// Raw Shader Resource View Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span><span class='op'>&gt;</span>, <span class='ident'>ViewSource</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
 
 <span class='doccomment'>/// Type-safe Shader Resource View Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Typed</span> <span class='kw'>for</span> <span class='ident'>ShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -688,17 +723,16 @@
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>handle</span>: <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>ShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>ShaderResourceView</span>(<span class='ident'>handle</span>, <span class='ident'>PhantomData</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>
-    }
+
+    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='doccomment'>/// Raw Unordered Access View Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span><span class='op'>&gt;</span>, <span class='ident'>ViewSource</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>);
 
 <span class='doccomment'>/// Type-safe Unordered Access View Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>UnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Typed</span> <span class='kw'>for</span> <span class='ident'>UnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -706,31 +740,28 @@
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>handle</span>: <span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>UnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>UnorderedAccessView</span>(<span class='ident'>handle</span>, <span class='ident'>PhantomData</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>
-    }
+
+    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='doccomment'>/// Raw RTV</span>
+<span class='comment'>// TODO: Arc it all</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>RenderTargetView</span><span class='op'>&gt;</span>, <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>, <span class='ident'>tex</span>::<span class='ident'>Dimensions</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>RenderTargetView</span><span class='op'>&gt;</span>, <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>texture</span>::<span class='ident'>Dimensions</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get target dimensions</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>tex</span>::<span class='ident'>Dimensions</span> {
-        <span class='self'>self</span>.<span class='number'>2</span>
-    }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>texture</span>::<span class='ident'>Dimensions</span> { <span class='self'>self</span>.<span class='number'>2</span> }
 }
 
 <span class='doccomment'>/// Raw DSV</span>
+<span class='comment'>// TODO: Arc it all</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>DepthStencilView</span><span class='op'>&gt;</span>, <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Texture</span><span class='op'>&gt;</span>, <span class='ident'>tex</span>::<span class='ident'>Dimensions</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>DepthStencilView</span><span class='op'>&gt;</span>, <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>texture</span>::<span class='ident'>Dimensions</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get target dimensions</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>tex</span>::<span class='ident'>Dimensions</span> {
-        <span class='self'>self</span>.<span class='number'>2</span>
-    }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>texture</span>::<span class='ident'>Dimensions</span> { <span class='self'>self</span>.<span class='number'>2</span> }
 }
 
 <span class='doccomment'>/// Typed RTV</span>
@@ -739,9 +770,7 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get target dimensions</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>tex</span>::<span class='ident'>Dimensions</span> {
-        <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_dimensions</span>()
-    }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>texture</span>::<span class='ident'>Dimensions</span> { <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_dimensions</span>() }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Typed</span> <span class='kw'>for</span> <span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -749,9 +778,8 @@
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>h</span>: <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>RenderTargetView</span>(<span class='ident'>h</span>, <span class='ident'>PhantomData</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>
-    }
+
+    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='doccomment'>/// Typed DSV</span>
@@ -760,9 +788,7 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get target dimensions</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>tex</span>::<span class='ident'>Dimensions</span> {
-        <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_dimensions</span>()
-    }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_dimensions</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>texture</span>::<span class='ident'>Dimensions</span> { <span class='self'>self</span>.<span class='ident'>raw</span>().<span class='ident'>get_dimensions</span>() }
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Typed</span> <span class='kw'>for</span> <span class='ident'>DepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -770,23 +796,52 @@
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>h</span>: <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>DepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>DepthStencilView</span>(<span class='ident'>h</span>, <span class='ident'>PhantomData</span>)
     }
-    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>
-    }
+
+    <span class='kw'>fn</span> <span class='ident'>raw</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
 }
 
 <span class='doccomment'>/// Sampler Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Sampler</span><span class='op'>&gt;</span>, <span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span>);
+<span class='comment'>// TODO: Arc it all</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Sampler</span><span class='op'>&gt;</span>, <span class='ident'>texture</span>::<span class='ident'>SamplerInfo</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Get sampler info</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>1</span> }
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_info</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>texture</span>::<span class='ident'>SamplerInfo</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>1</span> }
 }
 
 <span class='doccomment'>/// Fence Handle</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Fence</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Fence</span><span class='op'>&gt;</span>);
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Fence</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Waits for the fence to be signaled</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>wait</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='kw'>use</span> <span class='ident'>Fence</span> <span class='kw'>as</span> <span class='ident'>FenceTrait</span>;
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>wait</span>();
+    }
+}
+
+<span class='doccomment'>/// Raw Mapping handle</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>RawMapping</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span>(<span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>);
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>RawMapping</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>downgrade</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Weak</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> {
+        <span class='ident'>Arc</span>::<span class='ident'>downgrade</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span>)
+    }
+
+    <span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>upgrade</span>(<span class='ident'>weak</span>: <span class='kw-2'>&amp;</span><span class='ident'>Weak</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>RawMapping</span>(<span class='ident'>weak</span>.<span class='ident'>upgrade</span>().<span class='ident'>unwrap</span>())
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>ops</span>::<span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>RawMapping</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='self'>Self</span>::<span class='ident'>Target</span> { <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='number'>0</span> }
+}
 
 <span class='doccomment'>/// Stores reference-counted resources used in a command buffer.</span>
 <span class='doccomment'>/// Seals actual resource names behind the interface, automatically</span>
@@ -794,58 +849,64 @@
 <span class='doccomment'>/// and the Renderer during CommandBuffer population.</span>
 <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_docs</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
-    <span class='ident'>buffers</span>:       <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Buffer</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>buffers</span>:       <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>buffer</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
     <span class='ident'>shaders</span>:       <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Shader</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>programs</span>:      <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Program</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>programs</span>:      <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>shade</span>::<span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
     <span class='ident'>psos</span>:          <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>textures</span>:      <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Texture</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>textures</span>:      <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>texture</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
     <span class='ident'>srvs</span>:          <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>uavs</span>:          <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>rtvs</span>:          <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>RenderTargetView</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>dsvs</span>:          <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>DepthStencilView</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>samplers</span>:      <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Sampler</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>fences</span>:        <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>R</span>::<span class='ident'>Fence</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>mappings</span>:      <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
 }
 
 <span class='doccomment'>/// A service trait to be used by the device implementation</span>
-<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_docs</span>)]</span>
+<span class='attribute'>#[<span class='ident'>doc</span>(<span class='ident'>hidden</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Producer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>make_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Buffer</span>, <span class='ident'>BufferInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>make_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Buffer</span>, <span class='ident'>buffer</span>::<span class='ident'>Info</span>) <span class='op'>-&gt;</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_shader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Shader</span>) <span class='op'>-&gt;</span> <span class='ident'>Shader</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_program</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Program</span>, <span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_pso</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span>, <span class='kw-2'>&amp;</span><span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawPipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>make_texture</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Texture</span>, <span class='ident'>tex</span>::<span class='ident'>Descriptor</span>) <span class='op'>-&gt;</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>make_texture</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Texture</span>, <span class='ident'>texture</span>::<span class='ident'>Info</span>) <span class='op'>-&gt;</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_buffer_srv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_texture_srv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_buffer_uav</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_texture_uav</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>make_rtv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>RenderTargetView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>tex</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>make_dsv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>DepthStencilView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>tex</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>make_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Sampler</span>, <span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>make_rtv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>RenderTargetView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>texture</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>make_dsv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>DepthStencilView</span>, <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>texture</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>make_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>R</span>::<span class='ident'>Sampler</span>, <span class='ident'>texture</span>::<span class='ident'>SamplerInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
     <span class='kw'>fn</span> <span class='ident'>make_fence</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>name</span>: <span class='ident'>R</span>::<span class='ident'>Fence</span>) <span class='op'>-&gt;</span> <span class='ident'>Fence</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+    <span class='kw'>fn</span> <span class='ident'>make_mapping</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>access</span>: <span class='ident'>memory</span>::<span class='ident'>Access</span>,
+                       <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
+                       <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>RawMapping</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
+        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span>::<span class='ident'>Mapping</span>;
 
     <span class='doccomment'>/// Walk through all the handles, keep ones that are reference elsewhere</span>
     <span class='doccomment'>/// and call the provided delete function (resource-specific) for others</span>
     <span class='kw'>fn</span> <span class='ident'>clean_with</span><span class='op'>&lt;</span><span class='ident'>T</span>,
-        <span class='ident'>A</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Buffer</span>),
+        <span class='ident'>A</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>buffer</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
         <span class='ident'>B</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Shader</span>),
-        <span class='ident'>C</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Program</span>),
+        <span class='ident'>C</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
         <span class='ident'>D</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span>),
-        <span class='ident'>E</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Texture</span>),
+        <span class='ident'>E</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>texture</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
         <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>),
         <span class='ident'>G</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>),
         <span class='ident'>H</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>RenderTargetView</span>),
         <span class='ident'>I</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>DepthStencilView</span>),
         <span class='ident'>J</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Sampler</span>),
         <span class='ident'>K</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Fence</span>),
-    <span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='ident'>A</span>, <span class='ident'>B</span>, <span class='ident'>C</span>, <span class='ident'>D</span>, <span class='ident'>E</span>, <span class='ident'>F</span>, <span class='ident'>G</span>, <span class='ident'>H</span>, <span class='ident'>I</span>, <span class='ident'>J</span>, <span class='ident'>K</span>);
+        <span class='ident'>L</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
+    <span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='ident'>A</span>, <span class='ident'>B</span>, <span class='ident'>C</span>, <span class='ident'>D</span>, <span class='ident'>E</span>, <span class='ident'>F</span>, <span class='ident'>G</span>, <span class='ident'>H</span>, <span class='ident'>I</span>, <span class='ident'>J</span>, <span class='ident'>K</span>, <span class='ident'>L</span>);
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Producer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>make_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Buffer</span>, <span class='ident'>info</span>: <span class='ident'>BufferInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
+    <span class='kw'>fn</span> <span class='ident'>make_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Buffer</span>, <span class='ident'>info</span>: <span class='ident'>buffer</span>::<span class='ident'>Info</span>) <span class='op'>-&gt;</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>buffer</span>::<span class='ident'>Raw</span>::<span class='ident'>new</span>(<span class='ident'>res</span>, <span class='ident'>info</span>));
         <span class='self'>self</span>.<span class='ident'>buffers</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawBuffer</span>(<span class='ident'>r</span>, <span class='ident'>info</span>)
+        <span class='ident'>RawBuffer</span>(<span class='ident'>r</span>)
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_shader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Shader</span>) <span class='op'>-&gt;</span> <span class='ident'>Shader</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
@@ -855,60 +916,60 @@
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_program</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Program</span>, <span class='ident'>info</span>: <span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
+        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>shade</span>::<span class='ident'>Program</span>::<span class='ident'>new</span>(<span class='ident'>res</span>, <span class='ident'>info</span>));
         <span class='self'>self</span>.<span class='ident'>programs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>Program</span>(<span class='ident'>r</span>, <span class='ident'>info</span>)
+        <span class='ident'>Program</span>(<span class='ident'>r</span>)
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_pso</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span>, <span class='ident'>program</span>: <span class='kw-2'>&amp;</span><span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawPipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>psos</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawPipelineState</span>(<span class='ident'>r</span>, <span class='ident'>program</span>.<span class='number'>0</span>.<span class='ident'>clone</span>())
+        <span class='ident'>RawPipelineState</span>(<span class='ident'>r</span>, <span class='ident'>program</span>.<span class='ident'>clone</span>())
     }
 
-    <span class='kw'>fn</span> <span class='ident'>make_texture</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Texture</span>, <span class='ident'>desc</span>: <span class='ident'>tex</span>::<span class='ident'>Descriptor</span>) <span class='op'>-&gt;</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
+    <span class='kw'>fn</span> <span class='ident'>make_texture</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Texture</span>, <span class='ident'>info</span>: <span class='ident'>texture</span>::<span class='ident'>Info</span>) <span class='op'>-&gt;</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>texture</span>::<span class='ident'>Raw</span>::<span class='ident'>new</span>(<span class='ident'>res</span>, <span class='ident'>info</span>));
         <span class='self'>self</span>.<span class='ident'>textures</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawTexture</span>(<span class='ident'>r</span>, <span class='ident'>desc</span>)
+        <span class='ident'>RawTexture</span>(<span class='ident'>r</span>)
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_buffer_srv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>srvs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawShaderResourceView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Buffer</span>(<span class='ident'>buf</span>.<span class='number'>0</span>.<span class='ident'>clone</span>()))
+        <span class='ident'>RawShaderResourceView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Buffer</span>(<span class='ident'>buf</span>.<span class='ident'>clone</span>()))
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_texture_srv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>srvs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawShaderResourceView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Texture</span>(<span class='ident'>tex</span>.<span class='number'>0</span>.<span class='ident'>clone</span>()))
+        <span class='ident'>RawShaderResourceView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Texture</span>(<span class='ident'>tex</span>.<span class='ident'>clone</span>()))
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_buffer_uav</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>uavs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawUnorderedAccessView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Buffer</span>(<span class='ident'>buf</span>.<span class='number'>0</span>.<span class='ident'>clone</span>()))
+        <span class='ident'>RawUnorderedAccessView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Buffer</span>(<span class='ident'>buf</span>.<span class='ident'>clone</span>()))
     }
 
     <span class='kw'>fn</span> <span class='ident'>make_texture_uav</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>RawUnorderedAccessView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>uavs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawUnorderedAccessView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Texture</span>(<span class='ident'>tex</span>.<span class='number'>0</span>.<span class='ident'>clone</span>()))
+        <span class='ident'>RawUnorderedAccessView</span>(<span class='ident'>r</span>, <span class='ident'>ViewSource</span>::<span class='ident'>Texture</span>(<span class='ident'>tex</span>.<span class='ident'>clone</span>()))
     }
 
-    <span class='kw'>fn</span> <span class='ident'>make_rtv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>RenderTargetView</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>dim</span>: <span class='ident'>tex</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>make_rtv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>RenderTargetView</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>dim</span>: <span class='ident'>texture</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>rtvs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawRenderTargetView</span>(<span class='ident'>r</span>, <span class='ident'>tex</span>.<span class='number'>0</span>.<span class='ident'>clone</span>(), <span class='ident'>dim</span>)
+        <span class='ident'>RawRenderTargetView</span>(<span class='ident'>r</span>, <span class='ident'>tex</span>.<span class='ident'>clone</span>(), <span class='ident'>dim</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>make_dsv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>DepthStencilView</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>dim</span>: <span class='ident'>tex</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>make_dsv</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>DepthStencilView</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>dim</span>: <span class='ident'>texture</span>::<span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>dsvs</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
-        <span class='ident'>RawDepthStencilView</span>(<span class='ident'>r</span>, <span class='ident'>tex</span>.<span class='number'>0</span>.<span class='ident'>clone</span>(), <span class='ident'>dim</span>)
+        <span class='ident'>RawDepthStencilView</span>(<span class='ident'>r</span>, <span class='ident'>tex</span>.<span class='ident'>clone</span>(), <span class='ident'>dim</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>make_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Sampler</span>, <span class='ident'>info</span>: <span class='ident'>tex</span>::<span class='ident'>SamplerInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>make_sampler</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>res</span>: <span class='ident'>R</span>::<span class='ident'>Sampler</span>, <span class='ident'>info</span>: <span class='ident'>texture</span>::<span class='ident'>SamplerInfo</span>) <span class='op'>-&gt;</span> <span class='ident'>Sampler</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>res</span>);
         <span class='self'>self</span>.<span class='ident'>samplers</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
         <span class='ident'>Sampler</span>(<span class='ident'>r</span>, <span class='ident'>info</span>)
@@ -920,21 +981,34 @@
         <span class='ident'>Fence</span>(<span class='ident'>r</span>)
     }
 
+    <span class='kw'>fn</span> <span class='ident'>make_mapping</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>access</span>: <span class='ident'>memory</span>::<span class='ident'>Access</span>,
+                       <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
+                       <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>RawMapping</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
+        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span>::<span class='ident'>Mapping</span>
+    {
+        <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>mapping</span>::<span class='ident'>Raw</span>::<span class='ident'>new</span>(<span class='ident'>access</span>, <span class='ident'>buf</span>, <span class='ident'>f</span>)));
+        <span class='self'>self</span>.<span class='ident'>mappings</span>.<span class='ident'>push</span>(<span class='ident'>r</span>.<span class='ident'>clone</span>());
+        <span class='kw'>let</span> <span class='ident'>raw</span> <span class='op'>=</span> <span class='ident'>RawMapping</span>(<span class='ident'>r</span>);
+        <span class='ident'>buf</span>.<span class='ident'>was_mapped</span>(<span class='kw-2'>&amp;</span><span class='ident'>raw</span>);
+        <span class='prelude-val'>Ok</span>(<span class='ident'>raw</span>)
+    }
+
     <span class='kw'>fn</span> <span class='ident'>clean_with</span><span class='op'>&lt;</span><span class='ident'>T</span>,
-        <span class='ident'>A</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Buffer</span>),
+        <span class='ident'>A</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>buffer</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
         <span class='ident'>B</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Shader</span>),
-        <span class='ident'>C</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Program</span>),
+        <span class='ident'>C</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>shade</span>::<span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
         <span class='ident'>D</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span>),
-        <span class='ident'>E</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Texture</span>),
+        <span class='ident'>E</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>texture</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
         <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span>),
         <span class='ident'>G</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>UnorderedAccessView</span>),
         <span class='ident'>H</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>RenderTargetView</span>),
         <span class='ident'>I</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>DepthStencilView</span>),
         <span class='ident'>J</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Sampler</span>),
         <span class='ident'>K</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>R</span>::<span class='ident'>Fence</span>),
-    <span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>param</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='ident'>fa</span>: <span class='ident'>A</span>, <span class='ident'>fb</span>: <span class='ident'>B</span>, <span class='ident'>fc</span>: <span class='ident'>C</span>, <span class='ident'>fd</span>: <span class='ident'>D</span>, <span class='ident'>fe</span>: <span class='ident'>E</span>, <span class='ident'>ff</span>: <span class='ident'>F</span>, <span class='ident'>fg</span>: <span class='ident'>G</span>, <span class='ident'>fh</span>: <span class='ident'>H</span>, <span class='ident'>fi</span>: <span class='ident'>I</span>, <span class='ident'>fj</span>: <span class='ident'>J</span>, <span class='ident'>fk</span>: <span class='ident'>K</span>) {
+        <span class='ident'>L</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='kw-2'>&amp;</span><span class='ident'>mapping</span>::<span class='ident'>Raw</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
+    <span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>param</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='ident'>fa</span>: <span class='ident'>A</span>, <span class='ident'>fb</span>: <span class='ident'>B</span>, <span class='ident'>fc</span>: <span class='ident'>C</span>, <span class='ident'>fd</span>: <span class='ident'>D</span>, <span class='ident'>fe</span>: <span class='ident'>E</span>, <span class='ident'>ff</span>: <span class='ident'>F</span>, <span class='ident'>fg</span>: <span class='ident'>G</span>, <span class='ident'>fh</span>: <span class='ident'>H</span>, <span class='ident'>fi</span>: <span class='ident'>I</span>, <span class='ident'>fj</span>: <span class='ident'>J</span>, <span class='ident'>fk</span>: <span class='ident'>K</span>, <span class='ident'>fl</span>: <span class='ident'>L</span>) {
         <span class='kw'>fn</span> <span class='ident'>clean_vec</span><span class='op'>&lt;</span><span class='ident'>X</span>, <span class='ident'>Param</span>, <span class='ident'>Fun</span><span class='op'>&gt;</span>(<span class='ident'>param</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Param</span>, <span class='ident'>vector</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>X</span><span class='op'>&gt;&gt;</span>, <span class='ident'>fun</span>: <span class='ident'>Fun</span>)
-            <span class='kw'>where</span> <span class='ident'>X</span>: <span class='ident'>Clone</span>, <span class='ident'>Fun</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Param</span>, <span class='kw-2'>&amp;</span><span class='ident'>X</span>)
+            <span class='kw'>where</span> <span class='ident'>Fun</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Param</span>, <span class='kw-2'>&amp;</span><span class='ident'>X</span>)
         {
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>temp</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
             <span class='comment'>// delete unique resources and make a list of their indices</span>
@@ -961,6 +1035,7 @@
         <span class='ident'>clean_vec</span>(<span class='ident'>param</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>dsvs</span>,          <span class='ident'>fi</span>);
         <span class='ident'>clean_vec</span>(<span class='ident'>param</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>samplers</span>,      <span class='ident'>fj</span>);
         <span class='ident'>clean_vec</span>(<span class='ident'>param</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>fences</span>,        <span class='ident'>fk</span>);
+        <span class='ident'>clean_vec</span>(<span class='ident'>param</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>mappings</span>,      <span class='ident'>fl</span>);
     }
 }
 
@@ -978,7 +1053,8 @@
             <span class='ident'>rtvs</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
             <span class='ident'>dsvs</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
             <span class='ident'>samplers</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
-            <span class='ident'>fences</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>()
+            <span class='ident'>fences</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
+            <span class='ident'>mappings</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
         }
     }
     <span class='doccomment'>/// Clear all references</span>
@@ -993,6 +1069,8 @@
         <span class='self'>self</span>.<span class='ident'>rtvs</span>.<span class='ident'>clear</span>();
         <span class='self'>self</span>.<span class='ident'>dsvs</span>.<span class='ident'>clear</span>();
         <span class='self'>self</span>.<span class='ident'>samplers</span>.<span class='ident'>clear</span>();
+        <span class='self'>self</span>.<span class='ident'>fences</span>.<span class='ident'>clear</span>();
+        <span class='self'>self</span>.<span class='ident'>mappings</span>.<span class='ident'>clear</span>();
     }
     <span class='doccomment'>/// Extend with all references of another handle manager</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>extend</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
@@ -1006,6 +1084,8 @@
         <span class='self'>self</span>.<span class='ident'>rtvs</span>     .<span class='ident'>extend</span>(<span class='ident'>other</span>.<span class='ident'>rtvs</span>     .<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>h</span><span class='op'>|</span> <span class='ident'>h</span>.<span class='ident'>clone</span>()));
         <span class='self'>self</span>.<span class='ident'>dsvs</span>     .<span class='ident'>extend</span>(<span class='ident'>other</span>.<span class='ident'>dsvs</span>     .<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>h</span><span class='op'>|</span> <span class='ident'>h</span>.<span class='ident'>clone</span>()));
         <span class='self'>self</span>.<span class='ident'>samplers</span> .<span class='ident'>extend</span>(<span class='ident'>other</span>.<span class='ident'>samplers</span> .<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>h</span><span class='op'>|</span> <span class='ident'>h</span>.<span class='ident'>clone</span>()));
+        <span class='self'>self</span>.<span class='ident'>fences</span>   .<span class='ident'>extend</span>(<span class='ident'>other</span>.<span class='ident'>fences</span>   .<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>h</span><span class='op'>|</span> <span class='ident'>h</span>.<span class='ident'>clone</span>()));
+        <span class='self'>self</span>.<span class='ident'>mappings</span> .<span class='ident'>extend</span>(<span class='ident'>other</span>.<span class='ident'>mappings</span> .<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>h</span><span class='op'>|</span> <span class='ident'>h</span>.<span class='ident'>clone</span>()));
     }
     <span class='doccomment'>/// Count the total number of referenced resources</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>count</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
@@ -1018,12 +1098,14 @@
         <span class='self'>self</span>.<span class='ident'>uavs</span>.<span class='ident'>len</span>() <span class='op'>+</span>
         <span class='self'>self</span>.<span class='ident'>rtvs</span>.<span class='ident'>len</span>() <span class='op'>+</span>
         <span class='self'>self</span>.<span class='ident'>dsvs</span>.<span class='ident'>len</span>() <span class='op'>+</span>
-        <span class='self'>self</span>.<span class='ident'>samplers</span>.<span class='ident'>len</span>()
+        <span class='self'>self</span>.<span class='ident'>samplers</span>.<span class='ident'>len</span>() <span class='op'>+</span>
+        <span class='self'>self</span>.<span class='ident'>fences</span>.<span class='ident'>len</span>() <span class='op'>+</span>
+        <span class='self'>self</span>.<span class='ident'>mappings</span>.<span class='ident'>len</span>()
     }
     <span class='doccomment'>/// Reference a buffer</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_buffer</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>Buffer</span> {
         <span class='self'>self</span>.<span class='ident'>buffers</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>0</span>.<span class='ident'>clone</span>());
-        <span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>
+        <span class='ident'>handle</span>.<span class='ident'>resource</span>()
     }
     <span class='doccomment'>/// Reference a shader</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_shader</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Shader</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>Shader</span> {
@@ -1033,18 +1115,18 @@
     <span class='doccomment'>/// Reference a program</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_program</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Program</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>Program</span> {
         <span class='self'>self</span>.<span class='ident'>programs</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>0</span>.<span class='ident'>clone</span>());
-        <span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>
+        <span class='ident'>handle</span>.<span class='ident'>resource</span>()
     }
     <span class='doccomment'>/// Reference a pipeline state object</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_pso</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RawPipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> (<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>PipelineStateObject</span>, <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>Program</span>) {
         <span class='self'>self</span>.<span class='ident'>psos</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>0</span>.<span class='ident'>clone</span>());
-        <span class='self'>self</span>.<span class='ident'>programs</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>1</span>.<span class='ident'>clone</span>());
-        (<span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>, <span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>1</span>)
+        <span class='self'>self</span>.<span class='ident'>programs</span>.<span class='ident'>push</span>((<span class='ident'>handle</span>.<span class='number'>1</span>).<span class='number'>0</span>.<span class='ident'>clone</span>());
+        (<span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>, <span class='ident'>handle</span>.<span class='number'>1</span>.<span class='ident'>resource</span>())
     }
     <span class='doccomment'>/// Reference a texture</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_texture</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>Texture</span> {
         <span class='self'>self</span>.<span class='ident'>textures</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>0</span>.<span class='ident'>clone</span>());
-        <span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>
+        <span class='ident'>handle</span>.<span class='ident'>resource</span>()
     }
     <span class='doccomment'>/// Reference a shader resource view</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_srv</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>ShaderResourceView</span> {
@@ -1059,13 +1141,13 @@
     <span class='doccomment'>/// Reference an RTV</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_rtv</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RawRenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>RenderTargetView</span> {
         <span class='self'>self</span>.<span class='ident'>rtvs</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>0</span>.<span class='ident'>clone</span>());
-        <span class='self'>self</span>.<span class='ident'>textures</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>1</span>.<span class='ident'>clone</span>());
+        <span class='self'>self</span>.<span class='ident'>textures</span>.<span class='ident'>push</span>((<span class='ident'>handle</span>.<span class='number'>1</span>).<span class='number'>0</span>.<span class='ident'>clone</span>());
         <span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>
     }
     <span class='doccomment'>/// Reference a DSV</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ref_dsv</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handle</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>RawDepthStencilView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>R</span>::<span class='ident'>DepthStencilView</span> {
         <span class='self'>self</span>.<span class='ident'>dsvs</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>0</span>.<span class='ident'>clone</span>());
-        <span class='self'>self</span>.<span class='ident'>textures</span>.<span class='ident'>push</span>(<span class='ident'>handle</span>.<span class='number'>1</span>.<span class='ident'>clone</span>());
+        <span class='self'>self</span>.<span class='ident'>textures</span>.<span class='ident'>push</span>((<span class='ident'>handle</span>.<span class='number'>1</span>).<span class='number'>0</span>.<span class='ident'>clone</span>());
         <span class='kw-2'>&amp;</span><span class='ident'>handle</span>.<span class='number'>0</span>
     }
     <span class='doccomment'>/// Reference a sampler</span>

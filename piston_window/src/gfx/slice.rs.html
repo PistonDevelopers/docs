@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.12.2/src/slice.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.13.0/src/slice.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>slice.rs.html -- source</title>
@@ -215,6 +215,8 @@
 <span id="171">171</span>
 <span id="172">172</span>
 <span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2014 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -234,10 +236,11 @@
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! See `Slice`-structure documentation for more information on this module.</span>
 
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::<span class='ident'>handle</span>;
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::{<span class='ident'>Primitive</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::<span class='ident'>draw</span>::<span class='ident'>InstanceOption</span>;
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::<span class='ident'>factory</span>::{<span class='ident'>Bind</span>, <span class='ident'>BufferRole</span>, <span class='ident'>Factory</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='ident'>handle</span>, <span class='ident'>buffer</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='ident'>Primitive</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>command</span>::<span class='ident'>InstanceParams</span>;
+<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>factory</span>::<span class='ident'>Factory</span>;
+<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>memory</span>::<span class='ident'>Bind</span>;
 <span class='kw'>use</span> <span class='ident'>format</span>::<span class='ident'>Format</span>;
 <span class='kw'>use</span> <span class='ident'>pso</span>;
 
@@ -285,7 +288,7 @@
     <span class='doccomment'>/// base-vertex.</span>
     <span class='kw'>pub</span> <span class='ident'>base_vertex</span>: <span class='ident'>VertexCount</span>,
     <span class='doccomment'>/// Instancing configuration.</span>
-    <span class='kw'>pub</span> <span class='ident'>instances</span>: <span class='ident'>InstanceOption</span>,
+    <span class='kw'>pub</span> <span class='ident'>instances</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>InstanceParams</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Represents the type of index-buffer used. </span>
     <span class='kw'>pub</span> <span class='ident'>buffer</span>: <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
 }
@@ -305,14 +308,15 @@
     
     <span class='doccomment'>/// Calculates the number of primitives of the specified type in this `Slice`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_prim_count</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>prim</span>: <span class='ident'>Primitive</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> {
-        <span class='kw'>use</span> <span class='ident'>gfx_core</span>::<span class='ident'>Primitive</span>::<span class='op'>*</span>;
+        <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>Primitive</span> <span class='kw'>as</span> <span class='ident'>p</span>;
         <span class='kw'>let</span> <span class='ident'>nv</span> <span class='op'>=</span> (<span class='self'>self</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>start</span>) <span class='kw'>as</span> <span class='ident'>u32</span>;
         <span class='kw'>match</span> <span class='ident'>prim</span> {
-            <span class='ident'>PointList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span>,
-            <span class='ident'>LineList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> <span class='number'>2</span>,
-            <span class='ident'>LineStrip</span> <span class='op'>=&gt;</span> (<span class='ident'>nv</span><span class='op'>-</span><span class='number'>1</span>),
-            <span class='ident'>TriangleList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> <span class='number'>3</span>,
-            <span class='ident'>TriangleStrip</span> <span class='op'>=&gt;</span> (<span class='ident'>nv</span><span class='op'>-</span><span class='number'>2</span>) <span class='op'>/</span> <span class='number'>3</span>,
+            <span class='ident'>p</span>::<span class='ident'>PointList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span>,
+            <span class='ident'>p</span>::<span class='ident'>LineList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> <span class='number'>2</span>,
+            <span class='ident'>p</span>::<span class='ident'>LineStrip</span> <span class='op'>=&gt;</span> (<span class='ident'>nv</span><span class='op'>-</span><span class='number'>1</span>),
+            <span class='ident'>p</span>::<span class='ident'>TriangleList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> <span class='number'>3</span>,
+            <span class='ident'>p</span>::<span class='ident'>TriangleStrip</span> <span class='op'>=&gt;</span> (<span class='ident'>nv</span><span class='op'>-</span><span class='number'>2</span>) <span class='op'>/</span> <span class='number'>3</span>,
+            <span class='ident'>p</span>::<span class='ident'>PatchList</span>(<span class='ident'>num</span>) <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> (<span class='ident'>num</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
         }
     }
 }
@@ -379,7 +383,7 @@
         
         <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>IntoIndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;s</span> [<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>prim_ty</span>] {
             <span class='kw'>fn</span> <span class='ident'>into_index_buffer</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-                <span class='ident'>factory</span>.<span class='ident'>create_buffer_const</span>(<span class='self'>self</span>, <span class='ident'>BufferRole</span>::<span class='ident'>Index</span>, <span class='ident'>Bind</span>::<span class='ident'>empty</span>())
+                <span class='ident'>factory</span>.<span class='ident'>create_buffer_immutable</span>(<span class='self'>self</span>, <span class='ident'>buffer</span>::<span class='ident'>Role</span>::<span class='ident'>Index</span>, <span class='ident'>Bind</span>::<span class='ident'>empty</span>())
                        .<span class='ident'>unwrap</span>()
                        .<span class='ident'>into_index_buffer</span>(<span class='ident'>factory</span>)
             }
