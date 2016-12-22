@@ -1,5 +1,27 @@
 (function() {var implementors = {};
-implementors["lazy_static"] = [];implementors["libc"] = [];implementors["libloading"] = [];implementors["graphics"] = [];implementors["arrayvec"] = [];implementors["gfx_gl"] = [];implementors["dlib"] = [];implementors["shared_library"] = [];implementors["num"] = [];implementors["wayland_sys"] = [];implementors["enum_primitive"] = [];implementors["gl"] = [];implementors["tempfile"] = [];implementors["num_bigint"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/struct.BigUint.html' title='num_bigint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/struct.BigInt.html' title='num_bigint::BigInt'>BigInt</a>",];implementors["wayland_window"] = [];implementors["wayland_kbd"] = [];implementors["winit"] = [];implementors["image"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/biguint/struct.BigUint.html' title='num_bigint::biguint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/bigint/struct.BigInt.html' title='num_bigint::bigint::BigInt'>BigInt</a>",];implementors["glutin"] = [];implementors["glutin_window"] = [];implementors["gfx_core"] = [];implementors["gfx"] = [];implementors["piston_window"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/biguint/struct.BigUint.html' title='num_bigint::biguint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/bigint/struct.BigInt.html' title='num_bigint::bigint::BigInt'>BigInt</a>",];
+implementors["arrayvec"] = [];
+implementors["dlib"] = [];
+implementors["enum_primitive"] = [];
+implementors["gfx"] = [];
+implementors["gfx_core"] = [];
+implementors["gfx_gl"] = [];
+implementors["gl"] = [];
+implementors["glutin"] = [];
+implementors["glutin_window"] = [];
+implementors["graphics"] = [];
+implementors["image"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/biguint/struct.BigUint.html' title='num_bigint::biguint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/bigint/struct.BigInt.html' title='num_bigint::bigint::BigInt'>BigInt</a>",];
+implementors["lazy_static"] = [];
+implementors["libc"] = [];
+implementors["libloading"] = [];
+implementors["num"] = [];
+implementors["num_bigint"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/struct.BigUint.html' title='num_bigint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/struct.BigInt.html' title='num_bigint::BigInt'>BigInt</a>",];
+implementors["piston_window"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/biguint/struct.BigUint.html' title='num_bigint::biguint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.UpperHex.html' title='core::fmt::UpperHex'>UpperHex</a> for <a class='struct' href='num_bigint/bigint/struct.BigInt.html' title='num_bigint::bigint::BigInt'>BigInt</a>",];
+implementors["shared_library"] = [];
+implementors["tempfile"] = [];
+implementors["wayland_kbd"] = [];
+implementors["wayland_sys"] = [];
+implementors["wayland_window"] = [];
+implementors["winit"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

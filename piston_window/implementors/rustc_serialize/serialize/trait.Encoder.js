@@ -1,5 +1,7 @@
 (function() {var implementors = {};
-implementors["image"] = [];implementors["glutin_window"] = [];implementors["piston_window"] = [];
+implementors["glutin_window"] = [];
+implementors["image"] = [];
+implementors["piston_window"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

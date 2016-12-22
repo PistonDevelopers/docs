@@ -1,5 +1,9 @@
 (function() {var implementors = {};
-implementors["num_traits"] = [];implementors["num"] = [];implementors["enum_primitive"] = [];implementors["image"] = [];implementors["piston_window"] = [];
+implementors["enum_primitive"] = [];
+implementors["image"] = [];
+implementors["num"] = [];
+implementors["num_traits"] = [];
+implementors["piston_window"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
