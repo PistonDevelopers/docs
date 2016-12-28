@@ -1,5 +1,10 @@
 (function() {var implementors = {};
-implementors["rand"] = [];implementors["num"] = [];implementors["enum_primitive"] = [];implementors["quickcheck"] = [];implementors["image"] = [];implementors["imageproc"] = [];
+implementors["enum_primitive"] = [];
+implementors["image"] = [];
+implementors["imageproc"] = [];
+implementors["num"] = [];
+implementors["quickcheck"] = [];
+implementors["rand"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

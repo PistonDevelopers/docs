@@ -1,5 +1,6 @@
 (function() {var implementors = {};
-implementors["image"] = [];implementors["imageproc"] = [];
+implementors["image"] = [];
+implementors["imageproc"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

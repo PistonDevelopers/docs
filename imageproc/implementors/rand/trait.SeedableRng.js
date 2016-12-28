@@ -1,5 +1,12 @@
 (function() {var implementors = {};
-implementors["libc"] = [];implementors["regex_syntax"] = [];implementors["rand"] = [];implementors["num"] = [];implementors["num"] = [];implementors["enum_primitive"] = [];implementors["enum_primitive"] = [];implementors["quickcheck"] = [];implementors["quickcheck"] = [];implementors["image"] = [];implementors["image"] = [];implementors["imageproc"] = [];implementors["imageproc"] = [];
+implementors["enum_primitive"] = [];
+implementors["image"] = [];
+implementors["imageproc"] = [];
+implementors["libc"] = [];
+implementors["num"] = [];
+implementors["quickcheck"] = [];
+implementors["rand"] = [];
+implementors["regex_syntax"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

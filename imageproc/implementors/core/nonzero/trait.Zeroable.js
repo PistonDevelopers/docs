@@ -1,5 +1,11 @@
 (function() {var implementors = {};
-implementors["libc"] = [];implementors["regex_syntax"] = [];implementors["num"] = [];implementors["enum_primitive"] = [];implementors["quickcheck"] = [];implementors["image"] = [];implementors["imageproc"] = [];
+implementors["enum_primitive"] = [];
+implementors["image"] = [];
+implementors["imageproc"] = [];
+implementors["libc"] = [];
+implementors["num"] = [];
+implementors["quickcheck"] = [];
+implementors["regex_syntax"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
