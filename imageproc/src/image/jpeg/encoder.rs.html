@@ -4,11 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.10.4/./src/jpeg/encoder.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.12.0/./src/jpeg/encoder.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>encoder.rs.html -- source</title>
 
+    <link rel="stylesheet" type="text/css" href="../../../normalize.css">
     <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../../main.css">
     
@@ -707,18 +708,6 @@
 <span id="663">663</span>
 <span id="664">664</span>
 <span id="665">665</span>
-<span id="666">666</span>
-<span id="667">667</span>
-<span id="668">668</span>
-<span id="669">669</span>
-<span id="670">670</span>
-<span id="671">671</span>
-<span id="672">672</span>
-<span id="673">673</span>
-<span id="674">674</span>
-<span id="675">675</span>
-<span id="676">676</span>
-<span id="677">677</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::{<span class='self'>self</span>, <span class='ident'>Write</span>};
 <span class='kw'>use</span> <span class='ident'>byteorder</span>::{<span class='ident'>WriteBytesExt</span>, <span class='ident'>BigEndian</span>};
@@ -877,171 +866,22 @@
     <span class='ident'>ac_table</span>: <span class='ident'>u8</span>,
 
     <span class='doccomment'>/// The dc prediction of the component</span>
-    <span class='ident'>dc_pred</span>: <span class='ident'>i32</span>
+    <span class='ident'>_dc_pred</span>: <span class='ident'>i32</span>
 }
 
-<span class='doccomment'>/// The representation of a JPEG encoder</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>BitWriter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
     <span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>W</span>,
-
-    <span class='ident'>components</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Component</span><span class='op'>&gt;</span>,
-    <span class='ident'>tables</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
-
     <span class='ident'>accumulator</span>: <span class='ident'>u32</span>,
     <span class='ident'>nbits</span>: <span class='ident'>u8</span>,
-
-    <span class='ident'>luma_dctable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
-    <span class='ident'>luma_actable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
-    <span class='ident'>chroma_dctable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
-    <span class='ident'>chroma_actable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span>: <span class='ident'>Write</span><span class='op'>&gt;</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create a new encoder that writes its output to ```w```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>) <span class='op'>-&gt;</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span> {
-        <span class='kw'>return</span> <span class='ident'>JPEGEncoder</span>::<span class='ident'>new_with_quality</span>(<span class='ident'>w</span>, <span class='number'>75</span>);
-    }
-
-    <span class='doccomment'>/// Create a new encoder that writes its output to ```w```, and has</span>
-    <span class='doccomment'>/// the quality parameter ```quality``` with a value in the range 1-100</span>
-    <span class='doccomment'>/// where 1 is the worst and 100 is the best.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_with_quality</span>(<span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>, <span class='ident'>quality</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_DC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_DC_VALUES</span>);
-        <span class='kw'>let</span> <span class='ident'>la</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_AC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_AC_VALUES</span>);
-
-        <span class='kw'>let</span> <span class='ident'>cd</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_DC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_DC_VALUES</span>);
-        <span class='kw'>let</span> <span class='ident'>ca</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_AC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_AC_VALUES</span>);
-
-        <span class='kw'>let</span> <span class='ident'>components</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[
-            <span class='ident'>Component</span> {<span class='ident'>id</span>: <span class='ident'>LUMAID</span>, <span class='ident'>h</span>: <span class='number'>1</span>, <span class='ident'>v</span>: <span class='number'>1</span>, <span class='ident'>tq</span>: <span class='ident'>LUMADESTINATION</span>, <span class='ident'>dc_table</span>: <span class='ident'>LUMADESTINATION</span>, <span class='ident'>ac_table</span>: <span class='ident'>LUMADESTINATION</span>, <span class='ident'>dc_pred</span>: <span class='number'>0</span>},
-            <span class='ident'>Component</span> {<span class='ident'>id</span>: <span class='ident'>CHROMABLUEID</span>, <span class='ident'>h</span>: <span class='number'>1</span>, <span class='ident'>v</span>: <span class='number'>1</span>, <span class='ident'>tq</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>dc_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>ac_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>dc_pred</span>: <span class='number'>0</span>},
-            <span class='ident'>Component</span> {<span class='ident'>id</span>: <span class='ident'>CHROMAREDID</span>, <span class='ident'>h</span>: <span class='number'>1</span>, <span class='ident'>v</span>: <span class='number'>1</span>, <span class='ident'>tq</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>dc_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>ac_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>dc_pred</span>: <span class='number'>0</span>}
-        ];
-
-        <span class='comment'>// Derive our quantization table scaling value using the libjpeg algorithm</span>
-        <span class='kw'>let</span> <span class='ident'>scale</span>: <span class='ident'>u32</span> <span class='op'>=</span> <span class='ident'>clamp</span>(<span class='ident'>quality</span>, <span class='number'>1</span>, <span class='number'>100</span>) <span class='kw'>as</span> <span class='ident'>u32</span>;
-        <span class='kw'>let</span> <span class='ident'>scale</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>scale</span> <span class='op'>&lt;</span> <span class='number'>50</span> {
-            <span class='number'>5000</span> <span class='op'>/</span> <span class='ident'>scale</span>
-        } <span class='kw'>else</span> {
-            <span class='number'>200</span> <span class='op'>-</span> <span class='ident'>scale</span> <span class='op'>*</span> <span class='number'>2</span>
-        };
-
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>tables</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
-        <span class='kw'>let</span> <span class='ident'>scale_value</span> <span class='op'>=</span> <span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>v</span>: <span class='kw-2'>&amp;</span><span class='ident'>u8</span><span class='op'>|</span> {
-            <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> (<span class='ident'>v</span> <span class='kw'>as</span> <span class='ident'>u32</span> <span class='op'>*</span> <span class='ident'>scale</span> <span class='op'>+</span> <span class='number'>50</span>) <span class='op'>/</span> <span class='number'>100</span>;
-
-            <span class='kw'>return</span> <span class='ident'>clamp</span>(<span class='ident'>value</span>,
-                         <span class='number'>1</span>,
-                         <span class='ident'>u8</span>::<span class='ident'>max_value</span>() <span class='kw'>as</span> <span class='ident'>u32</span>) <span class='kw'>as</span> <span class='ident'>u8</span>;
-        };
-        <span class='ident'>tables</span>.<span class='ident'>extend</span>(<span class='ident'>STD_LUMA_QTABLE</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='kw-2'>&amp;</span><span class='ident'>scale_value</span>));
-        <span class='ident'>tables</span>.<span class='ident'>extend</span>(<span class='ident'>STD_CHROMA_QTABLE</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='kw-2'>&amp;</span><span class='ident'>scale_value</span>));
-
-        <span class='ident'>JPEGEncoder</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span>: <span class='ident'>Write</span> <span class='op'>+</span> <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>BitWriter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>W</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>BitWriter</span> {
             <span class='ident'>w</span>: <span class='ident'>w</span>,
-
-            <span class='ident'>components</span>: <span class='ident'>components</span>,
-            <span class='ident'>tables</span>: <span class='ident'>tables</span>,
-
-            <span class='ident'>luma_dctable</span>: <span class='ident'>ld</span>,
-            <span class='ident'>luma_actable</span>: <span class='ident'>la</span>,
-            <span class='ident'>chroma_dctable</span>: <span class='ident'>cd</span>,
-            <span class='ident'>chroma_actable</span>: <span class='ident'>ca</span>,
-
             <span class='ident'>accumulator</span>: <span class='number'>0</span>,
             <span class='ident'>nbits</span>: <span class='number'>0</span>,
         }
-    }
-
-    <span class='doccomment'>/// Encodes the image ```image```</span>
-    <span class='doccomment'>/// that has dimensions ```width``` and ```height```</span>
-    <span class='doccomment'>/// and ```ColorType``` ```c```</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The Image in encoded with subsampling ratio 4:2:2</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-                  <span class='ident'>image</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
-                  <span class='ident'>width</span>: <span class='ident'>u32</span>,
-                  <span class='ident'>height</span>: <span class='ident'>u32</span>,
-                  <span class='ident'>c</span>: <span class='ident'>color</span>::<span class='ident'>ColorType</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
-
-        <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>color</span>::<span class='ident'>num_components</span>(<span class='ident'>c</span>);
-        <span class='kw'>let</span> <span class='ident'>num_components</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='number'>1</span> <span class='op'>||</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='number'>2</span> {<span class='number'>1</span>}
-                             <span class='kw'>else</span> {<span class='number'>3</span>};
-
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>SOI</span>, <span class='prelude-val'>None</span>));
-
-        <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_jfif_header</span>();
-        <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>APP0</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-
-        <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_frame_header</span>(<span class='number'>8</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>components</span>[..<span class='ident'>num_components</span>]);
-        <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>SOF0</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>tables</span>.<span class='ident'>len</span>() <span class='op'>/</span> <span class='number'>64</span> <span class='op'>==</span> <span class='number'>2</span>);
-        <span class='kw'>let</span> <span class='ident'>numtables</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>num_components</span> <span class='op'>==</span> <span class='number'>1</span> {<span class='number'>1</span>}
-                        <span class='kw'>else</span> {<span class='number'>2</span>};
-
-        <span class='kw'>let</span> <span class='ident'>t</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>tables</span>.<span class='ident'>clone</span>();
-
-        <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>table</span>) <span class='kw'>in</span> <span class='ident'>t</span>.<span class='ident'>chunks</span>(<span class='number'>64</span>).<span class='ident'>enumerate</span>().<span class='ident'>take</span>(<span class='ident'>numtables</span>) {
-            <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_quantization_segment</span>(<span class='number'>8</span>, <span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>u8</span>, <span class='ident'>table</span>);
-            <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>DQT</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-        }
-
-        <span class='kw'>let</span> <span class='ident'>numcodes</span> <span class='op'>=</span> <span class='ident'>STD_LUMA_DC_CODE_LENGTHS</span>;
-        <span class='kw'>let</span> <span class='ident'>values</span>   <span class='op'>=</span> <span class='ident'>STD_LUMA_DC_VALUES</span>;
-
-        <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_huffman_segment</span>(<span class='ident'>DCCLASS</span>, <span class='ident'>LUMADESTINATION</span>, <span class='kw-2'>&amp;</span><span class='ident'>numcodes</span>, <span class='kw-2'>&amp;</span><span class='ident'>values</span>);
-        <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-
-        <span class='kw'>let</span> <span class='ident'>numcodes</span> <span class='op'>=</span> <span class='ident'>STD_LUMA_AC_CODE_LENGTHS</span>;
-        <span class='kw'>let</span> <span class='ident'>values</span>   <span class='op'>=</span> <span class='ident'>STD_LUMA_AC_VALUES</span>;
-
-        <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_huffman_segment</span>(<span class='ident'>ACCLASS</span>, <span class='ident'>LUMADESTINATION</span>, <span class='kw-2'>&amp;</span><span class='ident'>numcodes</span>, <span class='kw-2'>&amp;</span><span class='ident'>values</span>);
-        <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-
-        <span class='kw'>if</span> <span class='ident'>num_components</span> <span class='op'>==</span> <span class='number'>3</span> {
-            <span class='kw'>let</span> <span class='ident'>numcodes</span> <span class='op'>=</span> <span class='ident'>STD_CHROMA_DC_CODE_LENGTHS</span>;
-            <span class='kw'>let</span> <span class='ident'>values</span>   <span class='op'>=</span> <span class='ident'>STD_CHROMA_DC_VALUES</span>;
-
-            <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_huffman_segment</span>(<span class='ident'>DCCLASS</span>, <span class='ident'>CHROMADESTINATION</span>, <span class='kw-2'>&amp;</span><span class='ident'>numcodes</span>, <span class='kw-2'>&amp;</span><span class='ident'>values</span>);
-            <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-
-            <span class='kw'>let</span> <span class='ident'>numcodes</span> <span class='op'>=</span> <span class='ident'>STD_CHROMA_AC_CODE_LENGTHS</span>;
-            <span class='kw'>let</span> <span class='ident'>values</span>   <span class='op'>=</span> <span class='ident'>STD_CHROMA_AC_VALUES</span>;
-
-            <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_huffman_segment</span>(<span class='ident'>ACCLASS</span>, <span class='ident'>CHROMADESTINATION</span>, <span class='kw-2'>&amp;</span><span class='ident'>numcodes</span>, <span class='kw-2'>&amp;</span><span class='ident'>values</span>);
-            <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-        }
-
-        <span class='kw'>let</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>build_scan_header</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>components</span>[..<span class='ident'>num_components</span>]);
-        <span class='kw'>let</span> _   <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>SOS</span>, <span class='prelude-val'>Some</span>(<span class='ident'>buf</span>)));
-
-        <span class='kw'>match</span> <span class='ident'>c</span> {
-            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>RGB</span>(<span class='number'>8</span>)   <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_rgb</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>3</span>)),
-            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>RGBA</span>(<span class='number'>8</span>)  <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_rgb</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>4</span>)),
-            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>Gray</span>(<span class='number'>8</span>)  <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_gray</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>1</span>)),
-            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>GrayA</span>(<span class='number'>8</span>) <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_gray</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>2</span>)),
-            _  <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>io</span>::<span class='ident'>Error</span>::<span class='ident'>new</span>(
-                <span class='ident'>io</span>::<span class='ident'>ErrorKind</span>::<span class='ident'>InvalidInput</span>,
-                <span class='kw-2'>&amp;</span><span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Unsupported color type {:?}. Use 8 bit per channel RGB(A) or Gray(A) instead.&quot;</span>, <span class='ident'>c</span>)[..],
-            ))
-        };
-
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>pad_byte</span>());
-        <span class='self'>self</span>.<span class='ident'>write_segment</span>(<span class='ident'>EOI</span>, <span class='prelude-val'>None</span>)
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>write_segment</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>marker</span>: <span class='ident'>u8</span>, <span class='ident'>data</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0xFF</span>]));
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>marker</span>]));
-
-        <span class='kw'>if</span> <span class='ident'>data</span>.<span class='ident'>is_some</span>() {
-            <span class='kw'>let</span> <span class='ident'>b</span> <span class='op'>=</span> <span class='ident'>data</span>.<span class='ident'>unwrap</span>();
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_u16</span>::<span class='op'>&lt;</span><span class='ident'>BigEndian</span><span class='op'>&gt;</span>(<span class='ident'>b</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>+</span> <span class='number'>2</span>));
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>));
-        }
-
-        <span class='prelude-val'>Ok</span>(())
     }
 
     <span class='kw'>fn</span> <span class='ident'>write_bits</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>bits</span>: <span class='ident'>u16</span>, <span class='ident'>size</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
@@ -1054,10 +894,10 @@
 
         <span class='kw'>while</span> <span class='self'>self</span>.<span class='ident'>nbits</span> <span class='op'>&gt;=</span> <span class='number'>8</span> {
             <span class='kw'>let</span> <span class='ident'>byte</span> <span class='op'>=</span> (<span class='self'>self</span>.<span class='ident'>accumulator</span> <span class='kw-2'>&amp;</span> (<span class='number'>0xFFFFFFFFu32</span> <span class='op'>&lt;&lt;</span> <span class='number'>24</span>)) <span class='op'>&gt;&gt;</span> <span class='number'>24</span>;
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>byte</span> <span class='kw'>as</span> <span class='ident'>u8</span>]));
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>byte</span> <span class='kw'>as</span> <span class='ident'>u8</span>]));
 
             <span class='kw'>if</span> <span class='ident'>byte</span> <span class='op'>==</span> <span class='number'>0xFF</span> {
-                <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0x00</span>]));
+                <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0x00</span>]));
             }
 
             <span class='self'>self</span>.<span class='ident'>nbits</span> <span class='op'>-=</span> <span class='number'>8</span>;
@@ -1093,8 +933,8 @@
         <span class='kw'>let</span> <span class='ident'>diff</span>  <span class='op'>=</span> <span class='ident'>dcval</span> <span class='op'>-</span> <span class='ident'>prevdc</span>;
         <span class='kw'>let</span> (<span class='ident'>size</span>, <span class='ident'>value</span>) <span class='op'>=</span> <span class='ident'>encode_coefficient</span>(<span class='ident'>diff</span>);
 
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='ident'>size</span>, <span class='ident'>dctable</span>));
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_bits</span>(<span class='ident'>value</span>, <span class='ident'>size</span>));
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='ident'>size</span>, <span class='ident'>dctable</span>));
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_bits</span>(<span class='ident'>value</span>, <span class='ident'>size</span>));
 
         <span class='comment'>// Figure F.2</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>zero_run</span> <span class='op'>=</span> <span class='number'>0</span>;
@@ -1105,23 +945,22 @@
 
             <span class='kw'>if</span> <span class='ident'>block</span>[<span class='ident'>UNZIGZAG</span>[<span class='ident'>k</span>] <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>==</span> <span class='number'>0</span> {
                 <span class='kw'>if</span> <span class='ident'>k</span> <span class='op'>==</span> <span class='number'>63</span> {
-
-                <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='number'>0x00</span>, <span class='ident'>actable</span>));
+                    <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='number'>0x00</span>, <span class='ident'>actable</span>));
                     <span class='kw'>break</span>
                 }
 
                 <span class='ident'>zero_run</span> <span class='op'>+=</span> <span class='number'>1</span>;
             } <span class='kw'>else</span> {
                 <span class='kw'>while</span> <span class='ident'>zero_run</span> <span class='op'>&gt;</span> <span class='number'>15</span> {
-                    <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='number'>0xF0</span>, <span class='ident'>actable</span>));
+                    <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='number'>0xF0</span>, <span class='ident'>actable</span>));
                     <span class='ident'>zero_run</span> <span class='op'>-=</span> <span class='number'>16</span>;
                 }
 
                 <span class='kw'>let</span> (<span class='ident'>size</span>, <span class='ident'>value</span>) <span class='op'>=</span> <span class='ident'>encode_coefficient</span>(<span class='ident'>block</span>[<span class='ident'>UNZIGZAG</span>[<span class='ident'>k</span>] <span class='kw'>as</span> <span class='ident'>usize</span>]);
                 <span class='kw'>let</span> <span class='ident'>symbol</span> <span class='op'>=</span> (<span class='ident'>zero_run</span> <span class='op'>&lt;&lt;</span> <span class='number'>4</span>) <span class='op'>|</span> <span class='ident'>size</span>;
 
-                <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='ident'>symbol</span>, <span class='ident'>actable</span>));
-                <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_bits</span>(<span class='ident'>value</span>, <span class='ident'>size</span>));
+                <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>huffman_encode</span>(<span class='ident'>symbol</span>, <span class='ident'>actable</span>));
+                <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_bits</span>(<span class='ident'>value</span>, <span class='ident'>size</span>));
 
                 <span class='ident'>zero_run</span> <span class='op'>=</span> <span class='number'>0</span>;
 
@@ -1132,6 +971,152 @@
         }
 
         <span class='prelude-val'>Ok</span>(<span class='ident'>dcval</span>)
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>write_segment</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>marker</span>: <span class='ident'>u8</span>, <span class='ident'>data</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]<span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0xFF</span>]));
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>marker</span>]));
+
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>b</span>) <span class='op'>=</span> <span class='ident'>data</span> {
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_u16</span>::<span class='op'>&lt;</span><span class='ident'>BigEndian</span><span class='op'>&gt;</span>(<span class='ident'>b</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u16</span> <span class='op'>+</span> <span class='number'>2</span>));
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>w</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>));
+        }
+        <span class='prelude-val'>Ok</span>(())
+    }
+}
+
+<span class='doccomment'>/// The representation of a JPEG encoder</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+    <span class='ident'>writer</span>: <span class='ident'>BitWriter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span><span class='op'>&gt;</span>,
+
+    <span class='ident'>components</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Component</span><span class='op'>&gt;</span>,
+    <span class='ident'>tables</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
+
+    <span class='ident'>luma_dctable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
+    <span class='ident'>luma_actable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
+    <span class='ident'>chroma_dctable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
+    <span class='ident'>chroma_actable</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>u8</span>, <span class='ident'>u16</span>)<span class='op'>&gt;</span>,
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span>: <span class='ident'>Write</span><span class='op'>&gt;</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>W</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Create a new encoder that writes its output to ```w```</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>) <span class='op'>-&gt;</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span> {
+        <span class='kw'>return</span> <span class='ident'>JPEGEncoder</span>::<span class='ident'>new_with_quality</span>(<span class='ident'>w</span>, <span class='number'>75</span>);
+    }
+
+    <span class='doccomment'>/// Create a new encoder that writes its output to ```w```, and has</span>
+    <span class='doccomment'>/// the quality parameter ```quality``` with a value in the range 1-100</span>
+    <span class='doccomment'>/// where 1 is the worst and 100 is the best.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_with_quality</span>(<span class='ident'>w</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>, <span class='ident'>quality</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>JPEGEncoder</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_DC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_DC_VALUES</span>);
+        <span class='kw'>let</span> <span class='ident'>la</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_AC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_AC_VALUES</span>);
+
+        <span class='kw'>let</span> <span class='ident'>cd</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_DC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_DC_VALUES</span>);
+        <span class='kw'>let</span> <span class='ident'>ca</span> <span class='op'>=</span> <span class='ident'>build_huff_lut</span>(<span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_AC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_AC_VALUES</span>);
+
+        <span class='kw'>let</span> <span class='ident'>components</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[
+            <span class='ident'>Component</span> {<span class='ident'>id</span>: <span class='ident'>LUMAID</span>, <span class='ident'>h</span>: <span class='number'>1</span>, <span class='ident'>v</span>: <span class='number'>1</span>, <span class='ident'>tq</span>: <span class='ident'>LUMADESTINATION</span>, <span class='ident'>dc_table</span>: <span class='ident'>LUMADESTINATION</span>, <span class='ident'>ac_table</span>: <span class='ident'>LUMADESTINATION</span>, <span class='ident'>_dc_pred</span>: <span class='number'>0</span>},
+            <span class='ident'>Component</span> {<span class='ident'>id</span>: <span class='ident'>CHROMABLUEID</span>, <span class='ident'>h</span>: <span class='number'>1</span>, <span class='ident'>v</span>: <span class='number'>1</span>, <span class='ident'>tq</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>dc_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>ac_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>_dc_pred</span>: <span class='number'>0</span>},
+            <span class='ident'>Component</span> {<span class='ident'>id</span>: <span class='ident'>CHROMAREDID</span>, <span class='ident'>h</span>: <span class='number'>1</span>, <span class='ident'>v</span>: <span class='number'>1</span>, <span class='ident'>tq</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>dc_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>ac_table</span>: <span class='ident'>CHROMADESTINATION</span>, <span class='ident'>_dc_pred</span>: <span class='number'>0</span>}
+        ];
+
+        <span class='comment'>// Derive our quantization table scaling value using the libjpeg algorithm</span>
+        <span class='kw'>let</span> <span class='ident'>scale</span>: <span class='ident'>u32</span> <span class='op'>=</span> <span class='ident'>clamp</span>(<span class='ident'>quality</span>, <span class='number'>1</span>, <span class='number'>100</span>) <span class='kw'>as</span> <span class='ident'>u32</span>;
+        <span class='kw'>let</span> <span class='ident'>scale</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>scale</span> <span class='op'>&lt;</span> <span class='number'>50</span> {
+            <span class='number'>5000</span> <span class='op'>/</span> <span class='ident'>scale</span>
+        } <span class='kw'>else</span> {
+            <span class='number'>200</span> <span class='op'>-</span> <span class='ident'>scale</span> <span class='op'>*</span> <span class='number'>2</span>
+        };
+
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>tables</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+        <span class='kw'>let</span> <span class='ident'>scale_value</span> <span class='op'>=</span> <span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>v</span>: <span class='kw-2'>&amp;</span><span class='ident'>u8</span><span class='op'>|</span> {
+            <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> (<span class='ident'>v</span> <span class='kw'>as</span> <span class='ident'>u32</span> <span class='op'>*</span> <span class='ident'>scale</span> <span class='op'>+</span> <span class='number'>50</span>) <span class='op'>/</span> <span class='number'>100</span>;
+
+            <span class='kw'>return</span> <span class='ident'>clamp</span>(<span class='ident'>value</span>,
+                         <span class='number'>1</span>,
+                         <span class='ident'>u8</span>::<span class='ident'>max_value</span>() <span class='kw'>as</span> <span class='ident'>u32</span>) <span class='kw'>as</span> <span class='ident'>u8</span>;
+        };
+        <span class='ident'>tables</span>.<span class='ident'>extend</span>(<span class='ident'>STD_LUMA_QTABLE</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='kw-2'>&amp;</span><span class='ident'>scale_value</span>));
+        <span class='ident'>tables</span>.<span class='ident'>extend</span>(<span class='ident'>STD_CHROMA_QTABLE</span>.<span class='ident'>iter</span>().<span class='ident'>map</span>(<span class='kw-2'>&amp;</span><span class='ident'>scale_value</span>));
+
+        <span class='ident'>JPEGEncoder</span> {
+            <span class='ident'>writer</span>: <span class='ident'>BitWriter</span>::<span class='ident'>new</span>(<span class='ident'>w</span>),
+
+            <span class='ident'>components</span>: <span class='ident'>components</span>,
+            <span class='ident'>tables</span>: <span class='ident'>tables</span>,
+
+            <span class='ident'>luma_dctable</span>: <span class='ident'>ld</span>,
+            <span class='ident'>luma_actable</span>: <span class='ident'>la</span>,
+            <span class='ident'>chroma_dctable</span>: <span class='ident'>cd</span>,
+            <span class='ident'>chroma_actable</span>: <span class='ident'>ca</span>,
+        }
+    }
+
+    <span class='doccomment'>/// Encodes the image ```image```</span>
+    <span class='doccomment'>/// that has dimensions ```width``` and ```height```</span>
+    <span class='doccomment'>/// and ```ColorType``` ```c```</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// The Image in encoded with subsampling ratio 4:2:2</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                  <span class='ident'>image</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
+                  <span class='ident'>width</span>: <span class='ident'>u32</span>,
+                  <span class='ident'>height</span>: <span class='ident'>u32</span>,
+                  <span class='ident'>c</span>: <span class='ident'>color</span>::<span class='ident'>ColorType</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
+
+        <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>color</span>::<span class='ident'>num_components</span>(<span class='ident'>c</span>);
+        <span class='kw'>let</span> <span class='ident'>num_components</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='number'>1</span> <span class='op'>||</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='number'>2</span> {<span class='number'>1</span>}
+                             <span class='kw'>else</span> {<span class='number'>3</span>};
+
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>SOI</span>, <span class='prelude-val'>None</span>));
+
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>buf</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+
+        <span class='ident'>build_jfif_header</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>);
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>APP0</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+
+        <span class='ident'>build_frame_header</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='number'>8</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>u16</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>components</span>[..<span class='ident'>num_components</span>]);
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>SOF0</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+
+        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>tables</span>.<span class='ident'>len</span>() <span class='op'>/</span> <span class='number'>64</span> <span class='op'>==</span> <span class='number'>2</span>);
+        <span class='kw'>let</span> <span class='ident'>numtables</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>num_components</span> <span class='op'>==</span> <span class='number'>1</span> {<span class='number'>1</span>}
+                        <span class='kw'>else</span> {<span class='number'>2</span>};
+
+        <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>table</span>) <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>tables</span>.<span class='ident'>chunks</span>(<span class='number'>64</span>).<span class='ident'>enumerate</span>().<span class='ident'>take</span>(<span class='ident'>numtables</span>) {
+            <span class='ident'>build_quantization_segment</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='number'>8</span>, <span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>u8</span>, <span class='ident'>table</span>);
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>DQT</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+        }
+
+        <span class='ident'>build_huffman_segment</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='ident'>ACCLASS</span>, <span class='ident'>LUMADESTINATION</span>,
+                              <span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_AC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_LUMA_AC_VALUES</span>);
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+
+        <span class='kw'>if</span> <span class='ident'>num_components</span> <span class='op'>==</span> <span class='number'>3</span> {
+            <span class='ident'>build_huffman_segment</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='ident'>DCCLASS</span>, <span class='ident'>CHROMADESTINATION</span>,
+                                  <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_DC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_DC_VALUES</span>);
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+
+            <span class='ident'>build_huffman_segment</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='ident'>ACCLASS</span>, <span class='ident'>CHROMADESTINATION</span>,
+                                  <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_AC_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>STD_CHROMA_AC_VALUES</span>);
+            <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>DHT</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+        }
+
+        <span class='ident'>build_scan_header</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buf</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>components</span>[..<span class='ident'>num_components</span>]);
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>SOS</span>, <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>buf</span>)));
+
+        <span class='kw'>match</span> <span class='ident'>c</span> {
+            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>RGB</span>(<span class='number'>8</span>)   <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_rgb</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>3</span>)),
+            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>RGBA</span>(<span class='number'>8</span>)  <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_rgb</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>4</span>)),
+            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>Gray</span>(<span class='number'>8</span>)  <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_gray</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>1</span>)),
+            <span class='ident'>color</span>::<span class='ident'>ColorType</span>::<span class='ident'>GrayA</span>(<span class='number'>8</span>) <span class='op'>=&gt;</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>encode_gray</span>(<span class='ident'>image</span>, <span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='number'>2</span>)),
+            _  <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>io</span>::<span class='ident'>Error</span>::<span class='ident'>new</span>(
+                <span class='ident'>io</span>::<span class='ident'>ErrorKind</span>::<span class='ident'>InvalidInput</span>,
+                <span class='kw-2'>&amp;</span><span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Unsupported color type {:?}. Use 8 bit per channel RGB(A) or Gray(A) instead.&quot;</span>, <span class='ident'>c</span>)[..],
+            ))
+        };
+
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>pad_byte</span>());
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_segment</span>(<span class='ident'>EOI</span>, <span class='prelude-val'>None</span>));
+        <span class='prelude-val'>Ok</span>(())
     }
 
     <span class='kw'>fn</span> <span class='ident'>encode_gray</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>image</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>width</span>: <span class='ident'>usize</span>, <span class='ident'>height</span>: <span class='ident'>usize</span>, <span class='ident'>bpp</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
@@ -1153,10 +1138,10 @@
                     <span class='ident'>dct_yblock</span>[<span class='ident'>i</span>]   <span class='op'>=</span> ((<span class='ident'>dct_yblock</span>[<span class='ident'>i</span>] <span class='op'>/</span> <span class='number'>8</span>)   <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>/</span> <span class='self'>self</span>.<span class='ident'>tables</span>[<span class='ident'>i</span>] <span class='kw'>as</span> <span class='ident'>f32</span>).<span class='ident'>round</span>() <span class='kw'>as</span> <span class='ident'>i32</span>;
                 }
 
-                <span class='kw'>let</span> <span class='ident'>la</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>luma_actable</span>.<span class='ident'>clone</span>();
-                <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>luma_dctable</span>.<span class='ident'>clone</span>();
+                <span class='kw'>let</span> <span class='ident'>la</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>luma_actable</span>;
+                <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>luma_dctable</span>;
 
-                <span class='ident'>y_dcprev</span>  <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_yblock</span>, <span class='ident'>y_dcprev</span>, <span class='kw-2'>&amp;</span><span class='ident'>ld</span>, <span class='kw-2'>&amp;</span><span class='ident'>la</span>));
+                <span class='ident'>y_dcprev</span>  <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_yblock</span>, <span class='ident'>y_dcprev</span>, <span class='ident'>ld</span>, <span class='ident'>la</span>));
             }
         }
 
@@ -1194,14 +1179,14 @@
                     <span class='ident'>dct_cr_block</span>[<span class='ident'>i</span>] <span class='op'>=</span> ((<span class='ident'>dct_cr_block</span>[<span class='ident'>i</span>] <span class='op'>/</span> <span class='number'>8</span>) <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>/</span> <span class='self'>self</span>.<span class='ident'>tables</span>[<span class='number'>64</span>..][<span class='ident'>i</span>] <span class='kw'>as</span> <span class='ident'>f32</span>).<span class='ident'>round</span>() <span class='kw'>as</span> <span class='ident'>i32</span>;
                 }
 
-                <span class='kw'>let</span> <span class='ident'>la</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>luma_actable</span>.<span class='ident'>clone</span>();
-                <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>luma_dctable</span>.<span class='ident'>clone</span>();
-                <span class='kw'>let</span> <span class='ident'>cd</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>chroma_dctable</span>.<span class='ident'>clone</span>();
-                <span class='kw'>let</span> <span class='ident'>ca</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>chroma_actable</span>.<span class='ident'>clone</span>();
+                <span class='kw'>let</span> <span class='ident'>la</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>luma_actable</span>;
+                <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>luma_dctable</span>;
+                <span class='kw'>let</span> <span class='ident'>cd</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>chroma_dctable</span>;
+                <span class='kw'>let</span> <span class='ident'>ca</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>chroma_actable</span>;
 
-                <span class='ident'>y_dcprev</span>  <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_yblock</span>, <span class='ident'>y_dcprev</span>, <span class='kw-2'>&amp;</span><span class='ident'>ld</span>, <span class='kw-2'>&amp;</span><span class='ident'>la</span>));
-                <span class='ident'>cb_dcprev</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_cb_block</span>, <span class='ident'>cb_dcprev</span>, <span class='kw-2'>&amp;</span><span class='ident'>cd</span>, <span class='kw-2'>&amp;</span><span class='ident'>ca</span>));
-                <span class='ident'>cr_dcprev</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_cr_block</span>, <span class='ident'>cr_dcprev</span>, <span class='kw-2'>&amp;</span><span class='ident'>cd</span>, <span class='kw-2'>&amp;</span><span class='ident'>ca</span>));
+                <span class='ident'>y_dcprev</span>  <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_yblock</span>, <span class='ident'>y_dcprev</span>, <span class='ident'>ld</span>, <span class='ident'>la</span>));
+                <span class='ident'>cb_dcprev</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_cb_block</span>, <span class='ident'>cb_dcprev</span>, <span class='ident'>cd</span>, <span class='ident'>ca</span>));
+                <span class='ident'>cr_dcprev</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>writer</span>.<span class='ident'>write_block</span>(<span class='kw-2'>&amp;</span><span class='ident'>dct_cr_block</span>, <span class='ident'>cr_dcprev</span>, <span class='ident'>cd</span>, <span class='ident'>ca</span>));
             }
         }
 
@@ -1209,8 +1194,8 @@
     }
 }
 
-<span class='kw'>fn</span> <span class='ident'>build_jfif_header</span>() <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>m</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+<span class='kw'>fn</span> <span class='ident'>build_jfif_header</span>(<span class='ident'>m</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>) {
+    <span class='ident'>m</span>.<span class='ident'>clear</span>();
 
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>m</span>, <span class='string'>&quot;JFIF&quot;</span>);
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0</span>]);
@@ -1221,16 +1206,14 @@
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_u16</span>::<span class='op'>&lt;</span><span class='ident'>BigEndian</span><span class='op'>&gt;</span>(<span class='number'>1</span>);
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0</span>]);
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0</span>]);
-
-    <span class='ident'>m</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>build_frame_header</span>(<span class='ident'>precision</span>: <span class='ident'>u8</span>,
+<span class='kw'>fn</span> <span class='ident'>build_frame_header</span>(<span class='ident'>m</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
+                      <span class='ident'>precision</span>: <span class='ident'>u8</span>,
                       <span class='ident'>width</span>: <span class='ident'>u16</span>,
                       <span class='ident'>height</span>: <span class='ident'>u16</span>,
-                      <span class='ident'>components</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Component</span>]) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span> {
-
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>m</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+                      <span class='ident'>components</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Component</span>]) {
+    <span class='ident'>m</span>.<span class='ident'>clear</span>();
 
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>precision</span>]);
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_u16</span>::<span class='op'>&lt;</span><span class='ident'>BigEndian</span><span class='op'>&gt;</span>(<span class='ident'>height</span>);
@@ -1243,12 +1226,10 @@
         <span class='kw'>let</span> _  <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>hv</span>]);
         <span class='kw'>let</span> _  <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>comp</span>.<span class='ident'>tq</span>]);
     }
-
-    <span class='ident'>m</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>build_scan_header</span>(<span class='ident'>components</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Component</span>]) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>m</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+<span class='kw'>fn</span> <span class='ident'>build_scan_header</span>(<span class='ident'>m</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>components</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>Component</span>]) {
+    <span class='ident'>m</span>.<span class='ident'>clear</span>();
 
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>components</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u8</span>]);
 
@@ -1262,15 +1243,14 @@
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0</span>]);
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>63</span>]);
     <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='number'>0</span>]);
-
-    <span class='ident'>m</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>build_huffman_segment</span>(<span class='ident'>class</span>: <span class='ident'>u8</span>,
+<span class='kw'>fn</span> <span class='ident'>build_huffman_segment</span>(<span class='ident'>m</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
+                         <span class='ident'>class</span>: <span class='ident'>u8</span>,
                          <span class='ident'>destination</span>: <span class='ident'>u8</span>,
                          <span class='ident'>numcodes</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
-                         <span class='ident'>values</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>m</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+                         <span class='ident'>values</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) {
+    <span class='ident'>m</span>.<span class='ident'>clear</span>();
 
     <span class='kw'>let</span> <span class='ident'>tcth</span> <span class='op'>=</span> (<span class='ident'>class</span> <span class='op'>&lt;&lt;</span> <span class='number'>4</span>) <span class='op'>|</span> <span class='ident'>destination</span>;
     <span class='kw'>let</span> _    <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>tcth</span>]);
@@ -1289,16 +1269,15 @@
     <span class='kw'>for</span> <span class='kw-2'>&amp;</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>values</span>.<span class='ident'>iter</span>() {
         <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>i</span>]);
     }
-
-    <span class='ident'>m</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>build_quantization_segment</span>(<span class='ident'>precision</span>: <span class='ident'>u8</span>,
+<span class='kw'>fn</span> <span class='ident'>build_quantization_segment</span>(<span class='ident'>m</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
+                              <span class='ident'>precision</span>: <span class='ident'>u8</span>,
                               <span class='ident'>identifier</span>: <span class='ident'>u8</span>,
-                              <span class='ident'>qtable</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span> {
+                              <span class='ident'>qtable</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) {
 
     <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>qtable</span>.<span class='ident'>len</span>() <span class='op'>%</span> <span class='number'>64</span> <span class='op'>==</span> <span class='number'>0</span>);
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>m</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+    <span class='ident'>m</span>.<span class='ident'>clear</span>();
 
     <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>precision</span> <span class='op'>==</span> <span class='number'>8</span> {<span class='number'>0</span>}
             <span class='kw'>else</span> {<span class='number'>1</span>};
@@ -1309,8 +1288,6 @@
     <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0usize</span>..<span class='number'>64</span> {
         <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>m</span>.<span class='ident'>write_all</span>(<span class='kw-2'>&amp;</span>[<span class='ident'>qtable</span>[<span class='ident'>UNZIGZAG</span>[<span class='ident'>i</span>] <span class='kw'>as</span> <span class='ident'>usize</span>]]);
     }
-
-    <span class='ident'>m</span>
 }
 
 <span class='kw'>fn</span> <span class='ident'>encode_coefficient</span>(<span class='ident'>coefficient</span>: <span class='ident'>i32</span>) <span class='op'>-&gt;</span> (<span class='ident'>u8</span>, <span class='ident'>u16</span>) {
