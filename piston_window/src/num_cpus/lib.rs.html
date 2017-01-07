@@ -4,11 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/num_cpus-1.2.0/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/num_cpus-1.2.1/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
 
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
     <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
     
@@ -207,6 +208,22 @@
 <span id="163">163</span>
 <span id="164">164</span>
 <span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Replaces the deprecated functionality of std::os::num_cpus.</span>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>cfg_attr</span>(<span class='ident'>test</span>, <span class='ident'>deny</span>(<span class='ident'>warnings</span>))]</span>
@@ -243,24 +260,40 @@
     <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>BufReader</span>;
     <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>BufRead</span>;
     <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::<span class='ident'>File</span>;
-    <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>;
+    <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashSet</span>;
 
     <span class='kw'>let</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>File</span>::<span class='ident'>open</span>(<span class='string'>&quot;/proc/cpuinfo&quot;</span>) {
         <span class='prelude-val'>Ok</span>(<span class='ident'>val</span>) <span class='op'>=&gt;</span> <span class='ident'>val</span>,
         <span class='prelude-val'>Err</span>(_) <span class='op'>=&gt;</span> {<span class='kw'>return</span> <span class='ident'>get_num_cpus</span>()},
     };
     <span class='kw'>let</span> <span class='ident'>reader</span> <span class='op'>=</span> <span class='ident'>BufReader</span>::<span class='ident'>new</span>(<span class='ident'>file</span>);
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>map</span> <span class='op'>=</span> <span class='ident'>HashMap</span>::<span class='ident'>new</span>();
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>set</span> <span class='op'>=</span> <span class='ident'>HashSet</span>::<span class='ident'>new</span>();
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>coreid</span>: <span class='ident'>u32</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>physid</span>: <span class='ident'>u32</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>chgcount</span> <span class='op'>=</span> <span class='number'>0</span>;
     <span class='kw'>for</span> <span class='ident'>line</span> <span class='kw'>in</span> <span class='ident'>reader</span>.<span class='ident'>lines</span>().<span class='ident'>filter_map</span>(<span class='op'>|</span><span class='ident'>result</span><span class='op'>|</span> <span class='ident'>result</span>.<span class='ident'>ok</span>()) {
         <span class='kw'>let</span> <span class='ident'>parts</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>str</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>line</span>.<span class='ident'>split</span>(<span class='string'>&#39;:&#39;</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>s</span><span class='op'>|</span> <span class='ident'>s</span>.<span class='ident'>trim</span>()).<span class='ident'>collect</span>();
         <span class='kw'>if</span> <span class='ident'>parts</span>.<span class='ident'>len</span>() <span class='op'>!=</span> <span class='number'>2</span> {
             <span class='kw'>continue</span>
         }
-        <span class='kw'>if</span> <span class='ident'>parts</span>[<span class='number'>0</span>] <span class='op'>==</span> <span class='string'>&quot;core id&quot;</span> {
-            <span class='ident'>map</span>.<span class='ident'>insert</span>(<span class='ident'>parts</span>[<span class='number'>1</span>].<span class='ident'>to_string</span>(), <span class='bool-val'>true</span>);
+        <span class='kw'>if</span> <span class='ident'>parts</span>[<span class='number'>0</span>] <span class='op'>==</span> <span class='string'>&quot;core id&quot;</span> <span class='op'>||</span> <span class='ident'>parts</span>[<span class='number'>0</span>] <span class='op'>==</span> <span class='string'>&quot;physical id&quot;</span> {
+            <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>parts</span>[<span class='number'>1</span>].<span class='ident'>trim</span>().<span class='ident'>parse</span>() {
+              <span class='prelude-val'>Ok</span>(<span class='ident'>val</span>) <span class='op'>=&gt;</span> <span class='ident'>val</span>,
+              <span class='prelude-val'>Err</span>(_) <span class='op'>=&gt;</span> <span class='kw'>break</span>,
+            };
+            <span class='kw'>match</span> <span class='ident'>parts</span>[<span class='number'>0</span>] {
+                <span class='string'>&quot;core id&quot;</span>     <span class='op'>=&gt;</span> <span class='ident'>coreid</span> <span class='op'>=</span> <span class='ident'>value</span>,
+                <span class='string'>&quot;physical id&quot;</span> <span class='op'>=&gt;</span> <span class='ident'>physid</span> <span class='op'>=</span> <span class='ident'>value</span>,
+                _ <span class='op'>=&gt;</span> {},
+            }
+            <span class='ident'>chgcount</span> <span class='op'>+=</span> <span class='number'>1</span>;
+        }
+        <span class='kw'>if</span> <span class='ident'>chgcount</span> <span class='op'>==</span> <span class='number'>2</span> {
+            <span class='ident'>set</span>.<span class='ident'>insert</span>((<span class='ident'>physid</span>, <span class='ident'>coreid</span>));
+            <span class='ident'>chgcount</span> <span class='op'>=</span> <span class='number'>0</span>;
         }
     }
-    <span class='kw'>let</span> <span class='ident'>count</span> <span class='op'>=</span> <span class='ident'>map</span>.<span class='ident'>len</span>();
+    <span class='kw'>let</span> <span class='ident'>count</span> <span class='op'>=</span> <span class='ident'>set</span>.<span class='ident'>len</span>();
     <span class='kw'>if</span> <span class='ident'>count</span> <span class='op'>==</span> <span class='number'>0</span> { <span class='ident'>get_num_cpus</span>() } <span class='kw'>else</span> { <span class='ident'>count</span> }
 }
 
