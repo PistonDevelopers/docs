@@ -1,5 +1,8 @@
 (function() {var implementors = {};
-implementors["libc"] = [];implementors["freetype"] = [];implementors["gfx_core"] = [];implementors["gfx"] = [];
+implementors["freetype"] = [];
+implementors["gfx"] = [];
+implementors["gfx_core"] = [];
+implementors["libc"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
