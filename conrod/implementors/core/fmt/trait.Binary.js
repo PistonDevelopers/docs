@@ -3,7 +3,7 @@ implementors["arrayvec"] = [];
 implementors["conrod"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Binary.html' title='core::fmt::Binary'>Binary</a> for <a class='struct' href='num_bigint/biguint/struct.BigUint.html' title='num_bigint::biguint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Binary.html' title='core::fmt::Binary'>Binary</a> for <a class='struct' href='num_bigint/bigint/struct.BigInt.html' title='num_bigint::bigint::BigInt'>BigInt</a>",];
 implementors["daggy"] = [];
 implementors["dlib"] = [];
-implementors["enum_primitive"] = ["impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Binary.html' title='core::fmt::Binary'>Binary</a> for <a class='struct' href='num_bigint/biguint/struct.BigUint.html' title='num_bigint::biguint::BigUint'>BigUint</a>","impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Binary.html' title='core::fmt::Binary'>Binary</a> for <a class='struct' href='num_bigint/bigint/struct.BigInt.html' title='num_bigint::bigint::BigInt'>BigInt</a>",];
+implementors["enum_primitive"] = [];
 implementors["gfx"] = [];
 implementors["gfx_core"] = [];
 implementors["gfx_gl"] = [];

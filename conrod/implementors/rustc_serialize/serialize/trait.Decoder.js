@@ -1,6 +1,5 @@
 (function() {var implementors = {};
 implementors["conrod"] = [];
-implementors["enum_primitive"] = [];
 implementors["glutin_window"] = [];
 implementors["image"] = [];
 implementors["num"] = [];

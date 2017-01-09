@@ -4,11 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.12.2/src/encoder.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.13.0/src/encoder.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>encoder.rs.html -- source</title>
 
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
     <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
     
@@ -299,9 +300,6 @@
 <span id="255">255</span>
 <span id="256">256</span>
 <span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2014 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -322,14 +320,13 @@
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>deny</span>(<span class='ident'>missing_docs</span>)]</span>
 
 <span class='kw'>use</span> <span class='ident'>draw_state</span>::<span class='ident'>target</span>::{<span class='ident'>Depth</span>, <span class='ident'>Stencil</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>error</span>::<span class='ident'>Error</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>fmt</span>, <span class='ident'>mem</span>};
 
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::{<span class='ident'>Device</span>, <span class='ident'>IndexType</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::{<span class='ident'>draw</span>, <span class='ident'>format</span>, <span class='ident'>handle</span>, <span class='ident'>tex</span>};
-<span class='kw'>use</span> <span class='ident'>gfx_core</span>::<span class='ident'>factory</span>::{<span class='ident'>cast_slice</span>, <span class='ident'>Typed</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='ident'>Device</span>, <span class='ident'>IndexType</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='ident'>command</span>, <span class='ident'>format</span>, <span class='ident'>handle</span>, <span class='ident'>texture</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>memory</span>::{<span class='ident'>cast_slice</span>, <span class='ident'>Typed</span>, <span class='ident'>Pod</span>};
 <span class='kw'>use</span> <span class='ident'>slice</span>;
 <span class='kw'>use</span> <span class='ident'>pso</span>;
 
@@ -346,6 +343,7 @@
         <span class='ident'>target</span>: <span class='ident'>usize</span>,
         <span class='ident'>slice</span>: <span class='ident'>usize</span>,
     },
+    <span class='ident'>IsMapped</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='op'>+</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span><span class='op'>&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span> <span class='kw'>for</span> <span class='ident'>UpdateError</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
@@ -355,6 +353,7 @@
                 <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;Write to {} from {} is out of bounds&quot;</span>, <span class='ident'>target</span>, <span class='ident'>source</span>),
             <span class='ident'>UpdateError</span>::<span class='ident'>UnitCountMismatch</span> {<span class='kw-2'>ref</span> <span class='ident'>target</span>, <span class='kw-2'>ref</span> <span class='ident'>slice</span>} <span class='op'>=&gt;</span>
                 <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;{}: expected {}, found {}&quot;</span>, <span class='self'>self</span>.<span class='ident'>description</span>(), <span class='ident'>target</span>, <span class='ident'>slice</span>),
+            <span class='ident'>UpdateError</span>::<span class='ident'>IsMapped</span> <span class='op'>=&gt;</span> <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;Attempting to update mapped memory&quot;</span>),
         }
     }
 }
@@ -364,6 +363,7 @@
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
             <span class='ident'>UpdateError</span>::<span class='ident'>OutOfBounds</span> {..} <span class='op'>=&gt;</span> <span class='string'>&quot;Write to data is out of bounds&quot;</span>,
             <span class='ident'>UpdateError</span>::<span class='ident'>UnitCountMismatch</span> {..} <span class='op'>=&gt;</span> <span class='string'>&quot;Unit count mismatch&quot;</span>,
+            <span class='ident'>UpdateError</span>::<span class='ident'>IsMapped</span> <span class='op'>=&gt;</span> <span class='string'>&quot;Attempting to update mapped memory&quot;</span>,
         }
     }
 }
@@ -382,23 +382,25 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// The encoder exposes multiple functions that add commands to its internal `CommandBuffer`. To </span>
 <span class='doccomment'>/// submit these commands to the GPU so they can be rendered, call `flush`. </span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>draw</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>command</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> {
     <span class='ident'>command_buffer</span>: <span class='ident'>C</span>,
     <span class='ident'>raw_pso_data</span>: <span class='ident'>pso</span>::<span class='ident'>RawDataSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
+    <span class='ident'>access_info</span>: <span class='ident'>pso</span>::<span class='ident'>AccessInfo</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
     <span class='ident'>handles</span>: <span class='ident'>handle</span>::<span class='ident'>Manager</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>draw</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>command</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>C</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>combuf</span>: <span class='ident'>C</span>) <span class='op'>-&gt;</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
         <span class='ident'>Encoder</span> {
             <span class='ident'>command_buffer</span>: <span class='ident'>combuf</span>,
             <span class='ident'>raw_pso_data</span>: <span class='ident'>pso</span>::<span class='ident'>RawDataSet</span>::<span class='ident'>new</span>(),
+            <span class='ident'>access_info</span>: <span class='ident'>pso</span>::<span class='ident'>AccessInfo</span>::<span class='ident'>new</span>(),
             <span class='ident'>handles</span>: <span class='ident'>handle</span>::<span class='ident'>Manager</span>::<span class='ident'>new</span>(),
         }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>draw</span>::<span class='ident'>CommandBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span>, <span class='ident'>C</span>: <span class='ident'>command</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
     <span class='doccomment'>/// Submits the commands in this `Encoder`&#39;s internal `CommandBuffer` to the GPU, so they can</span>
     <span class='doccomment'>/// be executed. </span>
     <span class='doccomment'>/// </span>
@@ -410,28 +412,20 @@
         <span class='ident'>D</span>: <span class='ident'>Device</span><span class='op'>&lt;</span><span class='ident'>Resources</span><span class='op'>=</span><span class='ident'>R</span>, <span class='ident'>CommandBuffer</span><span class='op'>=</span><span class='ident'>C</span><span class='op'>&gt;</span>
     {
         <span class='ident'>device</span>.<span class='ident'>pin_submitted_resources</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>handles</span>);
-        <span class='ident'>device</span>.<span class='ident'>submit</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>command_buffer</span>);
+        <span class='ident'>device</span>.<span class='ident'>submit</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>command_buffer</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>access_info</span>);
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>reset</span>();
+        <span class='self'>self</span>.<span class='ident'>access_info</span>.<span class='ident'>clear</span>();
         <span class='self'>self</span>.<span class='ident'>handles</span>.<span class='ident'>clear</span>();
     }
 
-    <span class='doccomment'>/// Clone the renderer shared data but ignore the commands.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clone_empty</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Encoder</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>C</span><span class='op'>&gt;</span> {
-        <span class='ident'>Encoder</span> {
-            <span class='ident'>command_buffer</span>: <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>clone_empty</span>(),
-            <span class='ident'>raw_pso_data</span>: <span class='ident'>pso</span>::<span class='ident'>RawDataSet</span>::<span class='ident'>new</span>(),
-            <span class='ident'>handles</span>: <span class='ident'>handle</span>::<span class='ident'>Manager</span>::<span class='ident'>new</span>(),
-        }
-    }
-
     <span class='doccomment'>/// Update a buffer with a slice of data.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_buffer</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Copy</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_buffer</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Pod</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>,
                          <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>T</span>], <span class='ident'>offset_elements</span>: <span class='ident'>usize</span>)
                          <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>UpdateError</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;&gt;</span>
     {
-        <span class='kw'>if</span> <span class='ident'>data</span>.<span class='ident'>is_empty</span>() {
-            <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(())
-        }
+        <span class='kw'>if</span> <span class='ident'>data</span>.<span class='ident'>is_empty</span>() { <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(()); }
+        <span class='kw'>if</span> <span class='ident'>buf</span>.<span class='ident'>raw</span>().<span class='ident'>mapping</span>().<span class='ident'>is_some</span>() { <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>UpdateError</span>::<span class='ident'>IsMapped</span>); }
+
         <span class='kw'>let</span> <span class='ident'>elem_size</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>();
         <span class='kw'>let</span> <span class='ident'>offset_bytes</span> <span class='op'>=</span> <span class='ident'>elem_size</span> <span class='op'>*</span> <span class='ident'>offset_elements</span>;
         <span class='kw'>let</span> <span class='ident'>bound</span> <span class='op'>=</span> <span class='ident'>data</span>.<span class='ident'>len</span>().<span class='ident'>wrapping_mul</span>(<span class='ident'>elem_size</span>) <span class='op'>+</span> <span class='ident'>offset_bytes</span>;
@@ -451,6 +445,9 @@
     <span class='doccomment'>/// Update a buffer with a single structure.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_constant_buffer</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Copy</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span><span class='ident'>T</span>) {
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>slice</span>;
+
+        <span class='kw'>if</span> <span class='ident'>buf</span>.<span class='ident'>raw</span>().<span class='ident'>mapping</span>().<span class='ident'>is_some</span>() { <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;{}&quot;</span>, <span class='ident'>UpdateError</span>::<span class='ident'>IsMapped</span>::<span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>); }
+
         <span class='kw'>let</span> <span class='ident'>slice</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
             <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='ident'>data</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>T</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>u8</span>, <span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>())
         };
@@ -460,17 +457,15 @@
 
     <span class='doccomment'>/// Update the contents of a texture.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_texture</span><span class='op'>&lt;</span><span class='ident'>S</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>tex</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Texture</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span>::<span class='ident'>Surface</span><span class='op'>&gt;</span>,
-                          <span class='ident'>face</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>tex</span>::<span class='ident'>CubeFace</span><span class='op'>&gt;</span>,
-                          <span class='ident'>img</span>: <span class='ident'>tex</span>::<span class='ident'>NewImageInfo</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>S</span>::<span class='ident'>DataType</span>])
-                          <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>UpdateError</span><span class='op'>&lt;</span>[<span class='ident'>tex</span>::<span class='ident'>Size</span>; <span class='number'>3</span>]<span class='op'>&gt;&gt;</span>
+                          <span class='ident'>face</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>texture</span>::<span class='ident'>CubeFace</span><span class='op'>&gt;</span>,
+                          <span class='ident'>img</span>: <span class='ident'>texture</span>::<span class='ident'>NewImageInfo</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>S</span>::<span class='ident'>DataType</span>])
+                          <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>UpdateError</span><span class='op'>&lt;</span>[<span class='ident'>texture</span>::<span class='ident'>Size</span>; <span class='number'>3</span>]<span class='op'>&gt;&gt;</span>
     <span class='kw'>where</span>
         <span class='ident'>S</span>: <span class='ident'>format</span>::<span class='ident'>SurfaceTyped</span>,
         <span class='ident'>S</span>::<span class='ident'>DataType</span>: <span class='ident'>Copy</span>,
         <span class='ident'>T</span>: <span class='ident'>format</span>::<span class='ident'>Formatted</span><span class='op'>&lt;</span><span class='ident'>Surface</span> <span class='op'>=</span> <span class='ident'>S</span><span class='op'>&gt;</span>,
     {
-        <span class='kw'>if</span> <span class='ident'>data</span>.<span class='ident'>is_empty</span>() {
-            <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(())
-        }
+        <span class='kw'>if</span> <span class='ident'>data</span>.<span class='ident'>is_empty</span>() { <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(()); }
 
         <span class='kw'>let</span> <span class='ident'>target_count</span> <span class='op'>=</span> <span class='ident'>img</span>.<span class='ident'>get_texel_count</span>();
         <span class='kw'>if</span> <span class='ident'>target_count</span> <span class='op'>!=</span> <span class='ident'>data</span>.<span class='ident'>len</span>() {
@@ -502,12 +497,12 @@
 
     <span class='kw'>fn</span> <span class='ident'>draw_indexed</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>ty</span>: <span class='ident'>IndexType</span>,
                     <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>slice</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>base</span>: <span class='ident'>VertexCount</span>,
-                    <span class='ident'>instances</span>: <span class='ident'>draw</span>::<span class='ident'>InstanceOption</span>) {
+                    <span class='ident'>instances</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>command</span>::<span class='ident'>InstanceParams</span><span class='op'>&gt;</span>) {
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_index</span>(<span class='self'>self</span>.<span class='ident'>handles</span>.<span class='ident'>ref_buffer</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>()).<span class='ident'>clone</span>(), <span class='ident'>ty</span>);
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>call_draw_indexed</span>(<span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>slice</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>base</span>, <span class='ident'>instances</span>);
     }
 
-    <span class='kw'>fn</span> <span class='ident'>draw_slice</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>slice</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>instances</span>: <span class='ident'>draw</span>::<span class='ident'>InstanceOption</span>) {
+    <span class='kw'>fn</span> <span class='ident'>draw_slice</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>slice</span>: <span class='kw-2'>&amp;</span><span class='ident'>slice</span>::<span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>instances</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>command</span>::<span class='ident'>InstanceParams</span><span class='op'>&gt;</span>) {
         <span class='kw'>match</span> <span class='ident'>slice</span>.<span class='ident'>buffer</span> {
             <span class='ident'>slice</span>::<span class='ident'>IndexBuffer</span>::<span class='ident'>Auto</span> <span class='op'>=&gt;</span> <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>call_draw</span>(
                 <span class='ident'>slice</span>.<span class='ident'>start</span> <span class='op'>+</span> <span class='ident'>slice</span>.<span class='ident'>base_vertex</span>, <span class='ident'>slice</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='ident'>slice</span>.<span class='ident'>start</span>, <span class='ident'>instances</span>),
@@ -521,7 +516,7 @@
     <span class='doccomment'>/// Clears the supplied `RenderTargetView` to the supplied `ClearColor`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>format</span>::<span class='ident'>RenderFormat</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
                  <span class='ident'>view</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>RenderTargetView</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>value</span>: <span class='ident'>T</span>::<span class='ident'>View</span>)
-    <span class='kw'>where</span> <span class='ident'>T</span>::<span class='ident'>View</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>draw</span>::<span class='ident'>ClearColor</span><span class='op'>&gt;</span> {
+    <span class='kw'>where</span> <span class='ident'>T</span>::<span class='ident'>View</span>: <span class='ident'>Into</span><span class='op'>&lt;</span><span class='ident'>command</span>::<span class='ident'>ClearColor</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>target</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>handles</span>.<span class='ident'>ref_rtv</span>(<span class='ident'>view</span>.<span class='ident'>raw</span>()).<span class='ident'>clone</span>();
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>clear_color</span>(<span class='ident'>target</span>, <span class='ident'>value</span>.<span class='ident'>into</span>())
     }
@@ -544,12 +539,12 @@
                 <span class='ident'>pipeline</span>: <span class='kw-2'>&amp;</span><span class='ident'>pso</span>::<span class='ident'>PipelineState</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>D</span>::<span class='ident'>Meta</span><span class='op'>&gt;</span>, <span class='ident'>user_data</span>: <span class='kw-2'>&amp;</span><span class='ident'>D</span>)
     {
         <span class='kw'>let</span> (<span class='ident'>pso</span>, _) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>handles</span>.<span class='ident'>ref_pso</span>(<span class='ident'>pipeline</span>.<span class='ident'>get_handle</span>());
-        <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_pipeline_state</span>(<span class='ident'>pso</span>.<span class='ident'>clone</span>());
         <span class='comment'>//TODO: make `raw_data` a member to this struct, to re-use the heap allocation</span>
         <span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>clear</span>();
-        <span class='ident'>user_data</span>.<span class='ident'>bake_to</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>raw_pso_data</span>, <span class='ident'>pipeline</span>.<span class='ident'>get_meta</span>(), <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>handles</span>);
-        <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_vertex_buffers</span>(<span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>vertex_buffers</span>.<span class='ident'>clone</span>());
+        <span class='ident'>user_data</span>.<span class='ident'>bake_to</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>raw_pso_data</span>, <span class='ident'>pipeline</span>.<span class='ident'>get_meta</span>(), <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>handles</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>access_info</span>);
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_pixel_targets</span>(<span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>pixel_targets</span>.<span class='ident'>clone</span>());
+        <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_pipeline_state</span>(<span class='ident'>pso</span>.<span class='ident'>clone</span>());
+        <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_vertex_buffers</span>(<span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>vertex_buffers</span>.<span class='ident'>clone</span>());
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>set_ref_values</span>(<span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>ref_values</span>);
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>set_scissor</span>(<span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>scissor</span>);
         <span class='self'>self</span>.<span class='ident'>command_buffer</span>.<span class='ident'>bind_constant_buffers</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>raw_pso_data</span>.<span class='ident'>constant_buffers</span>);

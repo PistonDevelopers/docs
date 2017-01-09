@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CreationError","Error creating a buffer."],["Role","Role of the memory buffer. GLES doesn't allow chaning bind points for buffers."],["UpdateError","An error happening on buffer updates."]],"struct":[["Info","An information block that is immutable and associated to each buffer."],["Raw","Untyped buffer"]]});
