@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["enum_primitive"] = [];
 implementors["image"] = [];
 implementors["imageproc"] = [];
 implementors["num"] = [];
