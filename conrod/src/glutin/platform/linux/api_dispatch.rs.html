@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.7.1/src/platform/linux/api_dispatch.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.7.2/src/platform/linux/api_dispatch.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>api_dispatch.rs.html -- source</title>
@@ -301,9 +301,17 @@
 <span id="256">256</span>
 <span id="257">257</span>
 <span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>libc</span>;
 <span class='kw'>use</span> <span class='ident'>winit</span>;
+<span class='kw'>use</span> <span class='ident'>wayland_client</span>;
 
 <span class='kw'>use</span> <span class='ident'>ContextError</span>;
 <span class='kw'>use</span> <span class='ident'>CreationError</span>;
@@ -379,33 +387,39 @@
         _: <span class='kw-2'>&amp;</span><span class='ident'>PlatformSpecificWindowBuilderAttributes</span>,
         <span class='ident'>winit_builder</span>: <span class='ident'>winit</span>::<span class='ident'>WindowBuilder</span>,
     ) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Window</span>, <span class='ident'>CreationError</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>winit_window</span> <span class='op'>=</span> <span class='ident'>winit_builder</span>.<span class='ident'>build</span>().<span class='ident'>unwrap</span>();
-        <span class='kw'>let</span> <span class='ident'>is_x11</span> <span class='op'>=</span> <span class='ident'>winit_window</span>.<span class='ident'>get_xlib_display</span>().<span class='ident'>is_some</span>();
-        <span class='kw'>let</span> <span class='ident'>display_server</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>is_x11</span> {
-            <span class='kw'>let</span> <span class='ident'>opengl</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>clone</span>().<span class='ident'>map_sharing</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>w</span>.<span class='ident'>display_server</span> {
-                <span class='ident'>DisplayServer</span>::<span class='ident'>X</span>(<span class='kw-2'>ref</span> <span class='ident'>w</span>) <span class='op'>=&gt;</span> <span class='ident'>w</span>,
-                _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>()       <span class='comment'>// TODO: return an error</span>
-            });
-            <span class='ident'>DisplayServer</span>::<span class='ident'>X</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>x11</span>::<span class='ident'>Window</span>::<span class='ident'>new</span>(
-                <span class='ident'>pf_reqs</span>,
-                <span class='kw-2'>&amp;</span><span class='ident'>opengl</span>,
-                <span class='kw-2'>&amp;</span><span class='ident'>winit_window</span>,
-            )))
-        } <span class='kw'>else</span> {
-            <span class='kw'>let</span> <span class='ident'>opengl</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>clone</span>().<span class='ident'>map_sharing</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>w</span>.<span class='ident'>display_server</span> {
-                <span class='ident'>DisplayServer</span>::<span class='ident'>Wayland</span>(<span class='kw-2'>ref</span> <span class='ident'>w</span>) <span class='op'>=&gt;</span> <span class='ident'>w</span>,
-                _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>()       <span class='comment'>// TODO: return an error</span>
-            });
-            <span class='ident'>DisplayServer</span>::<span class='ident'>Wayland</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>wayland</span>::<span class='ident'>Window</span>::<span class='ident'>new</span>(
-                <span class='ident'>pf_reqs</span>,
-                <span class='kw-2'>&amp;</span><span class='ident'>opengl</span>,
-                <span class='kw-2'>&amp;</span><span class='ident'>winit_window</span>,
-            )))
+        <span class='kw'>let</span> <span class='ident'>window</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>wayland_client</span>::<span class='ident'>default_connect</span>() {
+            <span class='prelude-val'>Ok</span>(_) <span class='op'>=&gt;</span> {
+                <span class='kw'>let</span> <span class='ident'>opengl</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>clone</span>().<span class='ident'>map_sharing</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>w</span>.<span class='ident'>display_server</span> {
+                    <span class='ident'>DisplayServer</span>::<span class='ident'>Wayland</span>(<span class='kw-2'>ref</span> <span class='ident'>w</span>) <span class='op'>=&gt;</span> <span class='ident'>w</span>,
+                    _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>()       <span class='comment'>// TODO: return an error</span>
+                });
+                <span class='kw'>let</span> (<span class='ident'>display_server</span>, <span class='ident'>winit_window</span>) <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>wayland</span>::<span class='ident'>Window</span>::<span class='ident'>new</span>(
+                    <span class='ident'>pf_reqs</span>,
+                    <span class='kw-2'>&amp;</span><span class='ident'>opengl</span>,
+                    <span class='ident'>winit_builder</span>,
+                ));
+                <span class='ident'>Window</span> {
+                    <span class='ident'>display_server</span>: <span class='ident'>DisplayServer</span>::<span class='ident'>Wayland</span>(<span class='ident'>display_server</span>),
+                    <span class='ident'>winit_window</span>: <span class='ident'>winit_window</span>,
+                }
+            },
+            <span class='prelude-val'>Err</span>(_) <span class='op'>=&gt;</span> {
+                <span class='kw'>let</span> <span class='ident'>opengl</span> <span class='op'>=</span> <span class='ident'>opengl</span>.<span class='ident'>clone</span>().<span class='ident'>map_sharing</span>(<span class='op'>|</span><span class='ident'>w</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>w</span>.<span class='ident'>display_server</span> {
+                    <span class='ident'>DisplayServer</span>::<span class='ident'>X</span>(<span class='kw-2'>ref</span> <span class='ident'>w</span>) <span class='op'>=&gt;</span> <span class='ident'>w</span>,
+                    _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>()       <span class='comment'>// TODO: return an error</span>
+                });
+                <span class='kw'>let</span> (<span class='ident'>display_server</span>, <span class='ident'>winit_window</span>) <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>x11</span>::<span class='ident'>Window</span>::<span class='ident'>new</span>(
+                    <span class='ident'>pf_reqs</span>,
+                    <span class='kw-2'>&amp;</span><span class='ident'>opengl</span>,
+                    <span class='ident'>winit_builder</span>,
+                ));
+                <span class='ident'>Window</span> {
+                    <span class='ident'>display_server</span>: <span class='ident'>DisplayServer</span>::<span class='ident'>X</span>(<span class='ident'>display_server</span>),
+                    <span class='ident'>winit_window</span>: <span class='ident'>winit_window</span>,
+                }
+            },
         };
-        <span class='prelude-val'>Ok</span>(<span class='ident'>Window</span> {
-            <span class='ident'>display_server</span>: <span class='ident'>display_server</span>,
-            <span class='ident'>winit_window</span>: <span class='ident'>winit_window</span>,
-        })
+        <span class='prelude-val'>Ok</span>(<span class='ident'>window</span>)
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>set_title</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>title</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) {
@@ -468,11 +482,11 @@
         }
     }
 
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>platform_display</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>platform_display</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='self'>self</span>.<span class='ident'>winit_window</span>.<span class='ident'>platform_display</span>()
     }
 
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>platform_window</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
+    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>platform_window</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>libc</span>::<span class='ident'>c_void</span> {
         <span class='self'>self</span>.<span class='ident'>winit_window</span>.<span class='ident'>platform_window</span>()
     }
 
@@ -529,7 +543,7 @@
     }
 
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>get_proc_address</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>addr</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='op'>*</span><span class='kw'>const</span> () {
+    <span class='kw'>fn</span> <span class='ident'>get_proc_address</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>addr</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='kw-2'>*</span><span class='kw'>const</span> () {
         <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>display_server</span> {
             <span class='ident'>DisplayServer</span>::<span class='ident'>X</span>(<span class='kw-2'>ref</span> <span class='ident'>w</span>) <span class='op'>=&gt;</span> <span class='ident'>w</span>.<span class='ident'>get_proc_address</span>(<span class='ident'>addr</span>),
             <span class='ident'>DisplayServer</span>::<span class='ident'>Wayland</span>(<span class='kw-2'>ref</span> <span class='ident'>w</span>) <span class='op'>=&gt;</span> <span class='ident'>w</span>.<span class='ident'>get_proc_address</span>(<span class='ident'>addr</span>)
