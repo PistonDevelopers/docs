@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.5.1/src/memory.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.6.0/src/memory.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>memory.rs.html -- source</title>
@@ -146,6 +146,16 @@
 <span id="101">101</span>
 <span id="102">102</span>
 <span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2016 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -165,24 +175,22 @@
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
 
-<span class='doccomment'>/// A hint as to how this memory will be used.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The nature of these hints make them very implementation specific. Different drivers on</span>
-<span class='doccomment'>/// different hardware will handle them differently. Only careful profiling will tell which is the</span>
-<span class='doccomment'>/// best to use.</span>
+<span class='doccomment'>/// How this memory will be used.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Eq</span>, <span class='ident'>Ord</span>, <span class='ident'>PartialEq</span>, <span class='ident'>PartialOrd</span>, <span class='ident'>Hash</span>, <span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='attribute'>#[<span class='ident'>repr</span>(<span class='ident'>u8</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Usage</span> {
-    <span class='doccomment'>/// GPU: read + write, CPU: copy. Optimal for render targets.</span>
-    <span class='ident'>GpuOnly</span>,
-    <span class='doccomment'>/// GPU: read, CPU: none. Optimal for resourced memory.</span>
-    <span class='ident'>Immutable</span>,
-    <span class='doccomment'>/// GPU: read, CPU: write.</span>
+    <span class='doccomment'>/// Full speed GPU access.</span>
+    <span class='doccomment'>/// Optimal for render targets and resourced memory.</span>
+    <span class='ident'>Data</span>,
+    <span class='doccomment'>/// CPU to GPU data flow with update commands.</span>
+    <span class='doccomment'>/// Used for dynamic buffer data, typically constant buffers.</span>
     <span class='ident'>Dynamic</span>,
-    <span class='doccomment'>/// GPU: read + write, CPU: as specified.</span>
-    <span class='ident'>Persistent</span>(<span class='ident'>Access</span>),
-    <span class='doccomment'>/// GPU: copy, CPU: as specified. Used for staged memory, to be copied back and forth with on-GPU targets.</span>
-    <span class='ident'>CpuOnly</span>(<span class='ident'>Access</span>),
+    <span class='doccomment'>/// CPU to GPU data flow with mapping.</span>
+    <span class='doccomment'>/// Used for staging for upload to GPU.</span>
+    <span class='ident'>Upload</span>,
+    <span class='doccomment'>/// GPU to CPU data flow with mapping.</span>
+    <span class='doccomment'>/// Used for staging for download from GPU.</span>
+    <span class='ident'>Download</span>,
 }
 
 <span class='macro'>bitflags</span><span class='macro'>!</span>(
@@ -208,8 +216,20 @@
         <span class='kw'>const</span> <span class='ident'>SHADER_RESOURCE</span>  <span class='op'>=</span> <span class='number'>0x4</span>,
         <span class='doccomment'>/// Can be bound to the shader for writing.</span>
         <span class='kw'>const</span> <span class='ident'>UNORDERED_ACCESS</span> <span class='op'>=</span> <span class='number'>0x8</span>,
+        <span class='doccomment'>/// Can be transfered from.</span>
+        <span class='kw'>const</span> <span class='ident'>TRANSFER_SRC</span>     <span class='op'>=</span> <span class='number'>0x10</span>,
+        <span class='doccomment'>/// Can be transfered into.</span>
+        <span class='kw'>const</span> <span class='ident'>TRANSFER_DST</span>     <span class='op'>=</span> <span class='number'>0x20</span>,
     }
 );
+
+<span class='kw'>impl</span> <span class='ident'>Bind</span> {
+    <span class='doccomment'>/// Is this memory bound to be mutated ?</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_mutable</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='kw'>let</span> <span class='ident'>mutable</span> <span class='op'>=</span> <span class='ident'>TRANSFER_DST</span> <span class='op'>|</span> <span class='ident'>UNORDERED_ACCESS</span> <span class='op'>|</span> <span class='ident'>RENDER_TARGET</span> <span class='op'>|</span> <span class='ident'>DEPTH_STENCIL</span>;
+        <span class='self'>self</span>.<span class='ident'>intersects</span>(<span class='ident'>mutable</span>)
+    }
+}
 
 <span class='doccomment'>/// A service trait used to get the raw data out of strong types.</span>
 <span class='doccomment'>/// Not meant for public use.</span>
@@ -247,7 +267,7 @@
     <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>raw_len</span> <span class='op'>/</span> <span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>B</span><span class='op'>&gt;</span>();
     <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>raw_len</span>, <span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>B</span><span class='op'>&gt;</span>().<span class='ident'>wrapping_mul</span>(<span class='ident'>len</span>));
     <span class='kw'>unsafe</span> {
-        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='ident'>slice</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>B</span>, <span class='ident'>len</span>)
+        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='ident'>slice</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>B</span>, <span class='ident'>len</span>)
     }
 }
 </pre>
