@@ -13,7 +13,6 @@ implementors["image"] = [];
 implementors["lazy_static"] = [];
 implementors["libc"] = [];
 implementors["libloading"] = [];
-implementors["num"] = [];
 implementors["piston_window"] = [];
 implementors["shared_library"] = [];
 implementors["tempfile"] = [];

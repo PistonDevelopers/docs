@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_device_gl-0.12.0/src/factory.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_device_gl-0.13.0/src/factory.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>factory.rs.html -- source</title>
@@ -578,6 +578,28 @@
 <span id="533">533</span>
 <span id="534">534</span>
 <span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
 </pre><pre class='rust '>
 <span class='comment'>// Copyright 2015 The Gfx-rs Developers.</span>
 <span class='comment'>//</span>
@@ -594,27 +616,27 @@
 <span class='comment'>// limitations under the License.</span>
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>rc</span>::<span class='ident'>Rc</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>slice</span>, <span class='ident'>fmt</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>slice</span>, <span class='ident'>ptr</span>};
 
 <span class='kw'>use</span> {<span class='ident'>gl</span>, <span class='ident'>tex</span>};
-<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='self'>self</span> <span class='kw'>as</span> <span class='ident'>d</span>, <span class='ident'>factory</span> <span class='kw'>as</span> <span class='ident'>f</span>, <span class='ident'>texture</span> <span class='kw'>as</span> <span class='ident'>t</span>, <span class='ident'>buffer</span>};
+<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='self'>self</span> <span class='kw'>as</span> <span class='ident'>d</span>, <span class='ident'>factory</span> <span class='kw'>as</span> <span class='ident'>f</span>, <span class='ident'>texture</span> <span class='kw'>as</span> <span class='ident'>t</span>, <span class='ident'>buffer</span>, <span class='ident'>mapping</span>};
 <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>memory</span>::{<span class='self'>self</span>, <span class='ident'>Bind</span>, <span class='ident'>SHADER_RESOURCE</span>, <span class='ident'>UNORDERED_ACCESS</span>, <span class='ident'>Typed</span>};
 <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>format</span>::<span class='ident'>ChannelType</span>;
-<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>mapping</span>::{<span class='self'>self</span>, <span class='ident'>Builder</span>};
 <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>handle</span>::{<span class='self'>self</span>, <span class='ident'>Producer</span>};
 <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>target</span>::{<span class='ident'>Layer</span>, <span class='ident'>Level</span>};
 
 <span class='kw'>use</span> <span class='ident'>command</span>::{<span class='ident'>CommandBuffer</span>, <span class='ident'>COLOR_DEFAULT</span>};
 <span class='kw'>use</span> {<span class='ident'>Resources</span> <span class='kw'>as</span> <span class='ident'>R</span>, <span class='ident'>Share</span>, <span class='ident'>OutputMerger</span>};
 <span class='kw'>use</span> {<span class='ident'>Buffer</span>, <span class='ident'>BufferElement</span>, <span class='ident'>FatSampler</span>, <span class='ident'>NewTexture</span>,
-     <span class='ident'>PipelineState</span>, <span class='ident'>ResourceView</span>, <span class='ident'>TargetView</span>};
+     <span class='ident'>PipelineState</span>, <span class='ident'>ResourceView</span>, <span class='ident'>TargetView</span>, <span class='ident'>Fence</span>};
 
 
-<span class='kw'>fn</span> <span class='ident'>role_to_target</span>(<span class='ident'>role</span>: <span class='ident'>buffer</span>::<span class='ident'>Role</span>) <span class='op'>-&gt;</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLenum</span> {
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>role_to_target</span>(<span class='ident'>role</span>: <span class='ident'>buffer</span>::<span class='ident'>Role</span>) <span class='op'>-&gt;</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLenum</span> {
     <span class='kw'>match</span> <span class='ident'>role</span> {
         <span class='ident'>buffer</span>::<span class='ident'>Role</span>::<span class='ident'>Vertex</span>   <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>ARRAY_BUFFER</span>,
         <span class='ident'>buffer</span>::<span class='ident'>Role</span>::<span class='ident'>Index</span>    <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>ELEMENT_ARRAY_BUFFER</span>,
         <span class='ident'>buffer</span>::<span class='ident'>Role</span>::<span class='ident'>Constant</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>UNIFORM_BUFFER</span>,
+        <span class='ident'>buffer</span>::<span class='ident'>Role</span>::<span class='ident'>Staging</span>  <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>ARRAY_BUFFER</span>,
     }
 }
 
@@ -634,7 +656,7 @@
     }
 }
 
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_sub_buffer</span>(<span class='ident'>gl</span>: <span class='kw-2'>&amp;</span><span class='ident'>gl</span>::<span class='ident'>Gl</span>, <span class='ident'>buffer</span>: <span class='ident'>Buffer</span>, <span class='ident'>address</span>: <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>u8</span>,
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_sub_buffer</span>(<span class='ident'>gl</span>: <span class='kw-2'>&amp;</span><span class='ident'>gl</span>::<span class='ident'>Gl</span>, <span class='ident'>buffer</span>: <span class='ident'>Buffer</span>, <span class='ident'>address</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>u8</span>,
                          <span class='ident'>size</span>: <span class='ident'>usize</span>, <span class='ident'>offset</span>: <span class='ident'>usize</span>, <span class='ident'>role</span>: <span class='ident'>buffer</span>::<span class='ident'>Role</span>) {
     <span class='kw'>let</span> <span class='ident'>target</span> <span class='op'>=</span> <span class='ident'>role_to_target</span>(<span class='ident'>role</span>);
     <span class='kw'>unsafe</span> {
@@ -642,7 +664,7 @@
         <span class='ident'>gl</span>.<span class='ident'>BufferSubData</span>(<span class='ident'>target</span>,
             <span class='ident'>offset</span> <span class='kw'>as</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLintptr</span>,
             <span class='ident'>size</span> <span class='kw'>as</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLsizeiptr</span>,
-            <span class='ident'>address</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLvoid</span>
+            <span class='ident'>address</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLvoid</span>
         );
     }
 }
@@ -694,24 +716,25 @@
     <span class='kw'>fn</span> <span class='ident'>init_buffer</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
                    <span class='ident'>buffer</span>: <span class='ident'>Buffer</span>,
                    <span class='ident'>info</span>: <span class='kw-2'>&amp;</span><span class='ident'>buffer</span>::<span class='ident'>Info</span>,
-                   <span class='ident'>data_opt</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]<span class='op'>&gt;</span>) {
-        <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>memory</span>::<span class='ident'>Usage</span>::<span class='op'>*</span>;
+                   <span class='ident'>data_opt</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]<span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>MappingGate</span><span class='op'>&gt;</span> {
+        <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>memory</span>::<span class='ident'>Usage</span>::<span class='kw-2'>*</span>;
 
         <span class='kw'>let</span> <span class='ident'>gl</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>context</span>;
         <span class='kw'>let</span> <span class='ident'>target</span> <span class='op'>=</span> <span class='ident'>role_to_target</span>(<span class='ident'>info</span>.<span class='ident'>role</span>);
         <span class='kw'>let</span> <span class='ident'>data_ptr</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>data</span>) <span class='op'>=</span> <span class='ident'>data_opt</span> {
             <span class='macro'>debug_assert</span><span class='macro'>!</span>(<span class='ident'>data</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='ident'>info</span>.<span class='ident'>size</span>);
-            <span class='ident'>data</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLvoid</span>
+            <span class='ident'>data</span>.<span class='ident'>as_ptr</span>() <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLvoid</span>
         } <span class='kw'>else</span> {
-            <span class='number'>0</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLvoid</span>
+            <span class='number'>0</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLvoid</span>
         };
 
         <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>private_caps</span>.<span class='ident'>buffer_storage_supported</span> {
             <span class='kw'>let</span> <span class='ident'>usage</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>info</span>.<span class='ident'>usage</span> {
-                <span class='ident'>GpuOnly</span> <span class='op'>|</span> <span class='ident'>Immutable</span> <span class='op'>=&gt;</span> <span class='number'>0</span>,
+                <span class='ident'>Data</span> <span class='op'>=&gt;</span> <span class='number'>0</span>,
+                <span class='comment'>// TODO: we could use mapping instead of glBufferSubData</span>
                 <span class='ident'>Dynamic</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_STORAGE_BIT</span>,
-                <span class='ident'>Persistent</span>(<span class='ident'>access</span>) <span class='op'>=&gt;</span> <span class='ident'>access_to_map_bits</span>(<span class='ident'>access</span>) <span class='op'>|</span> <span class='ident'>gl</span>::<span class='ident'>MAP_PERSISTENT_BIT</span>,
-                <span class='ident'>CpuOnly</span>(_) <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_STORAGE_BIT</span>,
+                <span class='ident'>Upload</span> <span class='op'>=&gt;</span> <span class='ident'>access_to_map_bits</span>(<span class='ident'>memory</span>::<span class='ident'>WRITE</span>) <span class='op'>|</span> <span class='ident'>gl</span>::<span class='ident'>MAP_PERSISTENT_BIT</span>,
+                <span class='ident'>Download</span> <span class='op'>=&gt;</span> <span class='ident'>access_to_map_bits</span>(<span class='ident'>memory</span>::<span class='ident'>READ</span>) <span class='op'>|</span> <span class='ident'>gl</span>::<span class='ident'>MAP_PERSISTENT_BIT</span>,
             };
             <span class='kw'>unsafe</span> {
                 <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>buffer</span>);
@@ -724,19 +747,10 @@
         }
         <span class='kw'>else</span> {
             <span class='kw'>let</span> <span class='ident'>usage</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>info</span>.<span class='ident'>usage</span> {
-                <span class='ident'>GpuOnly</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STATIC_DRAW</span>,
-                <span class='ident'>Immutable</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STATIC_DRAW</span>,
-                <span class='ident'>Dynamic</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STREAM_DRAW</span>,
-                <span class='ident'>Persistent</span>(<span class='ident'>access</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>access</span> {
-                    <span class='ident'>memory</span>::<span class='ident'>RW</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_COPY</span>,
-                    <span class='ident'>memory</span>::<span class='ident'>READ</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_READ</span>,
-                    <span class='ident'>memory</span>::<span class='ident'>WRITE</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_DRAW</span>,
-                    _ <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
-                },
-                <span class='ident'>CpuOnly</span>(<span class='ident'>access</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>access</span> {
-                    <span class='ident'>memory</span>::<span class='ident'>READ</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STREAM_READ</span>,
-                    _ <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_DRAW</span>,
-                }
+                <span class='ident'>Data</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STATIC_DRAW</span>,
+                <span class='ident'>Dynamic</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>DYNAMIC_DRAW</span>,
+                <span class='ident'>Upload</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STREAM_DRAW</span>,
+                <span class='ident'>Download</span> <span class='op'>=&gt;</span> <span class='ident'>gl</span>::<span class='ident'>STREAM_READ</span>,
             };
             <span class='kw'>unsafe</span> {
                 <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>buffer</span>);
@@ -747,36 +761,74 @@
                 );
             }
         }
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>check</span>() {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Error {:?} creating buffer: {:?}&quot;</span>, <span class='ident'>err</span>, <span class='ident'>info</span>)
+        }
+
+        <span class='kw'>let</span> <span class='ident'>mapping_access</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>info</span>.<span class='ident'>usage</span> {
+            <span class='ident'>Data</span> <span class='op'>|</span> <span class='ident'>Dynamic</span> <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+            <span class='ident'>Upload</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>memory</span>::<span class='ident'>WRITE</span>),
+            <span class='ident'>Download</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>memory</span>::<span class='ident'>READ</span>),
+        };
+
+        <span class='ident'>mapping_access</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>access</span><span class='op'>|</span> {
+            <span class='kw'>let</span> (<span class='ident'>kind</span>, <span class='ident'>ptr</span>) <span class='op'>=</span> <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>private_caps</span>.<span class='ident'>buffer_storage_supported</span> {
+                <span class='kw'>let</span> <span class='ident'>gl_access</span> <span class='op'>=</span> <span class='ident'>access_to_map_bits</span>(<span class='ident'>access</span>) <span class='op'>|</span>
+                                <span class='ident'>gl</span>::<span class='ident'>MAP_PERSISTENT_BIT</span> <span class='op'>|</span>
+                                <span class='ident'>gl</span>::<span class='ident'>MAP_FLUSH_EXPLICIT_BIT</span>;
+                <span class='kw'>let</span> <span class='ident'>size</span> <span class='op'>=</span> <span class='ident'>info</span>.<span class='ident'>size</span> <span class='kw'>as</span> <span class='ident'>isize</span>;
+                <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
+                    <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>buffer</span>);
+                    <span class='ident'>gl</span>.<span class='ident'>MapBufferRange</span>(<span class='ident'>target</span>, <span class='number'>0</span>, <span class='ident'>size</span>, <span class='ident'>gl_access</span>)
+                } <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>;
+                (<span class='ident'>MappingKind</span>::<span class='ident'>Persistent</span>(<span class='ident'>mapping</span>::<span class='ident'>Status</span>::<span class='ident'>clean</span>()), <span class='ident'>ptr</span>)
+            } <span class='kw'>else</span> {
+                (<span class='ident'>MappingKind</span>::<span class='ident'>Temporary</span>, <span class='ident'>ptr</span>::<span class='ident'>null_mut</span>())
+            };
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>check</span>() {
+                <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Error {:?} mapping buffer: {:?}, with access: {:?}&quot;</span>,
+                       <span class='ident'>err</span>, <span class='ident'>info</span>, <span class='ident'>access</span>)
+            }
+
+            <span class='ident'>MappingGate</span> {
+                <span class='ident'>kind</span>: <span class='ident'>kind</span>,
+                <span class='ident'>pointer</span>: <span class='ident'>ptr</span>,
+            }
+        })
     }
 
     <span class='kw'>fn</span> <span class='ident'>create_program_raw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>shader_set</span>: <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>ShaderSet</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>)
-                              <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(<span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLuint</span>, <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span>), <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>CreateProgramError</span><span class='op'>&gt;</span> {
+                          <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(<span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLuint</span>, <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>ProgramInfo</span>), <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>CreateProgramError</span><span class='op'>&gt;</span> {
         <span class='kw'>use</span> <span class='ident'>shade</span>::<span class='ident'>create_program</span>;
         <span class='kw'>let</span> <span class='ident'>frame_handles</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>frame_handles</span>;
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>shaders</span> <span class='op'>=</span> [<span class='number'>0</span>; <span class='number'>5</span>];
         <span class='kw'>let</span> <span class='ident'>usage</span> <span class='op'>=</span> <span class='ident'>shader_set</span>.<span class='ident'>get_usage</span>();
         <span class='kw'>let</span> <span class='ident'>shader_slice</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>shader_set</span> {
             <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>ShaderSet</span>::<span class='ident'>Simple</span>(<span class='kw-2'>ref</span> <span class='ident'>vs</span>, <span class='kw-2'>ref</span> <span class='ident'>ps</span>) <span class='op'>=&gt;</span> {
-                <span class='ident'>shaders</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>vs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
-                <span class='ident'>shaders</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>ps</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>vs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>ps</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
                 <span class='kw-2'>&amp;</span><span class='ident'>shaders</span>[..<span class='number'>2</span>]
             },
             <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>ShaderSet</span>::<span class='ident'>Geometry</span>(<span class='kw-2'>ref</span> <span class='ident'>vs</span>, <span class='kw-2'>ref</span> <span class='ident'>gs</span>, <span class='kw-2'>ref</span> <span class='ident'>ps</span>) <span class='op'>=&gt;</span> {
-                <span class='ident'>shaders</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>vs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
-                <span class='ident'>shaders</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>gs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
-                <span class='ident'>shaders</span>[<span class='number'>2</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>ps</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>vs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>gs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>2</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>ps</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
                 <span class='kw-2'>&amp;</span><span class='ident'>shaders</span>[..<span class='number'>3</span>]
             },
             <span class='kw-2'>&amp;</span><span class='ident'>d</span>::<span class='ident'>ShaderSet</span>::<span class='ident'>Tessellated</span>(<span class='kw-2'>ref</span> <span class='ident'>vs</span>, <span class='kw-2'>ref</span> <span class='ident'>hs</span>, <span class='kw-2'>ref</span> <span class='ident'>ds</span>, <span class='kw-2'>ref</span> <span class='ident'>ps</span>) <span class='op'>=&gt;</span> {
-                <span class='ident'>shaders</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>vs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
-                <span class='ident'>shaders</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>hs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
-                <span class='ident'>shaders</span>[<span class='number'>2</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>ds</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
-                <span class='ident'>shaders</span>[<span class='number'>3</span>] <span class='op'>=</span> <span class='op'>*</span><span class='ident'>ps</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>vs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>hs</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>2</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>ds</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
+                <span class='ident'>shaders</span>[<span class='number'>3</span>] <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>ps</span>.<span class='ident'>reference</span>(<span class='ident'>frame_handles</span>);
                 <span class='kw-2'>&amp;</span><span class='ident'>shaders</span>[..<span class='number'>4</span>]
             },
         };
-        <span class='ident'>create_program</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>context</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>capabilities</span>,
-                       <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>private_caps</span>, <span class='ident'>shader_slice</span>, <span class='ident'>usage</span>)
+        <span class='kw'>let</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='ident'>create_program</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>context</span>, <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>capabilities</span>,
+                                    <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>private_caps</span>, <span class='ident'>shader_slice</span>, <span class='ident'>usage</span>);
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>check</span>() {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Error {:?} creating program: {:?}&quot;</span>, <span class='ident'>err</span>, <span class='ident'>shader_set</span>)
+        }
+        <span class='ident'>result</span>
     }
 
     <span class='kw'>fn</span> <span class='ident'>view_texture_as_target</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>htex</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>RawTexture</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>level</span>: <span class='ident'>Level</span>, <span class='ident'>layer</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Layer</span><span class='op'>&gt;</span>)
@@ -791,78 +843,61 @@
     }
 }
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>MappingKind</span> {
-    <span class='ident'>Persistent</span>,
+    <span class='ident'>Persistent</span>(<span class='ident'>mapping</span>::<span class='ident'>Status</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>),
     <span class='ident'>Temporary</span>,
 }
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>Eq</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>missing_copy_implementations</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>MappingGate</span> {
     <span class='kw'>pub</span> <span class='ident'>kind</span>: <span class='ident'>MappingKind</span>,
-    <span class='kw'>pub</span> <span class='ident'>pointer</span>: <span class='op'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>,
-    <span class='kw'>pub</span> <span class='ident'>target</span>: <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLenum</span>,
-    <span class='kw'>pub</span> <span class='ident'>is_mapped</span>: <span class='ident'>bool</span>,
-    <span class='kw'>pub</span> <span class='ident'>share</span>: <span class='ident'>Rc</span><span class='op'>&lt;</span><span class='ident'>Share</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='ident'>pointer</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>,
 }
 
-<span class='kw'>fn</span> <span class='ident'>temporary_ensure_mapped</span>(<span class='ident'>inner</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mapping</span>::<span class='ident'>RawInner</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
-    <span class='kw'>let</span> <span class='ident'>gl</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>share</span>.<span class='ident'>context</span>;
-    <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>is_mapped</span> {
-        <span class='kw'>let</span> <span class='ident'>access</span> <span class='op'>=</span> <span class='ident'>access_to_gl</span>(<span class='ident'>inner</span>.<span class='ident'>access</span>);
-        <span class='kw'>unsafe</span> {
-            <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>target</span>, <span class='op'>*</span><span class='ident'>inner</span>.<span class='ident'>buffer</span>.<span class='ident'>resource</span>());
-            <span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>pointer</span> <span class='op'>=</span> <span class='ident'>gl</span>.<span class='ident'>MapBuffer</span>(<span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>target</span>, <span class='ident'>access</span>)
-                <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>;
-        }
-
-        <span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>is_mapped</span> <span class='op'>=</span> <span class='bool-val'>true</span>;
-    }
-}
-
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>temporary_ensure_unmapped</span>(<span class='ident'>inner</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mapping</span>::<span class='ident'>RawInner</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
-    <span class='kw'>let</span> <span class='ident'>gl</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>share</span>.<span class='ident'>context</span>;
-    <span class='kw'>if</span> <span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>is_mapped</span> {
-        <span class='kw'>unsafe</span> {
-            <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>target</span>, <span class='op'>*</span><span class='ident'>inner</span>.<span class='ident'>buffer</span>.<span class='ident'>resource</span>());
-            <span class='ident'>gl</span>.<span class='ident'>UnmapBuffer</span>(<span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>target</span>);
-        }
-
-        <span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>is_mapped</span> <span class='op'>=</span> <span class='bool-val'>false</span>;
-    }
-}
+<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>MappingGate</span> {}
+<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>MappingGate</span> {}
 
 <span class='kw'>impl</span> <span class='ident'>mapping</span>::<span class='ident'>Gate</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>MappingGate</span> {
     <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>set</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>index</span>: <span class='ident'>usize</span>, <span class='ident'>val</span>: <span class='ident'>T</span>) {
-        <span class='op'>*</span>(<span class='self'>self</span>.<span class='ident'>pointer</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>).<span class='ident'>offset</span>(<span class='ident'>index</span> <span class='kw'>as</span> <span class='ident'>isize</span>) <span class='op'>=</span> <span class='ident'>val</span>;
+        <span class='kw-2'>*</span>(<span class='self'>self</span>.<span class='ident'>pointer</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>).<span class='ident'>offset</span>(<span class='ident'>index</span> <span class='kw'>as</span> <span class='ident'>isize</span>) <span class='op'>=</span> <span class='ident'>val</span>;
     }
 
     <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>slice</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>len</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> [<span class='ident'>T</span>] {
-        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='self'>self</span>.<span class='ident'>pointer</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw'>const</span> <span class='ident'>T</span>, <span class='ident'>len</span>)
+        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='self'>self</span>.<span class='ident'>pointer</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>T</span>, <span class='ident'>len</span>)
     }
 
     <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>mut_slice</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>len</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='kw-2'>mut</span> [<span class='ident'>T</span>] {
-        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts_mut</span>(<span class='self'>self</span>.<span class='ident'>pointer</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='ident'>len</span>)
+        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts_mut</span>(<span class='self'>self</span>.<span class='ident'>pointer</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>T</span>, <span class='ident'>len</span>)
     }
+}
 
-    <span class='kw'>fn</span> <span class='ident'>before_read</span>(<span class='ident'>inner</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mapping</span>::<span class='ident'>RawInner</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
-        <span class='kw'>match</span> <span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>kind</span> {
-            <span class='ident'>MappingKind</span>::<span class='ident'>Temporary</span> <span class='op'>=&gt;</span> <span class='ident'>temporary_ensure_mapped</span>(<span class='ident'>inner</span>),
-            <span class='ident'>MappingKind</span>::<span class='ident'>Persistent</span> <span class='op'>=&gt;</span> (),
-        }
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>before_write</span>(<span class='ident'>inner</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mapping</span>::<span class='ident'>RawInner</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>) {
-        <span class='kw'>match</span> <span class='ident'>inner</span>.<span class='ident'>resource</span>.<span class='ident'>kind</span> {
-            <span class='ident'>MappingKind</span>::<span class='ident'>Temporary</span> <span class='op'>=&gt;</span> <span class='ident'>temporary_ensure_mapped</span>(<span class='ident'>inner</span>),
-            <span class='ident'>MappingKind</span>::<span class='ident'>Persistent</span> <span class='op'>=&gt;</span> (),
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>temporary_ensure_mapped</span>(<span class='ident'>pointer</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>,
+                               <span class='ident'>target</span>: <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLenum</span>,
+                               <span class='ident'>buffer</span>: <span class='ident'>Buffer</span>,
+                               <span class='ident'>access</span>: <span class='ident'>memory</span>::<span class='ident'>Access</span>,
+                               <span class='ident'>gl</span>: <span class='kw-2'>&amp;</span><span class='ident'>gl</span>::<span class='ident'>Gl</span>) {
+    <span class='kw'>if</span> <span class='ident'>pointer</span>.<span class='ident'>is_null</span>() {
+        <span class='kw'>unsafe</span> {
+            <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>buffer</span>);
+            <span class='kw-2'>*</span><span class='ident'>pointer</span> <span class='op'>=</span> <span class='ident'>gl</span>.<span class='ident'>MapBuffer</span>(<span class='ident'>target</span>, <span class='ident'>access_to_gl</span>(<span class='ident'>access</span>))
+                <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>;
         }
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>MappingGate</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;MappingGate {{ kind: {:?}, pointer: {:?}, target: {:?}, is_mapped: {:?} , .. }}&quot;</span>, <span class='self'>self</span>.<span class='ident'>kind</span>, <span class='self'>self</span>.<span class='ident'>pointer</span>, <span class='self'>self</span>.<span class='ident'>target</span>, <span class='self'>self</span>.<span class='ident'>is_mapped</span>)
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>temporary_ensure_unmapped</span>(<span class='ident'>pointer</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>,
+                                 <span class='ident'>target</span>: <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLenum</span>,
+                                 <span class='ident'>buffer</span>: <span class='ident'>Buffer</span>,
+                                 <span class='ident'>gl</span>: <span class='kw-2'>&amp;</span><span class='ident'>gl</span>::<span class='ident'>Gl</span>) {
+    <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>pointer</span>.<span class='ident'>is_null</span>() {
+        <span class='kw'>unsafe</span> {
+            <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>buffer</span>);
+            <span class='ident'>gl</span>.<span class='ident'>UnmapBuffer</span>(<span class='ident'>target</span>);
+        }
+
+        <span class='kw-2'>*</span><span class='ident'>pointer</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>null_mut</span>();
     }
 }
 
@@ -877,8 +912,8 @@
             <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>buffer</span>::<span class='ident'>CreationError</span>::<span class='ident'>Other</span>);
         }
         <span class='kw'>let</span> <span class='ident'>name</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>create_buffer_internal</span>();
-        <span class='self'>self</span>.<span class='ident'>init_buffer</span>(<span class='ident'>name</span>, <span class='kw-2'>&amp;</span><span class='ident'>info</span>, <span class='prelude-val'>None</span>);
-        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_buffer</span>(<span class='ident'>name</span>, <span class='ident'>info</span>))
+        <span class='kw'>let</span> <span class='ident'>mapping</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>init_buffer</span>(<span class='ident'>name</span>, <span class='kw-2'>&amp;</span><span class='ident'>info</span>, <span class='prelude-val'>None</span>);
+        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_buffer</span>(<span class='ident'>name</span>, <span class='ident'>info</span>, <span class='ident'>mapping</span>))
     }
 
     <span class='kw'>fn</span> <span class='ident'>create_buffer_immutable_raw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>stride</span>: <span class='ident'>usize</span>, <span class='ident'>role</span>: <span class='ident'>buffer</span>::<span class='ident'>Role</span>, <span class='ident'>bind</span>: <span class='ident'>Bind</span>)
@@ -886,13 +921,13 @@
         <span class='kw'>let</span> <span class='ident'>name</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>create_buffer_internal</span>();
         <span class='kw'>let</span> <span class='ident'>info</span> <span class='op'>=</span> <span class='ident'>buffer</span>::<span class='ident'>Info</span> {
             <span class='ident'>role</span>: <span class='ident'>role</span>,
-            <span class='ident'>usage</span>: <span class='ident'>memory</span>::<span class='ident'>Usage</span>::<span class='ident'>Immutable</span>,
+            <span class='ident'>usage</span>: <span class='ident'>memory</span>::<span class='ident'>Usage</span>::<span class='ident'>Data</span>,
             <span class='ident'>bind</span>: <span class='ident'>bind</span>,
             <span class='ident'>size</span>: <span class='ident'>data</span>.<span class='ident'>len</span>(),
             <span class='ident'>stride</span>: <span class='ident'>stride</span>,
         };
-        <span class='self'>self</span>.<span class='ident'>init_buffer</span>(<span class='ident'>name</span>, <span class='kw-2'>&amp;</span><span class='ident'>info</span>, <span class='prelude-val'>Some</span>(<span class='ident'>data</span>));
-        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_buffer</span>(<span class='ident'>name</span>, <span class='ident'>info</span>))
+        <span class='kw'>let</span> <span class='ident'>mapping</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>init_buffer</span>(<span class='ident'>name</span>, <span class='kw-2'>&amp;</span><span class='ident'>info</span>, <span class='prelude-val'>Some</span>(<span class='ident'>data</span>));
+        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_buffer</span>(<span class='ident'>name</span>, <span class='ident'>info</span>, <span class='ident'>mapping</span>))
     }
 
     <span class='kw'>fn</span> <span class='ident'>create_shader</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>stage</span>: <span class='ident'>d</span>::<span class='ident'>shade</span>::<span class='ident'>Stage</span>, <span class='ident'>code</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>])
@@ -948,7 +983,7 @@
             });
         }
         <span class='kw'>let</span> <span class='ident'>pso</span> <span class='op'>=</span> <span class='ident'>PipelineState</span> {
-            <span class='ident'>program</span>: <span class='op'>*</span><span class='self'>self</span>.<span class='ident'>frame_handles</span>.<span class='ident'>ref_program</span>(<span class='ident'>program</span>),
+            <span class='ident'>program</span>: <span class='kw-2'>*</span><span class='self'>self</span>.<span class='ident'>frame_handles</span>.<span class='ident'>ref_program</span>(<span class='ident'>program</span>),
             <span class='ident'>primitive</span>: <span class='ident'>desc</span>.<span class='ident'>primitive</span>,
             <span class='ident'>input</span>: <span class='ident'>inputs</span>,
             <span class='ident'>scissor</span>: <span class='ident'>desc</span>.<span class='ident'>scissor</span>,
@@ -989,6 +1024,9 @@
             <span class='kw'>let</span> <span class='ident'>name</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>tex</span>::<span class='ident'>make_surface</span>(<span class='ident'>gl</span>, <span class='kw-2'>&amp;</span><span class='ident'>desc</span>, <span class='ident'>cty</span>));
             <span class='ident'>NewTexture</span>::<span class='ident'>Surface</span>(<span class='ident'>name</span>)
         };
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>check</span>() {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Error {:?} creating texture: {:?}, hint: {:?}&quot;</span>, <span class='ident'>err</span>, <span class='ident'>desc</span>, <span class='ident'>hint</span>)
+        }
         <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_texture</span>(<span class='ident'>object</span>, <span class='ident'>desc</span>))
     }
 
@@ -996,7 +1034,7 @@
                                       <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>handle</span>::<span class='ident'>RawShaderResourceView</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>f</span>::<span class='ident'>ResourceViewError</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>gl</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>context</span>;
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>name</span> <span class='op'>=</span> <span class='number'>0</span> <span class='kw'>as</span> <span class='ident'>gl</span>::<span class='ident'>types</span>::<span class='ident'>GLuint</span>;
-        <span class='kw'>let</span> <span class='ident'>buf_name</span> <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>.<span class='ident'>frame_handles</span>.<span class='ident'>ref_buffer</span>(<span class='ident'>hbuf</span>);
+        <span class='kw'>let</span> <span class='ident'>buf_name</span> <span class='op'>=</span> <span class='kw-2'>*</span><span class='self'>self</span>.<span class='ident'>frame_handles</span>.<span class='ident'>ref_buffer</span>(<span class='ident'>hbuf</span>);
         <span class='kw'>let</span> <span class='ident'>format</span> <span class='op'>=</span> <span class='ident'>gl</span>::<span class='ident'>R8</span>; <span class='comment'>//TODO: get from the buffer handle</span>
         <span class='kw'>unsafe</span> {
             <span class='ident'>gl</span>.<span class='ident'>GenTextures</span>(<span class='number'>1</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>name</span>);
@@ -1004,6 +1042,9 @@
             <span class='ident'>gl</span>.<span class='ident'>TexBuffer</span>(<span class='ident'>gl</span>::<span class='ident'>TEXTURE_BUFFER</span>, <span class='ident'>format</span>, <span class='ident'>buf_name</span>);
         }
         <span class='kw'>let</span> <span class='ident'>view</span> <span class='op'>=</span> <span class='ident'>ResourceView</span>::<span class='ident'>new_buffer</span>(<span class='ident'>name</span>);
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>check</span>() {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Error {:?} creating buffer SRV: {:?}&quot;</span>, <span class='ident'>err</span>, <span class='ident'>hbuf</span>.<span class='ident'>get_info</span>())
+        }
         <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_buffer_srv</span>(<span class='ident'>view</span>, <span class='ident'>hbuf</span>))
     }
 
@@ -1057,61 +1098,64 @@
             <span class='ident'>object</span>: <span class='ident'>name</span>,
             <span class='ident'>info</span>: <span class='ident'>info</span>.<span class='ident'>clone</span>(),
         };
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>err</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>check</span>() {
+            <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Error {:?} creating sampler: {:?}&quot;</span>, <span class='ident'>err</span>, <span class='ident'>info</span>)
+        }
         <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_sampler</span>(<span class='ident'>sam</span>, <span class='ident'>info</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>map_buffer_raw</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>RawBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>access</span>: <span class='ident'>memory</span>::<span class='ident'>Access</span>)
-                      <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>handle</span>::<span class='ident'>RawMapping</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>read_mapping</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>)
+                               <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Reader</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span>, <span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>,
+                                         <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
+        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Copy</span>
+    {
         <span class='kw'>let</span> <span class='ident'>gl</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>context</span>;
-
-        <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>handles</span>.<span class='ident'>borrow_mut</span>().<span class='ident'>make_mapping</span>(<span class='ident'>access</span>, <span class='ident'>buf</span>, <span class='op'>||</span> {
-            <span class='kw'>let</span> <span class='ident'>raw_handle</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>buf</span>.<span class='ident'>resource</span>();
-
-            <span class='kw'>let</span> <span class='ident'>target</span> <span class='op'>=</span> <span class='ident'>role_to_target</span>(<span class='ident'>buf</span>.<span class='ident'>get_info</span>().<span class='ident'>role</span>);
-            <span class='kw'>let</span> (<span class='ident'>kind</span>, <span class='ident'>ptr</span>) <span class='op'>=</span> <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>private_caps</span>.<span class='ident'>buffer_storage_supported</span> {
-                <span class='kw'>let</span> <span class='ident'>access</span> <span class='op'>=</span> <span class='ident'>access_to_map_bits</span>(<span class='ident'>access</span>) <span class='op'>|</span>
-                            <span class='ident'>gl</span>::<span class='ident'>MAP_PERSISTENT_BIT</span> <span class='op'>|</span>
-                            <span class='ident'>gl</span>::<span class='ident'>MAP_FLUSH_EXPLICIT_BIT</span>;
-                <span class='kw'>let</span> <span class='ident'>size</span> <span class='op'>=</span> <span class='ident'>buf</span>.<span class='ident'>get_info</span>().<span class='ident'>size</span> <span class='kw'>as</span> <span class='ident'>isize</span>;
-                <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-                    <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>raw_handle</span>);
-                    <span class='ident'>gl</span>.<span class='ident'>MapBufferRange</span>(<span class='ident'>target</span>, <span class='number'>0</span>, <span class='ident'>size</span>, <span class='ident'>access</span>)
-                } <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>;
-                (<span class='ident'>MappingKind</span>::<span class='ident'>Persistent</span>, <span class='ident'>ptr</span>)
-            } <span class='kw'>else</span> {
-                <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-                    <span class='ident'>gl</span>.<span class='ident'>BindBuffer</span>(<span class='ident'>target</span>, <span class='ident'>raw_handle</span>);
-                    <span class='ident'>gl</span>.<span class='ident'>MapBuffer</span>(<span class='ident'>target</span>, <span class='ident'>access_to_gl</span>(<span class='ident'>access</span>))
-                } <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> ::<span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>;
-                (<span class='ident'>MappingKind</span>::<span class='ident'>Temporary</span>, <span class='ident'>ptr</span>)
-            };
-
-            <span class='ident'>MappingGate</span> {
-                <span class='ident'>kind</span>: <span class='ident'>kind</span>,
-                <span class='ident'>pointer</span>: <span class='ident'>ptr</span>,
-                <span class='ident'>target</span>: <span class='ident'>target</span>,
-                <span class='ident'>is_mapped</span>: <span class='bool-val'>true</span>,
-                <span class='ident'>share</span>: <span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>clone</span>(),
-            }
-        })
+        <span class='kw'>let</span> <span class='ident'>handles</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>frame_handles</span>;
+        <span class='kw'>unsafe</span> {
+            <span class='ident'>mapping</span>::<span class='ident'>read</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>(), <span class='op'>|</span><span class='ident'>mapping</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>mapping</span>.<span class='ident'>kind</span> {
+                <span class='ident'>MappingKind</span>::<span class='ident'>Persistent</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>status</span>) <span class='op'>=&gt;</span>
+                    <span class='ident'>status</span>.<span class='ident'>cpu_access</span>(<span class='op'>|</span><span class='ident'>fence</span><span class='op'>|</span> <span class='ident'>wait_fence</span>(<span class='kw-2'>&amp;</span><span class='ident'>handles</span>.<span class='ident'>ref_fence</span>(<span class='kw-2'>&amp;</span><span class='ident'>fence</span>), <span class='ident'>gl</span>)),
+                <span class='ident'>MappingKind</span>::<span class='ident'>Temporary</span> <span class='op'>=&gt;</span>
+                    <span class='ident'>temporary_ensure_mapped</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mapping</span>.<span class='ident'>pointer</span>,
+                                            <span class='ident'>role_to_target</span>(<span class='ident'>buf</span>.<span class='ident'>get_info</span>().<span class='ident'>role</span>),
+                                            <span class='kw-2'>*</span><span class='ident'>buf</span>.<span class='ident'>raw</span>().<span class='ident'>resource</span>(),
+                                            <span class='ident'>memory</span>::<span class='ident'>READ</span>,
+                                            <span class='ident'>gl</span>),
+            })
+        }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>map_buffer_readable</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Copy</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>)
-                                    <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Readable</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>map</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>map_buffer_raw</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>(), <span class='ident'>memory</span>::<span class='ident'>READ</span>));
-        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>map_readable</span>(<span class='ident'>map</span>, <span class='ident'>buf</span>.<span class='ident'>len</span>()))
+    <span class='kw'>fn</span> <span class='ident'>write_mapping</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>)
+                                <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Writer</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span>, <span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>,
+                                          <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
+        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Copy</span>
+    {
+        <span class='kw'>let</span> <span class='ident'>gl</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>share</span>.<span class='ident'>context</span>;
+        <span class='kw'>let</span> <span class='ident'>handles</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>frame_handles</span>;
+        <span class='kw'>unsafe</span> {
+            <span class='ident'>mapping</span>::<span class='ident'>write</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>(), <span class='op'>|</span><span class='ident'>mapping</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>mapping</span>.<span class='ident'>kind</span> {
+                <span class='ident'>MappingKind</span>::<span class='ident'>Persistent</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>status</span>) <span class='op'>=&gt;</span>
+                    <span class='ident'>status</span>.<span class='ident'>cpu_write_access</span>(<span class='op'>|</span><span class='ident'>fence</span><span class='op'>|</span> <span class='ident'>wait_fence</span>(<span class='kw-2'>&amp;</span><span class='ident'>handles</span>.<span class='ident'>ref_fence</span>(<span class='kw-2'>&amp;</span><span class='ident'>fence</span>), <span class='ident'>gl</span>)),
+                <span class='ident'>MappingKind</span>::<span class='ident'>Temporary</span> <span class='op'>=&gt;</span>
+                    <span class='ident'>temporary_ensure_mapped</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>mapping</span>.<span class='ident'>pointer</span>,
+                                            <span class='ident'>role_to_target</span>(<span class='ident'>buf</span>.<span class='ident'>get_info</span>().<span class='ident'>role</span>),
+                                            <span class='kw-2'>*</span><span class='ident'>buf</span>.<span class='ident'>raw</span>().<span class='ident'>resource</span>(),
+                                            <span class='ident'>memory</span>::<span class='ident'>WRITE</span>,
+                                            <span class='ident'>gl</span>),
+            })
+        }
     }
+}
 
-    <span class='kw'>fn</span> <span class='ident'>map_buffer_writable</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Copy</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>)
-                                    <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>Writable</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>map</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>map_buffer_raw</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>(), <span class='ident'>memory</span>::<span class='ident'>WRITE</span>));
-        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>map_writable</span>(<span class='ident'>map</span>, <span class='ident'>buf</span>.<span class='ident'>len</span>()))
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>map_buffer_rw</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Copy</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>)
-                              <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>mapping</span>::<span class='ident'>RWable</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>mapping</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>map</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>map_buffer_raw</span>(<span class='ident'>buf</span>.<span class='ident'>raw</span>(), <span class='ident'>memory</span>::<span class='ident'>RW</span>));
-        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>.<span class='ident'>map_read_write</span>(<span class='ident'>map</span>, <span class='ident'>buf</span>.<span class='ident'>len</span>()))
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>wait_fence</span>(<span class='ident'>fence</span>: <span class='kw-2'>&amp;</span><span class='ident'>Fence</span>, <span class='ident'>gl</span>: <span class='kw-2'>&amp;</span><span class='ident'>gl</span>::<span class='ident'>Gl</span>) {
+    <span class='kw'>let</span> <span class='ident'>timeout</span> <span class='op'>=</span> <span class='number'>1_000_000_000_000</span>;
+    <span class='comment'>// TODO: use the return value of this call</span>
+    <span class='comment'>// TODO:</span>
+    <span class='comment'>// This can be called by multiple objects wanting to ensure they have exclusive</span>
+    <span class='comment'>// access to a resource. How much does this call costs ? The status of the fence</span>
+    <span class='comment'>// could be cached to avoid calling this more than once (in core or in the backend ?).</span>
+    <span class='kw'>unsafe</span> {
+        <span class='ident'>gl</span>.<span class='ident'>ClientWaitSync</span>(<span class='ident'>fence</span>.<span class='number'>0</span>, <span class='ident'>gl</span>::<span class='ident'>SYNC_FLUSH_COMMANDS_BIT</span>, <span class='ident'>timeout</span>);
     }
 }
 </pre>
