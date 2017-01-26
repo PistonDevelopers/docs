@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["Ask",""],["Copy",""],["Move",""],["None",""]],"struct":[["DndAction","drag and drop actions"],["WlDataDeviceManager",""]]});

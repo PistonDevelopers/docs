@@ -1,6 +1,5 @@
 (function() {var implementors = {};
 implementors["conrod"] = [];
-implementors["image"] = [];
 implementors["num"] = [];
 
             if (window.register_implementors) {

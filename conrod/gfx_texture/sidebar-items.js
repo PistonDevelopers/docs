@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Flip","Flip settings."]],"struct":[["Texture","Represents a texture."]]});

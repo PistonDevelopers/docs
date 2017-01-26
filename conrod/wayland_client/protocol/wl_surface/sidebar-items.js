@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error","wl_surface error values"]],"struct":[["WlSurface",""]],"trait":[["Handler",""]]});

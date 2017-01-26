@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["ChunksMutIter",""],["SliceChunksMutProducer",""],["SliceIterMut",""],["SliceMutProducer","////////////////////////////////////////////////////////////////////////"]]});

@@ -1,7 +1,5 @@
 (function() {var implementors = {};
 implementors["conrod"] = [];
-implementors["glutin_window"] = [];
-implementors["image"] = [];
 implementors["num"] = [];
 implementors["rustc_serialize"] = [];
 

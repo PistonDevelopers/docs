@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Bundle","Slice-PSO bundle."]]});

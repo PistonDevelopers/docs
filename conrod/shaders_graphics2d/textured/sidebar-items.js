@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["FRAGMENT_GLSL_120","Fragment shader for GLSL 1.20"],["FRAGMENT_GLSL_150_CORE","Fragment shader for GLSL 1.50"],["VERTEX_GLSL_120","Vertex shader for GLSL 1.20"],["VERTEX_GLSL_150_CORE","Vertex shader for GLSL 1.50"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["MappedKeyboardError",""]],"mod":[["keysyms",""]],"struct":[["MappedKeyboard","A wayland keyboard mapped to its keymap"]],"trait":[["Handler",""]]});

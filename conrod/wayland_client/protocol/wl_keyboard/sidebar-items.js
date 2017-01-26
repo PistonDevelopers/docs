@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["KeyState","physical key state"],["KeymapFormat","keyboard mapping format"]],"struct":[["WlKeyboard",""]],"trait":[["Handler",""]]});
