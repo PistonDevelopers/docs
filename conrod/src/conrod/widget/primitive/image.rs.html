@@ -174,10 +174,21 @@
 <span id="129">129</span>
 <span id="130">130</span>
 <span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A simple, non-interactive widget for drawing an `Image`.</span>
 
 <span class='kw'>use</span> {<span class='ident'>Color</span>, <span class='ident'>Dimension</span>, <span class='ident'>Rect</span>, <span class='ident'>Widget</span>, <span class='ident'>Ui</span>};
+<span class='kw'>use</span> <span class='ident'>image</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>;
 
 
@@ -186,6 +197,8 @@
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Image</span> {
     <span class='doccomment'>/// Data necessary and common for all widget builder types.</span>
     <span class='kw'>pub</span> <span class='ident'>common</span>: <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span>,
+    <span class='doccomment'>/// The unique identifier for the image that will be drawn.</span>
+    <span class='kw'>pub</span> <span class='ident'>image_id</span>: <span class='ident'>image</span>::<span class='ident'>Id</span>,
     <span class='doccomment'>/// The rectangle area of the original source image that should be used.</span>
     <span class='kw'>pub</span> <span class='ident'>src_rect</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Unique styling.</span>
@@ -199,6 +212,8 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// If `None`, the entire image will be used.</span>
     <span class='kw'>pub</span> <span class='ident'>src_rect</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>,
+    <span class='doccomment'>/// The unique identifier for the image&#39;s associated data that will be drawn.</span>
+    <span class='kw'>pub</span> <span class='ident'>image_id</span>: <span class='ident'>image</span>::<span class='ident'>Id</span>,
 }
 
 <span class='macro'>widget_style</span><span class='macro'>!</span>{
@@ -215,7 +230,7 @@
     <span class='doccomment'>/// Construct a new `Image`.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Note that the `Image` widget does not require borrowing or owning any image data directly.</span>
-    <span class='doccomment'>/// Instead, image data is stored within a `conrod::image::Map` where widget indices are mapped</span>
+    <span class='doccomment'>/// Instead, image data is stored within a `conrod::image::Map` where `image::Id`s are mapped</span>
     <span class='doccomment'>/// to their associated data.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// This is done for a few reasons:</span>
@@ -236,9 +251,10 @@
     <span class='doccomment'>/// 1. use an enum with a variant for each type</span>
     <span class='doccomment'>/// 2. use a trait object, where the trait is implemented for each of your image types or</span>
     <span class='doccomment'>/// 3. use an index type which may be mapped to your various image types.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>image_id</span>: <span class='ident'>image</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
         <span class='ident'>Image</span> {
             <span class='ident'>common</span>: <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span>::<span class='ident'>new</span>(),
+            <span class='ident'>image_id</span>: <span class='ident'>image_id</span>,
             <span class='ident'>src_rect</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>new</span>(),
         }
@@ -275,6 +291,7 @@
     <span class='kw'>fn</span> <span class='ident'>init_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, _: <span class='ident'>widget</span>::<span class='ident'>id</span>::<span class='ident'>Generator</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>State</span> {
         <span class='ident'>State</span> {
             <span class='ident'>src_rect</span>: <span class='prelude-val'>None</span>,
+            <span class='ident'>image_id</span>: <span class='self'>self</span>.<span class='ident'>image_id</span>,
         }
     }
 
@@ -298,8 +315,11 @@
 
     <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>Event</span> {
         <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>state</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
-        <span class='kw'>let</span> <span class='ident'>Image</span> { <span class='ident'>src_rect</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>Image</span> { <span class='ident'>image_id</span>, <span class='ident'>src_rect</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
 
+        <span class='kw'>if</span> <span class='ident'>state</span>.<span class='ident'>image_id</span> <span class='op'>!=</span> <span class='ident'>image_id</span> {
+            <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>image_id</span> <span class='op'>=</span> <span class='ident'>image_id</span>);
+        }
         <span class='kw'>if</span> <span class='ident'>state</span>.<span class='ident'>src_rect</span> <span class='op'>!=</span> <span class='ident'>src_rect</span> {
             <span class='ident'>state</span>.<span class='ident'>update</span>(<span class='op'>|</span><span class='ident'>state</span><span class='op'>|</span> <span class='ident'>state</span>.<span class='ident'>src_rect</span> <span class='op'>=</span> <span class='ident'>src_rect</span>);
         }
