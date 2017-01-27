@@ -382,21 +382,6 @@
 <span id="337">337</span>
 <span id="338">338</span>
 <span id="339">339</span>
-<span id="340">340</span>
-<span id="341">341</span>
-<span id="342">342</span>
-<span id="343">343</span>
-<span id="344">344</span>
-<span id="345">345</span>
-<span id="346">346</span>
-<span id="347">347</span>
-<span id="348">348</span>
-<span id="349">349</span>
-<span id="350">350</span>
-<span id="351">351</span>
-<span id="352">352</span>
-<span id="353">353</span>
-<span id="354">354</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A Piston event loop for games and interactive applications</span>
 
@@ -411,7 +396,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>time</span>::{<span class='ident'>Duration</span>, <span class='ident'>Instant</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>;
 <span class='kw'>use</span> <span class='ident'>window</span>::<span class='ident'>Window</span>;
-<span class='kw'>use</span> <span class='ident'>input</span>::{<span class='ident'>AfterRenderArgs</span>, <span class='ident'>Event</span>, <span class='ident'>IdleArgs</span>, <span class='ident'>RenderArgs</span>, <span class='ident'>UpdateArgs</span>};
+<span class='kw'>use</span> <span class='ident'>input</span>::{<span class='ident'>Input</span>, <span class='ident'>AfterRenderArgs</span>, <span class='ident'>IdleArgs</span>, <span class='ident'>RenderArgs</span>, <span class='ident'>UpdateArgs</span>};
 
 <span class='doccomment'>/// Tells whether last emitted event was idle or not.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>)]</span>
@@ -420,22 +405,13 @@
     <span class='ident'>Yes</span>,
 }
 
-<span class='comment'>// Stores the update state right after sleep.</span>
-<span class='comment'>// This is used to avoid logic error when changing settings</span>
-<span class='comment'>// in the event loop followed by an update.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>struct</span> <span class='ident'>UpdateState</span> {
-    <span class='ident'>dt_update_in_ns</span>: <span class='ident'>u64</span>,
-    <span class='ident'>dt</span>: <span class='ident'>f64</span>,
-}
-
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>enum</span> <span class='ident'>State</span> {
     <span class='ident'>Render</span>,
     <span class='ident'>SwapBuffers</span>,
     <span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>),
-    <span class='ident'>HandleEvents</span>(<span class='ident'>UpdateState</span>),
-    <span class='ident'>Update</span>(<span class='ident'>UpdateState</span>),
+    <span class='ident'>HandleEvents</span>,
+    <span class='ident'>Update</span>,
 }
 
 <span class='doccomment'>/// Stores event loop settings.</span>
@@ -527,7 +503,7 @@
     }
 
     <span class='doccomment'>/// Returns the next game event.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>window</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Event</span><span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>Event</span><span class='op'>&gt;&gt;</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>window</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>W</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Input</span><span class='op'>&gt;</span>
         <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Window</span>
     {
         <span class='kw'>loop</span> {
@@ -546,7 +522,7 @@
                             <span class='comment'>// the application state when benchmarking.</span>
                             <span class='kw'>continue</span>;
                         } <span class='kw'>else</span> {
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Input</span>(<span class='ident'>e</span>));
+                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>e</span>);
                         }
                     }
                     <span class='kw'>if</span> <span class='ident'>window</span>.<span class='ident'>should_close</span>() {
@@ -566,7 +542,7 @@
                     <span class='kw'>if</span> <span class='ident'>size</span>.<span class='ident'>width</span> <span class='op'>!=</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='ident'>size</span>.<span class='ident'>height</span> <span class='op'>!=</span> <span class='number'>0</span> {
                         <span class='comment'>// Swap buffers next time.</span>
                         <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>State</span>::<span class='ident'>SwapBuffers</span>;
-                        <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Render</span>(<span class='ident'>RenderArgs</span> {
+                        <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Input</span>::<span class='ident'>Render</span>(<span class='ident'>RenderArgs</span> {
                             <span class='comment'>// Extrapolate time forward to allow smooth motion.</span>
                             <span class='ident'>ext_dt</span>: <span class='ident'>duration_to_secs</span>(<span class='self'>self</span>.<span class='ident'>last_frame</span>
                                 .<span class='ident'>duration_since</span>(<span class='self'>self</span>.<span class='ident'>last_update</span>)),
@@ -584,7 +560,7 @@
                         <span class='ident'>window</span>.<span class='ident'>swap_buffers</span>();
                     }
                     <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>::<span class='ident'>No</span>);
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>AfterRender</span>(<span class='ident'>AfterRenderArgs</span>));
+                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Input</span>::<span class='ident'>AfterRender</span>(<span class='ident'>AfterRenderArgs</span>));
                 }
                 <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>idle</span>) <span class='op'>=&gt;</span> {
                     <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>settings</span>.<span class='ident'>bench_mode</span> {
@@ -598,10 +574,7 @@
                         <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
                             <span class='ident'>State</span>::<span class='ident'>Render</span>
                         } <span class='kw'>else</span> {
-                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>UpdateState</span> {
-                                <span class='ident'>dt_update_in_ns</span>: <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>,
-                                <span class='ident'>dt</span>: <span class='self'>self</span>.<span class='ident'>dt</span>,
-                            })
+                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
                         }
                     } <span class='kw'>else</span> {
                         <span class='kw'>let</span> <span class='ident'>current_time</span> <span class='op'>=</span> <span class='ident'>Instant</span>::<span class='ident'>now</span>();
@@ -611,49 +584,46 @@
                         <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>&gt;</span> <span class='ident'>current_time</span> {
                             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=</span> <span class='ident'>window</span>.<span class='ident'>poll_event</span>() {
                                 <span class='kw-2'>*</span><span class='ident'>idle</span> <span class='op'>=</span> <span class='ident'>Idle</span>::<span class='ident'>No</span>;
-                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Input</span>(<span class='ident'>x</span>));
+                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>x</span>);
                             } <span class='kw'>else</span> <span class='kw'>if</span> <span class='kw-2'>*</span><span class='ident'>idle</span> <span class='op'>==</span> <span class='ident'>Idle</span>::<span class='ident'>No</span> {
                                 <span class='kw-2'>*</span><span class='ident'>idle</span> <span class='op'>=</span> <span class='ident'>Idle</span>::<span class='ident'>Yes</span>;
                                 <span class='kw'>let</span> <span class='ident'>seconds</span> <span class='op'>=</span> <span class='ident'>duration_to_secs</span>(<span class='ident'>next_event</span> <span class='op'>-</span> <span class='ident'>current_time</span>);
-                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Idle</span>(<span class='ident'>IdleArgs</span> { <span class='ident'>dt</span>: <span class='ident'>seconds</span> }));
+                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Input</span>::<span class='ident'>Idle</span>(<span class='ident'>IdleArgs</span> { <span class='ident'>dt</span>: <span class='ident'>seconds</span> }));
                             }
                             <span class='ident'>sleep</span>(<span class='ident'>next_event</span> <span class='op'>-</span> <span class='ident'>current_time</span>);
                             <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>::<span class='ident'>No</span>)
                         } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>next_event</span> <span class='op'>==</span> <span class='ident'>next_frame</span> {
                             <span class='ident'>State</span>::<span class='ident'>Render</span>
                         } <span class='kw'>else</span> {
-                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>UpdateState</span> {
-                                <span class='ident'>dt_update_in_ns</span>: <span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>,
-                                <span class='ident'>dt</span>: <span class='self'>self</span>.<span class='ident'>dt</span>,
-                            })
+                            <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>
                         }
                     }
                 }
-                <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>update_state</span>) <span class='op'>=&gt;</span> {
+                <span class='ident'>State</span>::<span class='ident'>HandleEvents</span> <span class='op'>=&gt;</span> {
                     <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>settings</span>.<span class='ident'>bench_mode</span> {
                         <span class='comment'>// Ignore input events.</span>
                         <span class='comment'>// This is to avoid the input events affecting</span>
                         <span class='comment'>// the application state when benchmarking.</span>
                         <span class='kw'>match</span> <span class='ident'>window</span>.<span class='ident'>poll_event</span>() {
-                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>(<span class='ident'>update_state</span>),
-                            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>(<span class='ident'>update_state</span>),
+                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
+                            <span class='prelude-val'>Some</span>(_) <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>HandleEvents</span>,
                         }
                     } <span class='kw'>else</span> {
                         <span class='comment'>// Handle all events before updating.</span>
                         <span class='kw'>match</span> <span class='ident'>window</span>.<span class='ident'>poll_event</span>() {
-                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>(<span class='ident'>update_state</span>),
+                            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='ident'>State</span>::<span class='ident'>Update</span>,
                             <span class='prelude-val'>Some</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> {
-                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Input</span>(<span class='ident'>x</span>));
+                                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>x</span>);
                             }
                         }
                     }
                 }
-                <span class='ident'>State</span>::<span class='ident'>Update</span>(<span class='ident'>update_state</span>) <span class='op'>=&gt;</span> {
+                <span class='ident'>State</span>::<span class='ident'>Update</span> <span class='op'>=&gt;</span> {
                     <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>State</span>::<span class='ident'>UpdateLoop</span>(<span class='ident'>Idle</span>::<span class='ident'>No</span>);
                     <span class='comment'>// Use the update state stored right after sleep.</span>
                     <span class='comment'>// If there are any changes in settings, these will be applied on next update.</span>
-                    <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+=</span> <span class='ident'>ns_to_duration</span>(<span class='ident'>update_state</span>.<span class='ident'>dt_update_in_ns</span>);
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Event</span>::<span class='ident'>Update</span>(<span class='ident'>UpdateArgs</span> { <span class='ident'>dt</span>: <span class='ident'>update_state</span>.<span class='ident'>dt</span> }));
+                    <span class='self'>self</span>.<span class='ident'>last_update</span> <span class='op'>+=</span> <span class='ident'>ns_to_duration</span>(<span class='self'>self</span>.<span class='ident'>dt_update_in_ns</span>);
+                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>Input</span>::<span class='ident'>Update</span>(<span class='ident'>UpdateArgs</span> { <span class='ident'>dt</span>: <span class='self'>self</span>.<span class='ident'>dt</span> }));
                 }
             };
         }
