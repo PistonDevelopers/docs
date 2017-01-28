@@ -1,6 +1,5 @@
 (function() {var implementors = {};
 implementors["glutin_window"] = [];
-implementors["image"] = [];
 implementors["piston_window"] = [];
 implementors["rustc_serialize"] = [];
 
