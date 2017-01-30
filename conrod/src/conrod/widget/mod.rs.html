@@ -1272,6 +1272,7 @@
 <span id="1227">1227</span>
 <span id="1228">1228</span>
 <span id="1229">1229</span>
+<span id="1230">1230</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Widgets are the core building blocks for every conrod user interface.</span>
 <span class='doccomment'>//!</span>
@@ -1279,7 +1280,8 @@
 <span class='doccomment'>//! re-exports all widgets (and their modules) that are provided by conrod.</span>
 
 <span class='kw'>use</span> <span class='ident'>graph</span>;
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Align</span>, <span class='ident'>Depth</span>, <span class='ident'>Dimension</span>, <span class='ident'>Dimensions</span>, <span class='ident'>Padding</span>, <span class='ident'>Position</span>, <span class='ident'>Positionable</span>, <span class='ident'>Rect</span>, <span class='ident'>Sizeable</span>};
+<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Align</span>, <span class='ident'>Depth</span>, <span class='ident'>Dimension</span>, <span class='ident'>Dimensions</span>, <span class='ident'>Padding</span>, <span class='ident'>Position</span>,
+               <span class='ident'>Positionable</span>, <span class='ident'>Rect</span>, <span class='ident'>Relative</span>, <span class='ident'>Sizeable</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>;
 <span class='kw'>use</span> <span class='ident'>text</span>::<span class='ident'>font</span>;
 <span class='kw'>use</span> <span class='ident'>theme</span>::{<span class='self'>self</span>, <span class='ident'>Theme</span>};
@@ -2257,14 +2259,10 @@
     <span class='comment'>// We do this so that if this widget were to internally `set` some other `Widget`s, this</span>
     <span class='comment'>// `Widget`s positioning and dimension data already exists within the `Graph`.</span>
     {
-        <span class='kw'>use</span> <span class='ident'>Position</span>::{<span class='ident'>Place</span>, <span class='ident'>Relative</span>, <span class='ident'>Direction</span>, <span class='ident'>Align</span>, <span class='ident'>Absolute</span>};
-
         <span class='comment'>// Some widget to which this widget is relatively positioned (if there is one).</span>
         <span class='kw'>let</span> <span class='ident'>maybe_positioned_relatively_id</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>pos</span>: <span class='ident'>Position</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>pos</span> {
-            <span class='ident'>Place</span>(_, <span class='ident'>maybe_id</span>) <span class='op'>|</span> <span class='ident'>Relative</span>(_, <span class='ident'>maybe_id</span>) <span class='op'>|</span>
-            <span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_id</span>) <span class='op'>|</span> <span class='ident'>Align</span>(_, <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span>
-                <span class='ident'>maybe_id</span>.<span class='ident'>or</span>(<span class='ident'>maybe_prev_widget_id</span>),
-            <span class='ident'>Absolute</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+            <span class='ident'>Position</span>::<span class='ident'>Relative</span>(_, <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span> <span class='ident'>maybe_id</span>.<span class='ident'>or</span>(<span class='ident'>maybe_prev_widget_id</span>),
+            <span class='ident'>Position</span>::<span class='ident'>Absolute</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
         };
 
         <span class='kw'>let</span> <span class='ident'>maybe_x_positioned_relatively_id</span> <span class='op'>=</span> <span class='ident'>maybe_positioned_relatively_id</span>(<span class='ident'>x_pos</span>);
@@ -2470,10 +2468,14 @@
 <span class='doccomment'>/// This is used within the impl of **Positionable** for **Widget**.</span>
 <span class='kw'>fn</span> <span class='ident'>infer_position_from_other_position</span>(<span class='ident'>other_pos</span>: <span class='ident'>Position</span>, <span class='ident'>dir_align</span>: <span class='ident'>Align</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Position</span><span class='op'>&gt;</span> {
     <span class='kw'>match</span> <span class='ident'>other_pos</span> {
-        <span class='ident'>Position</span>::<span class='ident'>Direction</span>(_, _, <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Position</span>::<span class='ident'>Align</span>(<span class='ident'>dir_align</span>, <span class='ident'>maybe_id</span>)),
-        <span class='ident'>Position</span>::<span class='ident'>Place</span>(_, <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Position</span>::<span class='ident'>Align</span>(<span class='ident'>Align</span>::<span class='ident'>Middle</span>, <span class='ident'>maybe_id</span>)),
-        <span class='ident'>Position</span>::<span class='ident'>Relative</span>(_, <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='number'>0.0</span>, <span class='ident'>maybe_id</span>)),
-        <span class='ident'>Position</span>::<span class='ident'>Align</span>(_, _) <span class='op'>|</span> <span class='ident'>Position</span>::<span class='ident'>Absolute</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+        <span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Direction</span>(_, _), <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span>
+            <span class='prelude-val'>Some</span>(<span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Align</span>(<span class='ident'>dir_align</span>), <span class='ident'>maybe_id</span>)),
+        <span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Place</span>(_), <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span>
+            <span class='prelude-val'>Some</span>(<span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Align</span>(<span class='ident'>Align</span>::<span class='ident'>Middle</span>), <span class='ident'>maybe_id</span>)),
+        <span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Scalar</span>(_), <span class='ident'>maybe_id</span>) <span class='op'>=&gt;</span>
+            <span class='prelude-val'>Some</span>(<span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Scalar</span>(<span class='number'>0.0</span>), <span class='ident'>maybe_id</span>)),
+        <span class='ident'>Position</span>::<span class='ident'>Relative</span>(<span class='ident'>Relative</span>::<span class='ident'>Align</span>(_), _) <span class='op'>|</span>
+        <span class='ident'>Position</span>::<span class='ident'>Absolute</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
     }
 }
 
