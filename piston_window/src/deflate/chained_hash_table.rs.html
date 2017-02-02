@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.2/src/chained_hash_table.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.4/src/chained_hash_table.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>chained_hash_table.rs.html -- source</title>
@@ -278,6 +278,15 @@
 <span id="233">233</span>
 <span id="234">234</span>
 <span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
 </pre><pre class='rust '>
 <span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>WINDOW_SIZE</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>32768</span>;
 <span class='kw'>const</span> <span class='ident'>WINDOW_MASK</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='ident'>WINDOW_SIZE</span> <span class='op'>-</span> <span class='number'>1</span>;
@@ -287,10 +296,12 @@
 <span class='kw'>const</span> <span class='ident'>HASH_MASK</span>: <span class='ident'>u16</span> <span class='op'>=</span> <span class='ident'>WINDOW_MASK</span> <span class='kw'>as</span> <span class='ident'>u16</span>;
 
 <span class='doccomment'>/// Returns a new hash value based on the previous value and the next byte</span>
+<span class='attribute'>#[<span class='ident'>inline</span>]</span>
 <span class='kw'>fn</span> <span class='ident'>update_hash</span>(<span class='ident'>current_hash</span>: <span class='ident'>u16</span>, <span class='ident'>to_insert</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>u16</span> {
     <span class='ident'>update_hash_conf</span>(<span class='ident'>current_hash</span>, <span class='ident'>to_insert</span>, <span class='ident'>HASH_SHIFT</span>, <span class='ident'>HASH_MASK</span>)
 }
 
+<span class='attribute'>#[<span class='ident'>inline</span>]</span>
 <span class='kw'>fn</span> <span class='ident'>update_hash_conf</span>(<span class='ident'>current_hash</span>: <span class='ident'>u16</span>, <span class='ident'>to_insert</span>: <span class='ident'>u8</span>, <span class='ident'>shift</span>: <span class='ident'>u16</span>, <span class='ident'>mask</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='ident'>u16</span> {
     ((<span class='ident'>current_hash</span> <span class='op'>&lt;&lt;</span> <span class='ident'>shift</span>) <span class='op'>^</span> (<span class='ident'>to_insert</span> <span class='kw'>as</span> <span class='ident'>u16</span>)) <span class='op'>&amp;</span> <span class='ident'>mask</span>
 }
@@ -341,11 +352,18 @@
 
     <span class='comment'>// Insert a byte into the hash table</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>add_hash_value</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>position</span>: <span class='ident'>usize</span>, <span class='ident'>value</span>: <span class='ident'>u8</span>) {
-        <span class='self'>self</span>.<span class='ident'>current_hash</span> <span class='op'>=</span> <span class='ident'>update_hash</span>(<span class='self'>self</span>.<span class='ident'>current_hash</span>, <span class='ident'>value</span>);
-        <span class='self'>self</span>.<span class='ident'>prev</span>[<span class='ident'>position</span> <span class='op'>&amp;</span> <span class='ident'>WINDOW_MASK</span>] <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>[<span class='self'>self</span>.<span class='ident'>current_hash</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
+        <span class='comment'>// Storing the hash in a temporary variable here makes the compiler avoid the</span>
+        <span class='comment'>// bounds checks in this function.</span>
+        <span class='kw'>let</span> <span class='ident'>new_hash</span> <span class='op'>=</span> <span class='ident'>update_hash</span>(<span class='self'>self</span>.<span class='ident'>current_hash</span>, <span class='ident'>value</span>);
+
+        <span class='self'>self</span>.<span class='ident'>prev</span>[<span class='ident'>position</span> <span class='op'>&amp;</span> <span class='ident'>WINDOW_MASK</span>] <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>[<span class='ident'>new_hash</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
+
         <span class='comment'>// Ignoring any bits over 16 here is deliberate, as we only concern ourselves about</span>
         <span class='comment'>// where in the buffer (which is 64k bytes) we are referring to.</span>
-        <span class='self'>self</span>.<span class='ident'>head</span>[<span class='self'>self</span>.<span class='ident'>current_hash</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='ident'>position</span> <span class='kw'>as</span> <span class='ident'>u16</span>;
+        <span class='self'>self</span>.<span class='ident'>head</span>[<span class='ident'>new_hash</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='ident'>position</span> <span class='kw'>as</span> <span class='ident'>u16</span>;
+
+        <span class='comment'>// Update the stored hash value with the new hash.</span>
+        <span class='self'>self</span>.<span class='ident'>current_hash</span> <span class='op'>=</span> <span class='ident'>new_hash</span>;
     }
 
     <span class='comment'>// Get the head of the hash chain for the current hash value</span>
