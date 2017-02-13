@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Phase","The stage of the touch interaction."]],"struct":[["Id","A type for uniquely identifying the source of a touch interaction."],["Touch","Represents a touch interaction."]]});

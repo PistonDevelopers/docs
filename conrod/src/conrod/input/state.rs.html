@@ -329,6 +329,42 @@
 <span id="284">284</span>
 <span id="285">285</span>
 <span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Everything related to storing the state of user input.</span>
 <span class='doccomment'>//!</span>
@@ -341,6 +377,7 @@
 
 <span class='kw'>use</span> <span class='ident'>position</span>::<span class='ident'>Point</span>;
 <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>mouse</span>::<span class='ident'>Mouse</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>;
 <span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>keyboard</span>::{<span class='ident'>NO_MODIFIER</span>, <span class='ident'>ModifierKey</span>};
 <span class='kw'>use</span> <span class='ident'>utils</span>;
 <span class='kw'>use</span> <span class='ident'>widget</span>;
@@ -352,10 +389,12 @@
 <span class='doccomment'>/// the mouse.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// It also includes which widgets, if any, are capturing keyboard and mouse input.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>State</span> {
     <span class='doccomment'>/// Mouse position and button state.</span>
     <span class='kw'>pub</span> <span class='ident'>mouse</span>: <span class='ident'>Mouse</span>,
+    <span class='doccomment'>/// All in-progress touch interactions.</span>
+    <span class='kw'>pub</span> <span class='ident'>touch</span>: <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='kw'>super</span>::<span class='ident'>touch</span>::<span class='ident'>Id</span>, <span class='self'>self</span>::<span class='ident'>touch</span>::<span class='ident'>Touch</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Which widget, if any, is currently capturing the keyboard</span>
     <span class='kw'>pub</span> <span class='ident'>widget_capturing_keyboard</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>,
     <span class='doccomment'>/// Which widget, if any, is currently capturing the mouse</span>
@@ -374,6 +413,7 @@
     <span class='doccomment'>/// Returns a fresh new input state</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>State</span> {
         <span class='ident'>State</span>{
+            <span class='ident'>touch</span>: <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>::<span class='ident'>new</span>(),
             <span class='ident'>mouse</span>: <span class='ident'>Mouse</span>::<span class='ident'>new</span>(),
             <span class='ident'>widget_capturing_keyboard</span>: <span class='prelude-val'>None</span>,
             <span class='ident'>widget_capturing_mouse</span>: <span class='prelude-val'>None</span>,
@@ -387,6 +427,38 @@
         <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_sub</span>(<span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>xy</span>, <span class='ident'>xy</span>);
         <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>mouse</span>.<span class='ident'>buttons</span>.<span class='ident'>relative_to</span>(<span class='ident'>xy</span>);
         <span class='self'>self</span>
+    }
+
+}
+
+<span class='doccomment'>/// Touch specific state.</span>
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>touch</span> {
+    <span class='kw'>use</span> <span class='ident'>position</span>::<span class='ident'>Point</span>;
+    <span class='kw'>use</span> <span class='ident'>std</span>;
+    <span class='kw'>use</span> <span class='ident'>widget</span>;
+
+    <span class='doccomment'>/// State stored about the start of a `Touch` interaction.</span>
+    <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+    <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Start</span> {
+        <span class='doccomment'>/// The time at which the `Touch` began.</span>
+        <span class='kw'>pub</span> <span class='ident'>time</span>: <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Instant</span>,
+        <span class='doccomment'>/// The position at which the touch began.</span>
+        <span class='kw'>pub</span> <span class='ident'>xy</span>: <span class='ident'>Point</span>,
+        <span class='doccomment'>/// The widget under the beginning of the touch if there was one.</span>
+        <span class='doccomment'>///</span>
+        <span class='doccomment'>/// This widget captures the `Touch` input source for its duration.</span>
+        <span class='kw'>pub</span> <span class='ident'>widget</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>,
+    }
+
+    <span class='doccomment'>/// All state stored for a `Touch` interaction in progress.</span>
+    <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
+    <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Touch</span> {
+        <span class='doccomment'>/// The `Start` of the touch interaction.</span>
+        <span class='kw'>pub</span> <span class='ident'>start</span>: <span class='ident'>Start</span>,
+        <span class='doccomment'>/// The last recorded position of the finger on the window.</span>
+        <span class='kw'>pub</span> <span class='ident'>xy</span>: <span class='ident'>Point</span>,
+        <span class='doccomment'>/// The widget currently being touched.</span>
+        <span class='kw'>pub</span> <span class='ident'>widget</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>,
     }
 
 }

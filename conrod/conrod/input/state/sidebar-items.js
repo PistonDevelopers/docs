@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["mouse","Mouse specific state."]],"struct":[["State","Holds the current state of user input."]]});
+initSidebarItems({"mod":[["mouse","Mouse specific state."],["touch","Touch specific state."]],"struct":[["State","Holds the current state of user input."]]});
