@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["cast","Helper for a conversion that we know can't fail."],["l2_norm",""]],"struct":[["Affine2","A 2d affine transformation."],["Mat2","Square matrix of dimension 2."],["Vec2","Vector of dimension 2."]]});
+initSidebarItems({"fn":[["cast","Helper for a conversion that we know can't fail."],["l2_norm","L2 norm of a vector."]],"struct":[["Affine2","A 2d affine transformation, Ax + b."],["Mat2","Square matrix of dimension 2."],["Vec2","Vector of dimension 2."]]});
