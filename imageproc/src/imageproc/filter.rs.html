@@ -545,20 +545,11 @@
 <span id="500">500</span>
 <span id="501">501</span>
 <span id="502">502</span>
-<span id="503">503</span>
-<span id="504">504</span>
-<span id="505">505</span>
-<span id="506">506</span>
-<span id="507">507</span>
-<span id="508">508</span>
-<span id="509">509</span>
-<span id="510">510</span>
-<span id="511">511</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Functions for filtering images.</span>
-<span class='comment'>// TODO: unify with image::sample</span>
 
 <span class='kw'>use</span> <span class='ident'>image</span>::{
+    <span class='ident'>GrayImage</span>,
     <span class='ident'>GenericImage</span>,
     <span class='ident'>ImageBuffer</span>,
     <span class='ident'>Luma</span>,
@@ -578,7 +569,7 @@
 
 <span class='kw'>use</span> <span class='ident'>definitions</span>::{
     <span class='ident'>Clamp</span>,
-    <span class='ident'>VecBuffer</span>
+    <span class='ident'>Image</span>
 };
 
 <span class='kw'>use</span> <span class='ident'>num</span>::{
@@ -600,11 +591,8 @@
 <span class='comment'>// TODO: for small kernels we probably want to do the convolution</span>
 <span class='comment'>// TODO: directly instead of using an integral image.</span>
 <span class='comment'>// TODO: more formats!</span>
-<span class='comment'>// TODO: number of operations is constant with kernel size,</span>
-<span class='comment'>// TODO: but this is still _really_ slow. fix!</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>box_filter</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>x_radius</span>: <span class='ident'>u32</span>, <span class='ident'>y_radius</span>: <span class='ident'>u32</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span><span class='op'>&lt;</span><span class='ident'>Pixel</span><span class='op'>=</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>{
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>box_filter</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>GrayImage</span>, <span class='ident'>x_radius</span>: <span class='ident'>u32</span>, <span class='ident'>y_radius</span>: <span class='ident'>u32</span>)
+        <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> {
 
     <span class='kw'>let</span> (<span class='ident'>width</span>, <span class='ident'>height</span>) <span class='op'>=</span> <span class='ident'>image</span>.<span class='ident'>dimensions</span>();
     <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='ident'>ImageBuffer</span>::<span class='ident'>new</span>(<span class='ident'>width</span>, <span class='ident'>height</span>);
@@ -666,15 +654,15 @@
 
     <span class='doccomment'>/// Returns 2d correlation of an image. Intermediate calculations are performed</span>
     <span class='doccomment'>/// at type K, and the results converted to pixel Q via f. Pads by continuity.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>filter</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>F</span>, <span class='ident'>Q</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='kw-2'>mut</span> <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span>,
-              <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>filter</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>F</span>, <span class='ident'>Q</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='kw-2'>mut</span> <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>
+        <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+              <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
               <span class='ident'>Q</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
               <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Q</span>::<span class='ident'>Subpixel</span>, <span class='ident'>K</span>) <span class='op'>-&gt;</span> (),
     {
         <span class='kw'>let</span> (<span class='ident'>width</span>, <span class='ident'>height</span>) <span class='op'>=</span> <span class='ident'>image</span>.<span class='ident'>dimensions</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='ident'>VecBuffer</span>::<span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>::<span class='ident'>new</span>(<span class='ident'>width</span>, <span class='ident'>height</span>);
-        <span class='kw'>let</span> <span class='ident'>num_channels</span> <span class='op'>=</span> <span class='ident'>I</span>::<span class='ident'>Pixel</span>::<span class='ident'>channel_count</span>() <span class='kw'>as</span> <span class='ident'>usize</span>;
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='ident'>Image</span>::<span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>::<span class='ident'>new</span>(<span class='ident'>width</span>, <span class='ident'>height</span>);
+        <span class='kw'>let</span> <span class='ident'>num_channels</span> <span class='op'>=</span> <span class='ident'>P</span>::<span class='ident'>channel_count</span>() <span class='kw'>as</span> <span class='ident'>usize</span>;
         <span class='kw'>let</span> <span class='ident'>zero</span> <span class='op'>=</span> <span class='ident'>K</span>::<span class='ident'>zero</span>();
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>acc</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>zero</span>; <span class='ident'>num_channels</span>];
         <span class='kw'>let</span> (<span class='ident'>k_width</span>, <span class='ident'>k_height</span>) <span class='op'>=</span> (<span class='self'>self</span>.<span class='ident'>width</span>, <span class='self'>self</span>.<span class='ident'>height</span>);
@@ -727,10 +715,9 @@
 <span class='doccomment'>/// The kernel used has type f32 and all intermediate calculations are performed</span>
 <span class='doccomment'>/// at this type.</span>
 <span class='comment'>// TODO: Integer type kernel, approximations via repeated box filter.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>gaussian_blur_f32</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>sigma</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span>,
-          <span class='ident'>I</span>::<span class='ident'>Pixel</span>: <span class='lifetime'>&#39;static</span>,
-          <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>f32</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>f32</span><span class='op'>&gt;</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>gaussian_blur_f32</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>sigma</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+          <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>f32</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>f32</span><span class='op'>&gt;</span>
 {
     <span class='kw'>let</span> <span class='ident'>kernel</span> <span class='op'>=</span> <span class='ident'>gaussian_kernel_f32</span>(<span class='ident'>sigma</span>);
     <span class='ident'>separable_filter_equal</span>(<span class='ident'>image</span>, <span class='kw-2'>&amp;</span><span class='ident'>kernel</span>)
@@ -738,33 +725,30 @@
 
 <span class='doccomment'>/// Returns 2d correlation of view with the outer product of the 1d</span>
 <span class='doccomment'>/// kernels `h_kernel` and `v_kernel`.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>separable_filter</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>h_kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>], <span class='ident'>v_kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
-        <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span>,
-          <span class='ident'>I</span>::<span class='ident'>Pixel</span>: <span class='lifetime'>&#39;static</span>,
-          <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
-          <span class='ident'>K</span>: <span class='ident'>Num</span> <span class='op'>+</span> <span class='ident'>Copy</span> {
-
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>separable_filter</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>h_kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>], <span class='ident'>v_kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
+        <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+          <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
+          <span class='ident'>K</span>: <span class='ident'>Num</span> <span class='op'>+</span> <span class='ident'>Copy</span>
+{
     <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>horizontal_filter</span>(<span class='ident'>image</span>, <span class='ident'>h_kernel</span>);
     <span class='ident'>vertical_filter</span>(<span class='kw-2'>&amp;</span><span class='ident'>h</span>, <span class='ident'>v_kernel</span>)
 }
 
 <span class='doccomment'>/// Returns 2d correlation of an image with the outer product of the 1d</span>
 <span class='doccomment'>/// kernel filter with itself.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>separable_filter_equal</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
-        <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span>,
-          <span class='ident'>I</span>::<span class='ident'>Pixel</span>: <span class='lifetime'>&#39;static</span>,
-          <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>separable_filter_equal</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
+        <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+          <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
           <span class='ident'>K</span>: <span class='ident'>Num</span> <span class='op'>+</span> <span class='ident'>Copy</span> {
     <span class='ident'>separable_filter</span>(<span class='ident'>image</span>, <span class='ident'>kernel</span>, <span class='ident'>kernel</span>)
 }
 
 <span class='doccomment'>/// Returns 2d correlation of an image with a 3x3 row-major kernel. Intermediate calculations are</span>
 <span class='doccomment'>/// performed at type K, and the results clamped to subpixel type S. Pads by continuity.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>filter3x3</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>P</span>, <span class='ident'>K</span>, <span class='ident'>S</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>]) <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>ChannelMap</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>S</span><span class='op'>&gt;&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span><span class='op'>&lt;</span><span class='ident'>Pixel</span><span class='op'>=</span><span class='ident'>P</span><span class='op'>&gt;</span>,
-          <span class='ident'>P</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>filter3x3</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>K</span>, <span class='ident'>S</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>]) <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>ChannelMap</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>S</span><span class='op'>&gt;&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>P</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
           <span class='ident'>S</span>: <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Primitive</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
           <span class='ident'>P</span>: <span class='ident'>WithChannel</span><span class='op'>&lt;</span><span class='ident'>S</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
           <span class='ident'>K</span>: <span class='ident'>Num</span> <span class='op'>+</span> <span class='ident'>Copy</span> {
@@ -775,28 +759,26 @@
 <span class='doccomment'>///	Returns horizontal correlations between an image and a 1d kernel.</span>
 <span class='doccomment'>/// Pads by continuity. Intermediate calculations are performed at</span>
 <span class='doccomment'>/// type K.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>horizontal_filter</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
-        <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span>,
-          <span class='ident'>I</span>::<span class='ident'>Pixel</span>: <span class='lifetime'>&#39;static</span>,
-          <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>horizontal_filter</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
+        <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+          <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
           <span class='ident'>K</span>: <span class='ident'>Num</span> <span class='op'>+</span> <span class='ident'>Copy</span> {
     <span class='kw'>let</span> <span class='ident'>kernel</span> <span class='op'>=</span> <span class='ident'>Kernel</span>::<span class='ident'>new</span>(<span class='ident'>kernel</span>, <span class='ident'>kernel</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>, <span class='number'>1</span>);
     <span class='ident'>kernel</span>.<span class='ident'>filter</span>(<span class='ident'>image</span>, <span class='op'>|</span><span class='ident'>channel</span>, <span class='ident'>acc</span><span class='op'>|</span>
-                  <span class='kw-2'>*</span><span class='ident'>channel</span> <span class='op'>=</span> <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>::<span class='ident'>clamp</span>(<span class='ident'>acc</span>))
+                  <span class='kw-2'>*</span><span class='ident'>channel</span> <span class='op'>=</span> <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>::<span class='ident'>clamp</span>(<span class='ident'>acc</span>))
 }
 
 <span class='doccomment'>///	Returns horizontal correlations between an image and a 1d kernel.</span>
 <span class='doccomment'>/// Pads by continuity.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>vertical_filter</span><span class='op'>&lt;</span><span class='ident'>I</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
-        <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span>,
-          <span class='ident'>I</span>::<span class='ident'>Pixel</span>: <span class='lifetime'>&#39;static</span>,
-          <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>vertical_filter</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>, <span class='ident'>kernel</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>K</span>])
+        <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span>
+    <span class='kw'>where</span> <span class='ident'>P</span>: <span class='ident'>Pixel</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+          <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>: <span class='ident'>ValueInto</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Clamp</span><span class='op'>&lt;</span><span class='ident'>K</span><span class='op'>&gt;</span>,
           <span class='ident'>K</span>: <span class='ident'>Num</span> <span class='op'>+</span> <span class='ident'>Copy</span> {
     <span class='kw'>let</span> <span class='ident'>kernel</span> <span class='op'>=</span> <span class='ident'>Kernel</span>::<span class='ident'>new</span>(<span class='ident'>kernel</span>, <span class='number'>1</span>, <span class='ident'>kernel</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>);
     <span class='ident'>kernel</span>.<span class='ident'>filter</span>(<span class='ident'>image</span>, <span class='op'>|</span><span class='ident'>channel</span>, <span class='ident'>acc</span><span class='op'>|</span>
-                  <span class='kw-2'>*</span><span class='ident'>channel</span> <span class='op'>=</span> <span class='op'>&lt;</span><span class='ident'>I</span>::<span class='ident'>Pixel</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>::<span class='ident'>clamp</span>(<span class='ident'>acc</span>))
+                  <span class='kw-2'>*</span><span class='ident'>channel</span> <span class='op'>=</span> <span class='op'>&lt;</span><span class='ident'>P</span> <span class='kw'>as</span> <span class='ident'>Pixel</span><span class='op'>&gt;</span>::<span class='ident'>Subpixel</span>::<span class='ident'>clamp</span>(<span class='ident'>acc</span>))
 }
 
 <span class='kw'>fn</span> <span class='ident'>accumulate</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>K</span><span class='op'>&gt;</span>(<span class='ident'>acc</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>K</span>], <span class='ident'>pixel</span>: <span class='kw-2'>&amp;</span><span class='ident'>P</span>, <span class='ident'>weight</span>: <span class='ident'>K</span>)
@@ -829,7 +811,7 @@
         <span class='ident'>Luma</span>,
         <span class='ident'>Rgb</span>
     };
-    <span class='kw'>use</span> <span class='ident'>definitions</span>::<span class='ident'>VecBuffer</span>;
+    <span class='kw'>use</span> <span class='ident'>definitions</span>::<span class='ident'>Image</span>;
     <span class='kw'>use</span> <span class='ident'>image</span>::<span class='ident'>imageops</span>::<span class='ident'>blur</span>;
     <span class='kw'>use</span> <span class='ident'>test</span>;
 
@@ -996,14 +978,14 @@
 
         <span class='ident'>b</span>.<span class='ident'>iter</span>(<span class='op'>||</span> {
             <span class='kw'>let</span> <span class='ident'>filtered</span>: <span class='ident'>ImageBuffer</span><span class='op'>&lt;</span><span class='ident'>Luma</span><span class='op'>&lt;</span><span class='ident'>i16</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>i16</span><span class='op'>&gt;&gt;</span>
-                <span class='op'>=</span> <span class='ident'>filter3x3</span>::<span class='op'>&lt;</span>_, _, _, <span class='ident'>i16</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='ident'>image</span>, <span class='kw-2'>&amp;</span><span class='ident'>kernel</span>);
+                <span class='op'>=</span> <span class='ident'>filter3x3</span>::<span class='op'>&lt;</span>_, _, <span class='ident'>i16</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='ident'>image</span>, <span class='kw-2'>&amp;</span><span class='ident'>kernel</span>);
             <span class='ident'>test</span>::<span class='ident'>black_box</span>(<span class='ident'>filtered</span>);
             });
     }
 
     <span class='doccomment'>/// Baseline implementation of Gaussian blur is that provided by image::imageops.</span>
     <span class='doccomment'>/// We can also use this to validate correctnes of any implementations we add here.</span>
-    <span class='kw'>fn</span> <span class='ident'>gaussian_baseline_rgb</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>stdev</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>VecBuffer</span><span class='op'>&lt;</span><span class='ident'>Rgb</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>
+    <span class='kw'>fn</span> <span class='ident'>gaussian_baseline_rgb</span><span class='op'>&lt;</span><span class='ident'>I</span><span class='op'>&gt;</span>(<span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='ident'>I</span>, <span class='ident'>stdev</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='ident'>Image</span><span class='op'>&lt;</span><span class='ident'>Rgb</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>
         <span class='kw'>where</span> <span class='ident'>I</span>: <span class='ident'>GenericImage</span><span class='op'>&lt;</span><span class='ident'>Pixel</span><span class='op'>=</span><span class='ident'>Rgb</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>
     {
         <span class='ident'>blur</span>(<span class='ident'>image</span>, <span class='ident'>stdev</span>)
