@@ -315,277 +315,277 @@
 <span id="270">270</span>
 <span id="271">271</span>
 <span id="272">272</span>
-</pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>borrow</span>::<span class='ident'>Borrow</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>hash</span>::{<span class='ident'>Hash</span>, <span class='ident'>Hasher</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ptr</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::{<span class='ident'>Deref</span>, <span class='ident'>DerefMut</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>str</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>slice</span>;
+</pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Borrow</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">hash</span>::{<span class="ident">Hash</span>, <span class="ident">Hasher</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ptr</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">str</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">slice</span>;
 
-<span class='kw'>use</span> <span class='ident'>array</span>::<span class='ident'>Array</span>;
-<span class='kw'>use</span> <span class='ident'>array</span>::<span class='ident'>Index</span>;
-<span class='kw'>use</span> <span class='ident'>CapacityError</span>;
-<span class='kw'>use</span> <span class='ident'>char_ext</span>::<span class='ident'>encode_utf8</span>;
+<span class="kw">use</span> <span class="ident">array</span>::<span class="ident">Array</span>;
+<span class="kw">use</span> <span class="ident">array</span>::<span class="ident">Index</span>;
+<span class="kw">use</span> <span class="ident">CapacityError</span>;
+<span class="kw">use</span> <span class="ident">char_ext</span>::<span class="ident">encode_utf8</span>;
 
-<span class='doccomment'>/// A string with a fixed capacity.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The `ArrayString` is a string backed by a fixed size array. It keeps track</span>
-<span class='doccomment'>/// of its length.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The string is a contiguous value that you can store directly on the stack</span>
-<span class='doccomment'>/// if needed.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> {
-    <span class='ident'>xs</span>: <span class='ident'>A</span>,
-    <span class='ident'>len</span>: <span class='ident'>A</span>::<span class='ident'>Index</span>,
+<span class="doccomment">/// A string with a fixed capacity.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The `ArrayString` is a string backed by a fixed size array. It keeps track</span>
+<span class="doccomment">/// of its length.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The string is a contiguous value that you can store directly on the stack</span>
+<span class="doccomment">/// if needed.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> {
+    <span class="ident">xs</span>: <span class="ident">A</span>,
+    <span class="ident">len</span>: <span class="ident">A</span>::<span class="ident">Index</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create a new empty `ArrayString`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Capacity is inferred from the type parameter.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayString;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut string = ArrayString::&lt;[_; 16]&gt;::new();</span>
-    <span class='doccomment'>/// string.push_str(&quot;foo&quot;);</span>
-    <span class='doccomment'>/// assert_eq!(&amp;string[..], &quot;foo&quot;);</span>
-    <span class='doccomment'>/// assert_eq!(string.capacity(), 16);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='kw'>unsafe</span> {
-            <span class='ident'>ArrayString</span> {
-                <span class='ident'>xs</span>: ::<span class='ident'>new_array</span>(),
-                <span class='ident'>len</span>: <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='number'>0</span>),
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Create a new empty `ArrayString`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Capacity is inferred from the type parameter.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayString;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut string = ArrayString::&lt;[_; 16]&gt;::new();</span>
+    <span class="doccomment">/// string.push_str(&quot;foo&quot;);</span>
+    <span class="doccomment">/// assert_eq!(&amp;string[..], &quot;foo&quot;);</span>
+    <span class="doccomment">/// assert_eq!(string.capacity(), 16);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+        <span class="kw">unsafe</span> {
+            <span class="ident">ArrayString</span> {
+                <span class="ident">xs</span>: ::<span class="ident">new_array</span>(),
+                <span class="ident">len</span>: <span class="ident">Index</span>::<span class="ident">from</span>(<span class="number">0</span>),
             }
         }
     }
 
-    <span class='doccomment'>/// Create a new `ArrayString` from a `str`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Capacity is inferred from the type parameter.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Errors** if the backing array is not large enough to fit the string.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayString;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut string = ArrayString::&lt;[_; 3]&gt;::from(&quot;foo&quot;).unwrap();</span>
-    <span class='doccomment'>/// assert_eq!(&amp;string[..], &quot;foo&quot;);</span>
-    <span class='doccomment'>/// assert_eq!(string.len(), 3);</span>
-    <span class='doccomment'>/// assert_eq!(string.capacity(), 3);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>s</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='self'>Self</span>, <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>arraystr</span> <span class='op'>=</span> <span class='self'>Self</span>::<span class='ident'>new</span>();
-        <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>arraystr</span>.<span class='ident'>push_str</span>(<span class='ident'>s</span>));
-        <span class='prelude-val'>Ok</span>(<span class='ident'>arraystr</span>)
+    <span class="doccomment">/// Create a new `ArrayString` from a `str`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Capacity is inferred from the type parameter.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Errors** if the backing array is not large enough to fit the string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayString;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut string = ArrayString::&lt;[_; 3]&gt;::from(&quot;foo&quot;).unwrap();</span>
+    <span class="doccomment">/// assert_eq!(&amp;string[..], &quot;foo&quot;);</span>
+    <span class="doccomment">/// assert_eq!(string.len(), 3);</span>
+    <span class="doccomment">/// assert_eq!(string.capacity(), 3);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arraystr</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">new</span>();
+        <span class="macro">try</span><span class="macro">!</span>(<span class="ident">arraystr</span>.<span class="ident">push_str</span>(<span class="ident">s</span>));
+        <span class="prelude-val">Ok</span>(<span class="ident">arraystr</span>)
     }
 
-    <span class='doccomment'>/// Return the capacity of the `ArrayString`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayString;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let string = ArrayString::&lt;[_; 3]&gt;::new();</span>
-    <span class='doccomment'>/// assert_eq!(string.capacity(), 3);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>capacity</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> { <span class='ident'>A</span>::<span class='ident'>capacity</span>() }
+    <span class="doccomment">/// Return the capacity of the `ArrayString`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayString;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let string = ArrayString::&lt;[_; 3]&gt;::new();</span>
+    <span class="doccomment">/// assert_eq!(string.capacity(), 3);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">capacity</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> { <span class="ident">A</span>::<span class="ident">capacity</span>() }
 
-    <span class='doccomment'>/// Return if the `ArrayString` is completely filled.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayString;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut string = ArrayString::&lt;[_; 1]&gt;::new();</span>
-    <span class='doccomment'>/// assert!(!string.is_full());</span>
-    <span class='doccomment'>/// string.push_str(&quot;A&quot;);</span>
-    <span class='doccomment'>/// assert!(string.is_full());</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_full</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> { <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() }
+    <span class="doccomment">/// Return if the `ArrayString` is completely filled.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayString;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut string = ArrayString::&lt;[_; 1]&gt;::new();</span>
+    <span class="doccomment">/// assert!(!string.is_full());</span>
+    <span class="doccomment">/// string.push_str(&quot;A&quot;);</span>
+    <span class="doccomment">/// assert!(string.is_full());</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_full</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="self">self</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="self">self</span>.<span class="ident">capacity</span>() }
 
-    <span class='doccomment'>/// Adds the given char to the end of the string.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `Ok` if the push succeeds.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Errors** if the backing array is not large enough to fit the additional char.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayString;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut string = ArrayString::&lt;[_; 2]&gt;::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// string.push(&#39;a&#39;).unwrap();</span>
-    <span class='doccomment'>/// string.push(&#39;b&#39;).unwrap();</span>
-    <span class='doccomment'>/// let overflow = string.push(&#39;c&#39;);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(&amp;string[..], &quot;ab&quot;);</span>
-    <span class='doccomment'>/// assert_eq!(overflow.unwrap_err().element(), &#39;c&#39;);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>push</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>c</span>: <span class='ident'>char</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>char</span><span class='op'>&gt;&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>match</span> <span class='ident'>encode_utf8</span>(<span class='ident'>c</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>raw_mut_bytes</span>()[<span class='ident'>len</span>..]) {
-                <span class='prelude-val'>Ok</span>(<span class='ident'>n</span>) <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>len</span> <span class='op'>+</span> <span class='ident'>n</span>);
-                    <span class='prelude-val'>Ok</span>(())
+    <span class="doccomment">/// Adds the given char to the end of the string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `Ok` if the push succeeds.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Errors** if the backing array is not large enough to fit the additional char.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayString;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut string = ArrayString::&lt;[_; 2]&gt;::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// string.push(&#39;a&#39;).unwrap();</span>
+    <span class="doccomment">/// string.push(&#39;b&#39;).unwrap();</span>
+    <span class="doccomment">/// let overflow = string.push(&#39;c&#39;);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(&amp;string[..], &quot;ab&quot;);</span>
+    <span class="doccomment">/// assert_eq!(overflow.unwrap_err().element(), &#39;c&#39;);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">push</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">c</span>: <span class="ident">char</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;&gt;</span> {
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">unsafe</span> {
+            <span class="kw">match</span> <span class="ident">encode_utf8</span>(<span class="ident">c</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">raw_mut_bytes</span>()[<span class="ident">len</span>..]) {
+                <span class="prelude-val">Ok</span>(<span class="ident">n</span>) <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">len</span> <span class="op">+</span> <span class="ident">n</span>);
+                    <span class="prelude-val">Ok</span>(())
                 }
-                <span class='prelude-val'>Err</span>(_) <span class='op'>=&gt;</span> <span class='prelude-val'>Err</span>(<span class='ident'>CapacityError</span>::<span class='ident'>new</span>(<span class='ident'>c</span>)),
+                <span class="prelude-val">Err</span>(_) <span class="op">=&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">CapacityError</span>::<span class="ident">new</span>(<span class="ident">c</span>)),
             }
         }
     }
 
-    <span class='doccomment'>/// Adds the given string slice to the end of the string.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `Ok` if the push succeeds.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Errors** if the backing array is not large enough to fit the string.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayString;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut string = ArrayString::&lt;[_; 2]&gt;::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// string.push_str(&quot;a&quot;).unwrap();</span>
-    <span class='doccomment'>/// let overflow1 = string.push_str(&quot;bc&quot;);</span>
-    <span class='doccomment'>/// string.push_str(&quot;d&quot;).unwrap();</span>
-    <span class='doccomment'>/// let overflow2 = string.push_str(&quot;ef&quot;);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(&amp;string[..], &quot;ad&quot;);</span>
-    <span class='doccomment'>/// assert_eq!(overflow1.unwrap_err().element(), &quot;bc&quot;);</span>
-    <span class='doccomment'>/// assert_eq!(overflow2.unwrap_err().element(), &quot;ef&quot;);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>push_str</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>s</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span><span class='op'>&gt;&gt;</span> {
-        <span class='kw'>if</span> <span class='ident'>s</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>len</span>() {
-            <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>CapacityError</span>::<span class='ident'>new</span>(<span class='ident'>s</span>));
+    <span class="doccomment">/// Adds the given string slice to the end of the string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `Ok` if the push succeeds.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Errors** if the backing array is not large enough to fit the string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayString;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut string = ArrayString::&lt;[_; 2]&gt;::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// string.push_str(&quot;a&quot;).unwrap();</span>
+    <span class="doccomment">/// let overflow1 = string.push_str(&quot;bc&quot;);</span>
+    <span class="doccomment">/// string.push_str(&quot;d&quot;).unwrap();</span>
+    <span class="doccomment">/// let overflow2 = string.push_str(&quot;ef&quot;);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(&amp;string[..], &quot;ad&quot;);</span>
+    <span class="doccomment">/// assert_eq!(overflow1.unwrap_err().element(), &quot;bc&quot;);</span>
+    <span class="doccomment">/// assert_eq!(overflow2.unwrap_err().element(), &quot;ef&quot;);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">push_str</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span><span class="op">&gt;&gt;</span> {
+        <span class="kw">if</span> <span class="ident">s</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">capacity</span>() <span class="op">-</span> <span class="self">self</span>.<span class="ident">len</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">CapacityError</span>::<span class="ident">new</span>(<span class="ident">s</span>));
         }
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='ident'>dst</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>xs</span>.<span class='ident'>as_mut_ptr</span>().<span class='ident'>offset</span>(<span class='self'>self</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>isize</span>);
-            <span class='kw'>let</span> <span class='ident'>src</span> <span class='op'>=</span> <span class='ident'>s</span>.<span class='ident'>as_ptr</span>();
-            <span class='ident'>ptr</span>::<span class='ident'>copy_nonoverlapping</span>(<span class='ident'>src</span>, <span class='ident'>dst</span>, <span class='ident'>s</span>.<span class='ident'>len</span>());
-            <span class='kw'>let</span> <span class='ident'>newl</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='ident'>s</span>.<span class='ident'>len</span>();
-            <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>newl</span>);
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">dst</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">xs</span>.<span class="ident">as_mut_ptr</span>().<span class="ident">offset</span>(<span class="self">self</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">isize</span>);
+            <span class="kw">let</span> <span class="ident">src</span> <span class="op">=</span> <span class="ident">s</span>.<span class="ident">as_ptr</span>();
+            <span class="ident">ptr</span>::<span class="ident">copy_nonoverlapping</span>(<span class="ident">src</span>, <span class="ident">dst</span>, <span class="ident">s</span>.<span class="ident">len</span>());
+            <span class="kw">let</span> <span class="ident">newl</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="ident">s</span>.<span class="ident">len</span>();
+            <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">newl</span>);
         }
-        <span class='prelude-val'>Ok</span>(())
+        <span class="prelude-val">Ok</span>(())
     }
 
-    <span class='doccomment'>/// Make the string empty.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='kw'>unsafe</span> {
-            <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='number'>0</span>);
+    <span class="doccomment">/// Make the string empty.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">unsafe</span> {
+            <span class="self">self</span>.<span class="ident">set_len</span>(<span class="number">0</span>);
         }
     }
 
-    <span class='doccomment'>/// Set the strings&#39;s length.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// May panic if `length` is greater than the capacity.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This function is `unsafe` because it changes the notion of the</span>
-    <span class='doccomment'>/// number of “valid” bytes in the string. Use with care.</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>set_len</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>length</span>: <span class='ident'>usize</span>) {
-        <span class='macro'>debug_assert</span><span class='macro'>!</span>(<span class='ident'>length</span> <span class='op'>&lt;=</span> <span class='self'>self</span>.<span class='ident'>capacity</span>());
-        <span class='self'>self</span>.<span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='ident'>length</span>);
+    <span class="doccomment">/// Set the strings&#39;s length.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// May panic if `length` is greater than the capacity.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This function is `unsafe` because it changes the notion of the</span>
+    <span class="doccomment">/// number of “valid” bytes in the string. Use with care.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">set_len</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">length</span>: <span class="ident">usize</span>) {
+        <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">length</span> <span class="op">&lt;=</span> <span class="self">self</span>.<span class="ident">capacity</span>());
+        <span class="self">self</span>.<span class="ident">len</span> <span class="op">=</span> <span class="ident">Index</span>::<span class="ident">from</span>(<span class="ident">length</span>);
     }
 
-    <span class='doccomment'>/// Return a string slice of the whole `ArrayString`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_str</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>str</span> {
-        <span class='self'>self</span>
+    <span class="doccomment">/// Return a string slice of the whole `ArrayString`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
+        <span class="self">self</span>
     }
 
-    <span class='doccomment'>/// Return a mutable slice of the whole string&#39;s buffer</span>
-    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>raw_mut_bytes</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>] {
-        <span class='ident'>slice</span>::<span class='ident'>from_raw_parts_mut</span>(<span class='self'>self</span>.<span class='ident'>xs</span>.<span class='ident'>as_mut_ptr</span>(), <span class='self'>self</span>.<span class='ident'>capacity</span>())
+    <span class="doccomment">/// Return a mutable slice of the whole string&#39;s buffer</span>
+    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">raw_mut_bytes</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] {
+        <span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(<span class="self">self</span>.<span class="ident">xs</span>.<span class="ident">as_mut_ptr</span>(), <span class="self">self</span>.<span class="ident">capacity</span>())
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>str</span>;
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>str</span> {
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='ident'>sl</span> <span class='op'>=</span> <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='self'>self</span>.<span class='ident'>xs</span>.<span class='ident'>as_ptr</span>(), <span class='self'>self</span>.<span class='ident'>len</span>.<span class='ident'>to_usize</span>());
-            <span class='ident'>str</span>::<span class='ident'>from_utf8_unchecked</span>(<span class='ident'>sl</span>)
-        }
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>DerefMut</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>deref_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>str</span> {
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='ident'>sl</span> <span class='op'>=</span> <span class='ident'>slice</span>::<span class='ident'>from_raw_parts_mut</span>(<span class='self'>self</span>.<span class='ident'>xs</span>.<span class='ident'>as_mut_ptr</span>(), <span class='self'>self</span>.<span class='ident'>len</span>.<span class='ident'>to_usize</span>());
-            <span class='comment'>// FIXME: Nothing but transmute to do this right now</span>
-            <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>sl</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> <span class="ident">str</span>;
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">sl</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="self">self</span>.<span class="ident">xs</span>.<span class="ident">as_ptr</span>(), <span class="self">self</span>.<span class="ident">len</span>.<span class="ident">to_usize</span>());
+            <span class="ident">str</span>::<span class="ident">from_utf8_unchecked</span>(<span class="ident">sl</span>)
         }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>PartialEq</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>eq</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span> <span class='op'>==</span> <span class='kw-2'>*</span><span class='kw-2'>*</span><span class='ident'>rhs</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">DerefMut</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">deref_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">str</span> {
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">sl</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(<span class="self">self</span>.<span class="ident">xs</span>.<span class="ident">as_mut_ptr</span>(), <span class="self">self</span>.<span class="ident">len</span>.<span class="ident">to_usize</span>());
+            <span class="comment">// FIXME: Nothing but transmute to do this right now</span>
+            <span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">sl</span>)
+        }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>PartialEq</span><span class='op'>&lt;</span><span class='ident'>str</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>eq</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw-2'>&amp;</span><span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span> <span class='op'>==</span> <span class='ident'>rhs</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span> <span class="op">==</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">rhs</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>PartialEq</span><span class='op'>&lt;</span><span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;&gt;</span> <span class='kw'>for</span> <span class='ident'>str</span> {
-    <span class='kw'>fn</span> <span class='ident'>eq</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span> <span class='op'>==</span> <span class='kw-2'>&amp;</span><span class='kw-2'>*</span><span class='kw-2'>*</span><span class='ident'>rhs</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">PartialEq</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span> <span class="op">==</span> <span class="ident">rhs</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>Eq</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> { }
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>Hash</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>hash</span><span class='op'>&lt;</span><span class='ident'>H</span>: <span class='ident'>Hasher</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>h</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>H</span>) {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>hash</span>(<span class='ident'>h</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">PartialEq</span><span class="op">&lt;</span><span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="ident">str</span> {
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span> <span class="op">==</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">rhs</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>str</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>borrow</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>str</span> { <span class='self'>self</span> }
-}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">Eq</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> { }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>AsRef</span><span class='op'>&lt;</span><span class='ident'>str</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>as_ref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>str</span> { <span class='self'>self</span> }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> { (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>fmt</span>(<span class='ident'>f</span>) }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> { (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>fmt</span>(<span class='ident'>f</span>) }
-}
-
-<span class='doccomment'>/// `Write` appends written data to the end of the string.</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Write</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>write_char</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>c</span>: <span class='ident'>char</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='self'>self</span>.<span class='ident'>push</span>(<span class='ident'>c</span>).<span class='ident'>map_err</span>(<span class='op'>|</span>_<span class='op'>|</span> <span class='ident'>fmt</span>::<span class='ident'>Error</span>)
-    }
-    <span class='kw'>fn</span> <span class='ident'>write_str</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>s</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='self'>self</span>.<span class='ident'>push_str</span>(<span class='ident'>s</span>).<span class='ident'>map_err</span>(<span class='op'>|</span>_<span class='op'>|</span> <span class='ident'>fmt</span>::<span class='ident'>Error</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">Hash</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">hash</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Hasher</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">h</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">H</span>) {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">hash</span>(<span class="ident">h</span>)
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Copy</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>ArrayString</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='kw-2'>*</span><span class='self'>self</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">borrow</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> { <span class="self">self</span> }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">as_ref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> { <span class="self">self</span> }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> { (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">fmt</span>(<span class="ident">f</span>) }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> { (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">fmt</span>(<span class="ident">f</span>) }
+}
+
+<span class="doccomment">/// `Write` appends written data to the end of the string.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">fmt</span>::<span class="ident">Write</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">write_char</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">c</span>: <span class="ident">char</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="self">self</span>.<span class="ident">push</span>(<span class="ident">c</span>).<span class="ident">map_err</span>(<span class="op">|</span>_<span class="op">|</span> <span class="ident">fmt</span>::<span class="ident">Error</span>)
+    }
+    <span class="kw">fn</span> <span class="ident">write_str</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="self">self</span>.<span class="ident">push_str</span>(<span class="ident">s</span>).<span class="ident">map_err</span>(<span class="op">|</span>_<span class="op">|</span> <span class="ident">fmt</span>::<span class="ident">Error</span>)
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Copy</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">ArrayString</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+        <span class="kw-2">*</span><span class="self">self</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>clone_from</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) {
-        <span class='comment'>// guaranteed to fit due to types matching.</span>
-        <span class='self'>self</span>.<span class='ident'>clear</span>();
-        <span class='self'>self</span>.<span class='ident'>push_str</span>(<span class='ident'>rhs</span>).<span class='ident'>ok</span>();
+    <span class="kw">fn</span> <span class="ident">clone_from</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) {
+        <span class="comment">// guaranteed to fit due to types matching.</span>
+        <span class="self">self</span>.<span class="ident">clear</span>();
+        <span class="self">self</span>.<span class="ident">push_str</span>(<span class="ident">rhs</span>).<span class="ident">ok</span>();
     }
 }
 </pre>

@@ -844,806 +844,806 @@
 <span id="799">799</span>
 <span id="800">800</span>
 <span id="801">801</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! Conrod uses a directed acyclic graph to manage both storing widgets and describing their</span>
-<span class='doccomment'>//! relationships.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The primary type of interest in this module is the [**Graph**](./struct.Graph) type.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! Conrod uses a directed acyclic graph to manage both storing widgets and describing their</span>
+<span class="doccomment">//! relationships.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The primary type of interest in this module is the [**Graph**](./struct.Graph) type.</span>
 
-<span class='kw'>use</span> <span class='ident'>daggy</span>;
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Axis</span>, <span class='ident'>Depth</span>, <span class='ident'>Rect</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::{<span class='ident'>Index</span>, <span class='ident'>IndexMut</span>};
-<span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
+<span class="kw">use</span> <span class="ident">daggy</span>;
+<span class="kw">use</span> <span class="ident">position</span>::{<span class="ident">Axis</span>, <span class="ident">Depth</span>, <span class="ident">Rect</span>};
+<span class="kw">use</span> <span class="ident">std</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">Any</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ops</span>::{<span class="ident">Index</span>, <span class="ident">IndexMut</span>};
+<span class="kw">use</span> <span class="ident">widget</span>::{<span class="self">self</span>, <span class="ident">Widget</span>};
 
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>daggy</span>::<span class='ident'>Walker</span>;
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>depth_order</span>::<span class='ident'>DepthOrder</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">daggy</span>::<span class="ident">Walker</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="self">self</span>::<span class="ident">depth_order</span>::<span class="ident">DepthOrder</span>;
 
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>algo</span>;
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>depth_order</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">algo</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">depth_order</span>;
 
 
-<span class='doccomment'>/// An alias for our Graph&#39;s Edge Index.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>EdgeIndex</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>EdgeIndex</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// An alias for our Graph&#39;s Edge Index.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">EdgeIndex</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">EdgeIndex</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>;
 
-<span class='doccomment'>/// An alias for a tuple containing an associated `Edge/widget::Id` pair.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>IndexPair</span> <span class='op'>=</span> (<span class='ident'>EdgeIndex</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>);
+<span class="doccomment">/// An alias for a tuple containing an associated `Edge/widget::Id` pair.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">IndexPair</span> <span class="op">=</span> (<span class="ident">EdgeIndex</span>, <span class="ident">widget</span>::<span class="ident">Id</span>);
 
-<span class='doccomment'>/// A **Walker** over some node&#39;s parent nodes.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>Parents</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>Parents</span><span class='op'>&lt;</span><span class='ident'>Node</span>, <span class='ident'>Edge</span>, <span class='ident'>u32</span><span class='op'>&gt;</span>;
-<span class='doccomment'>/// A **Walker** over some node&#39;s child nodes.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>Children</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>Children</span><span class='op'>&lt;</span><span class='ident'>Node</span>, <span class='ident'>Edge</span>, <span class='ident'>u32</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// A **Walker** over some node&#39;s parent nodes.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">Parents</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">Parents</span><span class="op">&lt;</span><span class="ident">Node</span>, <span class="ident">Edge</span>, <span class="ident">u32</span><span class="op">&gt;</span>;
+<span class="doccomment">/// A **Walker** over some node&#39;s child nodes.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">Children</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">Children</span><span class="op">&lt;</span><span class="ident">Node</span>, <span class="ident">Edge</span>, <span class="ident">u32</span><span class="op">&gt;</span>;
 
-<span class='doccomment'>/// An alias for the iterator yielding both **X** and **Y** **Position** parents.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>PositionParents</span> <span class='op'>=</span>
-    <span class='ident'>std</span>::<span class='ident'>iter</span>::<span class='ident'>Chain</span><span class='op'>&lt;</span><span class='ident'>std</span>::<span class='ident'>option</span>::<span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>, <span class='ident'>std</span>::<span class='ident'>option</span>::<span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;&gt;</span>;
+<span class="doccomment">/// An alias for the iterator yielding both **X** and **Y** **Position** parents.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">PositionParents</span> <span class="op">=</span>
+    <span class="ident">std</span>::<span class="ident">iter</span>::<span class="ident">Chain</span><span class="op">&lt;</span><span class="ident">std</span>::<span class="ident">option</span>::<span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span>, <span class="ident">std</span>::<span class="ident">option</span>::<span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;&gt;</span>;
 
-<span class='doccomment'>/// An alias for some filtered children walker.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>FilteredChildren</span> <span class='op'>=</span>
-    <span class='ident'>daggy</span>::<span class='ident'>walker</span>::<span class='ident'>Filter</span><span class='op'>&lt;</span><span class='ident'>Children</span>, <span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>EdgeIndex</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span><span class='op'>&gt;</span>;
-<span class='doccomment'>/// An alias for a **Walker** over a node&#39;s **Depth** children.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>DepthChildren</span> <span class='op'>=</span> <span class='ident'>FilteredChildren</span>;
-<span class='doccomment'>/// An alias for a **Walker** over a node&#39;s **X Position** children.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>XPositionChildren</span> <span class='op'>=</span> <span class='ident'>FilteredChildren</span>;
-<span class='doccomment'>/// An alias for a **Walker** over a node&#39;s **Y Position** children.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>YPositionChildren</span> <span class='op'>=</span> <span class='ident'>FilteredChildren</span>;
-<span class='doccomment'>/// An alias for a **Walker** over a node&#39;s **X** and **Y** **Position** children respectively.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>PositionChildren</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>walker</span>::<span class='ident'>Chain</span><span class='op'>&lt;</span><span class='ident'>Graph</span>, <span class='ident'>u32</span>, <span class='ident'>XPositionChildren</span>, <span class='ident'>YPositionChildren</span><span class='op'>&gt;</span>;
-<span class='doccomment'>/// An alias for a **Walker** over a node&#39;s **Graphic** children.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>GraphicChildren</span> <span class='op'>=</span> <span class='ident'>FilteredChildren</span>;
+<span class="doccomment">/// An alias for some filtered children walker.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">FilteredChildren</span> <span class="op">=</span>
+    <span class="ident">daggy</span>::<span class="ident">walker</span>::<span class="ident">Filter</span><span class="op">&lt;</span><span class="ident">Children</span>, <span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">EdgeIndex</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span><span class="op">&gt;</span>;
+<span class="doccomment">/// An alias for a **Walker** over a node&#39;s **Depth** children.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">DepthChildren</span> <span class="op">=</span> <span class="ident">FilteredChildren</span>;
+<span class="doccomment">/// An alias for a **Walker** over a node&#39;s **X Position** children.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">XPositionChildren</span> <span class="op">=</span> <span class="ident">FilteredChildren</span>;
+<span class="doccomment">/// An alias for a **Walker** over a node&#39;s **Y Position** children.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">YPositionChildren</span> <span class="op">=</span> <span class="ident">FilteredChildren</span>;
+<span class="doccomment">/// An alias for a **Walker** over a node&#39;s **X** and **Y** **Position** children respectively.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">PositionChildren</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">walker</span>::<span class="ident">Chain</span><span class="op">&lt;</span><span class="ident">Graph</span>, <span class="ident">u32</span>, <span class="ident">XPositionChildren</span>, <span class="ident">YPositionChildren</span><span class="op">&gt;</span>;
+<span class="doccomment">/// An alias for a **Walker** over a node&#39;s **Graphic** children.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">GraphicChildren</span> <span class="op">=</span> <span class="ident">FilteredChildren</span>;
 
-<span class='doccomment'>/// An alias for our Graph&#39;s recursive walker.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>walker</span>::<span class='ident'>Recursive</span><span class='op'>&lt;</span><span class='ident'>Graph</span>, <span class='ident'>u32</span>, <span class='ident'>F</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// An alias for our Graph&#39;s recursive walker.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">walker</span>::<span class="ident">Recursive</span><span class="op">&lt;</span><span class="ident">Graph</span>, <span class="ident">u32</span>, <span class="ident">F</span><span class="op">&gt;</span>;
 
-<span class='doccomment'>/// An alias for our Graph&#39;s **WouldCycle** error type.</span>
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>WouldCycle</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>WouldCycle</span><span class='op'>&lt;</span><span class='ident'>Edge</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// An alias for our Graph&#39;s **WouldCycle** error type.</span>
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">WouldCycle</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">WouldCycle</span><span class="op">&lt;</span><span class="ident">Edge</span><span class="op">&gt;</span>;
 
-<span class='doccomment'>/// The state type that we&#39;ll dynamically cast to and from `Any` for storage within the cache.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>UniqueWidgetState</span><span class='op'>&lt;</span><span class='ident'>State</span>, <span class='ident'>Style</span><span class='op'>&gt;</span> <span class='kw'>where</span>
-    <span class='ident'>State</span>: <span class='ident'>Any</span>,
-    <span class='ident'>Style</span>: <span class='ident'>Any</span>,
+<span class="doccomment">/// The state type that we&#39;ll dynamically cast to and from `Any` for storage within the cache.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">UniqueWidgetState</span><span class="op">&lt;</span><span class="ident">State</span>, <span class="ident">Style</span><span class="op">&gt;</span> <span class="kw">where</span>
+    <span class="ident">State</span>: <span class="ident">Any</span>,
+    <span class="ident">Style</span>: <span class="ident">Any</span>,
 {
-    <span class='doccomment'>/// A **Widget**&#39;s unique &quot;State&quot;.</span>
-    <span class='kw'>pub</span> <span class='ident'>state</span>: <span class='ident'>State</span>,
-    <span class='doccomment'>/// A **Widget**&#39;s unique &quot;Style&quot;.</span>
-    <span class='kw'>pub</span> <span class='ident'>style</span>: <span class='ident'>Style</span>,
+    <span class="doccomment">/// A **Widget**&#39;s unique &quot;State&quot;.</span>
+    <span class="kw">pub</span> <span class="ident">state</span>: <span class="ident">State</span>,
+    <span class="doccomment">/// A **Widget**&#39;s unique &quot;Style&quot;.</span>
+    <span class="kw">pub</span> <span class="ident">style</span>: <span class="ident">Style</span>,
 }
 
-<span class='doccomment'>/// A container for caching a Widget&#39;s state inside a Graph Node.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Container</span> {
-    <span class='doccomment'>/// Dynamically stored widget state.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;&gt;</span>,
-    <span class='doccomment'>/// The unique `TypeId` associated with the `Widget::State`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is equal to `std::any::TypeId::of::&lt;Widget::State&gt;()`.</span>
-    <span class='kw'>pub</span> <span class='ident'>type_id</span>: <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>TypeId</span>,
-    <span class='doccomment'>/// The rectangle describing the Widget&#39;s area.</span>
-    <span class='kw'>pub</span> <span class='ident'>rect</span>: <span class='ident'>Rect</span>,
-    <span class='doccomment'>/// The depth at which the widget will be rendered comparatively to its siblings.</span>
-    <span class='kw'>pub</span> <span class='ident'>depth</span>: <span class='ident'>Depth</span>,
-    <span class='doccomment'>/// The area in which child widgets are placed.</span>
-    <span class='kw'>pub</span> <span class='ident'>kid_area</span>: <span class='ident'>widget</span>::<span class='ident'>KidArea</span>,
-    <span class='doccomment'>/// Whether or not the widget is a &quot;Floating&quot; widget.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// See the `Widget::float` docs for an explanation of what this means.</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_floating</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Floating</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Whether or not children widgets should be cropped to the `kid_area`.</span>
-    <span class='kw'>pub</span> <span class='ident'>crop_kids</span>: <span class='ident'>bool</span>,
-    <span class='doccomment'>/// Scroll related state (is only `Some` if this axis is scrollable).</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_x_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>StateX</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Scroll related state (is only `Some` if this axis is scrollable).</span>
-    <span class='kw'>pub</span> <span class='ident'>maybe_y_scroll_state</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>scroll</span>::<span class='ident'>StateY</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Represents the Widget&#39;s position within the overall instantiation ordering of the widgets.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// i.e. if foo&#39;s `instantiation_order_idx` is lower than bar&#39;s, it means that foo was</span>
-    <span class='doccomment'>/// instantiated before bar.</span>
-    <span class='kw'>pub</span> <span class='ident'>instantiation_order_idx</span>: <span class='ident'>usize</span>,
+<span class="doccomment">/// A container for caching a Widget&#39;s state inside a Graph Node.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Container</span> {
+    <span class="doccomment">/// Dynamically stored widget state.</span>
+    <span class="kw">pub</span> <span class="ident">maybe_state</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;&gt;</span>,
+    <span class="doccomment">/// The unique `TypeId` associated with the `Widget::State`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is equal to `std::any::TypeId::of::&lt;Widget::State&gt;()`.</span>
+    <span class="kw">pub</span> <span class="ident">type_id</span>: <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">TypeId</span>,
+    <span class="doccomment">/// The rectangle describing the Widget&#39;s area.</span>
+    <span class="kw">pub</span> <span class="ident">rect</span>: <span class="ident">Rect</span>,
+    <span class="doccomment">/// The depth at which the widget will be rendered comparatively to its siblings.</span>
+    <span class="kw">pub</span> <span class="ident">depth</span>: <span class="ident">Depth</span>,
+    <span class="doccomment">/// The area in which child widgets are placed.</span>
+    <span class="kw">pub</span> <span class="ident">kid_area</span>: <span class="ident">widget</span>::<span class="ident">KidArea</span>,
+    <span class="doccomment">/// Whether or not the widget is a &quot;Floating&quot; widget.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// See the `Widget::float` docs for an explanation of what this means.</span>
+    <span class="kw">pub</span> <span class="ident">maybe_floating</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Floating</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Whether or not children widgets should be cropped to the `kid_area`.</span>
+    <span class="kw">pub</span> <span class="ident">crop_kids</span>: <span class="ident">bool</span>,
+    <span class="doccomment">/// Scroll related state (is only `Some` if this axis is scrollable).</span>
+    <span class="kw">pub</span> <span class="ident">maybe_x_scroll_state</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">scroll</span>::<span class="ident">StateX</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Scroll related state (is only `Some` if this axis is scrollable).</span>
+    <span class="kw">pub</span> <span class="ident">maybe_y_scroll_state</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">scroll</span>::<span class="ident">StateY</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Represents the Widget&#39;s position within the overall instantiation ordering of the widgets.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// i.e. if foo&#39;s `instantiation_order_idx` is lower than bar&#39;s, it means that foo was</span>
+    <span class="doccomment">/// instantiated before bar.</span>
+    <span class="kw">pub</span> <span class="ident">instantiation_order_idx</span>: <span class="ident">usize</span>,
 }
 
-<span class='doccomment'>/// A node for use within the **Graph**.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Node</span> {
-    <span class='doccomment'>/// A widget constructed by a user.</span>
-    <span class='ident'>Widget</span>(<span class='ident'>Container</span>),
-    <span class='doccomment'>/// A placeholder node - used when reserving a place for a **Widget** within the **Graph**.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// It may also be used to represent a node that was once pre-occuppied by a widget who was not</span>
-    <span class='doccomment'>/// `set` during the last `set_widgets` stage.</span>
-    <span class='ident'>Placeholder</span>,
+<span class="doccomment">/// A node for use within the **Graph**.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Node</span> {
+    <span class="doccomment">/// A widget constructed by a user.</span>
+    <span class="ident">Widget</span>(<span class="ident">Container</span>),
+    <span class="doccomment">/// A placeholder node - used when reserving a place for a **Widget** within the **Graph**.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// It may also be used to represent a node that was once pre-occuppied by a widget who was not</span>
+    <span class="doccomment">/// `set` during the last `set_widgets` stage.</span>
+    <span class="ident">Placeholder</span>,
 }
 
-<span class='doccomment'>/// An edge between nodes within the UI Graph.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>Edge</span> {
-    <span class='doccomment'>/// Describes the relative positioning of widgets.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// When adding an edge *a -&gt; b*, *b* is positioned relatively to *a*.</span>
-    <span class='ident'>Position</span>(<span class='ident'>Axis</span>),
-    <span class='doccomment'>/// Describes the rendering order of the widgets.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// When adding an edge *a -&gt; b*, *a* is the parent of (and will be rendered before) *b*.</span>
-    <span class='ident'>Depth</span>,
-    <span class='doccomment'>/// Describes when a widget is used solely as a graphical element for another widget.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// When adding an edge *a -&gt; b*, *b* is considered to be a graphical element of *a*. This</span>
-    <span class='doccomment'>/// implies several things about *b*:</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// - If *b* is picked within either **Graph::pick_widget** or</span>
-    <span class='doccomment'>/// **Graph::pick_top_scrollable_widget**, it will instead return the index for *a*.</span>
-    <span class='doccomment'>/// - When determining the **Graph::scroll_offset** for *b*, *a*&#39;s scrolling (if it is</span>
-    <span class='doccomment'>/// scrollable, that is) will be skipped.</span>
-    <span class='doccomment'>/// - Any **Graphic** child of *b* will be considered as a **Graphic** child of *a*.</span>
-    <span class='ident'>Graphic</span>,
+<span class="doccomment">/// An edge between nodes within the UI Graph.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Edge</span> {
+    <span class="doccomment">/// Describes the relative positioning of widgets.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When adding an edge *a -&gt; b*, *b* is positioned relatively to *a*.</span>
+    <span class="ident">Position</span>(<span class="ident">Axis</span>),
+    <span class="doccomment">/// Describes the rendering order of the widgets.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When adding an edge *a -&gt; b*, *a* is the parent of (and will be rendered before) *b*.</span>
+    <span class="ident">Depth</span>,
+    <span class="doccomment">/// Describes when a widget is used solely as a graphical element for another widget.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When adding an edge *a -&gt; b*, *b* is considered to be a graphical element of *a*. This</span>
+    <span class="doccomment">/// implies several things about *b*:</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - If *b* is picked within either **Graph::pick_widget** or</span>
+    <span class="doccomment">/// **Graph::pick_top_scrollable_widget**, it will instead return the index for *a*.</span>
+    <span class="doccomment">/// - When determining the **Graph::scroll_offset** for *b*, *a*&#39;s scrolling (if it is</span>
+    <span class="doccomment">/// scrollable, that is) will be skipped.</span>
+    <span class="doccomment">/// - Any **Graphic** child of *b* will be considered as a **Graphic** child of *a*.</span>
+    <span class="ident">Graphic</span>,
 }
 
-<span class='doccomment'>/// The number of different variants within the **Edge** enum.</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>NUM_EDGE_VARIANTS</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>4</span>;
+<span class="doccomment">/// The number of different variants within the **Edge** enum.</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">NUM_EDGE_VARIANTS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">4</span>;
 
-<span class='doccomment'>/// An alias for the petgraph::Graph used within our Ui Graph.</span>
-<span class='kw'>type</span> <span class='ident'>Dag</span> <span class='op'>=</span> <span class='ident'>daggy</span>::<span class='ident'>Dag</span><span class='op'>&lt;</span><span class='ident'>Node</span>, <span class='ident'>Edge</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// An alias for the petgraph::Graph used within our Ui Graph.</span>
+<span class="kw">type</span> <span class="ident">Dag</span> <span class="op">=</span> <span class="ident">daggy</span>::<span class="ident">Dag</span><span class="op">&lt;</span><span class="ident">Node</span>, <span class="ident">Edge</span><span class="op">&gt;</span>;
 
-<span class='doccomment'>/// Stores the dynamic state of a UI tree of Widgets.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Graph</span> {
-    <span class='doccomment'>/// Cached widget state in a directed acyclic graph whose edges describe the rendering tree and</span>
-    <span class='doccomment'>/// positioning.</span>
-    <span class='ident'>dag</span>: <span class='ident'>Dag</span>,
+<span class="doccomment">/// Stores the dynamic state of a UI tree of Widgets.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Graph</span> {
+    <span class="doccomment">/// Cached widget state in a directed acyclic graph whose edges describe the rendering tree and</span>
+    <span class="doccomment">/// positioning.</span>
+    <span class="ident">dag</span>: <span class="ident">Dag</span>,
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>Container</span> {
+<span class="kw">impl</span> <span class="ident">Container</span> {
 
-    <span class='doccomment'>/// Borrow the **Container**&#39;s unique widget State and Style if there is any.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>state_and_style</span><span class='op'>&lt;</span><span class='ident'>State</span>, <span class='ident'>Style</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>UniqueWidgetState</span><span class='op'>&lt;</span><span class='ident'>State</span>, <span class='ident'>Style</span><span class='op'>&gt;&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>State</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
-              <span class='ident'>Style</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+    <span class="doccomment">/// Borrow the **Container**&#39;s unique widget State and Style if there is any.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">state_and_style</span><span class="op">&lt;</span><span class="ident">State</span>, <span class="ident">Style</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">UniqueWidgetState</span><span class="op">&lt;</span><span class="ident">State</span>, <span class="ident">Style</span><span class="op">&gt;&gt;</span>
+        <span class="kw">where</span> <span class="ident">State</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
+              <span class="ident">Style</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
     {
-        <span class='self'>self</span>.<span class='ident'>maybe_state</span>.<span class='ident'>as_ref</span>().<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>boxed_state</span><span class='op'>|</span> <span class='ident'>boxed_state</span>.<span class='ident'>downcast_ref</span>())
+        <span class="self">self</span>.<span class="ident">maybe_state</span>.<span class="ident">as_ref</span>().<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">boxed_state</span><span class="op">|</span> <span class="ident">boxed_state</span>.<span class="ident">downcast_ref</span>())
     }
 
-    <span class='doccomment'>/// Same as [**Container::state_and_style**](./struct.Container#method.state_and_style) but</span>
-    <span class='doccomment'>/// accessed using a **Widget** type parameter instead of the unique State and Style types.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>unique_widget_state</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>UniqueWidgetState</span><span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>State</span>, <span class='ident'>W</span>::<span class='ident'>Style</span><span class='op'>&gt;&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Widget</span>,
-              <span class='ident'>W</span>::<span class='ident'>State</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
-              <span class='ident'>W</span>::<span class='ident'>Style</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span>,
+    <span class="doccomment">/// Same as [**Container::state_and_style**](./struct.Container#method.state_and_style) but</span>
+    <span class="doccomment">/// accessed using a **Widget** type parameter instead of the unique State and Style types.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">unique_widget_state</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">UniqueWidgetState</span><span class="op">&lt;</span><span class="ident">W</span>::<span class="ident">State</span>, <span class="ident">W</span>::<span class="ident">Style</span><span class="op">&gt;&gt;</span>
+        <span class="kw">where</span> <span class="ident">W</span>: <span class="ident">Widget</span>,
+              <span class="ident">W</span>::<span class="ident">State</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
+              <span class="ident">W</span>::<span class="ident">Style</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
     {
-        <span class='self'>self</span>.<span class='ident'>state_and_style</span>::<span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>State</span>, <span class='ident'>W</span>::<span class='ident'>Style</span><span class='op'>&gt;</span>()
+        <span class="self">self</span>.<span class="ident">state_and_style</span>::<span class="op">&lt;</span><span class="ident">W</span>::<span class="ident">State</span>, <span class="ident">W</span>::<span class="ident">Style</span><span class="op">&gt;</span>()
     }
 
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>Node</span> {
+<span class="kw">impl</span> <span class="ident">Node</span> {
 
-    <span class='doccomment'>/// Whether or not the **Node** is of the **Widget** variant.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(_) <span class='op'>=</span> <span class='kw-2'>*</span><span class='self'>self</span> { <span class='bool-val'>true</span> } <span class='kw'>else</span> { <span class='bool-val'>false</span> }
+    <span class="doccomment">/// Whether or not the **Node** is of the **Widget** variant.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_widget</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="ident">Node</span>::<span class="ident">Widget</span>(_) <span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span> { <span class="bool-val">true</span> } <span class="kw">else</span> { <span class="bool-val">false</span> }
     }
 
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>Graph</span> {
+<span class="kw">impl</span> <span class="ident">Graph</span> {
 
-    <span class='doccomment'>/// A new empty **Graph**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>Graph</span> {
-            <span class='ident'>dag</span>: <span class='ident'>Dag</span>::<span class='ident'>new</span>(),
+    <span class="doccomment">/// A new empty **Graph**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Graph</span> {
+            <span class="ident">dag</span>: <span class="ident">Dag</span>::<span class="ident">new</span>(),
         }
     }
 
-    <span class='doccomment'>/// A new **Graph** with the given node capacity.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// We know that there can be no more than three parents per node as the public API enforces a</span>
-    <span class='doccomment'>/// maximum of one Depth, Position and Graphic parent each. Thus, we can assume an edge</span>
-    <span class='doccomment'>/// capacity of exactly three times the given node capacity.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_node_capacity</span>(<span class='ident'>n_nodes</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='kw'>let</span> <span class='ident'>n_edges</span> <span class='op'>=</span> <span class='ident'>n_nodes</span> <span class='op'>*</span> <span class='ident'>NUM_EDGE_VARIANTS</span>;
-        <span class='ident'>Graph</span> {
-            <span class='ident'>dag</span>: <span class='ident'>Dag</span>::<span class='ident'>with_capacity</span>(<span class='ident'>n_nodes</span>, <span class='ident'>n_edges</span>),
+    <span class="doccomment">/// A new **Graph** with the given node capacity.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// We know that there can be no more than three parents per node as the public API enforces a</span>
+    <span class="doccomment">/// maximum of one Depth, Position and Graphic parent each. Thus, we can assume an edge</span>
+    <span class="doccomment">/// capacity of exactly three times the given node capacity.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_node_capacity</span>(<span class="ident">n_nodes</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">n_edges</span> <span class="op">=</span> <span class="ident">n_nodes</span> <span class="op">*</span> <span class="ident">NUM_EDGE_VARIANTS</span>;
+        <span class="ident">Graph</span> {
+            <span class="ident">dag</span>: <span class="ident">Dag</span>::<span class="ident">with_capacity</span>(<span class="ident">n_nodes</span>, <span class="ident">n_edges</span>),
         }
     }
 
-    <span class='doccomment'>/// Removes all **Node**s and **Edge**s from the **Graph**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>clear</span>()
+    <span class="doccomment">/// Removes all **Node**s and **Edge**s from the **Graph**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">clear</span>()
     }
 
-    <span class='doccomment'>/// The total number of **Node**s in the **Graph**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>node_count</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>node_count</span>()
+    <span class="doccomment">/// The total number of **Node**s in the **Graph**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">node_count</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">node_count</span>()
     }
 
-    <span class='doccomment'>/// The total number of **Node::Widget**s in the **Graph**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widget_count</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        (<span class='number'>0</span>..<span class='self'>self</span>.<span class='ident'>node_count</span>())
-            .<span class='ident'>filter</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>i</span><span class='op'>|</span> <span class='self'>self</span>[<span class='ident'>widget</span>::<span class='ident'>Id</span>::<span class='ident'>new</span>(<span class='ident'>i</span>)].<span class='ident'>is_widget</span>())
-            .<span class='ident'>count</span>()
+    <span class="doccomment">/// The total number of **Node::Widget**s in the **Graph**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">widget_count</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        (<span class="number">0</span>..<span class="self">self</span>.<span class="ident">node_count</span>())
+            .<span class="ident">filter</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">i</span><span class="op">|</span> <span class="self">self</span>[<span class="ident">widget</span>::<span class="ident">Id</span>::<span class="ident">new</span>(<span class="ident">i</span>)].<span class="ident">is_widget</span>())
+            .<span class="ident">count</span>()
     }
 
-    <span class='doccomment'>/// The total number of **Edge**s in the **Graph**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>edge_count</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>edge_count</span>()
+    <span class="doccomment">/// The total number of **Edge**s in the **Graph**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">edge_count</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">edge_count</span>()
     }
 
-    <span class='doccomment'>/// The current capacity for the **Graph**&#39;s internal node `Vec`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>node_capacity</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='macro'>unimplemented</span><span class='macro'>!</span>();
+    <span class="doccomment">/// The current capacity for the **Graph**&#39;s internal node `Vec`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">node_capacity</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="macro">unimplemented</span><span class="macro">!</span>();
     }
 
-    <span class='doccomment'>/// Add the given **Node** to the graph.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Computes in **O(1)** time.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns the index of the new node.</span>
-    <span class='kw'>fn</span> <span class='ident'>add_node</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>node</span>: <span class='ident'>Node</span>) <span class='op'>-&gt;</span> <span class='ident'>widget</span>::<span class='ident'>Id</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>add_node</span>(<span class='ident'>node</span>)
+    <span class="doccomment">/// Add the given **Node** to the graph.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Computes in **O(1)** time.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns the index of the new node.</span>
+    <span class="kw">fn</span> <span class="ident">add_node</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">node</span>: <span class="ident">Node</span>) <span class="op">-&gt;</span> <span class="ident">widget</span>::<span class="ident">Id</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">add_node</span>(<span class="ident">node</span>)
     }
 
-    <span class='doccomment'>/// Set the given **Edge** within the graph.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The added edge will be in the direction `a` -&gt; `b`</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// There may only ever be one **Edge** of the given variant between `a` -&gt; `b`. In turn, the</span>
-    <span class='doccomment'>/// **Graph** could be described as &quot;three rose trees super imposed on top of one another,</span>
-    <span class='doccomment'>/// where there is one tree for each edge variant&quot;.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Checks if the edge would create a cycle in the **Graph**.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If adding the edge **would not** cause the graph to cycle, the edge will be added and its</span>
-    <span class='doccomment'>/// `EdgeIndex` returned.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If adding the edge **would** cause the graph to cycle, the edge will not be added and</span>
-    <span class='doccomment'>/// instead a `WouldCycle` error with the given weight will be returned.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Panics** if either `a` or `b` do not exist within the **Graph**.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Panics** if the **Graph** is at the maximum number of nodes for its index type.</span>
-    <span class='kw'>fn</span> <span class='ident'>set_edge</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>a</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>b</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>edge</span>: <span class='ident'>Edge</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>EdgeIndex</span>, <span class='ident'>WouldCycle</span><span class='op'>&gt;</span> {
-        <span class='comment'>// Check to see if the node already has some matching incoming edge.</span>
-        <span class='comment'>// Keep it if it&#39;s the one we want. Otherwise, remove any incoming edge that matches the given</span>
-        <span class='comment'>// edge kind but isn&#39;t coming from the node that we desire.</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>parents</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>parents</span>(<span class='ident'>b</span>);
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>already_set</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
+    <span class="doccomment">/// Set the given **Edge** within the graph.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The added edge will be in the direction `a` -&gt; `b`</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// There may only ever be one **Edge** of the given variant between `a` -&gt; `b`. In turn, the</span>
+    <span class="doccomment">/// **Graph** could be described as &quot;three rose trees super imposed on top of one another,</span>
+    <span class="doccomment">/// where there is one tree for each edge variant&quot;.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Checks if the edge would create a cycle in the **Graph**.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If adding the edge **would not** cause the graph to cycle, the edge will be added and its</span>
+    <span class="doccomment">/// `EdgeIndex` returned.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If adding the edge **would** cause the graph to cycle, the edge will not be added and</span>
+    <span class="doccomment">/// instead a `WouldCycle` error with the given weight will be returned.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Panics** if either `a` or `b` do not exist within the **Graph**.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Panics** if the **Graph** is at the maximum number of nodes for its index type.</span>
+    <span class="kw">fn</span> <span class="ident">set_edge</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">a</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">b</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">edge</span>: <span class="ident">Edge</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">EdgeIndex</span>, <span class="ident">WouldCycle</span><span class="op">&gt;</span> {
+        <span class="comment">// Check to see if the node already has some matching incoming edge.</span>
+        <span class="comment">// Keep it if it&#39;s the one we want. Otherwise, remove any incoming edge that matches the given</span>
+        <span class="comment">// edge kind but isn&#39;t coming from the node that we desire.</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">parents</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">parents</span>(<span class="ident">b</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">already_set</span> <span class="op">=</span> <span class="prelude-val">None</span>;
 
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>in_edge_idx</span>, <span class='ident'>in_node_idx</span>)) <span class='op'>=</span> <span class='ident'>parents</span>.<span class='ident'>next</span>(<span class='self'>self</span>) {
-            <span class='kw'>if</span> <span class='ident'>edge</span> <span class='op'>==</span> <span class='self'>self</span>[<span class='ident'>in_edge_idx</span>] {
-                <span class='kw'>if</span> <span class='ident'>in_node_idx</span> <span class='op'>==</span> <span class='ident'>a</span> {
-                    <span class='ident'>already_set</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>in_edge_idx</span>);
-                } <span class='kw'>else</span> {
-                    <span class='self'>self</span>.<span class='ident'>remove_edge</span>(<span class='ident'>in_edge_idx</span>);
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">in_edge_idx</span>, <span class="ident">in_node_idx</span>)) <span class="op">=</span> <span class="ident">parents</span>.<span class="ident">next</span>(<span class="self">self</span>) {
+            <span class="kw">if</span> <span class="ident">edge</span> <span class="op">==</span> <span class="self">self</span>[<span class="ident">in_edge_idx</span>] {
+                <span class="kw">if</span> <span class="ident">in_node_idx</span> <span class="op">==</span> <span class="ident">a</span> {
+                    <span class="ident">already_set</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">in_edge_idx</span>);
+                } <span class="kw">else</span> {
+                    <span class="self">self</span>.<span class="ident">remove_edge</span>(<span class="ident">in_edge_idx</span>);
                 }
-                <span class='comment'>// Note that we only need to check for *one* edge as there can only ever be one</span>
-                <span class='comment'>// parent edge of any kind for each node. We know this, as this method is the only</span>
-                <span class='comment'>// function used by a public method that adds edges.</span>
-                <span class='kw'>break</span>;
+                <span class="comment">// Note that we only need to check for *one* edge as there can only ever be one</span>
+                <span class="comment">// parent edge of any kind for each node. We know this, as this method is the only</span>
+                <span class="comment">// function used by a public method that adds edges.</span>
+                <span class="kw">break</span>;
             }
         }
 
-        <span class='comment'>// If we don&#39;t already have an incoming edge from the requested parent, add one.</span>
-        <span class='kw'>match</span> <span class='ident'>already_set</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>edge_idx</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Ok</span>(<span class='ident'>edge_idx</span>),
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>add_edge</span>(<span class='ident'>a</span>, <span class='ident'>b</span>, <span class='ident'>edge</span>),
+        <span class="comment">// If we don&#39;t already have an incoming edge from the requested parent, add one.</span>
+        <span class="kw">match</span> <span class="ident">already_set</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">edge_idx</span>) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">edge_idx</span>),
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">add_edge</span>(<span class="ident">a</span>, <span class="ident">b</span>, <span class="ident">edge</span>),
         }
     }
 
-    <span class='doccomment'>/// Remove and return the **Edge** at the given index.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return `None` if it didn&#39;t exist.</span>
-    <span class='kw'>fn</span> <span class='ident'>remove_edge</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>EdgeIndex</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Edge</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>remove_edge</span>(<span class='ident'>idx</span>)
+    <span class="doccomment">/// Remove and return the **Edge** at the given index.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return `None` if it didn&#39;t exist.</span>
+    <span class="kw">fn</span> <span class="ident">remove_edge</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">EdgeIndex</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Edge</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">remove_edge</span>(<span class="ident">idx</span>)
     }
 
-    <span class='doccomment'>/// Remove the parent edge of the given kind for the given index if there is one.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `true` if an edge was removed.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if no edges were removed.</span>
-    <span class='kw'>fn</span> <span class='ident'>remove_parent_edge</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>edge</span>: <span class='ident'>Edge</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>edge_idx</span>, _)) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>parents</span>(<span class='ident'>id</span>).<span class='ident'>find</span>(<span class='self'>self</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>edge</span>) {
-            <span class='self'>self</span>.<span class='ident'>remove_edge</span>(<span class='ident'>edge_idx</span>);
-            <span class='kw'>return</span> <span class='bool-val'>true</span>;
+    <span class="doccomment">/// Remove the parent edge of the given kind for the given index if there is one.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `true` if an edge was removed.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if no edges were removed.</span>
+    <span class="kw">fn</span> <span class="ident">remove_parent_edge</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">edge</span>: <span class="ident">Edge</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">edge_idx</span>, _)) <span class="op">=</span> <span class="self">self</span>.<span class="ident">parents</span>(<span class="ident">id</span>).<span class="ident">find</span>(<span class="self">self</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">edge</span>) {
+            <span class="self">self</span>.<span class="ident">remove_edge</span>(<span class="ident">edge_idx</span>);
+            <span class="kw">return</span> <span class="bool-val">true</span>;
         }
-        <span class='bool-val'>false</span>
+        <span class="bool-val">false</span>
     }
 
-    <span class='doccomment'>/// Add a new placeholder node and return it&#39;s `widget::Id` into the `Graph`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This method is used by the `widget::set_widget` function when some internal widget does not</span>
-    <span class='doccomment'>/// yet have it&#39;s own `widget::Id`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>add_placeholder</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>widget</span>::<span class='ident'>Id</span> {
-        <span class='self'>self</span>.<span class='ident'>add_node</span>(<span class='ident'>Node</span>::<span class='ident'>Placeholder</span>)
+    <span class="doccomment">/// Add a new placeholder node and return it&#39;s `widget::Id` into the `Graph`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This method is used by the `widget::set_widget` function when some internal widget does not</span>
+    <span class="doccomment">/// yet have it&#39;s own `widget::Id`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_placeholder</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">widget</span>::<span class="ident">Id</span> {
+        <span class="self">self</span>.<span class="ident">add_node</span>(<span class="ident">Node</span>::<span class="ident">Placeholder</span>)
     }
 
-    <span class='doccomment'>/// Borrow the node at the given **widget::Id** if there is one.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>node</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Node</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>node_weight</span>(<span class='ident'>idx</span>)
+    <span class="doccomment">/// Borrow the node at the given **widget::Id** if there is one.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">node</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Node</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">node_weight</span>(<span class="ident">idx</span>)
     }
 
-    <span class='doccomment'>/// Mutably borrow the node at the given **widget::Id** if there is one.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>node_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>node_weight_mut</span>(<span class='ident'>idx</span>)
+    <span class="doccomment">/// Mutably borrow the node at the given **widget::Id** if there is one.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">node_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Node</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">node_weight_mut</span>(<span class="ident">idx</span>)
     }
 
-    <span class='doccomment'>/// Borrow the edge at the given **EdgeIndex** if there is one.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>edge</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>EdgeIndex</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Edge</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>edge_weight</span>(<span class='ident'>idx</span>)
+    <span class="doccomment">/// Borrow the edge at the given **EdgeIndex** if there is one.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">edge</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">EdgeIndex</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Edge</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">edge_weight</span>(<span class="ident">idx</span>)
     }
 
-    <span class='doccomment'>/// Mutably borrow the edge at the given **EdgeIndex** if there is one.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>edge_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>EdgeIndex</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Edge</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>edge_weight_mut</span>(<span class='ident'>idx</span>)
+    <span class="doccomment">/// Mutably borrow the edge at the given **EdgeIndex** if there is one.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">edge_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">EdgeIndex</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Edge</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">edge_weight_mut</span>(<span class="ident">idx</span>)
     }
 
-    <span class='doccomment'>/// Return the parent and child nodes on either end of the **Edge** at the given index.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>edge_endpoints</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>EdgeIndex</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>)<span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>edge_endpoints</span>(<span class='ident'>idx</span>)
+    <span class="doccomment">/// Return the parent and child nodes on either end of the **Edge** at the given index.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">edge_endpoints</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">EdgeIndex</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">widget</span>::<span class="ident">Id</span>)<span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">edge_endpoints</span>(<span class="ident">idx</span>)
     }
 
-    <span class='doccomment'>/// If there is a Widget for the given index, return a reference to it.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widget</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Container</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>node</span>(<span class='ident'>idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>node</span><span class='op'>|</span> <span class='kw'>match</span> <span class='kw-2'>*</span><span class='ident'>node</span> {
-            <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='ident'>container</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>container</span>),
-            _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+    <span class="doccomment">/// If there is a Widget for the given index, return a reference to it.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">widget</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Container</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">node</span>(<span class="ident">idx</span>).<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">node</span><span class="op">|</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">node</span> {
+            <span class="ident">Node</span>::<span class="ident">Widget</span>(<span class="kw-2">ref</span> <span class="ident">container</span>) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">container</span>),
+            _ <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
         })
     }
 
-    <span class='doccomment'>/// If there is a Widget for the given Id, return a mutable reference to it.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>widget_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Container</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>node_mut</span>(<span class='ident'>idx</span>).<span class='ident'>and_then</span>(<span class='op'>|</span><span class='ident'>node</span><span class='op'>|</span> <span class='kw'>match</span> <span class='kw-2'>*</span><span class='ident'>node</span> {
-            <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>container</span>),
-            _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+    <span class="doccomment">/// If there is a Widget for the given Id, return a mutable reference to it.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">widget_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Container</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">node_mut</span>(<span class="ident">idx</span>).<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">node</span><span class="op">|</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">node</span> {
+            <span class="ident">Node</span>::<span class="ident">Widget</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">container</span>) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">container</span>),
+            _ <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
         })
     }
 
-    <span class='doccomment'>/// A **Walker** type that may be used to step through the parents of the given child node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>parents</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>Parents</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>parents</span>(<span class='ident'>child</span>)
+    <span class="doccomment">/// A **Walker** type that may be used to step through the parents of the given child node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parents</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">Parents</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">parents</span>(<span class="ident">child</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks the **Graph** using the given `recursive_fn`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Panics** If the given start index does not exist within the **Graph**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>recursive_walk</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>start</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>recursive_fn</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='self'>Self</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>EdgeIndex</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>)<span class='op'>&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks the **Graph** using the given `recursive_fn`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Panics** If the given start index does not exist within the **Graph**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">recursive_walk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">start</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">recursive_fn</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="kw-2">&amp;</span><span class="self">Self</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">EdgeIndex</span>, <span class="ident">widget</span>::<span class="ident">Id</span>)<span class="op">&gt;</span>
     {
-        <span class='ident'>RecursiveWalk</span>::<span class='ident'>new</span>(<span class='ident'>start</span>, <span class='ident'>recursive_fn</span>)
+        <span class="ident">RecursiveWalk</span>::<span class="ident">new</span>(<span class="ident">start</span>, <span class="ident">recursive_fn</span>)
     }
 
-    <span class='doccomment'>/// If the widget at the given index has some parent along an **Edge** of the given variant,</span>
-    <span class='doccomment'>/// return an index to it.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>edge_parent</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>edge</span>: <span class='ident'>Edge</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>parents</span>(<span class='ident'>idx</span>).<span class='ident'>find</span>(<span class='self'>self</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>edge</span>).<span class='ident'>map</span>(<span class='op'>|</span>(_, <span class='ident'>n</span>)<span class='op'>|</span> <span class='ident'>n</span>)
+    <span class="doccomment">/// If the widget at the given index has some parent along an **Edge** of the given variant,</span>
+    <span class="doccomment">/// return an index to it.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">edge_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">edge</span>: <span class="ident">Edge</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">parents</span>(<span class="ident">idx</span>).<span class="ident">find</span>(<span class="self">self</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">edge</span>).<span class="ident">map</span>(<span class="op">|</span>(_, <span class="ident">n</span>)<span class="op">|</span> <span class="ident">n</span>)
     }
 
-    <span class='doccomment'>/// Return the index of the parent along the given widget&#39;s **Depth** **Edge**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>depth_parent</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>edge_parent</span>(<span class='ident'>idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Depth</span>)
+    <span class="doccomment">/// Return the index of the parent along the given widget&#39;s **Depth** **Edge**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">depth_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">edge_parent</span>(<span class="ident">idx</span>, <span class="ident">Edge</span>::<span class="ident">Depth</span>)
     }
 
-    <span class='doccomment'>/// Return the index of the parent along the given widget&#39;s **Position** **Edge**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>x_position_parent</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>edge_parent</span>(<span class='ident'>idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>X</span>))
+    <span class="doccomment">/// Return the index of the parent along the given widget&#39;s **Position** **Edge**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">x_position_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">edge_parent</span>(<span class="ident">idx</span>, <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">X</span>))
     }
 
-    <span class='doccomment'>/// Return the index of the parent along the given widget&#39;s **Position** **Edge**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>y_position_parent</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>edge_parent</span>(<span class='ident'>idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>Y</span>))
+    <span class="doccomment">/// Return the index of the parent along the given widget&#39;s **Position** **Edge**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">y_position_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">edge_parent</span>(<span class="ident">idx</span>, <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">Y</span>))
     }
 
-    <span class='doccomment'>/// Produces an iterator yielding the parents along both the **X** and **Y** **Position**</span>
-    <span class='doccomment'>/// **Edge**s respectively.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>position_parents</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>PositionParents</span> {
-        <span class='self'>self</span>.<span class='ident'>x_position_parent</span>(<span class='ident'>idx</span>).<span class='ident'>into_iter</span>().<span class='ident'>chain</span>(<span class='self'>self</span>.<span class='ident'>y_position_parent</span>(<span class='ident'>idx</span>))
+    <span class="doccomment">/// Produces an iterator yielding the parents along both the **X** and **Y** **Position**</span>
+    <span class="doccomment">/// **Edge**s respectively.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">position_parents</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">PositionParents</span> {
+        <span class="self">self</span>.<span class="ident">x_position_parent</span>(<span class="ident">idx</span>).<span class="ident">into_iter</span>().<span class="ident">chain</span>(<span class="self">self</span>.<span class="ident">y_position_parent</span>(<span class="ident">idx</span>))
     }
 
-    <span class='doccomment'>/// Return the index of the parent along the given widget&#39;s **Graphic** **Edge**.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>graphic_parent</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>edge_parent</span>(<span class='ident'>idx</span>, <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>)
+    <span class="doccomment">/// Return the index of the parent along the given widget&#39;s **Graphic** **Edge**.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">graphic_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">edge_parent</span>(<span class="ident">idx</span>, <span class="ident">Edge</span>::<span class="ident">Graphic</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks **Depth** parents starting from the given node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>depth_parent_recursion</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks **Depth** parents starting from the given node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">depth_parent_recursion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>)
+        <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;&gt;</span>
     {
-        <span class='kw'>fn</span> <span class='ident'>depth_edge_parent</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;</span> {
-            <span class='ident'>graph</span>.<span class='ident'>parents</span>(<span class='ident'>idx</span>).<span class='ident'>find</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Depth</span>)
+        <span class="kw">fn</span> <span class="ident">depth_edge_parent</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;</span> {
+            <span class="ident">graph</span>.<span class="ident">parents</span>(<span class="ident">idx</span>).<span class="ident">find</span>(<span class="ident">graph</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Depth</span>)
         }
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>idx</span>, <span class='ident'>depth_edge_parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">idx</span>, <span class="ident">depth_edge_parent</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks **X** **Position** parents starting from the given</span>
-    <span class='doccomment'>/// node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>x_position_parent_recursion</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks **X** **Position** parents starting from the given</span>
+    <span class="doccomment">/// node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">x_position_parent_recursion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>)
+        <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;&gt;</span>
     {
-        <span class='kw'>fn</span> <span class='ident'>x_position_edge_parent</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;</span> {
-            <span class='ident'>graph</span>.<span class='ident'>parents</span>(<span class='ident'>idx</span>).<span class='ident'>find</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>X</span>))
+        <span class="kw">fn</span> <span class="ident">x_position_edge_parent</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;</span> {
+            <span class="ident">graph</span>.<span class="ident">parents</span>(<span class="ident">idx</span>).<span class="ident">find</span>(<span class="ident">graph</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">X</span>))
         }
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>idx</span>, <span class='ident'>x_position_edge_parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">idx</span>, <span class="ident">x_position_edge_parent</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks **Y** **Position** parents starting from the given</span>
-    <span class='doccomment'>/// node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>y_position_parent_recursion</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks **Y** **Position** parents starting from the given</span>
+    <span class="doccomment">/// node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">y_position_parent_recursion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>)
+        <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;&gt;</span>
     {
-        <span class='kw'>fn</span> <span class='ident'>y_position_edge_parent</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;</span> {
-            <span class='ident'>graph</span>.<span class='ident'>parents</span>(<span class='ident'>idx</span>).<span class='ident'>find</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>Y</span>))
+        <span class="kw">fn</span> <span class="ident">y_position_edge_parent</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;</span> {
+            <span class="ident">graph</span>.<span class="ident">parents</span>(<span class="ident">idx</span>).<span class="ident">find</span>(<span class="ident">graph</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">Y</span>))
         }
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>idx</span>, <span class='ident'>y_position_edge_parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">idx</span>, <span class="ident">y_position_edge_parent</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks **Graphic** parents starting from the given node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>graphic_parent_recursion</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks **Graphic** parents starting from the given node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">graphic_parent_recursion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>)
+        <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;&gt;</span>
     {
-        <span class='kw'>fn</span> <span class='ident'>graphic_edge_parent</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;</span> {
-            <span class='ident'>graph</span>.<span class='ident'>parents</span>(<span class='ident'>idx</span>).<span class='ident'>find</span>(<span class='ident'>graph</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>)
+        <span class="kw">fn</span> <span class="ident">graphic_edge_parent</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;</span> {
+            <span class="ident">graph</span>.<span class="ident">parents</span>(<span class="ident">idx</span>).<span class="ident">find</span>(<span class="ident">graph</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Graphic</span>)
         }
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>idx</span>, <span class='ident'>graphic_edge_parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">idx</span>, <span class="ident">graphic_edge_parent</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks **Depth** parents that are scrollable along the</span>
-    <span class='doccomment'>/// *y* axis for the given node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>scrollable_y_parent_recursion</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks **Depth** parents that are scrollable along the</span>
+    <span class="doccomment">/// *y* axis for the given node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">scrollable_y_parent_recursion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>)
+        <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;&gt;</span>
     {
-        <span class='kw'>fn</span> <span class='ident'>scrollable_y_parent</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;</span> {
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>depth_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent_recursion</span>(<span class='ident'>id</span>);
-            <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>e</span>, <span class='ident'>n</span>)) <span class='op'>=</span> <span class='ident'>depth_parents</span>.<span class='ident'>next</span>(<span class='ident'>graph</span>) {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>parent</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>n</span>) {
-                    <span class='kw'>if</span> <span class='ident'>parent</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>is_some</span>() {
-                        <span class='kw'>return</span> <span class='prelude-val'>Some</span>((<span class='ident'>e</span>, <span class='ident'>n</span>));
+        <span class="kw">fn</span> <span class="ident">scrollable_y_parent</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;</span> {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth_parents</span> <span class="op">=</span> <span class="ident">graph</span>.<span class="ident">depth_parent_recursion</span>(<span class="ident">id</span>);
+            <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">e</span>, <span class="ident">n</span>)) <span class="op">=</span> <span class="ident">depth_parents</span>.<span class="ident">next</span>(<span class="ident">graph</span>) {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">parent</span>) <span class="op">=</span> <span class="ident">graph</span>.<span class="ident">widget</span>(<span class="ident">n</span>) {
+                    <span class="kw">if</span> <span class="ident">parent</span>.<span class="ident">maybe_y_scroll_state</span>.<span class="ident">is_some</span>() {
+                        <span class="kw">return</span> <span class="prelude-val">Some</span>((<span class="ident">e</span>, <span class="ident">n</span>));
                     }
                 }
             }
-            <span class='prelude-val'>None</span>
+            <span class="prelude-val">None</span>
         }
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>idx</span>, <span class='ident'>scrollable_y_parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">idx</span>, <span class="ident">scrollable_y_parent</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that recursively walks **Depth** parents that are scrollable along the</span>
-    <span class='doccomment'>/// *x* axis for the given node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>scrollable_x_parent_recursion</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>)
-        <span class='op'>-&gt;</span> <span class='ident'>RecursiveWalk</span><span class='op'>&lt;</span><span class='kw'>fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;&gt;</span>
+    <span class="doccomment">/// A **Walker** type that recursively walks **Depth** parents that are scrollable along the</span>
+    <span class="doccomment">/// *x* axis for the given node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">scrollable_x_parent_recursion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>)
+        <span class="op">-&gt;</span> <span class="ident">RecursiveWalk</span><span class="op">&lt;</span><span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;&gt;</span>
     {
-        <span class='kw'>fn</span> <span class='ident'>scrollable_x_parent</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>IndexPair</span><span class='op'>&gt;</span> {
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>depth_parents</span> <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>depth_parent_recursion</span>(<span class='ident'>id</span>);
-            <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>((<span class='ident'>e</span>, <span class='ident'>n</span>)) <span class='op'>=</span> <span class='ident'>depth_parents</span>.<span class='ident'>next</span>(<span class='ident'>graph</span>) {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>parent</span>) <span class='op'>=</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>n</span>) {
-                    <span class='kw'>if</span> <span class='ident'>parent</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>is_some</span>() {
-                        <span class='kw'>return</span> <span class='prelude-val'>Some</span>((<span class='ident'>e</span>, <span class='ident'>n</span>));
+        <span class="kw">fn</span> <span class="ident">scrollable_x_parent</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IndexPair</span><span class="op">&gt;</span> {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth_parents</span> <span class="op">=</span> <span class="ident">graph</span>.<span class="ident">depth_parent_recursion</span>(<span class="ident">id</span>);
+            <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">e</span>, <span class="ident">n</span>)) <span class="op">=</span> <span class="ident">depth_parents</span>.<span class="ident">next</span>(<span class="ident">graph</span>) {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">parent</span>) <span class="op">=</span> <span class="ident">graph</span>.<span class="ident">widget</span>(<span class="ident">n</span>) {
+                    <span class="kw">if</span> <span class="ident">parent</span>.<span class="ident">maybe_x_scroll_state</span>.<span class="ident">is_some</span>() {
+                        <span class="kw">return</span> <span class="prelude-val">Some</span>((<span class="ident">e</span>, <span class="ident">n</span>));
                     }
                 }
             }
-            <span class='prelude-val'>None</span>
+            <span class="prelude-val">None</span>
         }
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>idx</span>, <span class='ident'>scrollable_x_parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">idx</span>, <span class="ident">scrollable_x_parent</span>)
     }
 
-    <span class='doccomment'>/// A **Walker** type that may be used to step through the children of the given parent node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>children</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>Children</span> {
-        <span class='self'>self</span>.<span class='ident'>dag</span>.<span class='ident'>children</span>(<span class='ident'>parent</span>)
+    <span class="doccomment">/// A **Walker** type that may be used to step through the children of the given parent node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">children</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">Children</span> {
+        <span class="self">self</span>.<span class="ident">dag</span>.<span class="ident">children</span>(<span class="ident">parent</span>)
     }
 
-    <span class='doccomment'>/// For walking the **Depth** children of the given parent node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>depth_children</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>DepthChildren</span> {
-        <span class='self'>self</span>.<span class='ident'>children</span>(<span class='ident'>idx</span>).<span class='ident'>filter</span>(<span class='ident'>is_depth_edge</span>)
+    <span class="doccomment">/// For walking the **Depth** children of the given parent node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">depth_children</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">DepthChildren</span> {
+        <span class="self">self</span>.<span class="ident">children</span>(<span class="ident">idx</span>).<span class="ident">filter</span>(<span class="ident">is_depth_edge</span>)
     }
 
-    <span class='doccomment'>/// For walking the **Position(X)** children of the given parent node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>x_position_children</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>XPositionChildren</span> {
-        <span class='self'>self</span>.<span class='ident'>children</span>(<span class='ident'>idx</span>).<span class='ident'>filter</span>(<span class='ident'>is_x_position_edge</span>)
+    <span class="doccomment">/// For walking the **Position(X)** children of the given parent node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">x_position_children</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">XPositionChildren</span> {
+        <span class="self">self</span>.<span class="ident">children</span>(<span class="ident">idx</span>).<span class="ident">filter</span>(<span class="ident">is_x_position_edge</span>)
     }
 
-    <span class='doccomment'>/// For walking the **Position(Y)** children of the given parent node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>y_position_children</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>YPositionChildren</span> {
-        <span class='self'>self</span>.<span class='ident'>children</span>(<span class='ident'>idx</span>).<span class='ident'>filter</span>(<span class='ident'>is_y_position_edge</span>)
+    <span class="doccomment">/// For walking the **Position(Y)** children of the given parent node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">y_position_children</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">YPositionChildren</span> {
+        <span class="self">self</span>.<span class="ident">children</span>(<span class="ident">idx</span>).<span class="ident">filter</span>(<span class="ident">is_y_position_edge</span>)
     }
 
-    <span class='doccomment'>/// For walking the **Position** children of the given parent node.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This first walks the **Axis::X** children, before walking the **Axis::Y** children.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>position_children</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>PositionChildren</span> {
-        <span class='self'>self</span>.<span class='ident'>x_position_children</span>(<span class='ident'>idx</span>).<span class='ident'>chain</span>(<span class='self'>self</span>.<span class='ident'>y_position_children</span>(<span class='ident'>idx</span>))
+    <span class="doccomment">/// For walking the **Position** children of the given parent node.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This first walks the **Axis::X** children, before walking the **Axis::Y** children.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">position_children</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">PositionChildren</span> {
+        <span class="self">self</span>.<span class="ident">x_position_children</span>(<span class="ident">idx</span>).<span class="ident">chain</span>(<span class="self">self</span>.<span class="ident">y_position_children</span>(<span class="ident">idx</span>))
     }
 
-    <span class='doccomment'>/// For walking the **Graphic** children of the given parent node.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>graphic_children</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>GraphicChildren</span> {
-        <span class='self'>self</span>.<span class='ident'>children</span>(<span class='ident'>idx</span>).<span class='ident'>filter</span>(<span class='ident'>is_graphic_edge</span>)
+    <span class="doccomment">/// For walking the **Graphic** children of the given parent node.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">graphic_children</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">GraphicChildren</span> {
+        <span class="self">self</span>.<span class="ident">children</span>(<span class="ident">idx</span>).<span class="ident">filter</span>(<span class="ident">is_graphic_edge</span>)
     }
 
-    <span class='doccomment'>/// Does the given edge type exist between the nodes `parent` -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_edge_exist</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>is_edge</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>Edge</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>,
+    <span class="doccomment">/// Does the given edge type exist between the nodes `parent` -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_edge_exist</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">is_edge</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Fn</span>(<span class="ident">Edge</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>,
     {
-        <span class='self'>self</span>.<span class='ident'>parents</span>(<span class='ident'>child</span>).<span class='ident'>any</span>(<span class='self'>self</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, <span class='ident'>n</span><span class='op'>|</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='ident'>parent</span> <span class='op'>&amp;&amp;</span> <span class='ident'>is_edge</span>(<span class='ident'>g</span>[<span class='ident'>e</span>]))
+        <span class="self">self</span>.<span class="ident">parents</span>(<span class="ident">child</span>).<span class="ident">any</span>(<span class="self">self</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, <span class="ident">n</span><span class="op">|</span> <span class="ident">n</span> <span class="op">==</span> <span class="ident">parent</span> <span class="op">&amp;&amp;</span> <span class="ident">is_edge</span>(<span class="ident">g</span>[<span class="ident">e</span>]))
     }
 
-    <span class='doccomment'>/// Does a **Edge::Depth** exist between the nodes `parent` -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_depth_edge_exist</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>does_edge_exist</span>(<span class='ident'>parent</span>, <span class='ident'>child</span>, <span class='op'>|</span><span class='ident'>e</span><span class='op'>|</span> <span class='ident'>e</span> <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Depth</span>)
+    <span class="doccomment">/// Does a **Edge::Depth** exist between the nodes `parent` -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_depth_edge_exist</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">does_edge_exist</span>(<span class="ident">parent</span>, <span class="ident">child</span>, <span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span> <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Depth</span>)
     }
 
-    <span class='doccomment'>/// Does a **Edge::Position** exist between the nodes `parent` -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_position_edge_exist</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw'>let</span> <span class='ident'>is_edge</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>e</span><span class='op'>|</span> <span class='ident'>e</span> <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>X</span>) <span class='op'>||</span> <span class='ident'>e</span> <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>Y</span>);
-        <span class='self'>self</span>.<span class='ident'>does_edge_exist</span>(<span class='ident'>parent</span>, <span class='ident'>child</span>, <span class='ident'>is_edge</span>)
+    <span class="doccomment">/// Does a **Edge::Position** exist between the nodes `parent` -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_position_edge_exist</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">let</span> <span class="ident">is_edge</span> <span class="op">=</span> <span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span> <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">X</span>) <span class="op">||</span> <span class="ident">e</span> <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">Y</span>);
+        <span class="self">self</span>.<span class="ident">does_edge_exist</span>(<span class="ident">parent</span>, <span class="ident">child</span>, <span class="ident">is_edge</span>)
     }
 
-    <span class='doccomment'>/// Does a **Edge::Graphic** exist between the nodes `parent` -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_graphic_edge_exist</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>does_edge_exist</span>(<span class='ident'>parent</span>, <span class='ident'>child</span>, <span class='op'>|</span><span class='ident'>e</span><span class='op'>|</span> <span class='ident'>e</span> <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>)
+    <span class="doccomment">/// Does a **Edge::Graphic** exist between the nodes `parent` -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_graphic_edge_exist</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">does_edge_exist</span>(<span class="ident">parent</span>, <span class="ident">child</span>, <span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span> <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Graphic</span>)
     }
 
-    <span class='doccomment'>/// Are the given `parent` and `child` nodes connected by a single chain of edges of the given</span>
-    <span class='doccomment'>/// kind?</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_recursive_edge_exist</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>,
-                                        <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>,
-                                        <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>,
-                                        <span class='ident'>is_edge</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>Edge</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>,
+    <span class="doccomment">/// Are the given `parent` and `child` nodes connected by a single chain of edges of the given</span>
+    <span class="doccomment">/// kind?</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_recursive_edge_exist</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>,
+                                        <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>,
+                                        <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>,
+                                        <span class="ident">is_edge</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Fn</span>(<span class="ident">Edge</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>,
     {
-        <span class='self'>self</span>.<span class='ident'>recursive_walk</span>(<span class='ident'>child</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>n</span><span class='op'>|</span> <span class='ident'>g</span>.<span class='ident'>parents</span>(<span class='ident'>n</span>).<span class='ident'>find</span>(<span class='ident'>g</span>, <span class='op'>|</span><span class='ident'>g</span>, <span class='ident'>e</span>, _<span class='op'>|</span> <span class='ident'>is_edge</span>(<span class='ident'>g</span>[<span class='ident'>e</span>])))
-            .<span class='ident'>any</span>(<span class='self'>self</span>, <span class='op'>|</span>_, _, <span class='ident'>n</span><span class='op'>|</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='ident'>parent</span>)
+        <span class="self">self</span>.<span class="ident">recursive_walk</span>(<span class="ident">child</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">n</span><span class="op">|</span> <span class="ident">g</span>.<span class="ident">parents</span>(<span class="ident">n</span>).<span class="ident">find</span>(<span class="ident">g</span>, <span class="op">|</span><span class="ident">g</span>, <span class="ident">e</span>, _<span class="op">|</span> <span class="ident">is_edge</span>(<span class="ident">g</span>[<span class="ident">e</span>])))
+            .<span class="ident">any</span>(<span class="self">self</span>, <span class="op">|</span>_, _, <span class="ident">n</span><span class="op">|</span> <span class="ident">n</span> <span class="op">==</span> <span class="ident">parent</span>)
     }
 
-    <span class='doccomment'>/// Are the given `parent` and `child` nodes connected by a single chain of **Depth** edges?</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_recursive_depth_edge_exist</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>does_recursive_edge_exist</span>(<span class='ident'>parent</span>, <span class='ident'>child</span>, <span class='op'>|</span><span class='ident'>e</span><span class='op'>|</span> <span class='ident'>e</span> <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Depth</span>)
+    <span class="doccomment">/// Are the given `parent` and `child` nodes connected by a single chain of **Depth** edges?</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_recursive_depth_edge_exist</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">does_recursive_edge_exist</span>(<span class="ident">parent</span>, <span class="ident">child</span>, <span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span> <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Depth</span>)
     }
 
-    <span class='comment'>// FIXME: This only recurses down the *first* edge that satisfies the predicate, whereas we</span>
-    <span class='comment'>// want to check *every* position parent edge. This means we need to do a DFS or BFS over</span>
-    <span class='comment'>// position edges from the parent node until we find the child node.</span>
-    <span class='comment'>// ///</span>
-    <span class='comment'>// /// Are the given `parent` and `child` nodes connected by a single chain of **Position** edges?</span>
-    <span class='comment'>// ///</span>
-    <span class='comment'>// /// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
-    <span class='comment'>// ///</span>
-    <span class='comment'>// /// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='comment'>// pub fn does_recursive_position_edge_exist&lt;P, C&gt;(&amp;self, parent: P, child: C) -&gt; bool</span>
-    <span class='comment'>//     where P: GraphIndex,</span>
-    <span class='comment'>//           C: GraphIndex,</span>
-    <span class='comment'>// {</span>
-    <span class='comment'>//     let is_edge = |e| e == Edge::Position(Axis::X) || e == Edge::Position(Axis::Y);</span>
-    <span class='comment'>//     self.does_recursive_edge_exist(parent, child, is_edge)</span>
-    <span class='comment'>// }</span>
+    <span class="comment">// FIXME: This only recurses down the *first* edge that satisfies the predicate, whereas we</span>
+    <span class="comment">// want to check *every* position parent edge. This means we need to do a DFS or BFS over</span>
+    <span class="comment">// position edges from the parent node until we find the child node.</span>
+    <span class="comment">// ///</span>
+    <span class="comment">// /// Are the given `parent` and `child` nodes connected by a single chain of **Position** edges?</span>
+    <span class="comment">// ///</span>
+    <span class="comment">// /// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
+    <span class="comment">// ///</span>
+    <span class="comment">// /// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="comment">// pub fn does_recursive_position_edge_exist&lt;P, C&gt;(&amp;self, parent: P, child: C) -&gt; bool</span>
+    <span class="comment">//     where P: GraphIndex,</span>
+    <span class="comment">//           C: GraphIndex,</span>
+    <span class="comment">// {</span>
+    <span class="comment">//     let is_edge = |e| e == Edge::Position(Axis::X) || e == Edge::Position(Axis::Y);</span>
+    <span class="comment">//     self.does_recursive_edge_exist(parent, child, is_edge)</span>
+    <span class="comment">// }</span>
 
-    <span class='doccomment'>/// Are the given `parent` and `child` nodes connected by a single chain of **Graphic** edges?</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns `false` if either of the given node indices do not exist.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>does_recursive_graphic_edge_exist</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>parent</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>child</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>does_recursive_edge_exist</span>(<span class='ident'>parent</span>, <span class='ident'>child</span>, <span class='op'>|</span><span class='ident'>e</span><span class='op'>|</span> <span class='ident'>e</span> <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>)
+    <span class="doccomment">/// Are the given `parent` and `child` nodes connected by a single chain of **Graphic** edges?</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// i.e. `parent` -&gt; x -&gt; y -&gt; `child`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns `false` if either of the given node indices do not exist.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">does_recursive_graphic_edge_exist</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">parent</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">child</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">does_recursive_edge_exist</span>(<span class="ident">parent</span>, <span class="ident">child</span>, <span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span> <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Graphic</span>)
     }
 
 
-    <span class='doccomment'>/// Cache some `PreUpdateCache` widget data into the graph.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is called (via the `ui` module) from within the `widget::set_widget` function prior to</span>
-    <span class='doccomment'>/// the `Widget::update` method being called.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is done so that if this Widget were to internally `set` some other `Widget`s within</span>
-    <span class='doccomment'>/// its own `update` method, this `Widget`s positioning and dimension data already exists</span>
-    <span class='doccomment'>/// within the `Graph` for reference.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pre_update_cache</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-                            <span class='ident'>root</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>,
-                            <span class='ident'>widget</span>: <span class='ident'>widget</span>::<span class='ident'>PreUpdateCache</span>,
-                            <span class='ident'>instantiation_order_idx</span>: <span class='ident'>usize</span>)
+    <span class="doccomment">/// Cache some `PreUpdateCache` widget data into the graph.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is called (via the `ui` module) from within the `widget::set_widget` function prior to</span>
+    <span class="doccomment">/// the `Widget::update` method being called.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is done so that if this Widget were to internally `set` some other `Widget`s within</span>
+    <span class="doccomment">/// its own `update` method, this `Widget`s positioning and dimension data already exists</span>
+    <span class="doccomment">/// within the `Graph` for reference.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">pre_update_cache</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
+                            <span class="ident">root</span>: <span class="ident">widget</span>::<span class="ident">Id</span>,
+                            <span class="ident">widget</span>: <span class="ident">widget</span>::<span class="ident">PreUpdateCache</span>,
+                            <span class="ident">instantiation_order_idx</span>: <span class="ident">usize</span>)
     {
-        <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>PreUpdateCache</span> {
-            <span class='ident'>type_id</span>, <span class='ident'>id</span>, <span class='ident'>maybe_parent_id</span>, <span class='ident'>maybe_x_positioned_relatively_id</span>,
-            <span class='ident'>maybe_y_positioned_relatively_id</span>, <span class='ident'>rect</span>, <span class='ident'>depth</span>, <span class='ident'>kid_area</span>, <span class='ident'>maybe_floating</span>,
-            <span class='ident'>crop_kids</span>, <span class='ident'>maybe_x_scroll_state</span>, <span class='ident'>maybe_y_scroll_state</span>, <span class='ident'>maybe_graphics_for</span>,
-        } <span class='op'>=</span> <span class='ident'>widget</span>;
+        <span class="kw">let</span> <span class="ident">widget</span>::<span class="ident">PreUpdateCache</span> {
+            <span class="ident">type_id</span>, <span class="ident">id</span>, <span class="ident">maybe_parent_id</span>, <span class="ident">maybe_x_positioned_relatively_id</span>,
+            <span class="ident">maybe_y_positioned_relatively_id</span>, <span class="ident">rect</span>, <span class="ident">depth</span>, <span class="ident">kid_area</span>, <span class="ident">maybe_floating</span>,
+            <span class="ident">crop_kids</span>, <span class="ident">maybe_x_scroll_state</span>, <span class="ident">maybe_y_scroll_state</span>, <span class="ident">maybe_graphics_for</span>,
+        } <span class="op">=</span> <span class="ident">widget</span>;
 
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>node</span>(<span class='ident'>id</span>).<span class='ident'>is_some</span>(), <span class='string'>&quot;No node found for the given widget::Id {:?}&quot;</span>, <span class='ident'>id</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">node</span>(<span class="ident">id</span>).<span class="ident">is_some</span>(), <span class="string">&quot;No node found for the given widget::Id {:?}&quot;</span>, <span class="ident">id</span>);
 
-        <span class='comment'>// Construct a new `Container` to place in the `Graph`.</span>
-        <span class='kw'>let</span> <span class='ident'>new_container</span> <span class='op'>=</span> <span class='op'>||</span> <span class='ident'>Container</span> {
-            <span class='ident'>maybe_state</span>: <span class='prelude-val'>None</span>,
-            <span class='ident'>type_id</span>: <span class='ident'>type_id</span>,
-            <span class='ident'>rect</span>: <span class='ident'>rect</span>,
-            <span class='ident'>depth</span>: <span class='ident'>depth</span>,
-            <span class='ident'>kid_area</span>: <span class='ident'>kid_area</span>,
-            <span class='ident'>maybe_floating</span>: <span class='ident'>maybe_floating</span>,
-            <span class='ident'>crop_kids</span>: <span class='ident'>crop_kids</span>,
-            <span class='ident'>maybe_x_scroll_state</span>: <span class='ident'>maybe_x_scroll_state</span>,
-            <span class='ident'>maybe_y_scroll_state</span>: <span class='ident'>maybe_y_scroll_state</span>,
-            <span class='ident'>instantiation_order_idx</span>: <span class='ident'>instantiation_order_idx</span>,
+        <span class="comment">// Construct a new `Container` to place in the `Graph`.</span>
+        <span class="kw">let</span> <span class="ident">new_container</span> <span class="op">=</span> <span class="op">||</span> <span class="ident">Container</span> {
+            <span class="ident">maybe_state</span>: <span class="prelude-val">None</span>,
+            <span class="ident">type_id</span>: <span class="ident">type_id</span>,
+            <span class="ident">rect</span>: <span class="ident">rect</span>,
+            <span class="ident">depth</span>: <span class="ident">depth</span>,
+            <span class="ident">kid_area</span>: <span class="ident">kid_area</span>,
+            <span class="ident">maybe_floating</span>: <span class="ident">maybe_floating</span>,
+            <span class="ident">crop_kids</span>: <span class="ident">crop_kids</span>,
+            <span class="ident">maybe_x_scroll_state</span>: <span class="ident">maybe_x_scroll_state</span>,
+            <span class="ident">maybe_y_scroll_state</span>: <span class="ident">maybe_y_scroll_state</span>,
+            <span class="ident">instantiation_order_idx</span>: <span class="ident">instantiation_order_idx</span>,
         };
 
-        <span class='comment'>// Retrieves the widget&#39;s parent index.</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// `panic!` if the widget does not exist within the graph. This should rarely be the case</span>
-        <span class='comment'>// as all existing `widget::Id`s should be generated from the graph itself.</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// This should only be `None` if the widget is the `root` node (i.e. the `Window` widget).</span>
-        <span class='kw'>let</span> <span class='ident'>maybe_parent_id</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>Self</span><span class='op'>|</span> <span class='kw'>match</span> <span class='ident'>maybe_parent_id</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>parent_id</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>node</span>(<span class='ident'>parent_id</span>).<span class='ident'>is_some</span>() {
-                <span class='bool-val'>true</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>parent_id</span>),
-                <span class='bool-val'>false</span> <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;No node found for the given parent widget::Id {:?}&quot;</span>, <span class='ident'>parent_id</span>),
+        <span class="comment">// Retrieves the widget&#39;s parent index.</span>
+        <span class="comment">//</span>
+        <span class="comment">// `panic!` if the widget does not exist within the graph. This should rarely be the case</span>
+        <span class="comment">// as all existing `widget::Id`s should be generated from the graph itself.</span>
+        <span class="comment">//</span>
+        <span class="comment">// This should only be `None` if the widget is the `root` node (i.e. the `Window` widget).</span>
+        <span class="kw">let</span> <span class="ident">maybe_parent_id</span> <span class="op">=</span> <span class="op">|</span><span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">maybe_parent_id</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">parent_id</span>) <span class="op">=&gt;</span> <span class="kw">match</span> <span class="ident">graph</span>.<span class="ident">node</span>(<span class="ident">parent_id</span>).<span class="ident">is_some</span>() {
+                <span class="bool-val">true</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">parent_id</span>),
+                <span class="bool-val">false</span> <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;No node found for the given parent widget::Id {:?}&quot;</span>, <span class="ident">parent_id</span>),
             },
-            <span class='comment'>// Check that this node is not the root node before using the root node as the parent.</span>
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>if</span> <span class='ident'>id</span> <span class='op'>==</span> <span class='ident'>root</span> { <span class='prelude-val'>None</span> } <span class='kw'>else</span> { <span class='prelude-val'>Some</span>(<span class='ident'>root</span>) },
+            <span class="comment">// Check that this node is not the root node before using the root node as the parent.</span>
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">if</span> <span class="ident">id</span> <span class="op">==</span> <span class="ident">root</span> { <span class="prelude-val">None</span> } <span class="kw">else</span> { <span class="prelude-val">Some</span>(<span class="ident">root</span>) },
         };
 
-        <span class='comment'>// Ensure that we have an `Edge::Depth` in the graph representing the parent.</span>
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>parent_id</span>) <span class='op'>=</span> <span class='ident'>maybe_parent_id</span>(<span class='self'>self</span>) {
-            <span class='self'>self</span>.<span class='ident'>set_edge</span>(<span class='ident'>parent_id</span>, <span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Depth</span>).<span class='ident'>unwrap</span>();
+        <span class="comment">// Ensure that we have an `Edge::Depth` in the graph representing the parent.</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">parent_id</span>) <span class="op">=</span> <span class="ident">maybe_parent_id</span>(<span class="self">self</span>) {
+            <span class="self">self</span>.<span class="ident">set_edge</span>(<span class="ident">parent_id</span>, <span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Depth</span>).<span class="ident">unwrap</span>();
         }
 
-        <span class='kw'>match</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>dag</span>[<span class='ident'>id</span>] {
+        <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">dag</span>[<span class="ident">id</span>] {
 
-            <span class='comment'>// If the node is currently a `Placeholder`, construct a new container and use this</span>
-            <span class='comment'>// to set it as the `Widget` variant.</span>
-            <span class='ident'>node</span> @ <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Placeholder</span> <span class='op'>=&gt;</span> <span class='kw-2'>*</span><span class='ident'>node</span> <span class='op'>=</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='ident'>new_container</span>()),
+            <span class="comment">// If the node is currently a `Placeholder`, construct a new container and use this</span>
+            <span class="comment">// to set it as the `Widget` variant.</span>
+            <span class="ident">node</span> @ <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Node</span>::<span class="ident">Placeholder</span> <span class="op">=&gt;</span> <span class="kw-2">*</span><span class="ident">node</span> <span class="op">=</span> <span class="ident">Node</span>::<span class="ident">Widget</span>(<span class="ident">new_container</span>()),
 
-            <span class='comment'>// Otherwise, update the data in the container that already exists.</span>
-            <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Node</span>::<span class='ident'>Widget</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=&gt;</span> {
+            <span class="comment">// Otherwise, update the data in the container that already exists.</span>
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Node</span>::<span class="ident">Widget</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">container</span>) <span class="op">=&gt;</span> {
 
-                <span class='comment'>// If the container already exists with the state of some other kind of</span>
-                <span class='comment'>// widget, we can assume there&#39;s been a mistake with the given Id.</span>
-                <span class='comment'>//</span>
-                <span class='comment'>// TODO: It might be overkill to panic here.</span>
-                <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>type_id</span>,
-                    <span class='string'>&quot;A widget of a different type already exists at the given id \
+                <span class="comment">// If the container already exists with the state of some other kind of</span>
+                <span class="comment">// widget, we can assume there&#39;s been a mistake with the given Id.</span>
+                <span class="comment">//</span>
+                <span class="comment">// TODO: It might be overkill to panic here.</span>
+                <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">type_id</span>,
+                    <span class="string">&quot;A widget of a different type already exists at the given id \
                     ({:?}). You tried to insert a widget with state of type {:?}, \
                     however the existing widget state is of type {:?}. Check your \
                     `WidgetId`s for errors.&quot;</span>,
-                    <span class='ident'>id</span>, <span class='kw-2'>&amp;</span><span class='ident'>type_id</span>, <span class='ident'>container</span>.<span class='ident'>type_id</span>);
+                    <span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">type_id</span>, <span class="ident">container</span>.<span class="ident">type_id</span>);
 
-                <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>=</span> <span class='ident'>type_id</span>;
-                <span class='ident'>container</span>.<span class='ident'>rect</span> <span class='op'>=</span> <span class='ident'>rect</span>;
-                <span class='ident'>container</span>.<span class='ident'>depth</span> <span class='op'>=</span> <span class='ident'>depth</span>;
-                <span class='ident'>container</span>.<span class='ident'>kid_area</span> <span class='op'>=</span> <span class='ident'>kid_area</span>;
-                <span class='ident'>container</span>.<span class='ident'>maybe_floating</span> <span class='op'>=</span> <span class='ident'>maybe_floating</span>;
-                <span class='ident'>container</span>.<span class='ident'>crop_kids</span> <span class='op'>=</span> <span class='ident'>crop_kids</span>;
-                <span class='ident'>container</span>.<span class='ident'>maybe_x_scroll_state</span> <span class='op'>=</span> <span class='ident'>maybe_x_scroll_state</span>;
-                <span class='ident'>container</span>.<span class='ident'>maybe_y_scroll_state</span> <span class='op'>=</span> <span class='ident'>maybe_y_scroll_state</span>;
-                <span class='ident'>container</span>.<span class='ident'>instantiation_order_idx</span> <span class='op'>=</span> <span class='ident'>instantiation_order_idx</span>;
+                <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">=</span> <span class="ident">type_id</span>;
+                <span class="ident">container</span>.<span class="ident">rect</span> <span class="op">=</span> <span class="ident">rect</span>;
+                <span class="ident">container</span>.<span class="ident">depth</span> <span class="op">=</span> <span class="ident">depth</span>;
+                <span class="ident">container</span>.<span class="ident">kid_area</span> <span class="op">=</span> <span class="ident">kid_area</span>;
+                <span class="ident">container</span>.<span class="ident">maybe_floating</span> <span class="op">=</span> <span class="ident">maybe_floating</span>;
+                <span class="ident">container</span>.<span class="ident">crop_kids</span> <span class="op">=</span> <span class="ident">crop_kids</span>;
+                <span class="ident">container</span>.<span class="ident">maybe_x_scroll_state</span> <span class="op">=</span> <span class="ident">maybe_x_scroll_state</span>;
+                <span class="ident">container</span>.<span class="ident">maybe_y_scroll_state</span> <span class="op">=</span> <span class="ident">maybe_y_scroll_state</span>;
+                <span class="ident">container</span>.<span class="ident">instantiation_order_idx</span> <span class="op">=</span> <span class="ident">instantiation_order_idx</span>;
             },
 
         }
 
-        <span class='comment'>// Now that we&#39;ve updated the widget&#39;s cached data, we need to check if we should add any</span>
-        <span class='comment'>// `Edge::Position`s.</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// If the widget is *not* positioned relatively to any other widget, we should ensure that</span>
-        <span class='comment'>// there are no incoming `Position` edges.</span>
+        <span class="comment">// Now that we&#39;ve updated the widget&#39;s cached data, we need to check if we should add any</span>
+        <span class="comment">// `Edge::Position`s.</span>
+        <span class="comment">//</span>
+        <span class="comment">// If the widget is *not* positioned relatively to any other widget, we should ensure that</span>
+        <span class="comment">// there are no incoming `Position` edges.</span>
 
-        <span class='comment'>// X</span>
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>relative_id</span>) <span class='op'>=</span> <span class='ident'>maybe_x_positioned_relatively_id</span> {
-            <span class='self'>self</span>.<span class='ident'>set_edge</span>(<span class='ident'>relative_id</span>, <span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>X</span>)).<span class='ident'>unwrap</span>();
-        } <span class='kw'>else</span> {
-            <span class='self'>self</span>.<span class='ident'>remove_parent_edge</span>(<span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>X</span>));
+        <span class="comment">// X</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">relative_id</span>) <span class="op">=</span> <span class="ident">maybe_x_positioned_relatively_id</span> {
+            <span class="self">self</span>.<span class="ident">set_edge</span>(<span class="ident">relative_id</span>, <span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">X</span>)).<span class="ident">unwrap</span>();
+        } <span class="kw">else</span> {
+            <span class="self">self</span>.<span class="ident">remove_parent_edge</span>(<span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">X</span>));
         }
 
-        <span class='comment'>// Y</span>
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>relative_id</span>) <span class='op'>=</span> <span class='ident'>maybe_y_positioned_relatively_id</span> {
-            <span class='self'>self</span>.<span class='ident'>set_edge</span>(<span class='ident'>relative_id</span>, <span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>Y</span>)).<span class='ident'>unwrap</span>();
-        } <span class='kw'>else</span> {
-            <span class='self'>self</span>.<span class='ident'>remove_parent_edge</span>(<span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>Y</span>));
+        <span class="comment">// Y</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">relative_id</span>) <span class="op">=</span> <span class="ident">maybe_y_positioned_relatively_id</span> {
+            <span class="self">self</span>.<span class="ident">set_edge</span>(<span class="ident">relative_id</span>, <span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">Y</span>)).<span class="ident">unwrap</span>();
+        } <span class="kw">else</span> {
+            <span class="self">self</span>.<span class="ident">remove_parent_edge</span>(<span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">Y</span>));
         }
 
-        <span class='comment'>// Check whether or not the widget is a graphics element for some other widget.</span>
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>graphic_parent_id</span>) <span class='op'>=</span> <span class='ident'>maybe_graphics_for</span> {
-            <span class='self'>self</span>.<span class='ident'>set_edge</span>(<span class='ident'>graphic_parent_id</span>, <span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>).<span class='ident'>unwrap</span>();
-        <span class='comment'>// If not, ensure that there is no parent **Graphic** edge from the widget.</span>
-        } <span class='kw'>else</span> {
-            <span class='self'>self</span>.<span class='ident'>remove_parent_edge</span>(<span class='ident'>id</span>, <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>);
+        <span class="comment">// Check whether or not the widget is a graphics element for some other widget.</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">graphic_parent_id</span>) <span class="op">=</span> <span class="ident">maybe_graphics_for</span> {
+            <span class="self">self</span>.<span class="ident">set_edge</span>(<span class="ident">graphic_parent_id</span>, <span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Graphic</span>).<span class="ident">unwrap</span>();
+        <span class="comment">// If not, ensure that there is no parent **Graphic** edge from the widget.</span>
+        } <span class="kw">else</span> {
+            <span class="self">self</span>.<span class="ident">remove_parent_edge</span>(<span class="ident">id</span>, <span class="ident">Edge</span>::<span class="ident">Graphic</span>);
         }
 
     }
 
-    <span class='doccomment'>/// Cache some `PostUpdateCache` widget data into the graph.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is called (via the `ui` module) from within the `widget::set_widget` function after</span>
-    <span class='doccomment'>/// the `Widget::update` method is called and some new state is returned.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>post_update_cache</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>widget</span>: <span class='ident'>widget</span>::<span class='ident'>PostUpdateCache</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>)
-        <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Widget</span>,
-              <span class='ident'>W</span>::<span class='ident'>State</span>: <span class='lifetime'>&#39;static</span>,
-              <span class='ident'>W</span>::<span class='ident'>Style</span>: <span class='lifetime'>&#39;static</span>,
+    <span class="doccomment">/// Cache some `PostUpdateCache` widget data into the graph.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is called (via the `ui` module) from within the `widget::set_widget` function after</span>
+    <span class="doccomment">/// the `Widget::update` method is called and some new state is returned.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">post_update_cache</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">widget</span>: <span class="ident">widget</span>::<span class="ident">PostUpdateCache</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>)
+        <span class="kw">where</span> <span class="ident">W</span>: <span class="ident">Widget</span>,
+              <span class="ident">W</span>::<span class="ident">State</span>: <span class="lifetime">&#39;static</span>,
+              <span class="ident">W</span>::<span class="ident">Style</span>: <span class="lifetime">&#39;static</span>,
     {
-        <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>PostUpdateCache</span> { <span class='ident'>id</span>, <span class='ident'>state</span>, <span class='ident'>style</span>, .. } <span class='op'>=</span> <span class='ident'>widget</span>;
+        <span class="kw">let</span> <span class="ident">widget</span>::<span class="ident">PostUpdateCache</span> { <span class="ident">id</span>, <span class="ident">state</span>, <span class="ident">style</span>, .. } <span class="op">=</span> <span class="ident">widget</span>;
 
-        <span class='comment'>// We know that their must be a widget::Id for this id, as `Graph::pre_update_cache` will</span>
-        <span class='comment'>// always be called prior to this method being called.</span>
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>container</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>widget_mut</span>(<span class='ident'>id</span>) {
+        <span class="comment">// We know that their must be a widget::Id for this id, as `Graph::pre_update_cache` will</span>
+        <span class="comment">// always be called prior to this method being called.</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">container</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">widget_mut</span>(<span class="ident">id</span>) {
 
-            <span class='comment'>// Construct the `UniqueWidgetState` ready to store as an `Any` within the container.</span>
-            <span class='kw'>let</span> <span class='ident'>unique_state</span>: <span class='ident'>UniqueWidgetState</span><span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>State</span>, <span class='ident'>W</span>::<span class='ident'>Style</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>UniqueWidgetState</span> {
-                <span class='ident'>state</span>: <span class='ident'>state</span>,
-                <span class='ident'>style</span>: <span class='ident'>style</span>,
+            <span class="comment">// Construct the `UniqueWidgetState` ready to store as an `Any` within the container.</span>
+            <span class="kw">let</span> <span class="ident">unique_state</span>: <span class="ident">UniqueWidgetState</span><span class="op">&lt;</span><span class="ident">W</span>::<span class="ident">State</span>, <span class="ident">W</span>::<span class="ident">Style</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">UniqueWidgetState</span> {
+                <span class="ident">state</span>: <span class="ident">state</span>,
+                <span class="ident">style</span>: <span class="ident">style</span>,
             };
 
-            <span class='ident'>container</span>.<span class='ident'>maybe_state</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>unique_state</span>));
+            <span class="ident">container</span>.<span class="ident">maybe_state</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">unique_state</span>));
         }
     }
 
 }
 
 
-<span class='kw'>fn</span> <span class='ident'>is_depth_edge</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>e</span>: <span class='ident'>EdgeIndex</span>, _: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Depth</span>
+<span class="kw">fn</span> <span class="ident">is_depth_edge</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">e</span>: <span class="ident">EdgeIndex</span>, _: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Depth</span>
 }
 
-<span class='kw'>fn</span> <span class='ident'>is_x_position_edge</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>e</span>: <span class='ident'>EdgeIndex</span>, _: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>X</span>)
+<span class="kw">fn</span> <span class="ident">is_x_position_edge</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">e</span>: <span class="ident">EdgeIndex</span>, _: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">X</span>)
 }
 
-<span class='kw'>fn</span> <span class='ident'>is_y_position_edge</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>e</span>: <span class='ident'>EdgeIndex</span>, _: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Position</span>(<span class='ident'>Axis</span>::<span class='ident'>Y</span>)
+<span class="kw">fn</span> <span class="ident">is_y_position_edge</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">e</span>: <span class="ident">EdgeIndex</span>, _: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Position</span>(<span class="ident">Axis</span>::<span class="ident">Y</span>)
 }
 
-<span class='kw'>fn</span> <span class='ident'>is_graphic_edge</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>, <span class='ident'>e</span>: <span class='ident'>EdgeIndex</span>, _: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>g</span>[<span class='ident'>e</span>] <span class='op'>==</span> <span class='ident'>Edge</span>::<span class='ident'>Graphic</span>
+<span class="kw">fn</span> <span class="ident">is_graphic_edge</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>, <span class="ident">e</span>: <span class="ident">EdgeIndex</span>, _: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">g</span>[<span class="ident">e</span>] <span class="op">==</span> <span class="ident">Edge</span>::<span class="ident">Graphic</span>
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>Walker</span><span class='op'>&lt;</span><span class='ident'>Graph</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Children</span> {
-    <span class='kw'>type</span> <span class='ident'>Index</span> <span class='op'>=</span> <span class='ident'>u32</span>;
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>EdgeIndex</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>)<span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='ident'>graph</span>.<span class='ident'>dag</span>)
+<span class="kw">impl</span> <span class="ident">Walker</span><span class="op">&lt;</span><span class="ident">Graph</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Children</span> {
+    <span class="kw">type</span> <span class="ident">Index</span> <span class="op">=</span> <span class="ident">u32</span>;
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">EdgeIndex</span>, <span class="ident">widget</span>::<span class="ident">Id</span>)<span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="ident">graph</span>.<span class="ident">dag</span>)
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>Walker</span><span class='op'>&lt;</span><span class='ident'>Graph</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Parents</span> {
-    <span class='kw'>type</span> <span class='ident'>Index</span> <span class='op'>=</span> <span class='ident'>u32</span>;
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>EdgeIndex</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span>)<span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='ident'>graph</span>.<span class='ident'>dag</span>)
+<span class="kw">impl</span> <span class="ident">Walker</span><span class="op">&lt;</span><span class="ident">Graph</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Parents</span> {
+    <span class="kw">type</span> <span class="ident">Index</span> <span class="op">=</span> <span class="ident">u32</span>;
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">EdgeIndex</span>, <span class="ident">widget</span>::<span class="ident">Id</span>)<span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="ident">graph</span>.<span class="ident">dag</span>)
     }
 }
 
 
-<span class='kw'>impl</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Index</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Graph</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>Node</span>;
-    <span class='kw'>fn</span> <span class='ident'>index</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Node</span> {
-        <span class='self'>self</span>.<span class='ident'>node</span>(<span class='ident'>id</span>).<span class='ident'>unwrap</span>()
+<span class="kw">impl</span> ::<span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Index</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Graph</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">Node</span>;
+    <span class="kw">fn</span> <span class="ident">index</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Node</span> {
+        <span class="self">self</span>.<span class="ident">node</span>(<span class="ident">id</span>).<span class="ident">unwrap</span>()
     }
 }
 
-<span class='kw'>impl</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>IndexMut</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Graph</span> {
-    <span class='kw'>fn</span> <span class='ident'>index_mut</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>Node</span> {
-        <span class='self'>self</span>.<span class='ident'>node_mut</span>(<span class='ident'>id</span>).<span class='ident'>unwrap</span>()
+<span class="kw">impl</span> ::<span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">IndexMut</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Graph</span> {
+    <span class="kw">fn</span> <span class="ident">index_mut</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Node</span> {
+        <span class="self">self</span>.<span class="ident">node_mut</span>(<span class="ident">id</span>).<span class="ident">unwrap</span>()
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>Index</span><span class='op'>&lt;</span><span class='ident'>EdgeIndex</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Graph</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>Edge</span>;
-    <span class='kw'>fn</span> <span class='ident'>index</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>EdgeIndex</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Edge</span> {
-        <span class='self'>self</span>.<span class='ident'>edge</span>(<span class='ident'>idx</span>).<span class='ident'>unwrap</span>()
+<span class="kw">impl</span> <span class="ident">Index</span><span class="op">&lt;</span><span class="ident">EdgeIndex</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Graph</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">Edge</span>;
+    <span class="kw">fn</span> <span class="ident">index</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">EdgeIndex</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Edge</span> {
+        <span class="self">self</span>.<span class="ident">edge</span>(<span class="ident">idx</span>).<span class="ident">unwrap</span>()
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>IndexMut</span><span class='op'>&lt;</span><span class='ident'>EdgeIndex</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Graph</span> {
-    <span class='kw'>fn</span> <span class='ident'>index_mut</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>idx</span>: <span class='ident'>EdgeIndex</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>Edge</span> {
-        <span class='self'>self</span>.<span class='ident'>edge_mut</span>(<span class='ident'>idx</span>).<span class='ident'>unwrap</span>()
+<span class="kw">impl</span> <span class="ident">IndexMut</span><span class="op">&lt;</span><span class="ident">EdgeIndex</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Graph</span> {
+    <span class="kw">fn</span> <span class="ident">index_mut</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">idx</span>: <span class="ident">EdgeIndex</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Edge</span> {
+        <span class="self">self</span>.<span class="ident">edge_mut</span>(<span class="ident">idx</span>).<span class="ident">unwrap</span>()
     }
 }
 </pre>

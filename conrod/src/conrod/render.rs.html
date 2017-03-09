@@ -883,781 +883,781 @@
 <span id="838">838</span>
 <span id="839">839</span>
 <span id="840">840</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! Conrod&#39;s generic graphics backend.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! **Note:** Conrod currently uses Piston&#39;s generic [graphics</span>
-<span class='doccomment'>//! crate](https://github.com/PistonDevelopers/graphics) (and specifically the</span>
-<span class='doccomment'>//! [**Graphics**](http://docs.piston.rs/graphics/graphics/trait.Graphics.html))</span>
-<span class='doccomment'>//! trait to enable genericity over custom user backends. This dependency may change in the near</span>
-<span class='doccomment'>//! future in favour of a simplified conrod-specific graphics and character caching backend trait.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! This is the only module in which the piston graphics crate will be used directly.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! Conrod&#39;s generic graphics backend.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! **Note:** Conrod currently uses Piston&#39;s generic [graphics</span>
+<span class="doccomment">//! crate](https://github.com/PistonDevelopers/graphics) (and specifically the</span>
+<span class="doccomment">//! [**Graphics**](http://docs.piston.rs/graphics/graphics/trait.Graphics.html))</span>
+<span class="doccomment">//! trait to enable genericity over custom user backends. This dependency may change in the near</span>
+<span class="doccomment">//! future in favour of a simplified conrod-specific graphics and character caching backend trait.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! This is the only module in which the piston graphics crate will be used directly.</span>
 
 
-<span class='kw'>use</span> {<span class='ident'>Color</span>, <span class='ident'>FontSize</span>, <span class='ident'>Point</span>, <span class='ident'>Rect</span>, <span class='ident'>Scalar</span>};
-<span class='kw'>use</span> <span class='ident'>graph</span>::{<span class='self'>self</span>, <span class='ident'>Graph</span>};
-<span class='kw'>use</span> <span class='ident'>image</span>;
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Align</span>, <span class='ident'>Dimensions</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>;
-<span class='kw'>use</span> <span class='ident'>text</span>;
-<span class='kw'>use</span> <span class='ident'>theme</span>::<span class='ident'>Theme</span>;
-<span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>primitive</span>, <span class='ident'>Widget</span>};
+<span class="kw">use</span> {<span class="ident">Color</span>, <span class="ident">FontSize</span>, <span class="ident">Point</span>, <span class="ident">Rect</span>, <span class="ident">Scalar</span>};
+<span class="kw">use</span> <span class="ident">graph</span>::{<span class="self">self</span>, <span class="ident">Graph</span>};
+<span class="kw">use</span> <span class="ident">image</span>;
+<span class="kw">use</span> <span class="ident">position</span>::{<span class="ident">Align</span>, <span class="ident">Dimensions</span>};
+<span class="kw">use</span> <span class="ident">std</span>;
+<span class="kw">use</span> <span class="ident">text</span>;
+<span class="kw">use</span> <span class="ident">theme</span>::<span class="ident">Theme</span>;
+<span class="kw">use</span> <span class="ident">widget</span>::{<span class="self">self</span>, <span class="ident">primitive</span>, <span class="ident">Widget</span>};
 
 
-<span class='doccomment'>/// An iterator-like type that yields a reference to each primitive in order of depth for</span>
-<span class='doccomment'>/// rendering.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This type is produced by the `Ui::draw` and `Ui::draw_if_changed` methods.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This type borrows data from the `Ui` in order to lazily produce each `Primitive`. If you</span>
-<span class='doccomment'>/// require ownership over the sequence of primitives, consider using the `OwnedPrimitives` type.</span>
-<span class='doccomment'>/// The `OwnedPrimitives` type can be produced by calling the `Primitives::owned` method.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Primitives</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>crop_stack</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>Rect</span>)<span class='op'>&gt;</span>,
-    <span class='ident'>depth_order</span>: <span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>,
-    <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Graph</span>,
-    <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Theme</span>,
-    <span class='ident'>fonts</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Map</span>,
-    <span class='ident'>window_rect</span>: <span class='ident'>Rect</span>,
-    <span class='doccomment'>/// The point slice to use for the `Lines` and `Polygon` primitives.</span>
-    <span class='ident'>points</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Point</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// The slice of rusttype `PositionedGlyph`s to re-use for the `Text` primitive.</span>
-    <span class='ident'>positioned_glyphs</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>PositionedGlyph</span><span class='op'>&gt;</span>,
+<span class="doccomment">/// An iterator-like type that yields a reference to each primitive in order of depth for</span>
+<span class="doccomment">/// rendering.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This type is produced by the `Ui::draw` and `Ui::draw_if_changed` methods.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This type borrows data from the `Ui` in order to lazily produce each `Primitive`. If you</span>
+<span class="doccomment">/// require ownership over the sequence of primitives, consider using the `OwnedPrimitives` type.</span>
+<span class="doccomment">/// The `OwnedPrimitives` type can be produced by calling the `Primitives::owned` method.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Primitives</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">crop_stack</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">Rect</span>)<span class="op">&gt;</span>,
+    <span class="ident">depth_order</span>: <span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span>,
+    <span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Graph</span>,
+    <span class="ident">theme</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Theme</span>,
+    <span class="ident">fonts</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">text</span>::<span class="ident">font</span>::<span class="ident">Map</span>,
+    <span class="ident">window_rect</span>: <span class="ident">Rect</span>,
+    <span class="doccomment">/// The point slice to use for the `Lines` and `Polygon` primitives.</span>
+    <span class="ident">points</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Point</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// The slice of rusttype `PositionedGlyph`s to re-use for the `Text` primitive.</span>
+    <span class="ident">positioned_glyphs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">text</span>::<span class="ident">PositionedGlyph</span><span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// An owned alternative to the `Primitives` type.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This is particularly useful for sending rendering data across threads.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Produce an `OwnedPrimitives` instance via the `Primitives::owned` method.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>OwnedPrimitives</span> {
-    <span class='ident'>primitives</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>OwnedPrimitive</span><span class='op'>&gt;</span>,
-    <span class='ident'>points</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Point</span><span class='op'>&gt;</span>,
-    <span class='ident'>max_glyphs</span>: <span class='ident'>usize</span>,
-    <span class='ident'>line_infos</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span><span class='op'>&gt;</span>,
-    <span class='ident'>texts_string</span>: <span class='ident'>String</span>,
+<span class="doccomment">/// An owned alternative to the `Primitives` type.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This is particularly useful for sending rendering data across threads.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Produce an `OwnedPrimitives` instance via the `Primitives::owned` method.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">OwnedPrimitives</span> {
+    <span class="ident">primitives</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OwnedPrimitive</span><span class="op">&gt;</span>,
+    <span class="ident">points</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Point</span><span class="op">&gt;</span>,
+    <span class="ident">max_glyphs</span>: <span class="ident">usize</span>,
+    <span class="ident">line_infos</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">text</span>::<span class="ident">line</span>::<span class="ident">Info</span><span class="op">&gt;</span>,
+    <span class="ident">texts_string</span>: <span class="ident">String</span>,
 }
 
 
-<span class='doccomment'>/// A trait that allows the user to remain generic over types yielding `Primitive`s.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This trait is implemented for both the `Primitives` and `WalkOwnedPrimitives` types.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>PrimitiveWalker</span> {
-    <span class='doccomment'>/// Yield the next `Primitive` in order of depth, bottom to top.</span>
-    <span class='kw'>fn</span> <span class='ident'>next_primitive</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Primitive</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// A trait that allows the user to remain generic over types yielding `Primitive`s.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This trait is implemented for both the `Primitives` and `WalkOwnedPrimitives` types.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">PrimitiveWalker</span> {
+    <span class="doccomment">/// Yield the next `Primitive` in order of depth, bottom to top.</span>
+    <span class="kw">fn</span> <span class="ident">next_primitive</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Primitive</span><span class="op">&gt;</span>;
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>PrimitiveWalker</span> <span class='kw'>for</span> <span class='ident'>Primitives</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>next_primitive</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Primitive</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>next</span>()
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">PrimitiveWalker</span> <span class="kw">for</span> <span class="ident">Primitives</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">next_primitive</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Primitive</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">next</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>PrimitiveWalker</span> <span class='kw'>for</span> <span class='ident'>WalkOwnedPrimitives</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>next_primitive</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Primitive</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>next</span>()
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">PrimitiveWalker</span> <span class="kw">for</span> <span class="ident">WalkOwnedPrimitives</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">next_primitive</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Primitive</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">next</span>()
     }
 }
 
 
-<span class='doccomment'>/// Data required for rendering a single primitive widget.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Primitive</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// The id of the widget within the widget graph.</span>
-    <span class='kw'>pub</span> <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>,
-    <span class='doccomment'>/// State and style for this primitive widget.</span>
-    <span class='kw'>pub</span> <span class='ident'>kind</span>: <span class='ident'>PrimitiveKind</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// The Rect to which the primitive widget should be cropped.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Only parts of the widget within this `Rect` should be drawn.</span>
-    <span class='kw'>pub</span> <span class='ident'>scizzor</span>: <span class='ident'>Rect</span>,
-    <span class='doccomment'>/// The bounding rectangle for the `Primitive`.</span>
-    <span class='kw'>pub</span> <span class='ident'>rect</span>: <span class='ident'>Rect</span>,
+<span class="doccomment">/// Data required for rendering a single primitive widget.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Primitive</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// The id of the widget within the widget graph.</span>
+    <span class="kw">pub</span> <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>,
+    <span class="doccomment">/// State and style for this primitive widget.</span>
+    <span class="kw">pub</span> <span class="ident">kind</span>: <span class="ident">PrimitiveKind</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// The Rect to which the primitive widget should be cropped.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Only parts of the widget within this `Rect` should be drawn.</span>
+    <span class="kw">pub</span> <span class="ident">scizzor</span>: <span class="ident">Rect</span>,
+    <span class="doccomment">/// The bounding rectangle for the `Primitive`.</span>
+    <span class="kw">pub</span> <span class="ident">rect</span>: <span class="ident">Rect</span>,
 }
 
-<span class='doccomment'>/// The unique kind for each primitive element in the Ui.</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>PrimitiveKind</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+<span class="doccomment">/// The unique kind for each primitive element in the Ui.</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">PrimitiveKind</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
 
-    <span class='doccomment'>/// A filled `Rectangle`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// These are produced by the `Rectangle` and `BorderedRectangle` primitive widgets. A `Filled`</span>
-    <span class='doccomment'>/// `Rectangle` widget produces a single `Rectangle`. The `BorderedRectangle` produces two</span>
-    <span class='doccomment'>/// `Rectangle`s, the first for the outer border and the second for the inner on top.</span>
-    <span class='ident'>Rectangle</span> {
-        <span class='doccomment'>/// The fill colour for the rectangle. </span>
-        <span class='ident'>color</span>: <span class='ident'>Color</span>
+    <span class="doccomment">/// A filled `Rectangle`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// These are produced by the `Rectangle` and `BorderedRectangle` primitive widgets. A `Filled`</span>
+    <span class="doccomment">/// `Rectangle` widget produces a single `Rectangle`. The `BorderedRectangle` produces two</span>
+    <span class="doccomment">/// `Rectangle`s, the first for the outer border and the second for the inner on top.</span>
+    <span class="ident">Rectangle</span> {
+        <span class="doccomment">/// The fill colour for the rectangle. </span>
+        <span class="ident">color</span>: <span class="ident">Color</span>
     },
 
-    <span class='doccomment'>/// A filled `Polygon`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// These are produced by the `Oval` and `Polygon` primitive widgets.</span>
-    <span class='ident'>Polygon</span> {
-        <span class='doccomment'>/// The fill colour for the inner part of the polygon</span>
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-        <span class='doccomment'>/// The ordered points that, when joined with lines, represent each side of the `Polygon`.</span>
-        <span class='doccomment'>///</span>
-        <span class='doccomment'>/// The first and final points should always be the same.</span>
-        <span class='ident'>points</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>Point</span>],
+    <span class="doccomment">/// A filled `Polygon`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// These are produced by the `Oval` and `Polygon` primitive widgets.</span>
+    <span class="ident">Polygon</span> {
+        <span class="doccomment">/// The fill colour for the inner part of the polygon</span>
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="doccomment">/// The ordered points that, when joined with lines, represent each side of the `Polygon`.</span>
+        <span class="doccomment">///</span>
+        <span class="doccomment">/// The first and final points should always be the same.</span>
+        <span class="ident">points</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">Point</span>],
     },
 
-    <span class='doccomment'>/// A series of consecutive `Line`s.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// These are produces via the `Line` and `PointPath` primitive widgets, or the `shape`</span>
-    <span class='doccomment'>/// primitives if they are instantiated with an `Outline` style.</span>
-    <span class='ident'>Lines</span> {
-        <span class='doccomment'>/// The colour of each `Line`.</span>
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-        <span class='doccomment'>/// Whether the end of the lines should be `Flat` or `Round`.</span>
-        <span class='ident'>cap</span>: <span class='ident'>primitive</span>::<span class='ident'>line</span>::<span class='ident'>Cap</span>,
-        <span class='doccomment'>/// The thickness of the lines, i.e. the width of a vertical line or th height of a</span>
-        <span class='doccomment'>/// horizontal line.</span>
-        <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>,
-        <span class='doccomment'>/// The ordered points which should be joined by lines.</span>
-        <span class='ident'>points</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>Point</span>],
+    <span class="doccomment">/// A series of consecutive `Line`s.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// These are produces via the `Line` and `PointPath` primitive widgets, or the `shape`</span>
+    <span class="doccomment">/// primitives if they are instantiated with an `Outline` style.</span>
+    <span class="ident">Lines</span> {
+        <span class="doccomment">/// The colour of each `Line`.</span>
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="doccomment">/// Whether the end of the lines should be `Flat` or `Round`.</span>
+        <span class="ident">cap</span>: <span class="ident">primitive</span>::<span class="ident">line</span>::<span class="ident">Cap</span>,
+        <span class="doccomment">/// The thickness of the lines, i.e. the width of a vertical line or th height of a</span>
+        <span class="doccomment">/// horizontal line.</span>
+        <span class="ident">thickness</span>: <span class="ident">Scalar</span>,
+        <span class="doccomment">/// The ordered points which should be joined by lines.</span>
+        <span class="ident">points</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">Point</span>],
     },
 
-    <span class='doccomment'>/// A single `Image`, produced by the primitive `Image` widget.</span>
-    <span class='ident'>Image</span> {
-        <span class='doccomment'>/// The unique identifier of the image that will be drawn.</span>
-        <span class='ident'>image_id</span>: <span class='ident'>image</span>::<span class='ident'>Id</span>,
-        <span class='doccomment'>/// When `Some`, colours the `Image`. When `None`, the `Image` uses its regular colours.</span>
-        <span class='ident'>color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
-        <span class='doccomment'>/// The area of the texture that will be drawn to the `Image`&#39;s `Rect`.</span>
-        <span class='ident'>source_rect</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>,
+    <span class="doccomment">/// A single `Image`, produced by the primitive `Image` widget.</span>
+    <span class="ident">Image</span> {
+        <span class="doccomment">/// The unique identifier of the image that will be drawn.</span>
+        <span class="ident">image_id</span>: <span class="ident">image</span>::<span class="ident">Id</span>,
+        <span class="doccomment">/// When `Some`, colours the `Image`. When `None`, the `Image` uses its regular colours.</span>
+        <span class="ident">color</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Color</span><span class="op">&gt;</span>,
+        <span class="doccomment">/// The area of the texture that will be drawn to the `Image`&#39;s `Rect`.</span>
+        <span class="ident">source_rect</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Rect</span><span class="op">&gt;</span>,
     },
 
-    <span class='doccomment'>/// A single block of `Text`, produced by the primitive `Text` widget.</span>
-    <span class='ident'>Text</span> {
-        <span class='doccomment'>/// The colour of the `Text`.</span>
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-        <span class='doccomment'>/// All glyphs within the `Text` laid out in their correct positions in order from top-left</span>
-        <span class='doccomment'>/// to bottom right.</span>
-        <span class='ident'>text</span>: <span class='ident'>Text</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>,
-        <span class='doccomment'>/// The unique identifier for the font, useful for the `glyph_cache.rect_for(id, glyph)`</span>
-        <span class='doccomment'>/// method when using the `conrod::text::GlyphCache` (rusttype&#39;s GPU `Cache`).</span>
-        <span class='ident'>font_id</span>: <span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Id</span>,
+    <span class="doccomment">/// A single block of `Text`, produced by the primitive `Text` widget.</span>
+    <span class="ident">Text</span> {
+        <span class="doccomment">/// The colour of the `Text`.</span>
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="doccomment">/// All glyphs within the `Text` laid out in their correct positions in order from top-left</span>
+        <span class="doccomment">/// to bottom right.</span>
+        <span class="ident">text</span>: <span class="ident">Text</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
+        <span class="doccomment">/// The unique identifier for the font, useful for the `glyph_cache.rect_for(id, glyph)`</span>
+        <span class="doccomment">/// method when using the `conrod::text::GlyphCache` (rusttype&#39;s GPU `Cache`).</span>
+        <span class="ident">font_id</span>: <span class="ident">text</span>::<span class="ident">font</span>::<span class="ident">Id</span>,
     },
 
-    <span class='doccomment'>/// An `Other` variant will be yielded for every non-primitive widget in the list.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Most of the time, this variant can be ignored, however it is useful for users who need to</span>
-    <span class='doccomment'>/// render widgets in ways that cannot be covered by the other `PrimitiveKind` variants.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// For example, a `Shader` widget might be required for updating uniforms in user rendering</span>
-    <span class='doccomment'>/// code. In order to access the unique state of this widget, the user can check `Other`</span>
-    <span class='doccomment'>/// variants for a container whose `kind` field matches the unique kind of the `Shader` widget.</span>
-    <span class='doccomment'>/// They can then retrieve the unique state of the widget and cast it to its actual type using</span>
-    <span class='doccomment'>/// either of the `Container::state_and_style` or `Container::unique_widget_state` methods.</span>
-    <span class='ident'>Other</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>graph</span>::<span class='ident'>Container</span>),
+    <span class="doccomment">/// An `Other` variant will be yielded for every non-primitive widget in the list.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Most of the time, this variant can be ignored, however it is useful for users who need to</span>
+    <span class="doccomment">/// render widgets in ways that cannot be covered by the other `PrimitiveKind` variants.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// For example, a `Shader` widget might be required for updating uniforms in user rendering</span>
+    <span class="doccomment">/// code. In order to access the unique state of this widget, the user can check `Other`</span>
+    <span class="doccomment">/// variants for a container whose `kind` field matches the unique kind of the `Shader` widget.</span>
+    <span class="doccomment">/// They can then retrieve the unique state of the widget and cast it to its actual type using</span>
+    <span class="doccomment">/// either of the `Container::state_and_style` or `Container::unique_widget_state` methods.</span>
+    <span class="ident">Other</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">graph</span>::<span class="ident">Container</span>),
 
 }
 
-<span class='doccomment'>/// A type used for producing a `PositionedGlyph` iterator.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// We produce this type rather than the `&amp;[PositionedGlyph]`s directly so that we can properly</span>
-<span class='doccomment'>/// handle &quot;HiDPI&quot; scales when caching glyphs.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Text</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>positioned_glyphs</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>PositionedGlyph</span><span class='op'>&gt;</span>,
-    <span class='ident'>window_dim</span>: <span class='ident'>Dimensions</span>,
-    <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>,
-    <span class='ident'>line_infos</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span>],
-    <span class='ident'>font</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>text</span>::<span class='ident'>Font</span>,
-    <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>,
-    <span class='ident'>rect</span>: <span class='ident'>Rect</span>,
-    <span class='ident'>justify</span>: <span class='ident'>text</span>::<span class='ident'>Justify</span>,
-    <span class='ident'>y_align</span>: <span class='ident'>Align</span>,
-    <span class='ident'>line_spacing</span>: <span class='ident'>Scalar</span>,
-}
-
-
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
-<span class='kw'>struct</span> <span class='ident'>OwnedPrimitive</span> {
-    <span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>,
-    <span class='ident'>kind</span>: <span class='ident'>OwnedPrimitiveKind</span>,
-    <span class='ident'>scizzor</span>: <span class='ident'>Rect</span>,
-    <span class='ident'>rect</span>: <span class='ident'>Rect</span>,
-}
-
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
-<span class='kw'>enum</span> <span class='ident'>OwnedPrimitiveKind</span> {
-    <span class='ident'>Rectangle</span> {
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-    },
-    <span class='ident'>Polygon</span> {
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-        <span class='ident'>point_range</span>: <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Range</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>,
-    },
-    <span class='ident'>Lines</span> {
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-        <span class='ident'>cap</span>: <span class='ident'>primitive</span>::<span class='ident'>line</span>::<span class='ident'>Cap</span>,
-        <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>,
-        <span class='ident'>point_range</span>: <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Range</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>,
-    },
-    <span class='ident'>Image</span> {
-        <span class='ident'>image_id</span>: <span class='ident'>image</span>::<span class='ident'>Id</span>,
-        <span class='ident'>color</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Color</span><span class='op'>&gt;</span>,
-        <span class='ident'>source_rect</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Rect</span><span class='op'>&gt;</span>,
-    },
-    <span class='ident'>Text</span> {
-        <span class='ident'>color</span>: <span class='ident'>Color</span>,
-        <span class='ident'>font_id</span>: <span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Id</span>,
-        <span class='ident'>text</span>: <span class='ident'>OwnedText</span>,
-    },
-}
-
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>)]</span>
-<span class='kw'>struct</span> <span class='ident'>OwnedText</span> {
-    <span class='ident'>str_byte_range</span>: <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Range</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>,
-    <span class='ident'>line_infos_range</span>: <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Range</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>,
-    <span class='ident'>window_dim</span>: <span class='ident'>Dimensions</span>,
-    <span class='ident'>font</span>: <span class='ident'>text</span>::<span class='ident'>Font</span>,
-    <span class='ident'>font_size</span>: <span class='ident'>FontSize</span>,
-    <span class='ident'>rect</span>: <span class='ident'>Rect</span>,
-    <span class='ident'>justify</span>: <span class='ident'>text</span>::<span class='ident'>Justify</span>,
-    <span class='ident'>y_align</span>: <span class='ident'>Align</span>,
-    <span class='ident'>line_spacing</span>: <span class='ident'>Scalar</span>,
-}
-
-<span class='doccomment'>/// An iterator-like type for yielding `Primitive`s from an `OwnedPrimitives`.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>WalkOwnedPrimitives</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>primitives</span>: <span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>OwnedPrimitive</span><span class='op'>&gt;</span>,
-    <span class='ident'>points</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>Point</span>],
-    <span class='ident'>line_infos</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>Info</span>],
-    <span class='ident'>texts_str</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>,
-    <span class='ident'>positioned_glyphs</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>text</span>::<span class='ident'>PositionedGlyph</span><span class='op'>&gt;</span>,
+<span class="doccomment">/// A type used for producing a `PositionedGlyph` iterator.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// We produce this type rather than the `&amp;[PositionedGlyph]`s directly so that we can properly</span>
+<span class="doccomment">/// handle &quot;HiDPI&quot; scales when caching glyphs.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Text</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">positioned_glyphs</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">text</span>::<span class="ident">PositionedGlyph</span><span class="op">&gt;</span>,
+    <span class="ident">window_dim</span>: <span class="ident">Dimensions</span>,
+    <span class="ident">text</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>,
+    <span class="ident">line_infos</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">text</span>::<span class="ident">line</span>::<span class="ident">Info</span>],
+    <span class="ident">font</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">text</span>::<span class="ident">Font</span>,
+    <span class="ident">font_size</span>: <span class="ident">FontSize</span>,
+    <span class="ident">rect</span>: <span class="ident">Rect</span>,
+    <span class="ident">justify</span>: <span class="ident">text</span>::<span class="ident">Justify</span>,
+    <span class="ident">y_align</span>: <span class="ident">Align</span>,
+    <span class="ident">line_spacing</span>: <span class="ident">Scalar</span>,
 }
 
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Text</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">struct</span> <span class="ident">OwnedPrimitive</span> {
+    <span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>,
+    <span class="ident">kind</span>: <span class="ident">OwnedPrimitiveKind</span>,
+    <span class="ident">scizzor</span>: <span class="ident">Rect</span>,
+    <span class="ident">rect</span>: <span class="ident">Rect</span>,
+}
 
-    <span class='doccomment'>/// Produces a list of `PositionedGlyph`s which may be used to cache and render the text.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// `dpi_factor`, aka &quot;dots per inch factor&quot; is a multiplier representing the density of</span>
-    <span class='doccomment'>/// the display&#39;s pixels. The `Scale` of the font will be multiplied by this factor in order to</span>
-    <span class='doccomment'>/// ensure that each `PositionedGlyph`&#39;s `pixel_bounding_box` is accurate and that the GPU</span>
-    <span class='doccomment'>/// cache receives glyphs of a size that will display correctly on displays regardless of DPI.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Note that conrod does not require this factor when instantiating `Text` widgets and laying</span>
-    <span class='doccomment'>/// out text. This is because conrod positioning uses a &quot;pixel-agnostic&quot; `Scalar` value</span>
-    <span class='doccomment'>/// representing *perceived* distances for its positioning and layout, rather than pixel</span>
-    <span class='doccomment'>/// values. During rendering however, the pixel density must be known</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>positioned_glyphs</span>(<span class='self'>self</span>, <span class='ident'>dpi_factor</span>: <span class='ident'>f32</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>text</span>::<span class='ident'>PositionedGlyph</span>] {
-        <span class='kw'>let</span> <span class='ident'>Text</span> {
-            <span class='ident'>positioned_glyphs</span>,
-            <span class='ident'>window_dim</span>,
-            <span class='ident'>text</span>,
-            <span class='ident'>line_infos</span>,
-            <span class='ident'>font</span>,
-            <span class='ident'>font_size</span>,
-            <span class='ident'>rect</span>,
-            <span class='ident'>justify</span>,
-            <span class='ident'>y_align</span>,
-            <span class='ident'>line_spacing</span>,
-        } <span class='op'>=</span> <span class='self'>self</span>;
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">enum</span> <span class="ident">OwnedPrimitiveKind</span> {
+    <span class="ident">Rectangle</span> {
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+    },
+    <span class="ident">Polygon</span> {
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="ident">point_range</span>: <span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Range</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
+    },
+    <span class="ident">Lines</span> {
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="ident">cap</span>: <span class="ident">primitive</span>::<span class="ident">line</span>::<span class="ident">Cap</span>,
+        <span class="ident">thickness</span>: <span class="ident">Scalar</span>,
+        <span class="ident">point_range</span>: <span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Range</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
+    },
+    <span class="ident">Image</span> {
+        <span class="ident">image_id</span>: <span class="ident">image</span>::<span class="ident">Id</span>,
+        <span class="ident">color</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Color</span><span class="op">&gt;</span>,
+        <span class="ident">source_rect</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Rect</span><span class="op">&gt;</span>,
+    },
+    <span class="ident">Text</span> {
+        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="ident">font_id</span>: <span class="ident">text</span>::<span class="ident">font</span>::<span class="ident">Id</span>,
+        <span class="ident">text</span>: <span class="ident">OwnedText</span>,
+    },
+}
 
-        <span class='comment'>// Convert conrod coordinates to pixel coordinates.</span>
-        <span class='kw'>let</span> <span class='ident'>trans_x</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>x</span>: <span class='ident'>Scalar</span><span class='op'>|</span> (<span class='ident'>x</span> <span class='op'>+</span> <span class='ident'>window_dim</span>[<span class='number'>0</span>] <span class='op'>/</span> <span class='number'>2.0</span>) <span class='op'>*</span> <span class='ident'>dpi_factor</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>;
-        <span class='kw'>let</span> <span class='ident'>trans_y</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>y</span>: <span class='ident'>Scalar</span><span class='op'>|</span> ((<span class='op'>-</span><span class='ident'>y</span>) <span class='op'>+</span> <span class='ident'>window_dim</span>[<span class='number'>1</span>] <span class='op'>/</span> <span class='number'>2.0</span>) <span class='op'>*</span> <span class='ident'>dpi_factor</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>;
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">struct</span> <span class="ident">OwnedText</span> {
+    <span class="ident">str_byte_range</span>: <span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Range</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
+    <span class="ident">line_infos_range</span>: <span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Range</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
+    <span class="ident">window_dim</span>: <span class="ident">Dimensions</span>,
+    <span class="ident">font</span>: <span class="ident">text</span>::<span class="ident">Font</span>,
+    <span class="ident">font_size</span>: <span class="ident">FontSize</span>,
+    <span class="ident">rect</span>: <span class="ident">Rect</span>,
+    <span class="ident">justify</span>: <span class="ident">text</span>::<span class="ident">Justify</span>,
+    <span class="ident">y_align</span>: <span class="ident">Align</span>,
+    <span class="ident">line_spacing</span>: <span class="ident">Scalar</span>,
+}
 
-        <span class='comment'>// Produce the text layout iterators.</span>
-        <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>();
-        <span class='kw'>let</span> <span class='ident'>lines</span> <span class='op'>=</span> <span class='ident'>line_infos</span>.<span class='ident'>clone</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>info</span><span class='op'>|</span> <span class='kw-2'>&amp;</span><span class='ident'>text</span>[<span class='ident'>info</span>.<span class='ident'>byte_range</span>()]);
-        <span class='kw'>let</span> <span class='ident'>line_rects</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>line</span>::<span class='ident'>rects</span>(<span class='ident'>line_infos</span>, <span class='ident'>font_size</span>, <span class='ident'>rect</span>,
-                                           <span class='ident'>justify</span>, <span class='ident'>y_align</span>, <span class='ident'>line_spacing</span>);
+<span class="doccomment">/// An iterator-like type for yielding `Primitive`s from an `OwnedPrimitives`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WalkOwnedPrimitives</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">primitives</span>: <span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">OwnedPrimitive</span><span class="op">&gt;</span>,
+    <span class="ident">points</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">Point</span>],
+    <span class="ident">line_infos</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">text</span>::<span class="ident">line</span>::<span class="ident">Info</span>],
+    <span class="ident">texts_str</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>,
+    <span class="ident">positioned_glyphs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">text</span>::<span class="ident">PositionedGlyph</span><span class="op">&gt;</span>,
+}
 
-        <span class='comment'>// Clear the existing glyphs and fill the buffer with glyphs for this Text.</span>
-        <span class='ident'>positioned_glyphs</span>.<span class='ident'>clear</span>();
-        <span class='kw'>let</span> <span class='ident'>scale</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>pt_to_scale</span>((<span class='ident'>font_size</span> <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>*</span> <span class='ident'>dpi_factor</span>) <span class='kw'>as</span> <span class='ident'>FontSize</span>);
-        <span class='kw'>for</span> (<span class='ident'>line</span>, <span class='ident'>line_rect</span>) <span class='kw'>in</span> <span class='ident'>lines</span>.<span class='ident'>zip</span>(<span class='ident'>line_rects</span>) {
-            <span class='kw'>let</span> (<span class='ident'>x</span>, <span class='ident'>y</span>) <span class='op'>=</span> (<span class='ident'>trans_x</span>(<span class='ident'>line_rect</span>.<span class='ident'>left</span>()) <span class='kw'>as</span> <span class='ident'>f32</span>, <span class='ident'>trans_y</span>(<span class='ident'>line_rect</span>.<span class='ident'>bottom</span>()) <span class='kw'>as</span> <span class='ident'>f32</span>);
-            <span class='kw'>let</span> <span class='ident'>point</span> <span class='op'>=</span> <span class='ident'>text</span>::<span class='ident'>rt</span>::<span class='ident'>Point</span> { <span class='ident'>x</span>: <span class='ident'>x</span>, <span class='ident'>y</span>: <span class='ident'>y</span> };
-            <span class='ident'>positioned_glyphs</span>.<span class='ident'>extend</span>(<span class='ident'>font</span>.<span class='ident'>layout</span>(<span class='ident'>line</span>, <span class='ident'>scale</span>, <span class='ident'>point</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>g</span><span class='op'>|</span> <span class='ident'>g</span>.<span class='ident'>standalone</span>()));
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Text</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+
+    <span class="doccomment">/// Produces a list of `PositionedGlyph`s which may be used to cache and render the text.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// `dpi_factor`, aka &quot;dots per inch factor&quot; is a multiplier representing the density of</span>
+    <span class="doccomment">/// the display&#39;s pixels. The `Scale` of the font will be multiplied by this factor in order to</span>
+    <span class="doccomment">/// ensure that each `PositionedGlyph`&#39;s `pixel_bounding_box` is accurate and that the GPU</span>
+    <span class="doccomment">/// cache receives glyphs of a size that will display correctly on displays regardless of DPI.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note that conrod does not require this factor when instantiating `Text` widgets and laying</span>
+    <span class="doccomment">/// out text. This is because conrod positioning uses a &quot;pixel-agnostic&quot; `Scalar` value</span>
+    <span class="doccomment">/// representing *perceived* distances for its positioning and layout, rather than pixel</span>
+    <span class="doccomment">/// values. During rendering however, the pixel density must be known</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">positioned_glyphs</span>(<span class="self">self</span>, <span class="ident">dpi_factor</span>: <span class="ident">f32</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">text</span>::<span class="ident">PositionedGlyph</span>] {
+        <span class="kw">let</span> <span class="ident">Text</span> {
+            <span class="ident">positioned_glyphs</span>,
+            <span class="ident">window_dim</span>,
+            <span class="ident">text</span>,
+            <span class="ident">line_infos</span>,
+            <span class="ident">font</span>,
+            <span class="ident">font_size</span>,
+            <span class="ident">rect</span>,
+            <span class="ident">justify</span>,
+            <span class="ident">y_align</span>,
+            <span class="ident">line_spacing</span>,
+        } <span class="op">=</span> <span class="self">self</span>;
+
+        <span class="comment">// Convert conrod coordinates to pixel coordinates.</span>
+        <span class="kw">let</span> <span class="ident">trans_x</span> <span class="op">=</span> <span class="op">|</span><span class="ident">x</span>: <span class="ident">Scalar</span><span class="op">|</span> (<span class="ident">x</span> <span class="op">+</span> <span class="ident">window_dim</span>[<span class="number">0</span>] <span class="op">/</span> <span class="number">2.0</span>) <span class="op">*</span> <span class="ident">dpi_factor</span> <span class="kw">as</span> <span class="ident">Scalar</span>;
+        <span class="kw">let</span> <span class="ident">trans_y</span> <span class="op">=</span> <span class="op">|</span><span class="ident">y</span>: <span class="ident">Scalar</span><span class="op">|</span> ((<span class="op">-</span><span class="ident">y</span>) <span class="op">+</span> <span class="ident">window_dim</span>[<span class="number">1</span>] <span class="op">/</span> <span class="number">2.0</span>) <span class="op">*</span> <span class="ident">dpi_factor</span> <span class="kw">as</span> <span class="ident">Scalar</span>;
+
+        <span class="comment">// Produce the text layout iterators.</span>
+        <span class="kw">let</span> <span class="ident">line_infos</span> <span class="op">=</span> <span class="ident">line_infos</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>();
+        <span class="kw">let</span> <span class="ident">lines</span> <span class="op">=</span> <span class="ident">line_infos</span>.<span class="ident">clone</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">info</span><span class="op">|</span> <span class="kw-2">&amp;</span><span class="ident">text</span>[<span class="ident">info</span>.<span class="ident">byte_range</span>()]);
+        <span class="kw">let</span> <span class="ident">line_rects</span> <span class="op">=</span> <span class="ident">text</span>::<span class="ident">line</span>::<span class="ident">rects</span>(<span class="ident">line_infos</span>, <span class="ident">font_size</span>, <span class="ident">rect</span>,
+                                           <span class="ident">justify</span>, <span class="ident">y_align</span>, <span class="ident">line_spacing</span>);
+
+        <span class="comment">// Clear the existing glyphs and fill the buffer with glyphs for this Text.</span>
+        <span class="ident">positioned_glyphs</span>.<span class="ident">clear</span>();
+        <span class="kw">let</span> <span class="ident">scale</span> <span class="op">=</span> <span class="ident">text</span>::<span class="ident">pt_to_scale</span>((<span class="ident">font_size</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="ident">dpi_factor</span>) <span class="kw">as</span> <span class="ident">FontSize</span>);
+        <span class="kw">for</span> (<span class="ident">line</span>, <span class="ident">line_rect</span>) <span class="kw">in</span> <span class="ident">lines</span>.<span class="ident">zip</span>(<span class="ident">line_rects</span>) {
+            <span class="kw">let</span> (<span class="ident">x</span>, <span class="ident">y</span>) <span class="op">=</span> (<span class="ident">trans_x</span>(<span class="ident">line_rect</span>.<span class="ident">left</span>()) <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">trans_y</span>(<span class="ident">line_rect</span>.<span class="ident">bottom</span>()) <span class="kw">as</span> <span class="ident">f32</span>);
+            <span class="kw">let</span> <span class="ident">point</span> <span class="op">=</span> <span class="ident">text</span>::<span class="ident">rt</span>::<span class="ident">Point</span> { <span class="ident">x</span>: <span class="ident">x</span>, <span class="ident">y</span>: <span class="ident">y</span> };
+            <span class="ident">positioned_glyphs</span>.<span class="ident">extend</span>(<span class="ident">font</span>.<span class="ident">layout</span>(<span class="ident">line</span>, <span class="ident">scale</span>, <span class="ident">point</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">g</span><span class="op">|</span> <span class="ident">g</span>.<span class="ident">standalone</span>()));
         }
 
-        <span class='ident'>positioned_glyphs</span>
+        <span class="ident">positioned_glyphs</span>
     }
 
 }
 
-<span class='kw'>const</span> <span class='ident'>CIRCLE_RESOLUTION</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>50</span>;
-<span class='kw'>const</span> <span class='ident'>NUM_POINTS</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='ident'>CIRCLE_RESOLUTION</span> <span class='op'>+</span> <span class='number'>1</span>;
+<span class="kw">const</span> <span class="ident">CIRCLE_RESOLUTION</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">50</span>;
+<span class="kw">const</span> <span class="ident">NUM_POINTS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">CIRCLE_RESOLUTION</span> <span class="op">+</span> <span class="number">1</span>;
 
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Primitives</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Primitives</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
 
-    <span class='doccomment'>/// Constructor for the `Primitives` iterator.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Graph</span>,
-               <span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> [<span class='ident'>widget</span>::<span class='ident'>Id</span>],
-               <span class='ident'>theme</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Theme</span>,
-               <span class='ident'>fonts</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>text</span>::<span class='ident'>font</span>::<span class='ident'>Map</span>,
-               <span class='ident'>window_dim</span>: <span class='ident'>Dimensions</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>
+    <span class="doccomment">/// Constructor for the `Primitives` iterator.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Graph</span>,
+               <span class="ident">depth_order</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">widget</span>::<span class="ident">Id</span>],
+               <span class="ident">theme</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Theme</span>,
+               <span class="ident">fonts</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">text</span>::<span class="ident">font</span>::<span class="ident">Map</span>,
+               <span class="ident">window_dim</span>: <span class="ident">Dimensions</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
     {
-        <span class='ident'>Primitives</span> {
-            <span class='ident'>crop_stack</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
-            <span class='ident'>depth_order</span>: <span class='ident'>depth_order</span>.<span class='ident'>iter</span>(),
-            <span class='ident'>graph</span>: <span class='ident'>graph</span>,
-            <span class='ident'>theme</span>: <span class='ident'>theme</span>,
-            <span class='ident'>fonts</span>: <span class='ident'>fonts</span>,
-            <span class='ident'>window_rect</span>: <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='number'>0.0</span>, <span class='number'>0.0</span>], <span class='ident'>window_dim</span>),
-            <span class='comment'>// Initialise the `points` `Vec` with at least as many points as there are in an</span>
-            <span class='comment'>// outlined `Rectangle`. This saves us from having to check the length of the buffer</span>
-            <span class='comment'>// before writing points for an `Oval` or `Rectangle`.</span>
-            <span class='ident'>points</span>: <span class='macro'>vec</span><span class='macro'>!</span>[[<span class='number'>0.0</span>, <span class='number'>0.0</span>]; <span class='ident'>NUM_POINTS</span>],
-            <span class='ident'>positioned_glyphs</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
+        <span class="ident">Primitives</span> {
+            <span class="ident">crop_stack</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+            <span class="ident">depth_order</span>: <span class="ident">depth_order</span>.<span class="ident">iter</span>(),
+            <span class="ident">graph</span>: <span class="ident">graph</span>,
+            <span class="ident">theme</span>: <span class="ident">theme</span>,
+            <span class="ident">fonts</span>: <span class="ident">fonts</span>,
+            <span class="ident">window_rect</span>: <span class="ident">Rect</span>::<span class="ident">from_xy_dim</span>([<span class="number">0.0</span>, <span class="number">0.0</span>], <span class="ident">window_dim</span>),
+            <span class="comment">// Initialise the `points` `Vec` with at least as many points as there are in an</span>
+            <span class="comment">// outlined `Rectangle`. This saves us from having to check the length of the buffer</span>
+            <span class="comment">// before writing points for an `Oval` or `Rectangle`.</span>
+            <span class="ident">points</span>: <span class="macro">vec</span><span class="macro">!</span>[[<span class="number">0.0</span>, <span class="number">0.0</span>]; <span class="ident">NUM_POINTS</span>],
+            <span class="ident">positioned_glyphs</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
         }
     }
 
-    <span class='doccomment'>/// Yield the next `Primitive` for rendering.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Primitive</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>Primitives</span> {
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>crop_stack</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>depth_order</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>points</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>positioned_glyphs</span>,
-            <span class='ident'>graph</span>,
-            <span class='ident'>theme</span>,
-            <span class='ident'>fonts</span>,
-            <span class='ident'>window_rect</span>,
-        } <span class='op'>=</span> <span class='kw-2'>*</span><span class='self'>self</span>;
+    <span class="doccomment">/// Yield the next `Primitive` for rendering.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Primitive</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">Primitives</span> {
+            <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">crop_stack</span>,
+            <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">depth_order</span>,
+            <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">points</span>,
+            <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">positioned_glyphs</span>,
+            <span class="ident">graph</span>,
+            <span class="ident">theme</span>,
+            <span class="ident">fonts</span>,
+            <span class="ident">window_rect</span>,
+        } <span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span>;
 
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=</span> <span class='ident'>next_widget</span>(<span class='ident'>depth_order</span>, <span class='ident'>graph</span>, <span class='ident'>crop_stack</span>, <span class='ident'>window_rect</span>) {
-            <span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>primitive</span>::<span class='ident'>point_path</span>::{<span class='ident'>State</span> <span class='kw'>as</span> <span class='ident'>PointPathState</span>, <span class='ident'>Style</span> <span class='kw'>as</span> <span class='ident'>PointPathStyle</span>};
-            <span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>primitive</span>::<span class='ident'>shape</span>::<span class='ident'>polygon</span>::{<span class='ident'>State</span> <span class='kw'>as</span> <span class='ident'>PolygonState</span>};
-            <span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>primitive</span>::<span class='ident'>shape</span>::<span class='ident'>Style</span> <span class='kw'>as</span> <span class='ident'>ShapeStyle</span>;
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">widget</span>) <span class="op">=</span> <span class="ident">next_widget</span>(<span class="ident">depth_order</span>, <span class="ident">graph</span>, <span class="ident">crop_stack</span>, <span class="ident">window_rect</span>) {
+            <span class="kw">use</span> <span class="ident">widget</span>::<span class="ident">primitive</span>::<span class="ident">point_path</span>::{<span class="ident">State</span> <span class="kw">as</span> <span class="ident">PointPathState</span>, <span class="ident">Style</span> <span class="kw">as</span> <span class="ident">PointPathStyle</span>};
+            <span class="kw">use</span> <span class="ident">widget</span>::<span class="ident">primitive</span>::<span class="ident">shape</span>::<span class="ident">polygon</span>::{<span class="ident">State</span> <span class="kw">as</span> <span class="ident">PolygonState</span>};
+            <span class="kw">use</span> <span class="ident">widget</span>::<span class="ident">primitive</span>::<span class="ident">shape</span>::<span class="ident">Style</span> <span class="kw">as</span> <span class="ident">ShapeStyle</span>;
 
-            <span class='kw'>let</span> (<span class='ident'>id</span>, <span class='ident'>scizzor</span>, <span class='ident'>container</span>) <span class='op'>=</span> <span class='ident'>widget</span>;
-            <span class='kw'>let</span> <span class='ident'>rect</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>rect</span>;
+            <span class="kw">let</span> (<span class="ident">id</span>, <span class="ident">scizzor</span>, <span class="ident">container</span>) <span class="op">=</span> <span class="ident">widget</span>;
+            <span class="kw">let</span> <span class="ident">rect</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">rect</span>;
 
-            <span class='kw'>fn</span> <span class='ident'>state_type_id</span><span class='op'>&lt;</span><span class='ident'>W</span><span class='op'>&gt;</span>() <span class='op'>-&gt;</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>TypeId</span>
-                <span class='kw'>where</span> <span class='ident'>W</span>: <span class='ident'>Widget</span>,
+            <span class="kw">fn</span> <span class="ident">state_type_id</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>() <span class="op">-&gt;</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">TypeId</span>
+                <span class="kw">where</span> <span class="ident">W</span>: <span class="ident">Widget</span>,
             {
-                <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>TypeId</span>::<span class='ident'>of</span>::<span class='op'>&lt;</span><span class='ident'>W</span>::<span class='ident'>State</span><span class='op'>&gt;</span>()
+                <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">TypeId</span>::<span class="ident">of</span>::<span class="op">&lt;</span><span class="ident">W</span>::<span class="ident">State</span><span class="op">&gt;</span>()
             }
 
-            <span class='comment'>// Extract the unique state and style from the container.</span>
-            <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>state_type_id</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Rectangle</span><span class='op'>&gt;</span>() {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>rectangle</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>unique_widget_state</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Rectangle</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>style</span>, .. } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>rectangle</span>;
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>match</span> <span class='kw-2'>*</span><span class='ident'>style</span> {
-                        <span class='ident'>ShapeStyle</span>::<span class='ident'>Fill</span>(_) <span class='op'>=&gt;</span> {
-                            <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Rectangle</span> { <span class='ident'>color</span>: <span class='ident'>color</span> };
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+            <span class="comment">// Extract the unique state and style from the container.</span>
+            <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">state_type_id</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Rectangle</span><span class="op">&gt;</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">rectangle</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">unique_widget_state</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Rectangle</span><span class="op">&gt;</span>() {
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">style</span>, .. } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">rectangle</span>;
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_color</span>(<span class="ident">theme</span>);
+                    <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">style</span> {
+                        <span class="ident">ShapeStyle</span>::<span class="ident">Fill</span>(_) <span class="op">=&gt;</span> {
+                            <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Rectangle</span> { <span class="ident">color</span>: <span class="ident">color</span> };
+                            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                         },
-                        <span class='ident'>ShapeStyle</span>::<span class='ident'>Outline</span>(<span class='kw-2'>ref</span> <span class='ident'>line_style</span>) <span class='op'>=&gt;</span> {
-                            <span class='kw'>let</span> (<span class='ident'>l</span>, <span class='ident'>r</span>, <span class='ident'>b</span>, <span class='ident'>t</span>) <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>l_r_b_t</span>();
-                            <span class='ident'>points</span>[<span class='number'>0</span>] <span class='op'>=</span> [<span class='ident'>l</span>, <span class='ident'>b</span>];
-                            <span class='ident'>points</span>[<span class='number'>1</span>] <span class='op'>=</span> [<span class='ident'>l</span>, <span class='ident'>t</span>];
-                            <span class='ident'>points</span>[<span class='number'>2</span>] <span class='op'>=</span> [<span class='ident'>r</span>, <span class='ident'>t</span>];
-                            <span class='ident'>points</span>[<span class='number'>3</span>] <span class='op'>=</span> [<span class='ident'>r</span>, <span class='ident'>b</span>];
-                            <span class='ident'>points</span>[<span class='number'>4</span>] <span class='op'>=</span> [<span class='ident'>l</span>, <span class='ident'>b</span>];
-                            <span class='kw'>let</span> <span class='ident'>cap</span> <span class='op'>=</span> <span class='ident'>line_style</span>.<span class='ident'>get_cap</span>(<span class='ident'>theme</span>);
-                            <span class='kw'>let</span> <span class='ident'>thickness</span> <span class='op'>=</span> <span class='ident'>line_style</span>.<span class='ident'>get_thickness</span>(<span class='ident'>theme</span>);
-                            <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> {
-                                <span class='ident'>color</span>: <span class='ident'>color</span>,
-                                <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                                <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                                <span class='ident'>points</span>: <span class='kw-2'>&amp;</span><span class='ident'>points</span>[..<span class='number'>5</span>],
+                        <span class="ident">ShapeStyle</span>::<span class="ident">Outline</span>(<span class="kw-2">ref</span> <span class="ident">line_style</span>) <span class="op">=&gt;</span> {
+                            <span class="kw">let</span> (<span class="ident">l</span>, <span class="ident">r</span>, <span class="ident">b</span>, <span class="ident">t</span>) <span class="op">=</span> <span class="ident">rect</span>.<span class="ident">l_r_b_t</span>();
+                            <span class="ident">points</span>[<span class="number">0</span>] <span class="op">=</span> [<span class="ident">l</span>, <span class="ident">b</span>];
+                            <span class="ident">points</span>[<span class="number">1</span>] <span class="op">=</span> [<span class="ident">l</span>, <span class="ident">t</span>];
+                            <span class="ident">points</span>[<span class="number">2</span>] <span class="op">=</span> [<span class="ident">r</span>, <span class="ident">t</span>];
+                            <span class="ident">points</span>[<span class="number">3</span>] <span class="op">=</span> [<span class="ident">r</span>, <span class="ident">b</span>];
+                            <span class="ident">points</span>[<span class="number">4</span>] <span class="op">=</span> [<span class="ident">l</span>, <span class="ident">b</span>];
+                            <span class="kw">let</span> <span class="ident">cap</span> <span class="op">=</span> <span class="ident">line_style</span>.<span class="ident">get_cap</span>(<span class="ident">theme</span>);
+                            <span class="kw">let</span> <span class="ident">thickness</span> <span class="op">=</span> <span class="ident">line_style</span>.<span class="ident">get_thickness</span>(<span class="ident">theme</span>);
+                            <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> {
+                                <span class="ident">color</span>: <span class="ident">color</span>,
+                                <span class="ident">cap</span>: <span class="ident">cap</span>,
+                                <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                                <span class="ident">points</span>: <span class="kw-2">&amp;</span><span class="ident">points</span>[..<span class="number">5</span>],
                             };
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                         },
                     }
                 }
 
-            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>state_type_id</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Oval</span><span class='op'>&gt;</span>() {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>oval</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>unique_widget_state</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Oval</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>f64</span>::<span class='ident'>consts</span>::<span class='ident'>PI</span>;
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>style</span>, .. } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>oval</span>;
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">state_type_id</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Oval</span><span class="op">&gt;</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">oval</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">unique_widget_state</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Oval</span><span class="op">&gt;</span>() {
+                    <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">f64</span>::<span class="ident">consts</span>::<span class="ident">PI</span>;
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">style</span>, .. } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">oval</span>;
 
-                    <span class='kw'>let</span> (<span class='ident'>x</span>, <span class='ident'>y</span>, <span class='ident'>w</span>, <span class='ident'>h</span>) <span class='op'>=</span> <span class='ident'>rect</span>.<span class='ident'>x_y_w_h</span>();
-                    <span class='kw'>let</span> <span class='ident'>t</span> <span class='op'>=</span> <span class='number'>2.0</span> <span class='op'>*</span> <span class='ident'>PI</span> <span class='op'>/</span> <span class='ident'>CIRCLE_RESOLUTION</span> <span class='kw'>as</span> <span class='ident'>Scalar</span>;
-                    <span class='kw'>let</span> <span class='ident'>hw</span> <span class='op'>=</span> <span class='ident'>w</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-                    <span class='kw'>let</span> <span class='ident'>hh</span> <span class='op'>=</span> <span class='ident'>h</span> <span class='op'>/</span> <span class='number'>2.0</span>;
-                    <span class='kw'>let</span> <span class='ident'>f</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>i</span>: <span class='ident'>Scalar</span><span class='op'>|</span> [<span class='ident'>x</span> <span class='op'>+</span> <span class='ident'>hw</span> <span class='op'>*</span> (<span class='ident'>t</span><span class='kw-2'>*</span><span class='ident'>i</span>).<span class='ident'>cos</span>(), <span class='ident'>y</span> <span class='op'>+</span> <span class='ident'>hh</span> <span class='op'>*</span> (<span class='ident'>t</span><span class='kw-2'>*</span><span class='ident'>i</span>).<span class='ident'>sin</span>()];
-                    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>NUM_POINTS</span> {
-                        <span class='ident'>points</span>[<span class='ident'>i</span>] <span class='op'>=</span> <span class='ident'>f</span>(<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>f64</span>);
+                    <span class="kw">let</span> (<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">w</span>, <span class="ident">h</span>) <span class="op">=</span> <span class="ident">rect</span>.<span class="ident">x_y_w_h</span>();
+                    <span class="kw">let</span> <span class="ident">t</span> <span class="op">=</span> <span class="number">2.0</span> <span class="op">*</span> <span class="ident">PI</span> <span class="op">/</span> <span class="ident">CIRCLE_RESOLUTION</span> <span class="kw">as</span> <span class="ident">Scalar</span>;
+                    <span class="kw">let</span> <span class="ident">hw</span> <span class="op">=</span> <span class="ident">w</span> <span class="op">/</span> <span class="number">2.0</span>;
+                    <span class="kw">let</span> <span class="ident">hh</span> <span class="op">=</span> <span class="ident">h</span> <span class="op">/</span> <span class="number">2.0</span>;
+                    <span class="kw">let</span> <span class="ident">f</span> <span class="op">=</span> <span class="op">|</span><span class="ident">i</span>: <span class="ident">Scalar</span><span class="op">|</span> [<span class="ident">x</span> <span class="op">+</span> <span class="ident">hw</span> <span class="op">*</span> (<span class="ident">t</span><span class="kw-2">*</span><span class="ident">i</span>).<span class="ident">cos</span>(), <span class="ident">y</span> <span class="op">+</span> <span class="ident">hh</span> <span class="op">*</span> (<span class="ident">t</span><span class="kw-2">*</span><span class="ident">i</span>).<span class="ident">sin</span>()];
+                    <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">NUM_POINTS</span> {
+                        <span class="ident">points</span>[<span class="ident">i</span>] <span class="op">=</span> <span class="ident">f</span>(<span class="ident">i</span> <span class="kw">as</span> <span class="ident">f64</span>);
                     }
 
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>points</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>points</span>[..<span class='ident'>NUM_POINTS</span>];
-                    <span class='kw'>match</span> <span class='kw-2'>*</span><span class='ident'>style</span> {
-                        <span class='ident'>ShapeStyle</span>::<span class='ident'>Fill</span>(_) <span class='op'>=&gt;</span> {
-                            <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Polygon</span> { <span class='ident'>color</span>: <span class='ident'>color</span>, <span class='ident'>points</span>: <span class='ident'>points</span> };
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_color</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">points</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">points</span>[..<span class="ident">NUM_POINTS</span>];
+                    <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">style</span> {
+                        <span class="ident">ShapeStyle</span>::<span class="ident">Fill</span>(_) <span class="op">=&gt;</span> {
+                            <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Polygon</span> { <span class="ident">color</span>: <span class="ident">color</span>, <span class="ident">points</span>: <span class="ident">points</span> };
+                            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                         },
-                        <span class='ident'>ShapeStyle</span>::<span class='ident'>Outline</span>(<span class='kw-2'>ref</span> <span class='ident'>line_style</span>) <span class='op'>=&gt;</span> {
-                            <span class='kw'>let</span> <span class='ident'>cap</span> <span class='op'>=</span> <span class='ident'>line_style</span>.<span class='ident'>get_cap</span>(<span class='ident'>theme</span>);
-                            <span class='kw'>let</span> <span class='ident'>thickness</span> <span class='op'>=</span> <span class='ident'>line_style</span>.<span class='ident'>get_thickness</span>(<span class='ident'>theme</span>);
-                            <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> {
-                                <span class='ident'>color</span>: <span class='ident'>color</span>,
-                                <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                                <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                                <span class='ident'>points</span>: <span class='ident'>points</span>,
+                        <span class="ident">ShapeStyle</span>::<span class="ident">Outline</span>(<span class="kw-2">ref</span> <span class="ident">line_style</span>) <span class="op">=&gt;</span> {
+                            <span class="kw">let</span> <span class="ident">cap</span> <span class="op">=</span> <span class="ident">line_style</span>.<span class="ident">get_cap</span>(<span class="ident">theme</span>);
+                            <span class="kw">let</span> <span class="ident">thickness</span> <span class="op">=</span> <span class="ident">line_style</span>.<span class="ident">get_thickness</span>(<span class="ident">theme</span>);
+                            <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> {
+                                <span class="ident">color</span>: <span class="ident">color</span>,
+                                <span class="ident">cap</span>: <span class="ident">cap</span>,
+                                <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                                <span class="ident">points</span>: <span class="ident">points</span>,
                             };
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                         },
                     }
                 }
 
-            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>TypeId</span>::<span class='ident'>of</span>::<span class='op'>&lt;</span><span class='ident'>PolygonState</span><span class='op'>&gt;</span>() {
-                <span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>primitive</span>::<span class='ident'>shape</span>::<span class='ident'>Style</span>;
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>polygon</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>state_and_style</span>::<span class='op'>&lt;</span><span class='ident'>PolygonState</span>, <span class='ident'>Style</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, <span class='kw-2'>ref</span> <span class='ident'>style</span> } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>polygon</span>;
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">TypeId</span>::<span class="ident">of</span>::<span class="op">&lt;</span><span class="ident">PolygonState</span><span class="op">&gt;</span>() {
+                <span class="kw">use</span> <span class="ident">widget</span>::<span class="ident">primitive</span>::<span class="ident">shape</span>::<span class="ident">Style</span>;
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">polygon</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">state_and_style</span>::<span class="op">&lt;</span><span class="ident">PolygonState</span>, <span class="ident">Style</span><span class="op">&gt;</span>() {
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">state</span>, <span class="kw-2">ref</span> <span class="ident">style</span> } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">polygon</span>;
 
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>points</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>points</span>[..];
-                    <span class='kw'>match</span> <span class='kw-2'>*</span><span class='ident'>style</span> {
-                        <span class='ident'>ShapeStyle</span>::<span class='ident'>Fill</span>(_) <span class='op'>=&gt;</span> {
-                            <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Polygon</span> { <span class='ident'>color</span>: <span class='ident'>color</span>, <span class='ident'>points</span>: <span class='ident'>points</span> };
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_color</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">points</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">state</span>.<span class="ident">points</span>[..];
+                    <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">style</span> {
+                        <span class="ident">ShapeStyle</span>::<span class="ident">Fill</span>(_) <span class="op">=&gt;</span> {
+                            <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Polygon</span> { <span class="ident">color</span>: <span class="ident">color</span>, <span class="ident">points</span>: <span class="ident">points</span> };
+                            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                         },
-                        <span class='ident'>ShapeStyle</span>::<span class='ident'>Outline</span>(<span class='kw-2'>ref</span> <span class='ident'>line_style</span>) <span class='op'>=&gt;</span> {
-                            <span class='kw'>let</span> <span class='ident'>cap</span> <span class='op'>=</span> <span class='ident'>line_style</span>.<span class='ident'>get_cap</span>(<span class='ident'>theme</span>);
-                            <span class='kw'>let</span> <span class='ident'>thickness</span> <span class='op'>=</span> <span class='ident'>line_style</span>.<span class='ident'>get_thickness</span>(<span class='ident'>theme</span>);
-                            <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> {
-                                <span class='ident'>color</span>: <span class='ident'>color</span>,
-                                <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                                <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                                <span class='ident'>points</span>: <span class='ident'>points</span>,
+                        <span class="ident">ShapeStyle</span>::<span class="ident">Outline</span>(<span class="kw-2">ref</span> <span class="ident">line_style</span>) <span class="op">=&gt;</span> {
+                            <span class="kw">let</span> <span class="ident">cap</span> <span class="op">=</span> <span class="ident">line_style</span>.<span class="ident">get_cap</span>(<span class="ident">theme</span>);
+                            <span class="kw">let</span> <span class="ident">thickness</span> <span class="op">=</span> <span class="ident">line_style</span>.<span class="ident">get_thickness</span>(<span class="ident">theme</span>);
+                            <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> {
+                                <span class="ident">color</span>: <span class="ident">color</span>,
+                                <span class="ident">cap</span>: <span class="ident">cap</span>,
+                                <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                                <span class="ident">points</span>: <span class="ident">points</span>,
                             };
-                            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                         },
                     }
                 }
 
-            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>state_type_id</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Line</span><span class='op'>&gt;</span>() {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>line</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>unique_widget_state</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Line</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, <span class='kw-2'>ref</span> <span class='ident'>style</span> } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>line</span>;
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>cap</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_cap</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>thickness</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_thickness</span>(<span class='ident'>theme</span>);
-                    <span class='ident'>points</span>[<span class='number'>0</span>] <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>start</span>;
-                    <span class='ident'>points</span>[<span class='number'>1</span>] <span class='op'>=</span> <span class='ident'>state</span>.<span class='ident'>end</span>;
-                    <span class='kw'>let</span> <span class='ident'>points</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>points</span>[..<span class='number'>2</span>];
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                        <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                        <span class='ident'>points</span>: <span class='ident'>points</span>,
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">state_type_id</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Line</span><span class="op">&gt;</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">line</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">unique_widget_state</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Line</span><span class="op">&gt;</span>() {
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">state</span>, <span class="kw-2">ref</span> <span class="ident">style</span> } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">line</span>;
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_color</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">cap</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_cap</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">thickness</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_thickness</span>(<span class="ident">theme</span>);
+                    <span class="ident">points</span>[<span class="number">0</span>] <span class="op">=</span> <span class="ident">state</span>.<span class="ident">start</span>;
+                    <span class="ident">points</span>[<span class="number">1</span>] <span class="op">=</span> <span class="ident">state</span>.<span class="ident">end</span>;
+                    <span class="kw">let</span> <span class="ident">points</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">points</span>[..<span class="number">2</span>];
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">cap</span>: <span class="ident">cap</span>,
+                        <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                        <span class="ident">points</span>: <span class="ident">points</span>,
                     };
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                    <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                 }
 
-            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>TypeId</span>::<span class='ident'>of</span>::<span class='op'>&lt;</span><span class='ident'>PointPathState</span><span class='op'>&gt;</span>() {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>point_path</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>state_and_style</span>::<span class='op'>&lt;</span><span class='ident'>PointPathState</span>, <span class='ident'>PointPathStyle</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, <span class='kw-2'>ref</span> <span class='ident'>style</span> } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>point_path</span>;
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>cap</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_cap</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>thickness</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>get_thickness</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>points</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>points</span>[..];
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                        <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                        <span class='ident'>points</span>: <span class='ident'>points</span>,
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">TypeId</span>::<span class="ident">of</span>::<span class="op">&lt;</span><span class="ident">PointPathState</span><span class="op">&gt;</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">point_path</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">state_and_style</span>::<span class="op">&lt;</span><span class="ident">PointPathState</span>, <span class="ident">PointPathStyle</span><span class="op">&gt;</span>() {
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">state</span>, <span class="kw-2">ref</span> <span class="ident">style</span> } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">point_path</span>;
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_color</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">cap</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_cap</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">thickness</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">get_thickness</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">points</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">state</span>.<span class="ident">points</span>[..];
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">cap</span>: <span class="ident">cap</span>,
+                        <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                        <span class="ident">points</span>: <span class="ident">points</span>,
                     };
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                    <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                 }
 
-            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>state_type_id</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Text</span><span class='op'>&gt;</span>() {
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>text</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>unique_widget_state</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Text</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, <span class='kw-2'>ref</span> <span class='ident'>style</span> } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>text</span>;
-                    <span class='kw'>let</span> <span class='ident'>font_id</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>style</span>.<span class='ident'>font_id</span>(<span class='ident'>theme</span>).<span class='ident'>or_else</span>(<span class='op'>||</span> <span class='ident'>fonts</span>.<span class='ident'>ids</span>().<span class='ident'>next</span>()) {
-                        <span class='prelude-val'>Some</span>(<span class='ident'>id</span>) <span class='op'>=&gt;</span> <span class='ident'>id</span>,
-                        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>continue</span>,
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">state_type_id</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Text</span><span class="op">&gt;</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">text</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">unique_widget_state</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Text</span><span class="op">&gt;</span>() {
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">state</span>, <span class="kw-2">ref</span> <span class="ident">style</span> } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">text</span>;
+                    <span class="kw">let</span> <span class="ident">font_id</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">style</span>.<span class="ident">font_id</span>(<span class="ident">theme</span>).<span class="ident">or_else</span>(<span class="op">||</span> <span class="ident">fonts</span>.<span class="ident">ids</span>().<span class="ident">next</span>()) {
+                        <span class="prelude-val">Some</span>(<span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">id</span>,
+                        <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">continue</span>,
                     };
-                    <span class='kw'>let</span> <span class='ident'>font</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>fonts</span>.<span class='ident'>get</span>(<span class='ident'>font_id</span>) {
-                        <span class='prelude-val'>Some</span>(<span class='ident'>font</span>) <span class='op'>=&gt;</span> <span class='ident'>font</span>,
-                        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>continue</span>,
-                    };
-
-                    <span class='comment'>// Retrieve styling.</span>
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>font_size</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>font_size</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>line_spacing</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>line_spacing</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>justify</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>justify</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>y_align</span> <span class='op'>=</span> <span class='ident'>Align</span>::<span class='ident'>End</span>;
-
-                    <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>Text</span> {
-                        <span class='ident'>positioned_glyphs</span>: <span class='ident'>positioned_glyphs</span>,
-                        <span class='ident'>window_dim</span>: <span class='ident'>window_rect</span>.<span class='ident'>dim</span>(),
-                        <span class='ident'>text</span>: <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>string</span>,
-                        <span class='ident'>line_infos</span>: <span class='kw-2'>&amp;</span><span class='ident'>state</span>.<span class='ident'>line_infos</span>,
-                        <span class='ident'>font</span>: <span class='ident'>font</span>,
-                        <span class='ident'>font_size</span>: <span class='ident'>font_size</span>,
-                        <span class='ident'>rect</span>: <span class='ident'>rect</span>,
-                        <span class='ident'>justify</span>: <span class='ident'>justify</span>,
-                        <span class='ident'>y_align</span>: <span class='ident'>y_align</span>,
-                        <span class='ident'>line_spacing</span>: <span class='ident'>line_spacing</span>,
+                    <span class="kw">let</span> <span class="ident">font</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">fonts</span>.<span class="ident">get</span>(<span class="ident">font_id</span>) {
+                        <span class="prelude-val">Some</span>(<span class="ident">font</span>) <span class="op">=&gt;</span> <span class="ident">font</span>,
+                        <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">continue</span>,
                     };
 
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Text</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>text</span>: <span class='ident'>text</span>,
-                        <span class='ident'>font_id</span>: <span class='ident'>font_id</span>,
+                    <span class="comment">// Retrieve styling.</span>
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">color</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">font_size</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">font_size</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">line_spacing</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">line_spacing</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">justify</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">justify</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">y_align</span> <span class="op">=</span> <span class="ident">Align</span>::<span class="ident">End</span>;
+
+                    <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">Text</span> {
+                        <span class="ident">positioned_glyphs</span>: <span class="ident">positioned_glyphs</span>,
+                        <span class="ident">window_dim</span>: <span class="ident">window_rect</span>.<span class="ident">dim</span>(),
+                        <span class="ident">text</span>: <span class="kw-2">&amp;</span><span class="ident">state</span>.<span class="ident">string</span>,
+                        <span class="ident">line_infos</span>: <span class="kw-2">&amp;</span><span class="ident">state</span>.<span class="ident">line_infos</span>,
+                        <span class="ident">font</span>: <span class="ident">font</span>,
+                        <span class="ident">font_size</span>: <span class="ident">font_size</span>,
+                        <span class="ident">rect</span>: <span class="ident">rect</span>,
+                        <span class="ident">justify</span>: <span class="ident">justify</span>,
+                        <span class="ident">y_align</span>: <span class="ident">y_align</span>,
+                        <span class="ident">line_spacing</span>: <span class="ident">line_spacing</span>,
                     };
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Text</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">text</span>: <span class="ident">text</span>,
+                        <span class="ident">font_id</span>: <span class="ident">font_id</span>,
+                    };
+                    <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                 }
 
-            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>type_id</span> <span class='op'>==</span> <span class='ident'>state_type_id</span>::<span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Image</span><span class='op'>&gt;</span>() {
-                <span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>primitive</span>::<span class='ident'>image</span>::{<span class='ident'>State</span>, <span class='ident'>Style</span>};
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>image</span>) <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>state_and_style</span>::<span class='op'>&lt;</span><span class='ident'>State</span>, <span class='ident'>Style</span><span class='op'>&gt;</span>() {
-                    <span class='kw'>let</span> <span class='ident'>graph</span>::<span class='ident'>UniqueWidgetState</span> { <span class='kw-2'>ref</span> <span class='ident'>state</span>, <span class='kw-2'>ref</span> <span class='ident'>style</span> } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>image</span>;
-                    <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>maybe_color</span>(<span class='ident'>theme</span>);
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Image</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>image_id</span>: <span class='ident'>state</span>.<span class='ident'>image_id</span>,
-                        <span class='ident'>source_rect</span>: <span class='ident'>state</span>.<span class='ident'>src_rect</span>,
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">type_id</span> <span class="op">==</span> <span class="ident">state_type_id</span>::<span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Image</span><span class="op">&gt;</span>() {
+                <span class="kw">use</span> <span class="ident">widget</span>::<span class="ident">primitive</span>::<span class="ident">image</span>::{<span class="ident">State</span>, <span class="ident">Style</span>};
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">image</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">state_and_style</span>::<span class="op">&lt;</span><span class="ident">State</span>, <span class="ident">Style</span><span class="op">&gt;</span>() {
+                    <span class="kw">let</span> <span class="ident">graph</span>::<span class="ident">UniqueWidgetState</span> { <span class="kw-2">ref</span> <span class="ident">state</span>, <span class="kw-2">ref</span> <span class="ident">style</span> } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">image</span>;
+                    <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">maybe_color</span>(<span class="ident">theme</span>);
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Image</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">image_id</span>: <span class="ident">state</span>.<span class="ident">image_id</span>,
+                        <span class="ident">source_rect</span>: <span class="ident">state</span>.<span class="ident">src_rect</span>,
                     };
-                    <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+                    <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
                 }
 
-            <span class='comment'>// Return an `Other` variant for all non-primitive widgets.</span>
-            } <span class='kw'>else</span> {
-                <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Other</span>(<span class='ident'>container</span>);
-                <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>new_primitive</span>(<span class='ident'>id</span>, <span class='ident'>kind</span>, <span class='ident'>scizzor</span>, <span class='ident'>rect</span>));
+            <span class="comment">// Return an `Other` variant for all non-primitive widgets.</span>
+            } <span class="kw">else</span> {
+                <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Other</span>(<span class="ident">container</span>);
+                <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">new_primitive</span>(<span class="ident">id</span>, <span class="ident">kind</span>, <span class="ident">scizzor</span>, <span class="ident">rect</span>));
             }
         }
 
-        <span class='prelude-val'>None</span>
+        <span class="prelude-val">None</span>
     }
 
-    <span class='doccomment'>/// Collect the `Primitives` list into an owned collection.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This is useful for sending `Ui` rendering data across threads in an efficient manner.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>owned</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>OwnedPrimitives</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>primitives</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='self'>self</span>.<span class='ident'>depth_order</span>.<span class='ident'>len</span>());
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>primitive_points</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>primitive_line_infos</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>texts_string</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>new</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>max_glyphs</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class="doccomment">/// Collect the `Primitives` list into an owned collection.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is useful for sending `Ui` rendering data across threads in an efficient manner.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">owned</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">OwnedPrimitives</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">primitives</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="self">self</span>.<span class="ident">depth_order</span>.<span class="ident">len</span>());
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">primitive_points</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">primitive_line_infos</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">texts_string</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">max_glyphs</span> <span class="op">=</span> <span class="number">0</span>;
 
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>Primitive</span> { <span class='ident'>id</span>, <span class='ident'>rect</span>, <span class='ident'>scizzor</span>, <span class='ident'>kind</span> }) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>next</span>() {
-            <span class='kw'>let</span> <span class='ident'>new</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>kind</span><span class='op'>|</span> <span class='ident'>OwnedPrimitive</span> {
-                <span class='ident'>id</span>: <span class='ident'>id</span>,
-                <span class='ident'>rect</span>: <span class='ident'>rect</span>,
-                <span class='ident'>scizzor</span>: <span class='ident'>scizzor</span>,
-                <span class='ident'>kind</span>: <span class='ident'>kind</span>,
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">Primitive</span> { <span class="ident">id</span>, <span class="ident">rect</span>, <span class="ident">scizzor</span>, <span class="ident">kind</span> }) <span class="op">=</span> <span class="self">self</span>.<span class="ident">next</span>() {
+            <span class="kw">let</span> <span class="ident">new</span> <span class="op">=</span> <span class="op">|</span><span class="ident">kind</span><span class="op">|</span> <span class="ident">OwnedPrimitive</span> {
+                <span class="ident">id</span>: <span class="ident">id</span>,
+                <span class="ident">rect</span>: <span class="ident">rect</span>,
+                <span class="ident">scizzor</span>: <span class="ident">scizzor</span>,
+                <span class="ident">kind</span>: <span class="ident">kind</span>,
             };
 
-            <span class='kw'>match</span> <span class='ident'>kind</span> {
+            <span class="kw">match</span> <span class="ident">kind</span> {
 
-                <span class='ident'>PrimitiveKind</span>::<span class='ident'>Rectangle</span> { <span class='ident'>color</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Rectangle</span> { <span class='ident'>color</span>: <span class='ident'>color</span> };
-                    <span class='ident'>primitives</span>.<span class='ident'>push</span>(<span class='ident'>new</span>(<span class='ident'>kind</span>));
+                <span class="ident">PrimitiveKind</span>::<span class="ident">Rectangle</span> { <span class="ident">color</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Rectangle</span> { <span class="ident">color</span>: <span class="ident">color</span> };
+                    <span class="ident">primitives</span>.<span class="ident">push</span>(<span class="ident">new</span>(<span class="ident">kind</span>));
                 },
 
-                <span class='ident'>PrimitiveKind</span>::<span class='ident'>Polygon</span> { <span class='ident'>color</span>, <span class='ident'>points</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>start</span> <span class='op'>=</span> <span class='ident'>primitive_points</span>.<span class='ident'>len</span>();
-                    <span class='ident'>primitive_points</span>.<span class='ident'>extend</span>(<span class='ident'>points</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>());
-                    <span class='kw'>let</span> <span class='ident'>end</span> <span class='op'>=</span> <span class='ident'>primitive_points</span>.<span class='ident'>len</span>();
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Polygon</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>point_range</span>: <span class='ident'>start</span>..<span class='ident'>end</span>,
+                <span class="ident">PrimitiveKind</span>::<span class="ident">Polygon</span> { <span class="ident">color</span>, <span class="ident">points</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">start</span> <span class="op">=</span> <span class="ident">primitive_points</span>.<span class="ident">len</span>();
+                    <span class="ident">primitive_points</span>.<span class="ident">extend</span>(<span class="ident">points</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>());
+                    <span class="kw">let</span> <span class="ident">end</span> <span class="op">=</span> <span class="ident">primitive_points</span>.<span class="ident">len</span>();
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Polygon</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">point_range</span>: <span class="ident">start</span>..<span class="ident">end</span>,
                     };
-                    <span class='ident'>primitives</span>.<span class='ident'>push</span>(<span class='ident'>new</span>(<span class='ident'>kind</span>));
+                    <span class="ident">primitives</span>.<span class="ident">push</span>(<span class="ident">new</span>(<span class="ident">kind</span>));
                 },
 
-                <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> { <span class='ident'>color</span>, <span class='ident'>cap</span>, <span class='ident'>thickness</span>, <span class='ident'>points</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>start</span> <span class='op'>=</span> <span class='ident'>primitive_points</span>.<span class='ident'>len</span>();
-                    <span class='ident'>primitive_points</span>.<span class='ident'>extend</span>(<span class='ident'>points</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>());
-                    <span class='kw'>let</span> <span class='ident'>end</span> <span class='op'>=</span> <span class='ident'>primitive_points</span>.<span class='ident'>len</span>();
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Lines</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                        <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                        <span class='ident'>point_range</span>: <span class='ident'>start</span>..<span class='ident'>end</span>,
+                <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> { <span class="ident">color</span>, <span class="ident">cap</span>, <span class="ident">thickness</span>, <span class="ident">points</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">start</span> <span class="op">=</span> <span class="ident">primitive_points</span>.<span class="ident">len</span>();
+                    <span class="ident">primitive_points</span>.<span class="ident">extend</span>(<span class="ident">points</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>());
+                    <span class="kw">let</span> <span class="ident">end</span> <span class="op">=</span> <span class="ident">primitive_points</span>.<span class="ident">len</span>();
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Lines</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">cap</span>: <span class="ident">cap</span>,
+                        <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                        <span class="ident">point_range</span>: <span class="ident">start</span>..<span class="ident">end</span>,
                     };
-                    <span class='ident'>primitives</span>.<span class='ident'>push</span>(<span class='ident'>new</span>(<span class='ident'>kind</span>));
+                    <span class="ident">primitives</span>.<span class="ident">push</span>(<span class="ident">new</span>(<span class="ident">kind</span>));
                 },
 
-                <span class='ident'>PrimitiveKind</span>::<span class='ident'>Image</span> { <span class='ident'>image_id</span>, <span class='ident'>color</span>, <span class='ident'>source_rect</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Image</span> {
-                        <span class='ident'>image_id</span>: <span class='ident'>image_id</span>,
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>source_rect</span>: <span class='ident'>source_rect</span>,
+                <span class="ident">PrimitiveKind</span>::<span class="ident">Image</span> { <span class="ident">image_id</span>, <span class="ident">color</span>, <span class="ident">source_rect</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Image</span> {
+                        <span class="ident">image_id</span>: <span class="ident">image_id</span>,
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">source_rect</span>: <span class="ident">source_rect</span>,
                     };
-                    <span class='ident'>primitives</span>.<span class='ident'>push</span>(<span class='ident'>new</span>(<span class='ident'>kind</span>));
+                    <span class="ident">primitives</span>.<span class="ident">push</span>(<span class="ident">new</span>(<span class="ident">kind</span>));
                 },
 
-                <span class='ident'>PrimitiveKind</span>::<span class='ident'>Text</span> { <span class='ident'>color</span>, <span class='ident'>font_id</span>, <span class='ident'>text</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>Text</span> {
-                        <span class='ident'>window_dim</span>,
-                        <span class='ident'>text</span>,
-                        <span class='ident'>line_infos</span>,
-                        <span class='ident'>font</span>,
-                        <span class='ident'>font_size</span>,
-                        <span class='ident'>rect</span>,
-                        <span class='ident'>justify</span>,
-                        <span class='ident'>y_align</span>,
-                        <span class='ident'>line_spacing</span>,
+                <span class="ident">PrimitiveKind</span>::<span class="ident">Text</span> { <span class="ident">color</span>, <span class="ident">font_id</span>, <span class="ident">text</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">Text</span> {
+                        <span class="ident">window_dim</span>,
+                        <span class="ident">text</span>,
+                        <span class="ident">line_infos</span>,
+                        <span class="ident">font</span>,
+                        <span class="ident">font_size</span>,
+                        <span class="ident">rect</span>,
+                        <span class="ident">justify</span>,
+                        <span class="ident">y_align</span>,
+                        <span class="ident">line_spacing</span>,
                         ..
-                    } <span class='op'>=</span> <span class='ident'>text</span>;
+                    } <span class="op">=</span> <span class="ident">text</span>;
 
-                    <span class='comment'>// Keep a rough estimate of the maximum number of glyphs so that we know what</span>
-                    <span class='comment'>// capacity we should allocate the `PositionedGlyph` buffer with.</span>
-                    <span class='ident'>max_glyphs</span> <span class='op'>=</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>(<span class='ident'>max_glyphs</span>, <span class='ident'>text</span>.<span class='ident'>len</span>());
+                    <span class="comment">// Keep a rough estimate of the maximum number of glyphs so that we know what</span>
+                    <span class="comment">// capacity we should allocate the `PositionedGlyph` buffer with.</span>
+                    <span class="ident">max_glyphs</span> <span class="op">=</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">max_glyphs</span>, <span class="ident">text</span>.<span class="ident">len</span>());
 
-                    <span class='comment'>// Pack the `texts_string`.</span>
-                    <span class='kw'>let</span> <span class='ident'>start_str_byte</span> <span class='op'>=</span> <span class='ident'>texts_string</span>.<span class='ident'>len</span>();
-                    <span class='ident'>texts_string</span>.<span class='ident'>push_str</span>(<span class='ident'>text</span>);
-                    <span class='kw'>let</span> <span class='ident'>end_str_byte</span> <span class='op'>=</span> <span class='ident'>texts_string</span>.<span class='ident'>len</span>();
+                    <span class="comment">// Pack the `texts_string`.</span>
+                    <span class="kw">let</span> <span class="ident">start_str_byte</span> <span class="op">=</span> <span class="ident">texts_string</span>.<span class="ident">len</span>();
+                    <span class="ident">texts_string</span>.<span class="ident">push_str</span>(<span class="ident">text</span>);
+                    <span class="kw">let</span> <span class="ident">end_str_byte</span> <span class="op">=</span> <span class="ident">texts_string</span>.<span class="ident">len</span>();
 
-                    <span class='comment'>// Pack the `line_infos`.</span>
-                    <span class='kw'>let</span> <span class='ident'>start_line_info_idx</span> <span class='op'>=</span> <span class='ident'>primitive_line_infos</span>.<span class='ident'>len</span>();
-                    <span class='ident'>primitive_line_infos</span>.<span class='ident'>extend</span>(<span class='ident'>line_infos</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>());
-                    <span class='kw'>let</span> <span class='ident'>end_line_info_idx</span> <span class='op'>=</span> <span class='ident'>primitive_line_infos</span>.<span class='ident'>len</span>();
+                    <span class="comment">// Pack the `line_infos`.</span>
+                    <span class="kw">let</span> <span class="ident">start_line_info_idx</span> <span class="op">=</span> <span class="ident">primitive_line_infos</span>.<span class="ident">len</span>();
+                    <span class="ident">primitive_line_infos</span>.<span class="ident">extend</span>(<span class="ident">line_infos</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>());
+                    <span class="kw">let</span> <span class="ident">end_line_info_idx</span> <span class="op">=</span> <span class="ident">primitive_line_infos</span>.<span class="ident">len</span>();
 
-                    <span class='kw'>let</span> <span class='ident'>owned_text</span> <span class='op'>=</span> <span class='ident'>OwnedText</span> {
-                        <span class='ident'>str_byte_range</span>: <span class='ident'>start_str_byte</span>..<span class='ident'>end_str_byte</span>,
-                        <span class='ident'>line_infos_range</span>: <span class='ident'>start_line_info_idx</span>..<span class='ident'>end_line_info_idx</span>,
-                        <span class='ident'>window_dim</span>: <span class='ident'>window_dim</span>,
-                        <span class='ident'>font</span>: <span class='ident'>font</span>.<span class='ident'>clone</span>(),
-                        <span class='ident'>font_size</span>: <span class='ident'>font_size</span>,
-                        <span class='ident'>rect</span>: <span class='ident'>rect</span>,
-                        <span class='ident'>justify</span>: <span class='ident'>justify</span>,
-                        <span class='ident'>y_align</span>: <span class='ident'>y_align</span>,
-                        <span class='ident'>line_spacing</span>: <span class='ident'>line_spacing</span>,
+                    <span class="kw">let</span> <span class="ident">owned_text</span> <span class="op">=</span> <span class="ident">OwnedText</span> {
+                        <span class="ident">str_byte_range</span>: <span class="ident">start_str_byte</span>..<span class="ident">end_str_byte</span>,
+                        <span class="ident">line_infos_range</span>: <span class="ident">start_line_info_idx</span>..<span class="ident">end_line_info_idx</span>,
+                        <span class="ident">window_dim</span>: <span class="ident">window_dim</span>,
+                        <span class="ident">font</span>: <span class="ident">font</span>.<span class="ident">clone</span>(),
+                        <span class="ident">font_size</span>: <span class="ident">font_size</span>,
+                        <span class="ident">rect</span>: <span class="ident">rect</span>,
+                        <span class="ident">justify</span>: <span class="ident">justify</span>,
+                        <span class="ident">y_align</span>: <span class="ident">y_align</span>,
+                        <span class="ident">line_spacing</span>: <span class="ident">line_spacing</span>,
                     };
 
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Text</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>font_id</span>: <span class='ident'>font_id</span>,
-                        <span class='ident'>text</span>: <span class='ident'>owned_text</span>,
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Text</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">font_id</span>: <span class="ident">font_id</span>,
+                        <span class="ident">text</span>: <span class="ident">owned_text</span>,
                     };
-                    <span class='ident'>primitives</span>.<span class='ident'>push</span>(<span class='ident'>new</span>(<span class='ident'>kind</span>));
+                    <span class="ident">primitives</span>.<span class="ident">push</span>(<span class="ident">new</span>(<span class="ident">kind</span>));
                 },
 
-                <span class='comment'>// TODO: Not sure how we should handle this yet.</span>
-                <span class='ident'>PrimitiveKind</span>::<span class='ident'>Other</span>(_) <span class='op'>=&gt;</span> (),
+                <span class="comment">// TODO: Not sure how we should handle this yet.</span>
+                <span class="ident">PrimitiveKind</span>::<span class="ident">Other</span>(_) <span class="op">=&gt;</span> (),
 
             }
         }
 
-        <span class='ident'>OwnedPrimitives</span> {
-            <span class='ident'>primitives</span>: <span class='ident'>primitives</span>,
-            <span class='ident'>points</span>: <span class='ident'>primitive_points</span>,
-            <span class='ident'>max_glyphs</span>: <span class='ident'>max_glyphs</span>,
-            <span class='ident'>line_infos</span>: <span class='ident'>primitive_line_infos</span>,
-            <span class='ident'>texts_string</span>: <span class='ident'>texts_string</span>,
+        <span class="ident">OwnedPrimitives</span> {
+            <span class="ident">primitives</span>: <span class="ident">primitives</span>,
+            <span class="ident">points</span>: <span class="ident">primitive_points</span>,
+            <span class="ident">max_glyphs</span>: <span class="ident">max_glyphs</span>,
+            <span class="ident">line_infos</span>: <span class="ident">primitive_line_infos</span>,
+            <span class="ident">texts_string</span>: <span class="ident">texts_string</span>,
         }
     }
 
 }
 
 
-<span class='kw'>impl</span> <span class='ident'>OwnedPrimitives</span> {
+<span class="kw">impl</span> <span class="ident">OwnedPrimitives</span> {
 
-    <span class='doccomment'>/// Produce an iterator-like type for yielding `Primitive`s.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>walk</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>WalkOwnedPrimitives</span> {
-        <span class='kw'>let</span> <span class='ident'>OwnedPrimitives</span> {
-            <span class='kw-2'>ref</span> <span class='ident'>primitives</span>,
-            <span class='kw-2'>ref</span> <span class='ident'>points</span>,
-            <span class='kw-2'>ref</span> <span class='ident'>line_infos</span>,
-            <span class='kw-2'>ref</span> <span class='ident'>texts_string</span>,
-            <span class='ident'>max_glyphs</span>,
-        } <span class='op'>=</span> <span class='kw-2'>*</span><span class='self'>self</span>;
-        <span class='ident'>WalkOwnedPrimitives</span> {
-            <span class='ident'>primitives</span>: <span class='ident'>primitives</span>.<span class='ident'>iter</span>(),
-            <span class='ident'>points</span>: <span class='ident'>points</span>,
-            <span class='ident'>line_infos</span>: <span class='ident'>line_infos</span>,
-            <span class='ident'>texts_str</span>: <span class='ident'>texts_string</span>,
-            <span class='ident'>positioned_glyphs</span>: <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='ident'>max_glyphs</span>),
+    <span class="doccomment">/// Produce an iterator-like type for yielding `Primitive`s.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">walk</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">WalkOwnedPrimitives</span> {
+        <span class="kw">let</span> <span class="ident">OwnedPrimitives</span> {
+            <span class="kw-2">ref</span> <span class="ident">primitives</span>,
+            <span class="kw-2">ref</span> <span class="ident">points</span>,
+            <span class="kw-2">ref</span> <span class="ident">line_infos</span>,
+            <span class="kw-2">ref</span> <span class="ident">texts_string</span>,
+            <span class="ident">max_glyphs</span>,
+        } <span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span>;
+        <span class="ident">WalkOwnedPrimitives</span> {
+            <span class="ident">primitives</span>: <span class="ident">primitives</span>.<span class="ident">iter</span>(),
+            <span class="ident">points</span>: <span class="ident">points</span>,
+            <span class="ident">line_infos</span>: <span class="ident">line_infos</span>,
+            <span class="ident">texts_str</span>: <span class="ident">texts_string</span>,
+            <span class="ident">positioned_glyphs</span>: <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">max_glyphs</span>),
         }
     }
 
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>WalkOwnedPrimitives</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">WalkOwnedPrimitives</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
 
-    <span class='doccomment'>/// Yield the next `Primitive` in order or rendering depth, bottom to top.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Primitive</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>WalkOwnedPrimitives</span> {
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>primitives</span>,
-            <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>positioned_glyphs</span>,
-            <span class='ident'>points</span>,
-            <span class='ident'>line_infos</span>,
-            <span class='ident'>texts_str</span>,
-        } <span class='op'>=</span> <span class='kw-2'>*</span><span class='self'>self</span>;
+    <span class="doccomment">/// Yield the next `Primitive` in order or rendering depth, bottom to top.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Primitive</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">WalkOwnedPrimitives</span> {
+            <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">primitives</span>,
+            <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">positioned_glyphs</span>,
+            <span class="ident">points</span>,
+            <span class="ident">line_infos</span>,
+            <span class="ident">texts_str</span>,
+        } <span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span>;
 
-        <span class='ident'>primitives</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='kw-2'>&amp;</span><span class='ident'>OwnedPrimitive</span> { <span class='ident'>id</span>, <span class='ident'>rect</span>, <span class='ident'>scizzor</span>, <span class='kw-2'>ref</span> <span class='ident'>kind</span> }<span class='op'>|</span> {
-            <span class='kw'>let</span> <span class='ident'>new</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>kind</span><span class='op'>|</span> <span class='ident'>Primitive</span> {
-                <span class='ident'>id</span>: <span class='ident'>id</span>,
-                <span class='ident'>rect</span>: <span class='ident'>rect</span>,
-                <span class='ident'>scizzor</span>: <span class='ident'>scizzor</span>,
-                <span class='ident'>kind</span>: <span class='ident'>kind</span>,
+        <span class="ident">primitives</span>.<span class="ident">next</span>().<span class="ident">map</span>(<span class="kw">move</span> <span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">OwnedPrimitive</span> { <span class="ident">id</span>, <span class="ident">rect</span>, <span class="ident">scizzor</span>, <span class="kw-2">ref</span> <span class="ident">kind</span> }<span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">new</span> <span class="op">=</span> <span class="op">|</span><span class="ident">kind</span><span class="op">|</span> <span class="ident">Primitive</span> {
+                <span class="ident">id</span>: <span class="ident">id</span>,
+                <span class="ident">rect</span>: <span class="ident">rect</span>,
+                <span class="ident">scizzor</span>: <span class="ident">scizzor</span>,
+                <span class="ident">kind</span>: <span class="ident">kind</span>,
             };
 
-            <span class='kw'>match</span> <span class='kw-2'>*</span><span class='ident'>kind</span> {
+            <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">kind</span> {
 
-                <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Rectangle</span> { <span class='ident'>color</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Rectangle</span> { <span class='ident'>color</span>: <span class='ident'>color</span> };
-                    <span class='ident'>new</span>(<span class='ident'>kind</span>)
+                <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Rectangle</span> { <span class="ident">color</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Rectangle</span> { <span class="ident">color</span>: <span class="ident">color</span> };
+                    <span class="ident">new</span>(<span class="ident">kind</span>)
                 },
 
-                <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Polygon</span> { <span class='ident'>color</span>, <span class='kw-2'>ref</span> <span class='ident'>point_range</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Polygon</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>points</span>: <span class='kw-2'>&amp;</span><span class='ident'>points</span>[<span class='ident'>point_range</span>.<span class='ident'>clone</span>()],
+                <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Polygon</span> { <span class="ident">color</span>, <span class="kw-2">ref</span> <span class="ident">point_range</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Polygon</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">points</span>: <span class="kw-2">&amp;</span><span class="ident">points</span>[<span class="ident">point_range</span>.<span class="ident">clone</span>()],
                     };
-                    <span class='ident'>new</span>(<span class='ident'>kind</span>)
+                    <span class="ident">new</span>(<span class="ident">kind</span>)
                 },
 
-                <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Lines</span> { <span class='ident'>color</span>, <span class='ident'>cap</span>, <span class='ident'>thickness</span>, <span class='kw-2'>ref</span> <span class='ident'>point_range</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Lines</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>cap</span>: <span class='ident'>cap</span>,
-                        <span class='ident'>thickness</span>: <span class='ident'>thickness</span>,
-                        <span class='ident'>points</span>: <span class='kw-2'>&amp;</span><span class='ident'>points</span>[<span class='ident'>point_range</span>.<span class='ident'>clone</span>()],
+                <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Lines</span> { <span class="ident">color</span>, <span class="ident">cap</span>, <span class="ident">thickness</span>, <span class="kw-2">ref</span> <span class="ident">point_range</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Lines</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">cap</span>: <span class="ident">cap</span>,
+                        <span class="ident">thickness</span>: <span class="ident">thickness</span>,
+                        <span class="ident">points</span>: <span class="kw-2">&amp;</span><span class="ident">points</span>[<span class="ident">point_range</span>.<span class="ident">clone</span>()],
                     };
-                    <span class='ident'>new</span>(<span class='ident'>kind</span>)
+                    <span class="ident">new</span>(<span class="ident">kind</span>)
                 },
 
-                <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Text</span> { <span class='ident'>color</span>, <span class='ident'>font_id</span>, <span class='kw-2'>ref</span> <span class='ident'>text</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>OwnedText</span> {
-                        <span class='kw-2'>ref</span> <span class='ident'>str_byte_range</span>,
-                        <span class='kw-2'>ref</span> <span class='ident'>line_infos_range</span>,
-                        <span class='kw-2'>ref</span> <span class='ident'>font</span>,
-                        <span class='ident'>window_dim</span>,
-                        <span class='ident'>font_size</span>,
-                        <span class='ident'>rect</span>,
-                        <span class='ident'>justify</span>,
-                        <span class='ident'>y_align</span>,
-                        <span class='ident'>line_spacing</span>,
-                    } <span class='op'>=</span> <span class='kw-2'>*</span><span class='ident'>text</span>;
+                <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Text</span> { <span class="ident">color</span>, <span class="ident">font_id</span>, <span class="kw-2">ref</span> <span class="ident">text</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">OwnedText</span> {
+                        <span class="kw-2">ref</span> <span class="ident">str_byte_range</span>,
+                        <span class="kw-2">ref</span> <span class="ident">line_infos_range</span>,
+                        <span class="kw-2">ref</span> <span class="ident">font</span>,
+                        <span class="ident">window_dim</span>,
+                        <span class="ident">font_size</span>,
+                        <span class="ident">rect</span>,
+                        <span class="ident">justify</span>,
+                        <span class="ident">y_align</span>,
+                        <span class="ident">line_spacing</span>,
+                    } <span class="op">=</span> <span class="kw-2">*</span><span class="ident">text</span>;
 
-                    <span class='kw'>let</span> <span class='ident'>text_str</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>texts_str</span>[<span class='ident'>str_byte_range</span>.<span class='ident'>clone</span>()];
-                    <span class='kw'>let</span> <span class='ident'>line_infos</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>line_infos</span>[<span class='ident'>line_infos_range</span>.<span class='ident'>clone</span>()];
+                    <span class="kw">let</span> <span class="ident">text_str</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">texts_str</span>[<span class="ident">str_byte_range</span>.<span class="ident">clone</span>()];
+                    <span class="kw">let</span> <span class="ident">line_infos</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">line_infos</span>[<span class="ident">line_infos_range</span>.<span class="ident">clone</span>()];
 
-                    <span class='kw'>let</span> <span class='ident'>text</span> <span class='op'>=</span> <span class='ident'>Text</span> {
-                        <span class='ident'>positioned_glyphs</span>: <span class='ident'>positioned_glyphs</span>,
-                        <span class='ident'>window_dim</span>: <span class='ident'>window_dim</span>,
-                        <span class='ident'>text</span>: <span class='ident'>text_str</span>,
-                        <span class='ident'>line_infos</span>: <span class='ident'>line_infos</span>,
-                        <span class='ident'>font</span>: <span class='ident'>font</span>,
-                        <span class='ident'>font_size</span>: <span class='ident'>font_size</span>,
-                        <span class='ident'>rect</span>: <span class='ident'>rect</span>,
-                        <span class='ident'>justify</span>: <span class='ident'>justify</span>,
-                        <span class='ident'>y_align</span>: <span class='ident'>y_align</span>,
-                        <span class='ident'>line_spacing</span>: <span class='ident'>line_spacing</span>,
+                    <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">Text</span> {
+                        <span class="ident">positioned_glyphs</span>: <span class="ident">positioned_glyphs</span>,
+                        <span class="ident">window_dim</span>: <span class="ident">window_dim</span>,
+                        <span class="ident">text</span>: <span class="ident">text_str</span>,
+                        <span class="ident">line_infos</span>: <span class="ident">line_infos</span>,
+                        <span class="ident">font</span>: <span class="ident">font</span>,
+                        <span class="ident">font_size</span>: <span class="ident">font_size</span>,
+                        <span class="ident">rect</span>: <span class="ident">rect</span>,
+                        <span class="ident">justify</span>: <span class="ident">justify</span>,
+                        <span class="ident">y_align</span>: <span class="ident">y_align</span>,
+                        <span class="ident">line_spacing</span>: <span class="ident">line_spacing</span>,
                     };
 
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Text</span> {
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>font_id</span>: <span class='ident'>font_id</span>,
-                        <span class='ident'>text</span>: <span class='ident'>text</span>,
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Text</span> {
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">font_id</span>: <span class="ident">font_id</span>,
+                        <span class="ident">text</span>: <span class="ident">text</span>,
                     };
-                    <span class='ident'>new</span>(<span class='ident'>kind</span>)
+                    <span class="ident">new</span>(<span class="ident">kind</span>)
                 },
 
-                <span class='ident'>OwnedPrimitiveKind</span>::<span class='ident'>Image</span> { <span class='ident'>image_id</span>, <span class='ident'>color</span>, <span class='ident'>source_rect</span> } <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>kind</span> <span class='op'>=</span> <span class='ident'>PrimitiveKind</span>::<span class='ident'>Image</span> {
-                        <span class='ident'>image_id</span>: <span class='ident'>image_id</span>,
-                        <span class='ident'>color</span>: <span class='ident'>color</span>,
-                        <span class='ident'>source_rect</span>: <span class='ident'>source_rect</span>,
+                <span class="ident">OwnedPrimitiveKind</span>::<span class="ident">Image</span> { <span class="ident">image_id</span>, <span class="ident">color</span>, <span class="ident">source_rect</span> } <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">kind</span> <span class="op">=</span> <span class="ident">PrimitiveKind</span>::<span class="ident">Image</span> {
+                        <span class="ident">image_id</span>: <span class="ident">image_id</span>,
+                        <span class="ident">color</span>: <span class="ident">color</span>,
+                        <span class="ident">source_rect</span>: <span class="ident">source_rect</span>,
                     };
-                    <span class='ident'>new</span>(<span class='ident'>kind</span>)
+                    <span class="ident">new</span>(<span class="ident">kind</span>)
                 },
             }
         })
@@ -1667,62 +1667,62 @@
 
 
 
-<span class='doccomment'>/// Simplify the constructor for a `Primitive`.</span>
-<span class='kw'>fn</span> <span class='ident'>new_primitive</span>(<span class='ident'>id</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>kind</span>: <span class='ident'>PrimitiveKind</span>, <span class='ident'>scizzor</span>: <span class='ident'>Rect</span>, <span class='ident'>rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='ident'>Primitive</span> {
-    <span class='ident'>Primitive</span> {
-        <span class='ident'>id</span>: <span class='ident'>id</span>,
-        <span class='ident'>kind</span>: <span class='ident'>kind</span>,
-        <span class='ident'>scizzor</span>: <span class='ident'>scizzor</span>,
-        <span class='ident'>rect</span>: <span class='ident'>rect</span>,
+<span class="doccomment">/// Simplify the constructor for a `Primitive`.</span>
+<span class="kw">fn</span> <span class="ident">new_primitive</span>(<span class="ident">id</span>: <span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">kind</span>: <span class="ident">PrimitiveKind</span>, <span class="ident">scizzor</span>: <span class="ident">Rect</span>, <span class="ident">rect</span>: <span class="ident">Rect</span>) <span class="op">-&gt;</span> <span class="ident">Primitive</span> {
+    <span class="ident">Primitive</span> {
+        <span class="ident">id</span>: <span class="ident">id</span>,
+        <span class="ident">kind</span>: <span class="ident">kind</span>,
+        <span class="ident">scizzor</span>: <span class="ident">scizzor</span>,
+        <span class="ident">rect</span>: <span class="ident">rect</span>,
     }
 }
 
-<span class='doccomment'>/// Retrieves the next visible widget from the `depth_order`, updating the `crop_stack` as</span>
-<span class='doccomment'>/// necessary.</span>
-<span class='kw'>fn</span> <span class='ident'>next_widget</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='ident'>depth_order</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>std</span>::<span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='ident'>widget</span>::<span class='ident'>Id</span><span class='op'>&gt;</span>,
-                   <span class='ident'>graph</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>Graph</span>,
-                   <span class='ident'>crop_stack</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>Rect</span>)<span class='op'>&gt;</span>,
-                   <span class='ident'>window_rect</span>: <span class='ident'>Rect</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>widget</span>::<span class='ident'>Id</span>, <span class='ident'>Rect</span>, <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>graph</span>::<span class='ident'>Container</span>)<span class='op'>&gt;</span>
+<span class="doccomment">/// Retrieves the next visible widget from the `depth_order`, updating the `crop_stack` as</span>
+<span class="doccomment">/// necessary.</span>
+<span class="kw">fn</span> <span class="ident">next_widget</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">depth_order</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">Iter</span><span class="op">&lt;</span><span class="ident">widget</span>::<span class="ident">Id</span><span class="op">&gt;</span>,
+                   <span class="ident">graph</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Graph</span>,
+                   <span class="ident">crop_stack</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">Rect</span>)<span class="op">&gt;</span>,
+                   <span class="ident">window_rect</span>: <span class="ident">Rect</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">widget</span>::<span class="ident">Id</span>, <span class="ident">Rect</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">graph</span>::<span class="ident">Container</span>)<span class="op">&gt;</span>
 {
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>id</span>) <span class='op'>=</span> <span class='ident'>depth_order</span>.<span class='ident'>next</span>() {
-        <span class='kw'>let</span> <span class='ident'>container</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>graph</span>.<span class='ident'>widget</span>(<span class='ident'>id</span>) {
-            <span class='prelude-val'>Some</span>(<span class='ident'>container</span>) <span class='op'>=&gt;</span> <span class='ident'>container</span>,
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>continue</span>,
+    <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>) <span class="op">=</span> <span class="ident">depth_order</span>.<span class="ident">next</span>() {
+        <span class="kw">let</span> <span class="ident">container</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">graph</span>.<span class="ident">widget</span>(<span class="ident">id</span>) {
+            <span class="prelude-val">Some</span>(<span class="ident">container</span>) <span class="op">=&gt;</span> <span class="ident">container</span>,
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">continue</span>,
         };
 
-        <span class='comment'>// If we&#39;re currently using a cropped context and the current `crop_parent_idx` is</span>
-        <span class='comment'>// *not* a depth-wise parent of the widget at the current `idx`, we should pop that</span>
-        <span class='comment'>// cropped context from the stack as we are done with it.</span>
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span>(<span class='ident'>crop_parent_idx</span>, _)) <span class='op'>=</span> <span class='ident'>crop_stack</span>.<span class='ident'>last</span>() {
-            <span class='kw'>if</span> <span class='ident'>graph</span>.<span class='ident'>does_recursive_depth_edge_exist</span>(<span class='ident'>crop_parent_idx</span>, <span class='ident'>id</span>) {
-                <span class='kw'>break</span>;
-            } <span class='kw'>else</span> {
-                <span class='ident'>crop_stack</span>.<span class='ident'>pop</span>();
+        <span class="comment">// If we&#39;re currently using a cropped context and the current `crop_parent_idx` is</span>
+        <span class="comment">// *not* a depth-wise parent of the widget at the current `idx`, we should pop that</span>
+        <span class="comment">// cropped context from the stack as we are done with it.</span>
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>(<span class="ident">crop_parent_idx</span>, _)) <span class="op">=</span> <span class="ident">crop_stack</span>.<span class="ident">last</span>() {
+            <span class="kw">if</span> <span class="ident">graph</span>.<span class="ident">does_recursive_depth_edge_exist</span>(<span class="ident">crop_parent_idx</span>, <span class="ident">id</span>) {
+                <span class="kw">break</span>;
+            } <span class="kw">else</span> {
+                <span class="ident">crop_stack</span>.<span class="ident">pop</span>();
             }
         }
 
-        <span class='comment'>// Check the stack for the current Context.</span>
-        <span class='kw'>let</span> <span class='ident'>scizzor</span> <span class='op'>=</span> <span class='ident'>crop_stack</span>.<span class='ident'>last</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span>(_, <span class='ident'>scizzor</span>)<span class='op'>|</span> <span class='ident'>scizzor</span>).<span class='ident'>unwrap_or</span>(<span class='ident'>window_rect</span>);
+        <span class="comment">// Check the stack for the current Context.</span>
+        <span class="kw">let</span> <span class="ident">scizzor</span> <span class="op">=</span> <span class="ident">crop_stack</span>.<span class="ident">last</span>().<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">&amp;</span>(_, <span class="ident">scizzor</span>)<span class="op">|</span> <span class="ident">scizzor</span>).<span class="ident">unwrap_or</span>(<span class="ident">window_rect</span>);
 
-        <span class='comment'>// If the current widget should crop its children, we need to add a rect for it to</span>
-        <span class='comment'>// the top of the crop stack.</span>
-        <span class='kw'>if</span> <span class='ident'>container</span>.<span class='ident'>crop_kids</span> {
-            <span class='kw'>let</span> <span class='ident'>scizzor_rect</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>kid_area</span>.<span class='ident'>rect</span>.<span class='ident'>overlap</span>(<span class='ident'>scizzor</span>)
-                .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='number'>0.0</span>, <span class='number'>0.0</span>], [<span class='number'>0.0</span>, <span class='number'>0.0</span>]));
-            <span class='ident'>crop_stack</span>.<span class='ident'>push</span>((<span class='ident'>id</span>, <span class='ident'>scizzor_rect</span>));
+        <span class="comment">// If the current widget should crop its children, we need to add a rect for it to</span>
+        <span class="comment">// the top of the crop stack.</span>
+        <span class="kw">if</span> <span class="ident">container</span>.<span class="ident">crop_kids</span> {
+            <span class="kw">let</span> <span class="ident">scizzor_rect</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">kid_area</span>.<span class="ident">rect</span>.<span class="ident">overlap</span>(<span class="ident">scizzor</span>)
+                .<span class="ident">unwrap_or_else</span>(<span class="op">||</span> <span class="ident">Rect</span>::<span class="ident">from_xy_dim</span>([<span class="number">0.0</span>, <span class="number">0.0</span>], [<span class="number">0.0</span>, <span class="number">0.0</span>]));
+            <span class="ident">crop_stack</span>.<span class="ident">push</span>((<span class="ident">id</span>, <span class="ident">scizzor_rect</span>));
         }
 
-        <span class='comment'>// We only want to return primitives that are actually visible.</span>
-        <span class='kw'>let</span> <span class='ident'>is_visible</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>rect</span>.<span class='ident'>overlap</span>(<span class='ident'>window_rect</span>).<span class='ident'>is_some</span>()
-            <span class='op'>&amp;&amp;</span> <span class='ident'>graph</span>::<span class='ident'>algo</span>::<span class='ident'>cropped_area_of_widget</span>(<span class='ident'>graph</span>, <span class='ident'>id</span>).<span class='ident'>is_some</span>();
-        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>is_visible</span> {
-            <span class='kw'>continue</span>;
+        <span class="comment">// We only want to return primitives that are actually visible.</span>
+        <span class="kw">let</span> <span class="ident">is_visible</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">rect</span>.<span class="ident">overlap</span>(<span class="ident">window_rect</span>).<span class="ident">is_some</span>()
+            <span class="op">&amp;&amp;</span> <span class="ident">graph</span>::<span class="ident">algo</span>::<span class="ident">cropped_area_of_widget</span>(<span class="ident">graph</span>, <span class="ident">id</span>).<span class="ident">is_some</span>();
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">is_visible</span> {
+            <span class="kw">continue</span>;
         }
 
-        <span class='kw'>return</span> <span class='prelude-val'>Some</span>((<span class='ident'>id</span>, <span class='ident'>scizzor</span>, <span class='ident'>container</span>));
+        <span class="kw">return</span> <span class="prelude-val">Some</span>((<span class="ident">id</span>, <span class="ident">scizzor</span>, <span class="ident">container</span>));
     }
 
-    <span class='prelude-val'>None</span>
+    <span class="prelude-val">None</span>
 }
 </pre>
 </section>

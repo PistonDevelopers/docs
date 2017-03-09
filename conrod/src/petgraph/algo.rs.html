@@ -345,308 +345,308 @@
 <span id="300">300</span>
 <span id="301">301</span>
 <span id="302">302</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! Graph algorithms.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! It is a goal to gradually migrate the algorithms to be based on graph traits</span>
-<span class='doccomment'>//! so that they are generally applicable. For now, most of these use only the</span>
-<span class='doccomment'>//! **Graph** type.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! Graph algorithms.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! It is a goal to gradually migrate the algorithms to be based on graph traits</span>
+<span class="doccomment">//! so that they are generally applicable. For now, most of these use only the</span>
+<span class="doccomment">//! **Graph** type.</span>
 
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>BinaryHeap</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>borrow</span>::{<span class='ident'>Borrow</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">BinaryHeap</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::{<span class="ident">Borrow</span>};
 
-<span class='kw'>use</span> <span class='kw'>super</span>::{
-    <span class='ident'>Graph</span>,
-    <span class='ident'>Directed</span>,
-    <span class='ident'>Undirected</span>,
-    <span class='ident'>EdgeDirection</span>,
-    <span class='ident'>EdgeType</span>,
-    <span class='ident'>Outgoing</span>,
-    <span class='ident'>Incoming</span>,
-    <span class='ident'>Dfs</span>,
+<span class="kw">use</span> <span class="kw">super</span>::{
+    <span class="ident">Graph</span>,
+    <span class="ident">Directed</span>,
+    <span class="ident">Undirected</span>,
+    <span class="ident">EdgeDirection</span>,
+    <span class="ident">EdgeType</span>,
+    <span class="ident">Outgoing</span>,
+    <span class="ident">Incoming</span>,
+    <span class="ident">Dfs</span>,
 };
-<span class='kw'>use</span> <span class='ident'>scored</span>::<span class='ident'>MinScored</span>;
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>visit</span>::{
-    <span class='ident'>Visitable</span>,
-    <span class='ident'>VisitMap</span>,
+<span class="kw">use</span> <span class="ident">scored</span>::<span class="ident">MinScored</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">visit</span>::{
+    <span class="ident">Visitable</span>,
+    <span class="ident">VisitMap</span>,
 };
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>unionfind</span>::<span class='ident'>UnionFind</span>;
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>graph</span>::{
-    <span class='ident'>NodeIndex</span>,
-    <span class='ident'>IndexType</span>,
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">unionfind</span>::<span class="ident">UnionFind</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">graph</span>::{
+    <span class="ident">NodeIndex</span>,
+    <span class="ident">IndexType</span>,
 };
 
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>isomorphism</span>::{
-    <span class='ident'>is_isomorphic</span>,
-    <span class='ident'>is_isomorphic_matching</span>,
+<span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">isomorphism</span>::{
+    <span class="ident">is_isomorphic</span>,
+    <span class="ident">is_isomorphic_matching</span>,
 };
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>dijkstra</span>::<span class='ident'>dijkstra</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">dijkstra</span>::<span class="ident">dijkstra</span>;
 
-<span class='doccomment'>/// Return `true` if the input graph contains a cycle.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Always treats the input graph as if undirected.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_cyclic_undirected</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-    <span class='kw'>where</span> <span class='ident'>Ty</span>: <span class='ident'>EdgeType</span>,
-          <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Return `true` if the input graph contains a cycle.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Always treats the input graph as if undirected.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_cyclic_undirected</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+    <span class="kw">where</span> <span class="ident">Ty</span>: <span class="ident">EdgeType</span>,
+          <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>edge_sets</span> <span class='op'>=</span> <span class='ident'>UnionFind</span>::<span class='ident'>new</span>(<span class='ident'>g</span>.<span class='ident'>node_count</span>());
-    <span class='kw'>for</span> <span class='ident'>edge</span> <span class='kw'>in</span> <span class='ident'>g</span>.<span class='ident'>raw_edges</span>() {
-        <span class='kw'>let</span> (<span class='ident'>a</span>, <span class='ident'>b</span>) <span class='op'>=</span> (<span class='ident'>edge</span>.<span class='ident'>source</span>(), <span class='ident'>edge</span>.<span class='ident'>target</span>());
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">edge_sets</span> <span class="op">=</span> <span class="ident">UnionFind</span>::<span class="ident">new</span>(<span class="ident">g</span>.<span class="ident">node_count</span>());
+    <span class="kw">for</span> <span class="ident">edge</span> <span class="kw">in</span> <span class="ident">g</span>.<span class="ident">raw_edges</span>() {
+        <span class="kw">let</span> (<span class="ident">a</span>, <span class="ident">b</span>) <span class="op">=</span> (<span class="ident">edge</span>.<span class="ident">source</span>(), <span class="ident">edge</span>.<span class="ident">target</span>());
 
-        <span class='comment'>// union the two vertices of the edge</span>
-        <span class='comment'>//  -- if they were already the same, then we have a cycle</span>
-        <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>edge_sets</span>.<span class='ident'>union</span>(<span class='ident'>a</span>.<span class='ident'>index</span>(), <span class='ident'>b</span>.<span class='ident'>index</span>()) {
-            <span class='kw'>return</span> <span class='bool-val'>true</span>
+        <span class="comment">// union the two vertices of the edge</span>
+        <span class="comment">//  -- if they were already the same, then we have a cycle</span>
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">edge_sets</span>.<span class="ident">union</span>(<span class="ident">a</span>.<span class="ident">index</span>(), <span class="ident">b</span>.<span class="ident">index</span>()) {
+            <span class="kw">return</span> <span class="bool-val">true</span>
         }
     }
-    <span class='bool-val'>false</span>
+    <span class="bool-val">false</span>
 }
 
-<span class='doccomment'>/// **Deprecated: Renamed to `is_cyclic_undirected`.**</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_cyclic</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-    <span class='kw'>where</span> <span class='ident'>Ty</span>: <span class='ident'>EdgeType</span>,
-          <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// **Deprecated: Renamed to `is_cyclic_undirected`.**</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_cyclic</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+    <span class="kw">where</span> <span class="ident">Ty</span>: <span class="ident">EdgeType</span>,
+          <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='ident'>is_cyclic_undirected</span>(<span class='ident'>g</span>)
+    <span class="ident">is_cyclic_undirected</span>(<span class="ident">g</span>)
 }
 
-<span class='doccomment'>/// Perform a topological sort of a directed graph `g`.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Visit each node in order (if it is part of a topological order).</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// You can pass `g` as either **&amp;Graph** or **&amp;mut Graph**, and it</span>
-<span class='doccomment'>/// will be passed on to the visitor closure.</span>
-<span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='kw'>fn</span> <span class='ident'>toposort_generic</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ix</span>, <span class='ident'>G</span>, <span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='ident'>g</span>: <span class='ident'>G</span>, <span class='kw-2'>mut</span> <span class='ident'>visit</span>: <span class='ident'>F</span>)
-    <span class='kw'>where</span> <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
-          <span class='ident'>G</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Directed</span>, <span class='ident'>Ix</span><span class='op'>&gt;&gt;</span>,
-          <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>G</span>, <span class='ident'>NodeIndex</span><span class='op'>&lt;</span><span class='ident'>Ix</span><span class='op'>&gt;</span>),
+<span class="doccomment">/// Perform a topological sort of a directed graph `g`.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Visit each node in order (if it is part of a topological order).</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// You can pass `g` as either **&amp;Graph** or **&amp;mut Graph**, and it</span>
+<span class="doccomment">/// will be passed on to the visitor closure.</span>
+<span class="attribute">#[<span class="ident">inline</span>]</span>
+<span class="kw">fn</span> <span class="ident">toposort_generic</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ix</span>, <span class="ident">G</span>, <span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="ident">g</span>: <span class="ident">G</span>, <span class="kw-2">mut</span> <span class="ident">visit</span>: <span class="ident">F</span>)
+    <span class="kw">where</span> <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
+          <span class="ident">G</span>: <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Directed</span>, <span class="ident">Ix</span><span class="op">&gt;&gt;</span>,
+          <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">G</span>, <span class="ident">NodeIndex</span><span class="op">&lt;</span><span class="ident">Ix</span><span class="op">&gt;</span>),
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ordered</span> <span class='op'>=</span> <span class='ident'>g</span>.<span class='ident'>borrow</span>().<span class='ident'>visit_map</span>();
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>tovisit</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">g</span>.<span class="ident">borrow</span>().<span class="ident">visit_map</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tovisit</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
 
-    <span class='comment'>// find all initial nodes</span>
-    <span class='ident'>tovisit</span>.<span class='ident'>extend</span>(<span class='ident'>g</span>.<span class='ident'>borrow</span>().<span class='ident'>externals</span>(<span class='ident'>Incoming</span>));
+    <span class="comment">// find all initial nodes</span>
+    <span class="ident">tovisit</span>.<span class="ident">extend</span>(<span class="ident">g</span>.<span class="ident">borrow</span>().<span class="ident">externals</span>(<span class="ident">Incoming</span>));
 
-    <span class='comment'>// Take an unvisited element and find which of its neighbors are next</span>
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>nix</span>) <span class='op'>=</span> <span class='ident'>tovisit</span>.<span class='ident'>pop</span>() {
-        <span class='kw'>if</span> <span class='ident'>ordered</span>.<span class='ident'>is_visited</span>(<span class='kw-2'>&amp;</span><span class='ident'>nix</span>) {
-            <span class='kw'>continue</span>;
+    <span class="comment">// Take an unvisited element and find which of its neighbors are next</span>
+    <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">nix</span>) <span class="op">=</span> <span class="ident">tovisit</span>.<span class="ident">pop</span>() {
+        <span class="kw">if</span> <span class="ident">ordered</span>.<span class="ident">is_visited</span>(<span class="kw-2">&amp;</span><span class="ident">nix</span>) {
+            <span class="kw">continue</span>;
         }
-        <span class='ident'>visit</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>g</span>, <span class='ident'>nix</span>);
-        <span class='ident'>ordered</span>.<span class='ident'>visit</span>(<span class='ident'>nix</span>);
-        <span class='kw'>for</span> <span class='ident'>neigh</span> <span class='kw'>in</span> <span class='ident'>g</span>.<span class='ident'>borrow</span>().<span class='ident'>neighbors_directed</span>(<span class='ident'>nix</span>, <span class='ident'>Outgoing</span>) {
-            <span class='comment'>// Look at each neighbor, and those that only have incoming edges</span>
-            <span class='comment'>// from the already ordered list, they are the next to visit.</span>
-            <span class='kw'>if</span> <span class='ident'>g</span>.<span class='ident'>borrow</span>().<span class='ident'>neighbors_directed</span>(<span class='ident'>neigh</span>, <span class='ident'>Incoming</span>).<span class='ident'>all</span>(<span class='op'>|</span><span class='ident'>b</span><span class='op'>|</span> <span class='ident'>ordered</span>.<span class='ident'>is_visited</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>)) {
-                <span class='ident'>tovisit</span>.<span class='ident'>push</span>(<span class='ident'>neigh</span>);
+        <span class="ident">visit</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">g</span>, <span class="ident">nix</span>);
+        <span class="ident">ordered</span>.<span class="ident">visit</span>(<span class="ident">nix</span>);
+        <span class="kw">for</span> <span class="ident">neigh</span> <span class="kw">in</span> <span class="ident">g</span>.<span class="ident">borrow</span>().<span class="ident">neighbors_directed</span>(<span class="ident">nix</span>, <span class="ident">Outgoing</span>) {
+            <span class="comment">// Look at each neighbor, and those that only have incoming edges</span>
+            <span class="comment">// from the already ordered list, they are the next to visit.</span>
+            <span class="kw">if</span> <span class="ident">g</span>.<span class="ident">borrow</span>().<span class="ident">neighbors_directed</span>(<span class="ident">neigh</span>, <span class="ident">Incoming</span>).<span class="ident">all</span>(<span class="op">|</span><span class="ident">b</span><span class="op">|</span> <span class="ident">ordered</span>.<span class="ident">is_visited</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>)) {
+                <span class="ident">tovisit</span>.<span class="ident">push</span>(<span class="ident">neigh</span>);
             }
         }
     }
 }
 
-<span class='doccomment'>/// Return `true` if the input directed graph contains a cycle.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Using the topological sort algorithm.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_cyclic_directed</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Directed</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-    <span class='kw'>where</span> <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Return `true` if the input directed graph contains a cycle.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Using the topological sort algorithm.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_cyclic_directed</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Directed</span>, <span class="ident">Ix</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+    <span class="kw">where</span> <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>n_ordered</span> <span class='op'>=</span> <span class='number'>0</span>;
-    <span class='ident'>toposort_generic</span>(<span class='ident'>g</span>, <span class='op'>|</span>_, _<span class='op'>|</span> <span class='ident'>n_ordered</span> <span class='op'>+=</span> <span class='number'>1</span>);
-    <span class='ident'>n_ordered</span> <span class='op'>!=</span> <span class='ident'>g</span>.<span class='ident'>node_count</span>()
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">n_ordered</span> <span class="op">=</span> <span class="number">0</span>;
+    <span class="ident">toposort_generic</span>(<span class="ident">g</span>, <span class="op">|</span>_, _<span class="op">|</span> <span class="ident">n_ordered</span> <span class="op">+=</span> <span class="number">1</span>);
+    <span class="ident">n_ordered</span> <span class="op">!=</span> <span class="ident">g</span>.<span class="ident">node_count</span>()
 }
 
-<span class='doccomment'>/// Perform a topological sort of a directed graph.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Return a vector of nodes in topological order: each node is ordered</span>
-<span class='doccomment'>/// before its successors.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// If the returned vec contains less than all the nodes of the graph, then</span>
-<span class='doccomment'>/// the graph was cyclic.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>toposort</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Directed</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&lt;</span><span class='ident'>Ix</span><span class='op'>&gt;&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Perform a topological sort of a directed graph.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Return a vector of nodes in topological order: each node is ordered</span>
+<span class="doccomment">/// before its successors.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// If the returned vec contains less than all the nodes of the graph, then</span>
+<span class="doccomment">/// the graph was cyclic.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">toposort</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Directed</span>, <span class="ident">Ix</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">NodeIndex</span><span class="op">&lt;</span><span class="ident">Ix</span><span class="op">&gt;&gt;</span>
+    <span class="kw">where</span> <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>order</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='ident'>g</span>.<span class='ident'>node_count</span>());
-    <span class='ident'>toposort_generic</span>(<span class='ident'>g</span>, <span class='op'>|</span>_, <span class='ident'>ix</span><span class='op'>|</span> <span class='ident'>order</span>.<span class='ident'>push</span>(<span class='ident'>ix</span>));
-    <span class='ident'>order</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">order</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">g</span>.<span class="ident">node_count</span>());
+    <span class="ident">toposort_generic</span>(<span class="ident">g</span>, <span class="op">|</span>_, <span class="ident">ix</span><span class="op">|</span> <span class="ident">order</span>.<span class="ident">push</span>(<span class="ident">ix</span>));
+    <span class="ident">order</span>
 }
 
-<span class='doccomment'>/// Compute the *strongly connected components* using Kosaraju&#39;s algorithm.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Return a vector where each element is an scc.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// For an undirected graph, the sccs are simply the connected components.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>scc</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>NodeIndex</span><span class='op'>&lt;</span><span class='ident'>Ix</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>Ty</span>: <span class='ident'>EdgeType</span>,
-          <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Compute the *strongly connected components* using Kosaraju&#39;s algorithm.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Return a vector where each element is an scc.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// For an undirected graph, the sccs are simply the connected components.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">scc</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">NodeIndex</span><span class="op">&lt;</span><span class="ident">Ix</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">Ty</span>: <span class="ident">EdgeType</span>,
+          <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>dfs</span> <span class='op'>=</span> <span class='ident'>Dfs</span>::<span class='ident'>empty</span>(<span class='ident'>g</span>);
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">dfs</span> <span class="op">=</span> <span class="ident">Dfs</span>::<span class="ident">empty</span>(<span class="ident">g</span>);
 
-    <span class='comment'>// First phase, reverse dfs pass, compute finishing times.</span>
-    <span class='comment'>// http://stackoverflow.com/a/26780899/161659</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>finished</span> <span class='op'>=</span> <span class='ident'>g</span>.<span class='ident'>visit_map</span>();
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>finish_order</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
-    <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>g</span>.<span class='ident'>node_count</span>() {
-        <span class='kw'>let</span> <span class='ident'>nindex</span> <span class='op'>=</span> <span class='ident'>NodeIndex</span>::<span class='ident'>new</span>(<span class='ident'>i</span>);
-        <span class='kw'>if</span> <span class='ident'>dfs</span>.<span class='ident'>discovered</span>.<span class='ident'>is_visited</span>(<span class='kw-2'>&amp;</span><span class='ident'>nindex</span>) {
-            <span class='kw'>continue</span>
+    <span class="comment">// First phase, reverse dfs pass, compute finishing times.</span>
+    <span class="comment">// http://stackoverflow.com/a/26780899/161659</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">finished</span> <span class="op">=</span> <span class="ident">g</span>.<span class="ident">visit_map</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">finish_order</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+    <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">g</span>.<span class="ident">node_count</span>() {
+        <span class="kw">let</span> <span class="ident">nindex</span> <span class="op">=</span> <span class="ident">NodeIndex</span>::<span class="ident">new</span>(<span class="ident">i</span>);
+        <span class="kw">if</span> <span class="ident">dfs</span>.<span class="ident">discovered</span>.<span class="ident">is_visited</span>(<span class="kw-2">&amp;</span><span class="ident">nindex</span>) {
+            <span class="kw">continue</span>
         }
 
-        <span class='ident'>dfs</span>.<span class='ident'>stack</span>.<span class='ident'>push</span>(<span class='ident'>nindex</span>);
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='ident'>nx</span>) <span class='op'>=</span> <span class='ident'>dfs</span>.<span class='ident'>stack</span>.<span class='ident'>last</span>() {
-            <span class='kw'>if</span> <span class='ident'>dfs</span>.<span class='ident'>discovered</span>.<span class='ident'>visit</span>(<span class='ident'>nx</span>) {
-                <span class='comment'>// First time visiting `nx`: Push neighbors, don&#39;t pop `nx`</span>
-                <span class='kw'>for</span> <span class='ident'>succ</span> <span class='kw'>in</span> <span class='ident'>g</span>.<span class='ident'>neighbors_directed</span>(<span class='ident'>nx</span>, <span class='ident'>EdgeDirection</span>::<span class='ident'>Incoming</span>) {
-                    <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>dfs</span>.<span class='ident'>discovered</span>.<span class='ident'>is_visited</span>(<span class='kw-2'>&amp;</span><span class='ident'>succ</span>) {
-                        <span class='ident'>dfs</span>.<span class='ident'>stack</span>.<span class='ident'>push</span>(<span class='ident'>succ</span>);
+        <span class="ident">dfs</span>.<span class="ident">stack</span>.<span class="ident">push</span>(<span class="ident">nindex</span>);
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="ident">nx</span>) <span class="op">=</span> <span class="ident">dfs</span>.<span class="ident">stack</span>.<span class="ident">last</span>() {
+            <span class="kw">if</span> <span class="ident">dfs</span>.<span class="ident">discovered</span>.<span class="ident">visit</span>(<span class="ident">nx</span>) {
+                <span class="comment">// First time visiting `nx`: Push neighbors, don&#39;t pop `nx`</span>
+                <span class="kw">for</span> <span class="ident">succ</span> <span class="kw">in</span> <span class="ident">g</span>.<span class="ident">neighbors_directed</span>(<span class="ident">nx</span>, <span class="ident">EdgeDirection</span>::<span class="ident">Incoming</span>) {
+                    <span class="kw">if</span> <span class="op">!</span><span class="ident">dfs</span>.<span class="ident">discovered</span>.<span class="ident">is_visited</span>(<span class="kw-2">&amp;</span><span class="ident">succ</span>) {
+                        <span class="ident">dfs</span>.<span class="ident">stack</span>.<span class="ident">push</span>(<span class="ident">succ</span>);
                     }
                 }
-            } <span class='kw'>else</span> {
-                <span class='ident'>dfs</span>.<span class='ident'>stack</span>.<span class='ident'>pop</span>();
-                <span class='kw'>if</span> <span class='ident'>finished</span>.<span class='ident'>visit</span>(<span class='ident'>nx</span>) {
-                    <span class='comment'>// Second time: All reachable nodes must have been finished</span>
-                    <span class='ident'>finish_order</span>.<span class='ident'>push</span>(<span class='ident'>nx</span>);
+            } <span class="kw">else</span> {
+                <span class="ident">dfs</span>.<span class="ident">stack</span>.<span class="ident">pop</span>();
+                <span class="kw">if</span> <span class="ident">finished</span>.<span class="ident">visit</span>(<span class="ident">nx</span>) {
+                    <span class="comment">// Second time: All reachable nodes must have been finished</span>
+                    <span class="ident">finish_order</span>.<span class="ident">push</span>(<span class="ident">nx</span>);
                 }
             }
         }
     }
 
-    <span class='ident'>dfs</span>.<span class='ident'>discovered</span>.<span class='ident'>clear</span>();
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>sccs</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
+    <span class="ident">dfs</span>.<span class="ident">discovered</span>.<span class="ident">clear</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sccs</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
 
-    <span class='comment'>// Second phase</span>
-    <span class='comment'>// Process in decreasing finishing time order</span>
-    <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='ident'>nindex</span> <span class='kw'>in</span> <span class='ident'>finish_order</span>.<span class='ident'>iter</span>().<span class='ident'>rev</span>() {
-        <span class='kw'>if</span> <span class='ident'>dfs</span>.<span class='ident'>discovered</span>.<span class='ident'>is_visited</span>(<span class='kw-2'>&amp;</span><span class='ident'>nindex</span>) {
-            <span class='kw'>continue</span>;
+    <span class="comment">// Second phase</span>
+    <span class="comment">// Process in decreasing finishing time order</span>
+    <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="ident">nindex</span> <span class="kw">in</span> <span class="ident">finish_order</span>.<span class="ident">iter</span>().<span class="ident">rev</span>() {
+        <span class="kw">if</span> <span class="ident">dfs</span>.<span class="ident">discovered</span>.<span class="ident">is_visited</span>(<span class="kw-2">&amp;</span><span class="ident">nindex</span>) {
+            <span class="kw">continue</span>;
         }
-        <span class='comment'>// Move to the leader node.</span>
-        <span class='ident'>dfs</span>.<span class='ident'>move_to</span>(<span class='ident'>nindex</span>);
-        <span class='comment'>//let leader = nindex;</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>scc</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>nx</span>) <span class='op'>=</span> <span class='ident'>dfs</span>.<span class='ident'>next</span>(<span class='ident'>g</span>) {
-            <span class='ident'>scc</span>.<span class='ident'>push</span>(<span class='ident'>nx</span>);
+        <span class="comment">// Move to the leader node.</span>
+        <span class="ident">dfs</span>.<span class="ident">move_to</span>(<span class="ident">nindex</span>);
+        <span class="comment">//let leader = nindex;</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">scc</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">nx</span>) <span class="op">=</span> <span class="ident">dfs</span>.<span class="ident">next</span>(<span class="ident">g</span>) {
+            <span class="ident">scc</span>.<span class="ident">push</span>(<span class="ident">nx</span>);
         }
-        <span class='ident'>sccs</span>.<span class='ident'>push</span>(<span class='ident'>scc</span>);
+        <span class="ident">sccs</span>.<span class="ident">push</span>(<span class="ident">scc</span>);
     }
-    <span class='ident'>sccs</span>
+    <span class="ident">sccs</span>
 }
 
-<span class='doccomment'>/// Condense every strongly connected component into a single node and return the result.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// If `make_acyclic` is true, self-loops and multi edges are ignored, guaranteeing that</span>
-<span class='doccomment'>/// the output is acyclic.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>condensation</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>, <span class='ident'>make_acyclic</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>N</span><span class='op'>&gt;</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>Ty</span>: <span class='ident'>EdgeType</span>,
-          <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Condense every strongly connected component into a single node and return the result.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// If `make_acyclic` is true, self-loops and multi edges are ignored, guaranteeing that</span>
+<span class="doccomment">/// the output is acyclic.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">condensation</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>, <span class="ident">make_acyclic</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">N</span><span class="op">&gt;</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">Ty</span>: <span class="ident">EdgeType</span>,
+          <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>let</span> <span class='ident'>sccs</span> <span class='op'>=</span> <span class='ident'>scc</span>(<span class='kw-2'>&amp;</span><span class='ident'>g</span>);
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>condensed</span>: <span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>N</span><span class='op'>&gt;</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>Graph</span>::<span class='ident'>with_capacity</span>(<span class='ident'>sccs</span>.<span class='ident'>len</span>(), <span class='ident'>g</span>.<span class='ident'>edge_count</span>());
+    <span class="kw">let</span> <span class="ident">sccs</span> <span class="op">=</span> <span class="ident">scc</span>(<span class="kw-2">&amp;</span><span class="ident">g</span>);
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">condensed</span>: <span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">N</span><span class="op">&gt;</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Graph</span>::<span class="ident">with_capacity</span>(<span class="ident">sccs</span>.<span class="ident">len</span>(), <span class="ident">g</span>.<span class="ident">edge_count</span>());
 
-    <span class='comment'>// Build a map from old indices to new ones.</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>node_map</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>NodeIndex</span>::<span class='ident'>end</span>(); <span class='ident'>g</span>.<span class='ident'>node_count</span>()];
-    <span class='kw'>for</span> <span class='ident'>comp</span> <span class='kw'>in</span> <span class='ident'>sccs</span> {
-        <span class='kw'>let</span> <span class='ident'>new_nix</span> <span class='op'>=</span> <span class='ident'>condensed</span>.<span class='ident'>add_node</span>(<span class='ident'>Vec</span>::<span class='ident'>new</span>());
-        <span class='kw'>for</span> <span class='ident'>nix</span> <span class='kw'>in</span> <span class='ident'>comp</span> {
-            <span class='ident'>node_map</span>[<span class='ident'>nix</span>.<span class='ident'>index</span>()] <span class='op'>=</span> <span class='ident'>new_nix</span>;
+    <span class="comment">// Build a map from old indices to new ones.</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">node_map</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">NodeIndex</span>::<span class="ident">end</span>(); <span class="ident">g</span>.<span class="ident">node_count</span>()];
+    <span class="kw">for</span> <span class="ident">comp</span> <span class="kw">in</span> <span class="ident">sccs</span> {
+        <span class="kw">let</span> <span class="ident">new_nix</span> <span class="op">=</span> <span class="ident">condensed</span>.<span class="ident">add_node</span>(<span class="ident">Vec</span>::<span class="ident">new</span>());
+        <span class="kw">for</span> <span class="ident">nix</span> <span class="kw">in</span> <span class="ident">comp</span> {
+            <span class="ident">node_map</span>[<span class="ident">nix</span>.<span class="ident">index</span>()] <span class="op">=</span> <span class="ident">new_nix</span>;
         }
     }
 
-    <span class='comment'>// Consume nodes and edges of the old graph and insert them into the new one.</span>
-    <span class='kw'>let</span> (<span class='ident'>nodes</span>, <span class='ident'>edges</span>) <span class='op'>=</span> <span class='ident'>g</span>.<span class='ident'>into_nodes_edges</span>();
-    <span class='kw'>for</span> (<span class='ident'>nix</span>, <span class='ident'>node</span>) <span class='kw'>in</span> <span class='ident'>nodes</span>.<span class='ident'>into_iter</span>().<span class='ident'>enumerate</span>() {
-        <span class='ident'>condensed</span>[<span class='ident'>node_map</span>[<span class='ident'>nix</span>]].<span class='ident'>push</span>(<span class='ident'>node</span>.<span class='ident'>weight</span>);
+    <span class="comment">// Consume nodes and edges of the old graph and insert them into the new one.</span>
+    <span class="kw">let</span> (<span class="ident">nodes</span>, <span class="ident">edges</span>) <span class="op">=</span> <span class="ident">g</span>.<span class="ident">into_nodes_edges</span>();
+    <span class="kw">for</span> (<span class="ident">nix</span>, <span class="ident">node</span>) <span class="kw">in</span> <span class="ident">nodes</span>.<span class="ident">into_iter</span>().<span class="ident">enumerate</span>() {
+        <span class="ident">condensed</span>[<span class="ident">node_map</span>[<span class="ident">nix</span>]].<span class="ident">push</span>(<span class="ident">node</span>.<span class="ident">weight</span>);
     }
-    <span class='kw'>for</span> <span class='ident'>edge</span> <span class='kw'>in</span> <span class='ident'>edges</span> {
-        <span class='kw'>let</span> <span class='ident'>source</span> <span class='op'>=</span> <span class='ident'>node_map</span>[<span class='ident'>edge</span>.<span class='ident'>source</span>().<span class='ident'>index</span>()];
-        <span class='kw'>let</span> <span class='ident'>target</span> <span class='op'>=</span> <span class='ident'>node_map</span>[<span class='ident'>edge</span>.<span class='ident'>target</span>().<span class='ident'>index</span>()];
-        <span class='kw'>if</span> <span class='ident'>make_acyclic</span> {
-            <span class='kw'>if</span> <span class='ident'>source</span> <span class='op'>!=</span> <span class='ident'>target</span> {
-                <span class='ident'>condensed</span>.<span class='ident'>update_edge</span>(<span class='ident'>source</span>, <span class='ident'>target</span>, <span class='ident'>edge</span>.<span class='ident'>weight</span>);
+    <span class="kw">for</span> <span class="ident">edge</span> <span class="kw">in</span> <span class="ident">edges</span> {
+        <span class="kw">let</span> <span class="ident">source</span> <span class="op">=</span> <span class="ident">node_map</span>[<span class="ident">edge</span>.<span class="ident">source</span>().<span class="ident">index</span>()];
+        <span class="kw">let</span> <span class="ident">target</span> <span class="op">=</span> <span class="ident">node_map</span>[<span class="ident">edge</span>.<span class="ident">target</span>().<span class="ident">index</span>()];
+        <span class="kw">if</span> <span class="ident">make_acyclic</span> {
+            <span class="kw">if</span> <span class="ident">source</span> <span class="op">!=</span> <span class="ident">target</span> {
+                <span class="ident">condensed</span>.<span class="ident">update_edge</span>(<span class="ident">source</span>, <span class="ident">target</span>, <span class="ident">edge</span>.<span class="ident">weight</span>);
             }
-        } <span class='kw'>else</span> {
-            <span class='ident'>condensed</span>.<span class='ident'>add_edge</span>(<span class='ident'>source</span>, <span class='ident'>target</span>, <span class='ident'>edge</span>.<span class='ident'>weight</span>);
+        } <span class="kw">else</span> {
+            <span class="ident">condensed</span>.<span class="ident">add_edge</span>(<span class="ident">source</span>, <span class="ident">target</span>, <span class="ident">edge</span>.<span class="ident">weight</span>);
         }
     }
-    <span class='ident'>condensed</span>
+    <span class="ident">condensed</span>
 }
 
-<span class='doccomment'>/// Return the number of connected components of the graph.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// For a directed graph, this is the *weakly* connected components.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>connected_components</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span>
-    <span class='kw'>where</span> <span class='ident'>Ty</span>: <span class='ident'>EdgeType</span>,
-          <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Return the number of connected components of the graph.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// For a directed graph, this is the *weakly* connected components.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">connected_components</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>
+    <span class="kw">where</span> <span class="ident">Ty</span>: <span class="ident">EdgeType</span>,
+          <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>vertex_sets</span> <span class='op'>=</span> <span class='ident'>UnionFind</span>::<span class='ident'>new</span>(<span class='ident'>g</span>.<span class='ident'>node_count</span>());
-    <span class='kw'>for</span> <span class='ident'>edge</span> <span class='kw'>in</span> <span class='ident'>g</span>.<span class='ident'>raw_edges</span>() {
-        <span class='kw'>let</span> (<span class='ident'>a</span>, <span class='ident'>b</span>) <span class='op'>=</span> (<span class='ident'>edge</span>.<span class='ident'>source</span>(), <span class='ident'>edge</span>.<span class='ident'>target</span>());
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">vertex_sets</span> <span class="op">=</span> <span class="ident">UnionFind</span>::<span class="ident">new</span>(<span class="ident">g</span>.<span class="ident">node_count</span>());
+    <span class="kw">for</span> <span class="ident">edge</span> <span class="kw">in</span> <span class="ident">g</span>.<span class="ident">raw_edges</span>() {
+        <span class="kw">let</span> (<span class="ident">a</span>, <span class="ident">b</span>) <span class="op">=</span> (<span class="ident">edge</span>.<span class="ident">source</span>(), <span class="ident">edge</span>.<span class="ident">target</span>());
 
-        <span class='comment'>// union the two vertices of the edge</span>
-        <span class='ident'>vertex_sets</span>.<span class='ident'>union</span>(<span class='ident'>a</span>.<span class='ident'>index</span>(), <span class='ident'>b</span>.<span class='ident'>index</span>());
+        <span class="comment">// union the two vertices of the edge</span>
+        <span class="ident">vertex_sets</span>.<span class="ident">union</span>(<span class="ident">a</span>.<span class="ident">index</span>(), <span class="ident">b</span>.<span class="ident">index</span>());
     }
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>labels</span> <span class='op'>=</span> <span class='ident'>vertex_sets</span>.<span class='ident'>into_labeling</span>();
-    <span class='ident'>labels</span>.<span class='ident'>sort</span>();
-    <span class='ident'>labels</span>.<span class='ident'>dedup</span>();
-    <span class='ident'>labels</span>.<span class='ident'>len</span>()
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">labels</span> <span class="op">=</span> <span class="ident">vertex_sets</span>.<span class="ident">into_labeling</span>();
+    <span class="ident">labels</span>.<span class="ident">sort</span>();
+    <span class="ident">labels</span>.<span class="ident">dedup</span>();
+    <span class="ident">labels</span>.<span class="ident">len</span>()
 }
 
 
-<span class='doccomment'>/// Compute a *minimum spanning tree* of a graph.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Treat the input graph as undirected.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Using Kruskal&#39;s algorithm with runtime **O(|E| log |E|)**. We actually</span>
-<span class='doccomment'>/// return a minimum spanning forest, i.e. a minimum spanning tree for each connected</span>
-<span class='doccomment'>/// component of the graph.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The resulting graph has all the vertices of the input graph (with identical node indices),</span>
-<span class='doccomment'>/// and **|V| - c** edges, where **c** is the number of connected components in `g`.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>min_spanning_tree</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>(<span class='ident'>g</span>: <span class='kw-2'>&amp;</span><span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Ty</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>)
-    <span class='op'>-&gt;</span> <span class='ident'>Graph</span><span class='op'>&lt;</span><span class='ident'>N</span>, <span class='ident'>E</span>, <span class='ident'>Undirected</span>, <span class='ident'>Ix</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>N</span>: <span class='ident'>Clone</span>,
-          <span class='ident'>E</span>: <span class='ident'>Clone</span> <span class='op'>+</span> <span class='ident'>PartialOrd</span>,
-          <span class='ident'>Ty</span>: <span class='ident'>EdgeType</span>,
-          <span class='ident'>Ix</span>: <span class='ident'>IndexType</span>,
+<span class="doccomment">/// Compute a *minimum spanning tree* of a graph.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Treat the input graph as undirected.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Using Kruskal&#39;s algorithm with runtime **O(|E| log |E|)**. We actually</span>
+<span class="doccomment">/// return a minimum spanning forest, i.e. a minimum spanning tree for each connected</span>
+<span class="doccomment">/// component of the graph.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The resulting graph has all the vertices of the input graph (with identical node indices),</span>
+<span class="doccomment">/// and **|V| - c** edges, where **c** is the number of connected components in `g`.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">min_spanning_tree</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>(<span class="ident">g</span>: <span class="kw-2">&amp;</span><span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Ty</span>, <span class="ident">Ix</span><span class="op">&gt;</span>)
+    <span class="op">-&gt;</span> <span class="ident">Graph</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">E</span>, <span class="ident">Undirected</span>, <span class="ident">Ix</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Clone</span>,
+          <span class="ident">E</span>: <span class="ident">Clone</span> <span class="op">+</span> <span class="ident">PartialOrd</span>,
+          <span class="ident">Ty</span>: <span class="ident">EdgeType</span>,
+          <span class="ident">Ix</span>: <span class="ident">IndexType</span>,
 {
-    <span class='kw'>if</span> <span class='ident'>g</span>.<span class='ident'>node_count</span>() <span class='op'>==</span> <span class='number'>0</span> {
-        <span class='kw'>return</span> <span class='ident'>Graph</span>::<span class='ident'>with_capacity</span>(<span class='number'>0</span>, <span class='number'>0</span>)
+    <span class="kw">if</span> <span class="ident">g</span>.<span class="ident">node_count</span>() <span class="op">==</span> <span class="number">0</span> {
+        <span class="kw">return</span> <span class="ident">Graph</span>::<span class="ident">with_capacity</span>(<span class="number">0</span>, <span class="number">0</span>)
     }
 
-    <span class='comment'>// Create a mst skeleton by copying all nodes</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>mst</span> <span class='op'>=</span> <span class='ident'>Graph</span>::<span class='ident'>with_capacity</span>(<span class='ident'>g</span>.<span class='ident'>node_count</span>(), <span class='ident'>g</span>.<span class='ident'>node_count</span>() <span class='op'>-</span> <span class='number'>1</span>);
-    <span class='kw'>for</span> <span class='ident'>node</span> <span class='kw'>in</span> <span class='ident'>g</span>.<span class='ident'>raw_nodes</span>() {
-        <span class='ident'>mst</span>.<span class='ident'>add_node</span>(<span class='ident'>node</span>.<span class='ident'>weight</span>.<span class='ident'>clone</span>());
+    <span class="comment">// Create a mst skeleton by copying all nodes</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mst</span> <span class="op">=</span> <span class="ident">Graph</span>::<span class="ident">with_capacity</span>(<span class="ident">g</span>.<span class="ident">node_count</span>(), <span class="ident">g</span>.<span class="ident">node_count</span>() <span class="op">-</span> <span class="number">1</span>);
+    <span class="kw">for</span> <span class="ident">node</span> <span class="kw">in</span> <span class="ident">g</span>.<span class="ident">raw_nodes</span>() {
+        <span class="ident">mst</span>.<span class="ident">add_node</span>(<span class="ident">node</span>.<span class="ident">weight</span>.<span class="ident">clone</span>());
     }
 
-    <span class='comment'>// Initially each vertex is its own disjoint subgraph, track the connectedness</span>
-    <span class='comment'>// of the pre-MST with a union &amp; find datastructure.</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>subgraphs</span> <span class='op'>=</span> <span class='ident'>UnionFind</span>::<span class='ident'>new</span>(<span class='ident'>g</span>.<span class='ident'>node_count</span>());
+    <span class="comment">// Initially each vertex is its own disjoint subgraph, track the connectedness</span>
+    <span class="comment">// of the pre-MST with a union &amp; find datastructure.</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">subgraphs</span> <span class="op">=</span> <span class="ident">UnionFind</span>::<span class="ident">new</span>(<span class="ident">g</span>.<span class="ident">node_count</span>());
 
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>sort_edges</span> <span class='op'>=</span> <span class='ident'>BinaryHeap</span>::<span class='ident'>with_capacity</span>(<span class='ident'>g</span>.<span class='ident'>edge_count</span>());
-    <span class='kw'>for</span> <span class='ident'>edge</span> <span class='kw'>in</span> <span class='ident'>g</span>.<span class='ident'>raw_edges</span>() {
-        <span class='ident'>sort_edges</span>.<span class='ident'>push</span>(<span class='ident'>MinScored</span>(<span class='ident'>edge</span>.<span class='ident'>weight</span>.<span class='ident'>clone</span>(), (<span class='ident'>edge</span>.<span class='ident'>source</span>(), <span class='ident'>edge</span>.<span class='ident'>target</span>())));
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sort_edges</span> <span class="op">=</span> <span class="ident">BinaryHeap</span>::<span class="ident">with_capacity</span>(<span class="ident">g</span>.<span class="ident">edge_count</span>());
+    <span class="kw">for</span> <span class="ident">edge</span> <span class="kw">in</span> <span class="ident">g</span>.<span class="ident">raw_edges</span>() {
+        <span class="ident">sort_edges</span>.<span class="ident">push</span>(<span class="ident">MinScored</span>(<span class="ident">edge</span>.<span class="ident">weight</span>.<span class="ident">clone</span>(), (<span class="ident">edge</span>.<span class="ident">source</span>(), <span class="ident">edge</span>.<span class="ident">target</span>())));
     }
 
-    <span class='comment'>// Kruskal&#39;s algorithm.</span>
-    <span class='comment'>// Algorithm is this:</span>
-    <span class='comment'>//</span>
-    <span class='comment'>// 1. Create a pre-MST with all the vertices and no edges.</span>
-    <span class='comment'>// 2. Repeat:</span>
-    <span class='comment'>//</span>
-    <span class='comment'>//  a. Remove the shortest edge from the original graph.</span>
-    <span class='comment'>//  b. If the edge connects two disjoint trees in the pre-MST,</span>
-    <span class='comment'>//     add the edge.</span>
-    <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>MinScored</span>(<span class='ident'>score</span>, (<span class='ident'>a</span>, <span class='ident'>b</span>))) <span class='op'>=</span> <span class='ident'>sort_edges</span>.<span class='ident'>pop</span>() {
-        <span class='comment'>// check if the edge would connect two disjoint parts</span>
-        <span class='kw'>if</span> <span class='ident'>subgraphs</span>.<span class='ident'>union</span>(<span class='ident'>a</span>.<span class='ident'>index</span>(), <span class='ident'>b</span>.<span class='ident'>index</span>()) {
-            <span class='ident'>mst</span>.<span class='ident'>add_edge</span>(<span class='ident'>a</span>, <span class='ident'>b</span>, <span class='ident'>score</span>);
+    <span class="comment">// Kruskal&#39;s algorithm.</span>
+    <span class="comment">// Algorithm is this:</span>
+    <span class="comment">//</span>
+    <span class="comment">// 1. Create a pre-MST with all the vertices and no edges.</span>
+    <span class="comment">// 2. Repeat:</span>
+    <span class="comment">//</span>
+    <span class="comment">//  a. Remove the shortest edge from the original graph.</span>
+    <span class="comment">//  b. If the edge connects two disjoint trees in the pre-MST,</span>
+    <span class="comment">//     add the edge.</span>
+    <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">MinScored</span>(<span class="ident">score</span>, (<span class="ident">a</span>, <span class="ident">b</span>))) <span class="op">=</span> <span class="ident">sort_edges</span>.<span class="ident">pop</span>() {
+        <span class="comment">// check if the edge would connect two disjoint parts</span>
+        <span class="kw">if</span> <span class="ident">subgraphs</span>.<span class="ident">union</span>(<span class="ident">a</span>.<span class="ident">index</span>(), <span class="ident">b</span>.<span class="ident">index</span>()) {
+            <span class="ident">mst</span>.<span class="ident">add_edge</span>(<span class="ident">a</span>, <span class="ident">b</span>, <span class="ident">score</span>);
         }
     }
 
-    <span class='macro'>debug_assert</span><span class='macro'>!</span>(<span class='ident'>mst</span>.<span class='ident'>node_count</span>() <span class='op'>==</span> <span class='ident'>g</span>.<span class='ident'>node_count</span>());
-    <span class='macro'>debug_assert</span><span class='macro'>!</span>(<span class='ident'>mst</span>.<span class='ident'>edge_count</span>() <span class='op'>&lt;</span> <span class='ident'>g</span>.<span class='ident'>node_count</span>());
-    <span class='ident'>mst</span>
+    <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">mst</span>.<span class="ident">node_count</span>() <span class="op">==</span> <span class="ident">g</span>.<span class="ident">node_count</span>());
+    <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">mst</span>.<span class="ident">edge_count</span>() <span class="op">&lt;</span> <span class="ident">g</span>.<span class="ident">node_count</span>());
+    <span class="ident">mst</span>
 }
 </pre>
 </section>

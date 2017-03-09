@@ -402,365 +402,365 @@
 <span id="357">357</span>
 <span id="358">358</span>
 <span id="359">359</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! A widget that allows for manually scrolling via dragging the mouse.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! A widget that allows for manually scrolling via dragging the mouse.</span>
 
-<span class='kw'>use</span> {<span class='ident'>Color</span>, <span class='ident'>Colorable</span>, <span class='ident'>Positionable</span>, <span class='ident'>Ui</span>};
-<span class='kw'>use</span> <span class='ident'>graph</span>;
-<span class='kw'>use</span> <span class='ident'>position</span>::{<span class='ident'>Dimension</span>, <span class='ident'>Range</span>, <span class='ident'>Rect</span>, <span class='ident'>Scalar</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>;
-<span class='kw'>use</span> <span class='ident'>utils</span>;
-<span class='kw'>use</span> <span class='ident'>widget</span>::{<span class='self'>self</span>, <span class='ident'>Widget</span>};
-<span class='kw'>use</span> <span class='ident'>widget</span>::<span class='ident'>scroll</span>::{<span class='self'>self</span>, <span class='ident'>X</span>, <span class='ident'>Y</span>};
+<span class="kw">use</span> {<span class="ident">Color</span>, <span class="ident">Colorable</span>, <span class="ident">Positionable</span>, <span class="ident">Ui</span>};
+<span class="kw">use</span> <span class="ident">graph</span>;
+<span class="kw">use</span> <span class="ident">position</span>::{<span class="ident">Dimension</span>, <span class="ident">Range</span>, <span class="ident">Rect</span>, <span class="ident">Scalar</span>};
+<span class="kw">use</span> <span class="ident">std</span>;
+<span class="kw">use</span> <span class="ident">utils</span>;
+<span class="kw">use</span> <span class="ident">widget</span>::{<span class="self">self</span>, <span class="ident">Widget</span>};
+<span class="kw">use</span> <span class="ident">widget</span>::<span class="ident">scroll</span>::{<span class="self">self</span>, <span class="ident">X</span>, <span class="ident">Y</span>};
 
 
-<span class='doccomment'>/// A widget that allows for scrolling via dragging the mouse.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='ident'>common</span>: <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span>,
-    <span class='ident'>style</span>: <span class='ident'>Style</span>,
-    <span class='ident'>widget</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>,
-    <span class='ident'>axis</span>: <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+<span class="doccomment">/// A widget that allows for scrolling via dragging the mouse.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="ident">common</span>: <span class="ident">widget</span>::<span class="ident">CommonBuilder</span>,
+    <span class="ident">style</span>: <span class="ident">Style</span>,
+    <span class="ident">widget</span>: <span class="ident">widget</span>::<span class="ident">Id</span>,
+    <span class="ident">axis</span>: <span class="ident">std</span>::<span class="ident">marker</span>::<span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// The axis that is scrolled by the `Scrollbar`.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Axis</span>: <span class='ident'>scroll</span>::<span class='ident'>Axis</span> <span class='op'>+</span> <span class='ident'>Sized</span> {
-    <span class='doccomment'>/// The `Rect` for a scroll &quot;track&quot; with the given `thickness` for a container with the given</span>
-    <span class='doccomment'>/// `Rect`.</span>
-    <span class='kw'>fn</span> <span class='ident'>track_rect</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span>;
-    <span class='doccomment'>/// The `Rect` for a scroll handle given both `Range`s.</span>
-    <span class='kw'>fn</span> <span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>: <span class='ident'>Range</span>, <span class='ident'>handle_range</span>: <span class='ident'>Range</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span>;
-    <span class='doccomment'>/// Retrieve the related `scroll::State` for the axis from a given widget container.</span>
-    <span class='kw'>fn</span> <span class='ident'>scroll_state</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>graph</span>::<span class='ident'>Container</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;&gt;</span>;
-    <span class='doccomment'>/// Determine a default *x* dimension for the scrollbar in the case that no specific width is</span>
-    <span class='doccomment'>/// given.</span>
-    <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span>(<span class='ident'>scrollbar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span>;
-    <span class='doccomment'>/// Determine a default *y* dimension for the scrollbar in the case that no specific height is</span>
-    <span class='doccomment'>/// given.</span>
-    <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span>(<span class='ident'>scrollbar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span>;
-    <span class='doccomment'>/// Convert a given `Scalar` along the axis into two dimensions.</span>
-    <span class='kw'>fn</span> <span class='ident'>to_2d</span>(<span class='ident'>scalar</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> [<span class='ident'>Scalar</span>; <span class='number'>2</span>];
+<span class="doccomment">/// The axis that is scrolled by the `Scrollbar`.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Axis</span>: <span class="ident">scroll</span>::<span class="ident">Axis</span> <span class="op">+</span> <span class="ident">Sized</span> {
+    <span class="doccomment">/// The `Rect` for a scroll &quot;track&quot; with the given `thickness` for a container with the given</span>
+    <span class="doccomment">/// `Rect`.</span>
+    <span class="kw">fn</span> <span class="ident">track_rect</span>(<span class="ident">container</span>: <span class="ident">Rect</span>, <span class="ident">thickness</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> <span class="ident">Rect</span>;
+    <span class="doccomment">/// The `Rect` for a scroll handle given both `Range`s.</span>
+    <span class="kw">fn</span> <span class="ident">handle_rect</span>(<span class="ident">perpendicular_track_range</span>: <span class="ident">Range</span>, <span class="ident">handle_range</span>: <span class="ident">Range</span>) <span class="op">-&gt;</span> <span class="ident">Rect</span>;
+    <span class="doccomment">/// Retrieve the related `scroll::State` for the axis from a given widget container.</span>
+    <span class="kw">fn</span> <span class="ident">scroll_state</span>(<span class="ident">widget</span>: <span class="kw-2">&amp;</span><span class="ident">graph</span>::<span class="ident">Container</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">scroll</span>::<span class="ident">State</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;&gt;</span>;
+    <span class="doccomment">/// Determine a default *x* dimension for the scrollbar in the case that no specific width is</span>
+    <span class="doccomment">/// given.</span>
+    <span class="kw">fn</span> <span class="ident">default_x_dimension</span>(<span class="ident">scrollbar</span>: <span class="kw-2">&amp;</span><span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span>;
+    <span class="doccomment">/// Determine a default *y* dimension for the scrollbar in the case that no specific height is</span>
+    <span class="doccomment">/// given.</span>
+    <span class="kw">fn</span> <span class="ident">default_y_dimension</span>(<span class="ident">scrollbar</span>: <span class="kw-2">&amp;</span><span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span>;
+    <span class="doccomment">/// Convert a given `Scalar` along the axis into two dimensions.</span>
+    <span class="kw">fn</span> <span class="ident">to_2d</span>(<span class="ident">scalar</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> [<span class="ident">Scalar</span>; <span class="number">2</span>];
 }
 
 
-<span class='macro'>widget_style</span><span class='macro'>!</span> {
-    <span class='doccomment'>/// Styling for the DropDownList, necessary for constructing its renderable Element.</span>
-    <span class='ident'>style</span> <span class='ident'>Style</span> {
-        <span class='doccomment'>/// Color of the widget.</span>
-        <span class='op'>-</span> <span class='ident'>color</span>: <span class='ident'>Color</span> { <span class='ident'>theme</span>.<span class='ident'>border_color</span> }
-        <span class='doccomment'>/// The &quot;thickness&quot; of the scrollbar&#39;s track and handle `Rect`s.</span>
-        <span class='op'>-</span> <span class='ident'>thickness</span>: <span class='ident'>Scalar</span> { <span class='number'>10.0</span> }
-        <span class='doccomment'>/// When true, the `Scrollbar` will only be visible when:</span>
-        <span class='doccomment'>///</span>
-        <span class='doccomment'>/// - The target scrollable widget is being scrolled.</span>
-        <span class='doccomment'>/// - The mouse is over the scrollbar.</span>
-        <span class='op'>-</span> <span class='ident'>auto_hide</span>: <span class='ident'>bool</span> { <span class='bool-val'>false</span> }
+<span class="macro">widget_style</span><span class="macro">!</span> {
+    <span class="doccomment">/// Styling for the DropDownList, necessary for constructing its renderable Element.</span>
+    <span class="ident">style</span> <span class="ident">Style</span> {
+        <span class="doccomment">/// Color of the widget.</span>
+        <span class="op">-</span> <span class="ident">color</span>: <span class="ident">Color</span> { <span class="ident">theme</span>.<span class="ident">border_color</span> }
+        <span class="doccomment">/// The &quot;thickness&quot; of the scrollbar&#39;s track and handle `Rect`s.</span>
+        <span class="op">-</span> <span class="ident">thickness</span>: <span class="ident">Scalar</span> { <span class="number">10.0</span> }
+        <span class="doccomment">/// When true, the `Scrollbar` will only be visible when:</span>
+        <span class="doccomment">///</span>
+        <span class="doccomment">/// - The target scrollable widget is being scrolled.</span>
+        <span class="doccomment">/// - The mouse is over the scrollbar.</span>
+        <span class="op">-</span> <span class="ident">auto_hide</span>: <span class="ident">bool</span> { <span class="bool-val">false</span> }
     }
 }
 
-<span class='macro'>widget_ids</span><span class='macro'>!</span> {
-    <span class='kw'>struct</span> <span class='ident'>Ids</span> {
-        <span class='ident'>track</span>,
-        <span class='ident'>handle</span>,
+<span class="macro">widget_ids</span><span class="macro">!</span> {
+    <span class="kw">struct</span> <span class="ident">Ids</span> {
+        <span class="ident">track</span>,
+        <span class="ident">handle</span>,
     }
 }
 
-<span class='doccomment'>/// The state of the `Scrollbar`.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>State</span> {
-    <span class='ident'>ids</span>: <span class='ident'>Ids</span>,
+<span class="doccomment">/// The state of the `Scrollbar`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">State</span> {
+    <span class="ident">ids</span>: <span class="ident">Ids</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
 
-    <span class='doccomment'>/// Begin building a new scrollbar widget.</span>
-    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>widget</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>Scrollbar</span> {
-            <span class='ident'>common</span>: <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span>::<span class='ident'>new</span>(),
-            <span class='ident'>style</span>: <span class='ident'>Style</span>::<span class='ident'>new</span>(),
-            <span class='ident'>widget</span>: <span class='ident'>widget</span>,
-            <span class='ident'>axis</span>: <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>,
+    <span class="doccomment">/// Begin building a new scrollbar widget.</span>
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">widget</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Scrollbar</span> {
+            <span class="ident">common</span>: <span class="ident">widget</span>::<span class="ident">CommonBuilder</span>::<span class="ident">new</span>(),
+            <span class="ident">style</span>: <span class="ident">Style</span>::<span class="ident">new</span>(),
+            <span class="ident">widget</span>: <span class="ident">widget</span>,
+            <span class="ident">axis</span>: <span class="ident">std</span>::<span class="ident">marker</span>::<span class="ident">PhantomData</span>,
         }
     }
 
-    <span class='doccomment'>/// By default, this is set to `false`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// When false, the `Scrollbar` will always be visible.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// When true, the `Scrollbar` will only be visible when:</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// - The target scrollable widget is actually scrollable and:</span>
-    <span class='doccomment'>/// - The target scrollable widget is being scrolled.</span>
-    <span class='doccomment'>/// - The scrollbar is capturing the mouse.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>auto_hide</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>auto_hide</span>: <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>auto_hide</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>auto_hide</span>);
-        <span class='self'>self</span>
+    <span class="doccomment">/// By default, this is set to `false`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When false, the `Scrollbar` will always be visible.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When true, the `Scrollbar` will only be visible when:</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - The target scrollable widget is actually scrollable and:</span>
+    <span class="doccomment">/// - The target scrollable widget is being scrolled.</span>
+    <span class="doccomment">/// - The scrollbar is capturing the mouse.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">auto_hide</span>(<span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">auto_hide</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="self">self</span>.<span class="ident">style</span>.<span class="ident">auto_hide</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">auto_hide</span>);
+        <span class="self">self</span>
     }
 
-    <span class='doccomment'>/// Build the widget with the given `thickness`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This value sets the width of vertical scrollbars, or the height of horizontal scrollbars.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// By default, this is `10.0`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>thickness</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>thickness</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>thickness</span>);
-        <span class='self'>self</span>
-    }
-
-}
-
-<span class='kw'>impl</span> <span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='ident'>X</span><span class='op'>&gt;</span> {
-
-    <span class='doccomment'>/// Begin building a new scrollbar widget that scrolls along the *X* axis along the range of</span>
-    <span class='doccomment'>/// the scrollable widget at the given Id.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>x_axis</span>(<span class='ident'>widget</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>Scrollbar</span>::<span class='ident'>new</span>(<span class='ident'>widget</span>)
-            .<span class='ident'>align_middle_x_of</span>(<span class='ident'>widget</span>)
-            .<span class='ident'>align_bottom_of</span>(<span class='ident'>widget</span>)
+    <span class="doccomment">/// Build the widget with the given `thickness`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This value sets the width of vertical scrollbars, or the height of horizontal scrollbars.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// By default, this is `10.0`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">thickness</span>(<span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">thickness</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="self">self</span>.<span class="ident">style</span>.<span class="ident">thickness</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">thickness</span>);
+        <span class="self">self</span>
     }
 
 }
 
-<span class='kw'>impl</span> <span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='ident'>Y</span><span class='op'>&gt;</span> {
+<span class="kw">impl</span> <span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="ident">X</span><span class="op">&gt;</span> {
 
-    <span class='doccomment'>/// Begin building a new scrollbar widget that scrolls along the *Y* axis along the range of</span>
-    <span class='doccomment'>/// the scrollable widget at the given Id.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>y_axis</span>(<span class='ident'>widget</span>: <span class='ident'>widget</span>::<span class='ident'>Id</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>Scrollbar</span>::<span class='ident'>new</span>(<span class='ident'>widget</span>)
-            .<span class='ident'>align_middle_y_of</span>(<span class='ident'>widget</span>)
-            .<span class='ident'>align_right_of</span>(<span class='ident'>widget</span>)
+    <span class="doccomment">/// Begin building a new scrollbar widget that scrolls along the *X* axis along the range of</span>
+    <span class="doccomment">/// the scrollable widget at the given Id.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">x_axis</span>(<span class="ident">widget</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Scrollbar</span>::<span class="ident">new</span>(<span class="ident">widget</span>)
+            .<span class="ident">align_middle_x_of</span>(<span class="ident">widget</span>)
+            .<span class="ident">align_bottom_of</span>(<span class="ident">widget</span>)
     }
 
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='ident'>Widget</span> <span class='kw'>for</span> <span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Axis</span>,
+<span class="kw">impl</span> <span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="ident">Y</span><span class="op">&gt;</span> {
+
+    <span class="doccomment">/// Begin building a new scrollbar widget that scrolls along the *Y* axis along the range of</span>
+    <span class="doccomment">/// the scrollable widget at the given Id.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">y_axis</span>(<span class="ident">widget</span>: <span class="ident">widget</span>::<span class="ident">Id</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Scrollbar</span>::<span class="ident">new</span>(<span class="ident">widget</span>)
+            .<span class="ident">align_middle_y_of</span>(<span class="ident">widget</span>)
+            .<span class="ident">align_right_of</span>(<span class="ident">widget</span>)
+    }
+
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="ident">Widget</span> <span class="kw">for</span> <span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>: <span class="ident">Axis</span>,
 {
-    <span class='kw'>type</span> <span class='ident'>State</span> <span class='op'>=</span> <span class='ident'>State</span>;
-    <span class='kw'>type</span> <span class='ident'>Style</span> <span class='op'>=</span> <span class='ident'>Style</span>;
-    <span class='kw'>type</span> <span class='ident'>Event</span> <span class='op'>=</span> ();
+    <span class="kw">type</span> <span class="ident">State</span> <span class="op">=</span> <span class="ident">State</span>;
+    <span class="kw">type</span> <span class="ident">Style</span> <span class="op">=</span> <span class="ident">Style</span>;
+    <span class="kw">type</span> <span class="ident">Event</span> <span class="op">=</span> ();
 
-    <span class='kw'>fn</span> <span class='ident'>common</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span> {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>common</span>
+    <span class="kw">fn</span> <span class="ident">common</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">widget</span>::<span class="ident">CommonBuilder</span> {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">common</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>common_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>widget</span>::<span class='ident'>CommonBuilder</span> {
-        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>common</span>
+    <span class="kw">fn</span> <span class="ident">common_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">widget</span>::<span class="ident">CommonBuilder</span> {
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">common</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>init_state</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>id_gen</span>: <span class='ident'>widget</span>::<span class='ident'>id</span>::<span class='ident'>Generator</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>State</span> {
-        <span class='ident'>State</span> {
-            <span class='ident'>ids</span>: <span class='ident'>Ids</span>::<span class='ident'>new</span>(<span class='ident'>id_gen</span>),
+    <span class="kw">fn</span> <span class="ident">init_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id_gen</span>: <span class="ident">widget</span>::<span class="ident">id</span>::<span class="ident">Generator</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">State</span> {
+        <span class="ident">State</span> {
+            <span class="ident">ids</span>: <span class="ident">Ids</span>::<span class="ident">new</span>(<span class="ident">id_gen</span>),
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>style</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>Style</span> {
-        <span class='self'>self</span>.<span class='ident'>style</span>.<span class='ident'>clone</span>()
+    <span class="kw">fn</span> <span class="ident">style</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">Style</span> {
+        <span class="self">self</span>.<span class="ident">style</span>.<span class="ident">clone</span>()
     }
 
-    <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>A</span>::<span class='ident'>default_x_dimension</span>(<span class='self'>self</span>, <span class='ident'>ui</span>)
+    <span class="kw">fn</span> <span class="ident">default_x_dimension</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span> {
+        <span class="ident">A</span>::<span class="ident">default_x_dimension</span>(<span class="self">self</span>, <span class="ident">ui</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>A</span>::<span class='ident'>default_y_dimension</span>(<span class='self'>self</span>, <span class='ident'>ui</span>)
+    <span class="kw">fn</span> <span class="ident">default_y_dimension</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span> {
+        <span class="ident">A</span>::<span class="ident">default_y_dimension</span>(<span class="self">self</span>, <span class="ident">ui</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>update</span>(<span class='self'>self</span>, <span class='ident'>args</span>: <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>Event</span> {
-        <span class='kw'>let</span> <span class='ident'>widget</span>::<span class='ident'>UpdateArgs</span> { <span class='ident'>id</span>, <span class='ident'>state</span>, <span class='ident'>rect</span>, <span class='ident'>style</span>, <span class='kw-2'>mut</span> <span class='ident'>ui</span>, .. } <span class='op'>=</span> <span class='ident'>args</span>;
-        <span class='kw'>let</span> <span class='ident'>Scrollbar</span> { <span class='ident'>widget</span>, .. } <span class='op'>=</span> <span class='self'>self</span>;
+    <span class="kw">fn</span> <span class="ident">update</span>(<span class="self">self</span>, <span class="ident">args</span>: <span class="ident">widget</span>::<span class="ident">UpdateArgs</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">Event</span> {
+        <span class="kw">let</span> <span class="ident">widget</span>::<span class="ident">UpdateArgs</span> { <span class="ident">id</span>, <span class="ident">state</span>, <span class="ident">rect</span>, <span class="ident">style</span>, <span class="kw-2">mut</span> <span class="ident">ui</span>, .. } <span class="op">=</span> <span class="ident">args</span>;
+        <span class="kw">let</span> <span class="ident">Scrollbar</span> { <span class="ident">widget</span>, .. } <span class="op">=</span> <span class="self">self</span>;
 
-        <span class='kw'>let</span> <span class='ident'>color</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>color</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
+        <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">color</span>(<span class="ident">ui</span>.<span class="ident">theme</span>());
 
-        <span class='comment'>// Only continue if the widget that we want to scroll has some scroll state.</span>
-        <span class='kw'>let</span> (<span class='ident'>offset_bounds</span>, <span class='ident'>offset</span>, <span class='ident'>scrollable_range_len</span>, <span class='ident'>is_scrolling</span>) <span class='op'>=</span>
-            <span class='kw'>match</span> <span class='ident'>ui</span>.<span class='ident'>widget_graph</span>().<span class='ident'>widget</span>(<span class='ident'>widget</span>) {
-                <span class='prelude-val'>Some</span>(<span class='ident'>widget</span>) <span class='op'>=&gt;</span> <span class='kw'>match</span> <span class='ident'>A</span>::<span class='ident'>scroll_state</span>(<span class='ident'>widget</span>) {
-                    <span class='prelude-val'>Some</span>(<span class='ident'>scroll</span>) <span class='op'>=&gt;</span>
-                        (<span class='ident'>scroll</span>.<span class='ident'>offset_bounds</span>,
-                         <span class='ident'>scroll</span>.<span class='ident'>offset</span>,
-                         <span class='ident'>scroll</span>.<span class='ident'>scrollable_range_len</span>,
-                         <span class='ident'>scroll</span>.<span class='ident'>is_scrolling</span>),
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
+        <span class="comment">// Only continue if the widget that we want to scroll has some scroll state.</span>
+        <span class="kw">let</span> (<span class="ident">offset_bounds</span>, <span class="ident">offset</span>, <span class="ident">scrollable_range_len</span>, <span class="ident">is_scrolling</span>) <span class="op">=</span>
+            <span class="kw">match</span> <span class="ident">ui</span>.<span class="ident">widget_graph</span>().<span class="ident">widget</span>(<span class="ident">widget</span>) {
+                <span class="prelude-val">Some</span>(<span class="ident">widget</span>) <span class="op">=&gt;</span> <span class="kw">match</span> <span class="ident">A</span>::<span class="ident">scroll_state</span>(<span class="ident">widget</span>) {
+                    <span class="prelude-val">Some</span>(<span class="ident">scroll</span>) <span class="op">=&gt;</span>
+                        (<span class="ident">scroll</span>.<span class="ident">offset_bounds</span>,
+                         <span class="ident">scroll</span>.<span class="ident">offset</span>,
+                         <span class="ident">scroll</span>.<span class="ident">scrollable_range_len</span>,
+                         <span class="ident">scroll</span>.<span class="ident">is_scrolling</span>),
+                    <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span>,
                 },
-                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span>,
+                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span>,
             };
 
-        <span class='comment'>// Calculates the `Rect` for a scroll &quot;handle&quot; sitting on the given `track` with an offset</span>
-        <span class='comment'>// and length that represents the given `Axis`&#39; `state`.</span>
-        <span class='kw'>let</span> <span class='ident'>handle_rect</span> <span class='op'>=</span> {
-            <span class='kw'>let</span> <span class='ident'>perpendicular_track_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>perpendicular_range</span>(<span class='ident'>rect</span>);
-            <span class='kw'>let</span> <span class='ident'>track_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>rect</span>);
-            <span class='kw'>let</span> <span class='ident'>track_len</span> <span class='op'>=</span> <span class='ident'>track_range</span>.<span class='ident'>len</span>();
-            <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>track_len</span> <span class='op'>*</span> (<span class='ident'>track_len</span> <span class='op'>/</span> <span class='ident'>scrollable_range_len</span>);
-            <span class='kw'>let</span> <span class='ident'>handle_range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='number'>0.0</span>, <span class='ident'>len</span>);
-            <span class='kw'>let</span> <span class='ident'>pos</span> <span class='op'>=</span> {
-                <span class='kw'>let</span> <span class='ident'>pos_min</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_start_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
-                <span class='kw'>let</span> <span class='ident'>pos_max</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_end_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
-                <span class='kw'>let</span> <span class='ident'>pos_bounds</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>pos_min</span>, <span class='ident'>pos_max</span>);
-                <span class='ident'>offset_bounds</span>.<span class='ident'>map_value_to</span>(<span class='ident'>offset</span>, <span class='kw-2'>&amp;</span><span class='ident'>pos_bounds</span>)
+        <span class="comment">// Calculates the `Rect` for a scroll &quot;handle&quot; sitting on the given `track` with an offset</span>
+        <span class="comment">// and length that represents the given `Axis`&#39; `state`.</span>
+        <span class="kw">let</span> <span class="ident">handle_rect</span> <span class="op">=</span> {
+            <span class="kw">let</span> <span class="ident">perpendicular_track_range</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">perpendicular_range</span>(<span class="ident">rect</span>);
+            <span class="kw">let</span> <span class="ident">track_range</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">parallel_range</span>(<span class="ident">rect</span>);
+            <span class="kw">let</span> <span class="ident">track_len</span> <span class="op">=</span> <span class="ident">track_range</span>.<span class="ident">len</span>();
+            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">track_len</span> <span class="op">*</span> (<span class="ident">track_len</span> <span class="op">/</span> <span class="ident">scrollable_range_len</span>);
+            <span class="kw">let</span> <span class="ident">handle_range</span> <span class="op">=</span> <span class="ident">Range</span>::<span class="ident">from_pos_and_len</span>(<span class="number">0.0</span>, <span class="ident">len</span>);
+            <span class="kw">let</span> <span class="ident">pos</span> <span class="op">=</span> {
+                <span class="kw">let</span> <span class="ident">pos_min</span> <span class="op">=</span> <span class="ident">handle_range</span>.<span class="ident">align_start_of</span>(<span class="ident">track_range</span>).<span class="ident">middle</span>();
+                <span class="kw">let</span> <span class="ident">pos_max</span> <span class="op">=</span> <span class="ident">handle_range</span>.<span class="ident">align_end_of</span>(<span class="ident">track_range</span>).<span class="ident">middle</span>();
+                <span class="kw">let</span> <span class="ident">pos_bounds</span> <span class="op">=</span> <span class="ident">Range</span>::<span class="ident">new</span>(<span class="ident">pos_min</span>, <span class="ident">pos_max</span>);
+                <span class="ident">offset_bounds</span>.<span class="ident">map_value_to</span>(<span class="ident">offset</span>, <span class="kw-2">&amp;</span><span class="ident">pos_bounds</span>)
             };
-            <span class='kw'>let</span> <span class='ident'>range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>from_pos_and_len</span>(<span class='ident'>pos</span>, <span class='ident'>len</span>);
-            <span class='ident'>A</span>::<span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>, <span class='ident'>range</span>)
+            <span class="kw">let</span> <span class="ident">range</span> <span class="op">=</span> <span class="ident">Range</span>::<span class="ident">from_pos_and_len</span>(<span class="ident">pos</span>, <span class="ident">len</span>);
+            <span class="ident">A</span>::<span class="ident">handle_rect</span>(<span class="ident">perpendicular_track_range</span>, <span class="ident">range</span>)
         };
 
-        <span class='kw'>let</span> <span class='ident'>handle_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>handle_rect</span>);
-        <span class='kw'>let</span> <span class='ident'>handle_pos_range_len</span> <span class='op'>=</span> <span class='op'>||</span> {
-            <span class='kw'>let</span> <span class='ident'>track_range</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>parallel_range</span>(<span class='ident'>rect</span>);
-            <span class='kw'>let</span> <span class='ident'>handle_pos_at_start</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_start_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
-            <span class='kw'>let</span> <span class='ident'>handle_pos_at_end</span> <span class='op'>=</span> <span class='ident'>handle_range</span>.<span class='ident'>align_end_of</span>(<span class='ident'>track_range</span>).<span class='ident'>middle</span>();
-            <span class='kw'>let</span> <span class='ident'>handle_pos_range</span> <span class='op'>=</span> <span class='ident'>Range</span>::<span class='ident'>new</span>(<span class='ident'>handle_pos_at_start</span>, <span class='ident'>handle_pos_at_end</span>);
-            <span class='ident'>handle_pos_range</span>.<span class='ident'>len</span>()
+        <span class="kw">let</span> <span class="ident">handle_range</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">parallel_range</span>(<span class="ident">handle_rect</span>);
+        <span class="kw">let</span> <span class="ident">handle_pos_range_len</span> <span class="op">=</span> <span class="op">||</span> {
+            <span class="kw">let</span> <span class="ident">track_range</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">parallel_range</span>(<span class="ident">rect</span>);
+            <span class="kw">let</span> <span class="ident">handle_pos_at_start</span> <span class="op">=</span> <span class="ident">handle_range</span>.<span class="ident">align_start_of</span>(<span class="ident">track_range</span>).<span class="ident">middle</span>();
+            <span class="kw">let</span> <span class="ident">handle_pos_at_end</span> <span class="op">=</span> <span class="ident">handle_range</span>.<span class="ident">align_end_of</span>(<span class="ident">track_range</span>).<span class="ident">middle</span>();
+            <span class="kw">let</span> <span class="ident">handle_pos_range</span> <span class="op">=</span> <span class="ident">Range</span>::<span class="ident">new</span>(<span class="ident">handle_pos_at_start</span>, <span class="ident">handle_pos_at_end</span>);
+            <span class="ident">handle_pos_range</span>.<span class="ident">len</span>()
         };
 
-        <span class='comment'>// Sum all offset yielded by `Press` and `Drag` events.</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>additional_offset</span> <span class='op'>=</span> <span class='number'>0.0</span>;
-        <span class='kw'>for</span> <span class='ident'>widget_event</span> <span class='kw'>in</span> <span class='ident'>ui</span>.<span class='ident'>widget_input</span>(<span class='ident'>id</span>).<span class='ident'>events</span>() {
-            <span class='kw'>use</span> <span class='ident'>event</span>;
-            <span class='kw'>use</span> <span class='ident'>input</span>;
+        <span class="comment">// Sum all offset yielded by `Press` and `Drag` events.</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">additional_offset</span> <span class="op">=</span> <span class="number">0.0</span>;
+        <span class="kw">for</span> <span class="ident">widget_event</span> <span class="kw">in</span> <span class="ident">ui</span>.<span class="ident">widget_input</span>(<span class="ident">id</span>).<span class="ident">events</span>() {
+            <span class="kw">use</span> <span class="ident">event</span>;
+            <span class="kw">use</span> <span class="ident">input</span>;
 
-            <span class='kw'>match</span> <span class='ident'>widget_event</span> {
+            <span class="kw">match</span> <span class="ident">widget_event</span> {
 
-                <span class='comment'>// If the track is pressed, snap the handle to that part of the track and scroll</span>
-                <span class='comment'>// accordingly with the handle&#39;s Range clamped to the track&#39;s Range.</span>
-                <span class='ident'>event</span>::<span class='ident'>Widget</span>::<span class='ident'>Press</span>(<span class='ident'>press</span>) <span class='op'>=&gt;</span> {
-                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>event</span>::<span class='ident'>Button</span>::<span class='ident'>Mouse</span>(<span class='ident'>input</span>::<span class='ident'>MouseButton</span>::<span class='ident'>Left</span>, <span class='ident'>xy</span>) <span class='op'>=</span> <span class='ident'>press</span>.<span class='ident'>button</span> {
-                        <span class='kw'>let</span> <span class='ident'>abs_xy</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>vec2_add</span>(<span class='ident'>xy</span>, <span class='ident'>rect</span>.<span class='ident'>xy</span>());
-                        <span class='kw'>if</span> <span class='ident'>rect</span>.<span class='ident'>is_over</span>(<span class='ident'>abs_xy</span>) <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='ident'>handle_rect</span>.<span class='ident'>is_over</span>(<span class='ident'>abs_xy</span>) {
-                            <span class='kw'>let</span> <span class='ident'>handle_pos_range_len</span> <span class='op'>=</span> <span class='ident'>handle_pos_range_len</span>();
-                            <span class='kw'>let</span> <span class='ident'>offset_range_len</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>len</span>();
-                            <span class='kw'>let</span> <span class='ident'>mouse_scalar</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>mouse_scalar</span>(<span class='ident'>xy</span>);
-                            <span class='kw'>let</span> <span class='ident'>pos_offset</span> <span class='op'>=</span> <span class='ident'>mouse_scalar</span> <span class='op'>-</span> <span class='ident'>handle_range</span>.<span class='ident'>middle</span>();
-                            <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>map_range</span>(<span class='ident'>pos_offset</span>,
-                                                          <span class='number'>0.0</span>, <span class='ident'>handle_pos_range_len</span>,
-                                                          <span class='number'>0.0</span>, <span class='ident'>offset_range_len</span>);
-                            <span class='ident'>additional_offset</span> <span class='op'>+=</span> <span class='op'>-</span><span class='ident'>offset</span>;
+                <span class="comment">// If the track is pressed, snap the handle to that part of the track and scroll</span>
+                <span class="comment">// accordingly with the handle&#39;s Range clamped to the track&#39;s Range.</span>
+                <span class="ident">event</span>::<span class="ident">Widget</span>::<span class="ident">Press</span>(<span class="ident">press</span>) <span class="op">=&gt;</span> {
+                    <span class="kw">if</span> <span class="kw">let</span> <span class="ident">event</span>::<span class="ident">Button</span>::<span class="ident">Mouse</span>(<span class="ident">input</span>::<span class="ident">MouseButton</span>::<span class="ident">Left</span>, <span class="ident">xy</span>) <span class="op">=</span> <span class="ident">press</span>.<span class="ident">button</span> {
+                        <span class="kw">let</span> <span class="ident">abs_xy</span> <span class="op">=</span> <span class="ident">utils</span>::<span class="ident">vec2_add</span>(<span class="ident">xy</span>, <span class="ident">rect</span>.<span class="ident">xy</span>());
+                        <span class="kw">if</span> <span class="ident">rect</span>.<span class="ident">is_over</span>(<span class="ident">abs_xy</span>) <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">handle_rect</span>.<span class="ident">is_over</span>(<span class="ident">abs_xy</span>) {
+                            <span class="kw">let</span> <span class="ident">handle_pos_range_len</span> <span class="op">=</span> <span class="ident">handle_pos_range_len</span>();
+                            <span class="kw">let</span> <span class="ident">offset_range_len</span> <span class="op">=</span> <span class="ident">offset_bounds</span>.<span class="ident">len</span>();
+                            <span class="kw">let</span> <span class="ident">mouse_scalar</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">mouse_scalar</span>(<span class="ident">xy</span>);
+                            <span class="kw">let</span> <span class="ident">pos_offset</span> <span class="op">=</span> <span class="ident">mouse_scalar</span> <span class="op">-</span> <span class="ident">handle_range</span>.<span class="ident">middle</span>();
+                            <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="ident">utils</span>::<span class="ident">map_range</span>(<span class="ident">pos_offset</span>,
+                                                          <span class="number">0.0</span>, <span class="ident">handle_pos_range_len</span>,
+                                                          <span class="number">0.0</span>, <span class="ident">offset_range_len</span>);
+                            <span class="ident">additional_offset</span> <span class="op">+=</span> <span class="op">-</span><span class="ident">offset</span>;
                         }
                     }
                 },
 
-                <span class='comment'>// Check for the handle being dragged across the track.</span>
-                <span class='ident'>event</span>::<span class='ident'>Widget</span>::<span class='ident'>Drag</span>(<span class='ident'>drag</span>) <span class='kw'>if</span> <span class='ident'>drag</span>.<span class='ident'>button</span> <span class='op'>==</span> <span class='ident'>input</span>::<span class='ident'>MouseButton</span>::<span class='ident'>Left</span> <span class='op'>=&gt;</span> {
-                    <span class='kw'>let</span> <span class='ident'>handle_pos_range_len</span> <span class='op'>=</span> <span class='ident'>handle_pos_range_len</span>();
-                    <span class='kw'>let</span> <span class='ident'>offset_range_len</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>len</span>();
-                    <span class='kw'>let</span> <span class='ident'>from_scalar</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>mouse_scalar</span>(<span class='ident'>drag</span>.<span class='ident'>from</span>);
-                    <span class='kw'>let</span> <span class='ident'>to_scalar</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>mouse_scalar</span>(<span class='ident'>drag</span>.<span class='ident'>to</span>);
-                    <span class='kw'>let</span> <span class='ident'>pos_offset</span> <span class='op'>=</span> <span class='ident'>to_scalar</span> <span class='op'>-</span> <span class='ident'>from_scalar</span>;
-                    <span class='kw'>let</span> <span class='ident'>offset</span> <span class='op'>=</span> <span class='ident'>utils</span>::<span class='ident'>map_range</span>(<span class='ident'>pos_offset</span>,
-                                                  <span class='number'>0.0</span>, <span class='ident'>handle_pos_range_len</span>,
-                                                  <span class='number'>0.0</span>, <span class='ident'>offset_range_len</span>);
-                    <span class='ident'>additional_offset</span> <span class='op'>+=</span> <span class='op'>-</span><span class='ident'>offset</span>;
+                <span class="comment">// Check for the handle being dragged across the track.</span>
+                <span class="ident">event</span>::<span class="ident">Widget</span>::<span class="ident">Drag</span>(<span class="ident">drag</span>) <span class="kw">if</span> <span class="ident">drag</span>.<span class="ident">button</span> <span class="op">==</span> <span class="ident">input</span>::<span class="ident">MouseButton</span>::<span class="ident">Left</span> <span class="op">=&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">handle_pos_range_len</span> <span class="op">=</span> <span class="ident">handle_pos_range_len</span>();
+                    <span class="kw">let</span> <span class="ident">offset_range_len</span> <span class="op">=</span> <span class="ident">offset_bounds</span>.<span class="ident">len</span>();
+                    <span class="kw">let</span> <span class="ident">from_scalar</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">mouse_scalar</span>(<span class="ident">drag</span>.<span class="ident">from</span>);
+                    <span class="kw">let</span> <span class="ident">to_scalar</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">mouse_scalar</span>(<span class="ident">drag</span>.<span class="ident">to</span>);
+                    <span class="kw">let</span> <span class="ident">pos_offset</span> <span class="op">=</span> <span class="ident">to_scalar</span> <span class="op">-</span> <span class="ident">from_scalar</span>;
+                    <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="ident">utils</span>::<span class="ident">map_range</span>(<span class="ident">pos_offset</span>,
+                                                  <span class="number">0.0</span>, <span class="ident">handle_pos_range_len</span>,
+                                                  <span class="number">0.0</span>, <span class="ident">offset_range_len</span>);
+                    <span class="ident">additional_offset</span> <span class="op">+=</span> <span class="op">-</span><span class="ident">offset</span>;
                 },
 
-                _ <span class='op'>=&gt;</span> (),
+                _ <span class="op">=&gt;</span> (),
 
             }
         }
 
-        <span class='comment'>// Scroll the given widget by the accumulated additional offset.</span>
-        <span class='kw'>if</span> <span class='ident'>additional_offset</span> <span class='op'>!=</span> <span class='number'>0.0</span> {
-            <span class='ident'>ui</span>.<span class='ident'>scroll_widget</span>(<span class='ident'>widget</span>, <span class='ident'>A</span>::<span class='ident'>to_2d</span>(<span class='ident'>additional_offset</span>));
+        <span class="comment">// Scroll the given widget by the accumulated additional offset.</span>
+        <span class="kw">if</span> <span class="ident">additional_offset</span> <span class="op">!=</span> <span class="number">0.0</span> {
+            <span class="ident">ui</span>.<span class="ident">scroll_widget</span>(<span class="ident">widget</span>, <span class="ident">A</span>::<span class="ident">to_2d</span>(<span class="ident">additional_offset</span>));
         }
 
-        <span class='comment'>// Don&#39;t draw the scrollbar if auto_hide is on and there is no interaction.</span>
-        <span class='kw'>let</span> <span class='ident'>auto_hide</span> <span class='op'>=</span> <span class='ident'>style</span>.<span class='ident'>auto_hide</span>(<span class='ident'>ui</span>.<span class='ident'>theme</span>());
-        <span class='kw'>if</span> <span class='ident'>auto_hide</span> {
-            <span class='kw'>let</span> <span class='ident'>not_scrollable</span> <span class='op'>=</span> <span class='ident'>offset_bounds</span>.<span class='ident'>magnitude</span>().<span class='ident'>is_sign_positive</span>();
-            <span class='kw'>let</span> <span class='ident'>no_offset</span> <span class='op'>=</span> <span class='ident'>additional_offset</span> <span class='op'>==</span> <span class='number'>0.0</span>;
-            <span class='kw'>let</span> <span class='ident'>no_mouse_interaction</span> <span class='op'>=</span> <span class='ident'>ui</span>.<span class='ident'>widget_input</span>(<span class='ident'>id</span>).<span class='ident'>mouse</span>().<span class='ident'>is_none</span>();
-            <span class='kw'>if</span> <span class='ident'>not_scrollable</span> <span class='op'>||</span> (<span class='op'>!</span><span class='ident'>is_scrolling</span> <span class='op'>&amp;&amp;</span> <span class='ident'>no_offset</span> <span class='op'>&amp;&amp;</span> <span class='ident'>no_mouse_interaction</span>) {
-                <span class='kw'>return</span>;
+        <span class="comment">// Don&#39;t draw the scrollbar if auto_hide is on and there is no interaction.</span>
+        <span class="kw">let</span> <span class="ident">auto_hide</span> <span class="op">=</span> <span class="ident">style</span>.<span class="ident">auto_hide</span>(<span class="ident">ui</span>.<span class="ident">theme</span>());
+        <span class="kw">if</span> <span class="ident">auto_hide</span> {
+            <span class="kw">let</span> <span class="ident">not_scrollable</span> <span class="op">=</span> <span class="ident">offset_bounds</span>.<span class="ident">magnitude</span>().<span class="ident">is_sign_positive</span>();
+            <span class="kw">let</span> <span class="ident">no_offset</span> <span class="op">=</span> <span class="ident">additional_offset</span> <span class="op">==</span> <span class="number">0.0</span>;
+            <span class="kw">let</span> <span class="ident">no_mouse_interaction</span> <span class="op">=</span> <span class="ident">ui</span>.<span class="ident">widget_input</span>(<span class="ident">id</span>).<span class="ident">mouse</span>().<span class="ident">is_none</span>();
+            <span class="kw">if</span> <span class="ident">not_scrollable</span> <span class="op">||</span> (<span class="op">!</span><span class="ident">is_scrolling</span> <span class="op">&amp;&amp;</span> <span class="ident">no_offset</span> <span class="op">&amp;&amp;</span> <span class="ident">no_mouse_interaction</span>) {
+                <span class="kw">return</span>;
             }
         }
 
-        <span class='comment'>// The `Track` widget along which the handle will slide.</span>
-        <span class='kw'>let</span> <span class='ident'>track_color</span> <span class='op'>=</span> <span class='ident'>color</span>.<span class='ident'>alpha</span>(<span class='number'>0.25</span>);
-        <span class='ident'>widget</span>::<span class='ident'>Rectangle</span>::<span class='ident'>fill</span>(<span class='ident'>rect</span>.<span class='ident'>dim</span>())
-            .<span class='ident'>xy</span>(<span class='ident'>rect</span>.<span class='ident'>xy</span>())
-            .<span class='ident'>color</span>(<span class='ident'>track_color</span>)
-            .<span class='ident'>graphics_for</span>(<span class='ident'>id</span>)
-            .<span class='ident'>parent</span>(<span class='ident'>id</span>)
-            .<span class='ident'>set</span>(<span class='ident'>state</span>.<span class='ident'>ids</span>.<span class='ident'>track</span>, <span class='ident'>ui</span>);
+        <span class="comment">// The `Track` widget along which the handle will slide.</span>
+        <span class="kw">let</span> <span class="ident">track_color</span> <span class="op">=</span> <span class="ident">color</span>.<span class="ident">alpha</span>(<span class="number">0.25</span>);
+        <span class="ident">widget</span>::<span class="ident">Rectangle</span>::<span class="ident">fill</span>(<span class="ident">rect</span>.<span class="ident">dim</span>())
+            .<span class="ident">xy</span>(<span class="ident">rect</span>.<span class="ident">xy</span>())
+            .<span class="ident">color</span>(<span class="ident">track_color</span>)
+            .<span class="ident">graphics_for</span>(<span class="ident">id</span>)
+            .<span class="ident">parent</span>(<span class="ident">id</span>)
+            .<span class="ident">set</span>(<span class="ident">state</span>.<span class="ident">ids</span>.<span class="ident">track</span>, <span class="ident">ui</span>);
 
-        <span class='comment'>// The `Handle` widget used as a graphical representation of the part of the scrollbar that</span>
-        <span class='comment'>// can be dragged over the track.</span>
-        <span class='ident'>widget</span>::<span class='ident'>Rectangle</span>::<span class='ident'>fill</span>(<span class='ident'>handle_rect</span>.<span class='ident'>dim</span>())
-            .<span class='ident'>xy</span>(<span class='ident'>handle_rect</span>.<span class='ident'>xy</span>())
-            .<span class='ident'>color</span>(<span class='ident'>color</span>)
-            .<span class='ident'>graphics_for</span>(<span class='ident'>id</span>)
-            .<span class='ident'>parent</span>(<span class='ident'>id</span>)
-            .<span class='ident'>set</span>(<span class='ident'>state</span>.<span class='ident'>ids</span>.<span class='ident'>handle</span>, <span class='ident'>ui</span>);
+        <span class="comment">// The `Handle` widget used as a graphical representation of the part of the scrollbar that</span>
+        <span class="comment">// can be dragged over the track.</span>
+        <span class="ident">widget</span>::<span class="ident">Rectangle</span>::<span class="ident">fill</span>(<span class="ident">handle_rect</span>.<span class="ident">dim</span>())
+            .<span class="ident">xy</span>(<span class="ident">handle_rect</span>.<span class="ident">xy</span>())
+            .<span class="ident">color</span>(<span class="ident">color</span>)
+            .<span class="ident">graphics_for</span>(<span class="ident">id</span>)
+            .<span class="ident">parent</span>(<span class="ident">id</span>)
+            .<span class="ident">set</span>(<span class="ident">state</span>.<span class="ident">ids</span>.<span class="ident">handle</span>, <span class="ident">ui</span>);
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>Axis</span> <span class='kw'>for</span> <span class='ident'>X</span> {
+<span class="kw">impl</span> <span class="ident">Axis</span> <span class="kw">for</span> <span class="ident">X</span> {
 
-    <span class='kw'>fn</span> <span class='ident'>track_rect</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-        <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>thickness</span>;
-        <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>w</span>();
-        <span class='kw'>let</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>x</span>();
-        <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='ident'>x</span>, <span class='number'>0.0</span>], [<span class='ident'>w</span>, <span class='ident'>h</span>]).<span class='ident'>align_bottom_of</span>(<span class='ident'>container</span>)
+    <span class="kw">fn</span> <span class="ident">track_rect</span>(<span class="ident">container</span>: <span class="ident">Rect</span>, <span class="ident">thickness</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> <span class="ident">Rect</span> {
+        <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="ident">thickness</span>;
+        <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">w</span>();
+        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">x</span>();
+        <span class="ident">Rect</span>::<span class="ident">from_xy_dim</span>([<span class="ident">x</span>, <span class="number">0.0</span>], [<span class="ident">w</span>, <span class="ident">h</span>]).<span class="ident">align_bottom_of</span>(<span class="ident">container</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>: <span class='ident'>Range</span>, <span class='ident'>handle_range</span>: <span class='ident'>Range</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-        <span class='ident'>Rect</span> {
-            <span class='ident'>x</span>: <span class='ident'>handle_range</span>,
-            <span class='ident'>y</span>: <span class='ident'>perpendicular_track_range</span>,
+    <span class="kw">fn</span> <span class="ident">handle_rect</span>(<span class="ident">perpendicular_track_range</span>: <span class="ident">Range</span>, <span class="ident">handle_range</span>: <span class="ident">Range</span>) <span class="op">-&gt;</span> <span class="ident">Rect</span> {
+        <span class="ident">Rect</span> {
+            <span class="ident">x</span>: <span class="ident">handle_range</span>,
+            <span class="ident">y</span>: <span class="ident">perpendicular_track_range</span>,
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>scroll_state</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>graph</span>::<span class='ident'>Container</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;&gt;</span> {
-        <span class='ident'>widget</span>.<span class='ident'>maybe_x_scroll_state</span>.<span class='ident'>as_ref</span>()
+    <span class="kw">fn</span> <span class="ident">scroll_state</span>(<span class="ident">widget</span>: <span class="kw-2">&amp;</span><span class="ident">graph</span>::<span class="ident">Container</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">scroll</span>::<span class="ident">State</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;&gt;</span> {
+        <span class="ident">widget</span>.<span class="ident">maybe_x_scroll_state</span>.<span class="ident">as_ref</span>()
     }
 
-    <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span>(<span class='ident'>scrollbar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>, <span class='ident'>_ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>Dimension</span>::<span class='ident'>Of</span>(<span class='ident'>scrollbar</span>.<span class='ident'>widget</span>, <span class='prelude-val'>None</span>)
+    <span class="kw">fn</span> <span class="ident">default_x_dimension</span>(<span class="ident">scrollbar</span>: <span class="kw-2">&amp;</span><span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">_ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span> {
+        <span class="ident">Dimension</span>::<span class="ident">Of</span>(<span class="ident">scrollbar</span>.<span class="ident">widget</span>, <span class="prelude-val">None</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span>(<span class='ident'>scrollbar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='ident'>scrollbar</span>.<span class='ident'>style</span>.<span class='ident'>thickness</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>))
+    <span class="kw">fn</span> <span class="ident">default_y_dimension</span>(<span class="ident">scrollbar</span>: <span class="kw-2">&amp;</span><span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span> {
+        <span class="ident">Dimension</span>::<span class="ident">Absolute</span>(<span class="ident">scrollbar</span>.<span class="ident">style</span>.<span class="ident">thickness</span>(<span class="kw-2">&amp;</span><span class="ident">ui</span>.<span class="ident">theme</span>))
     }
 
-    <span class='kw'>fn</span> <span class='ident'>to_2d</span>(<span class='ident'>scalar</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> [<span class='ident'>Scalar</span>; <span class='number'>2</span>] {
-        [<span class='ident'>scalar</span>, <span class='number'>0.0</span>]
+    <span class="kw">fn</span> <span class="ident">to_2d</span>(<span class="ident">scalar</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> [<span class="ident">Scalar</span>; <span class="number">2</span>] {
+        [<span class="ident">scalar</span>, <span class="number">0.0</span>]
     }
 
 }
 
-<span class='kw'>impl</span> <span class='ident'>Axis</span> <span class='kw'>for</span> <span class='ident'>Y</span> {
+<span class="kw">impl</span> <span class="ident">Axis</span> <span class="kw">for</span> <span class="ident">Y</span> {
 
-    <span class='kw'>fn</span> <span class='ident'>track_rect</span>(<span class='ident'>container</span>: <span class='ident'>Rect</span>, <span class='ident'>thickness</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-        <span class='kw'>let</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='ident'>thickness</span>;
-        <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>h</span>();
-        <span class='kw'>let</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>container</span>.<span class='ident'>y</span>();
-        <span class='ident'>Rect</span>::<span class='ident'>from_xy_dim</span>([<span class='number'>0.0</span>, <span class='ident'>y</span>], [<span class='ident'>w</span>, <span class='ident'>h</span>]).<span class='ident'>align_right_of</span>(<span class='ident'>container</span>)
+    <span class="kw">fn</span> <span class="ident">track_rect</span>(<span class="ident">container</span>: <span class="ident">Rect</span>, <span class="ident">thickness</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> <span class="ident">Rect</span> {
+        <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> <span class="ident">thickness</span>;
+        <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">h</span>();
+        <span class="kw">let</span> <span class="ident">y</span> <span class="op">=</span> <span class="ident">container</span>.<span class="ident">y</span>();
+        <span class="ident">Rect</span>::<span class="ident">from_xy_dim</span>([<span class="number">0.0</span>, <span class="ident">y</span>], [<span class="ident">w</span>, <span class="ident">h</span>]).<span class="ident">align_right_of</span>(<span class="ident">container</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>handle_rect</span>(<span class='ident'>perpendicular_track_range</span>: <span class='ident'>Range</span>, <span class='ident'>handle_range</span>: <span class='ident'>Range</span>) <span class='op'>-&gt;</span> <span class='ident'>Rect</span> {
-        <span class='ident'>Rect</span> {
-            <span class='ident'>x</span>: <span class='ident'>perpendicular_track_range</span>,
-            <span class='ident'>y</span>: <span class='ident'>handle_range</span>,
+    <span class="kw">fn</span> <span class="ident">handle_rect</span>(<span class="ident">perpendicular_track_range</span>: <span class="ident">Range</span>, <span class="ident">handle_range</span>: <span class="ident">Range</span>) <span class="op">-&gt;</span> <span class="ident">Rect</span> {
+        <span class="ident">Rect</span> {
+            <span class="ident">x</span>: <span class="ident">perpendicular_track_range</span>,
+            <span class="ident">y</span>: <span class="ident">handle_range</span>,
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>scroll_state</span>(<span class='ident'>widget</span>: <span class='kw-2'>&amp;</span><span class='ident'>graph</span>::<span class='ident'>Container</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>scroll</span>::<span class='ident'>State</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;&gt;</span> {
-        <span class='ident'>widget</span>.<span class='ident'>maybe_y_scroll_state</span>.<span class='ident'>as_ref</span>()
+    <span class="kw">fn</span> <span class="ident">scroll_state</span>(<span class="ident">widget</span>: <span class="kw-2">&amp;</span><span class="ident">graph</span>::<span class="ident">Container</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">scroll</span>::<span class="ident">State</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;&gt;</span> {
+        <span class="ident">widget</span>.<span class="ident">maybe_y_scroll_state</span>.<span class="ident">as_ref</span>()
     }
 
-    <span class='kw'>fn</span> <span class='ident'>default_x_dimension</span>(<span class='ident'>scrollbar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>, <span class='ident'>ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>Dimension</span>::<span class='ident'>Absolute</span>(<span class='ident'>scrollbar</span>.<span class='ident'>style</span>.<span class='ident'>thickness</span>(<span class='kw-2'>&amp;</span><span class='ident'>ui</span>.<span class='ident'>theme</span>))
+    <span class="kw">fn</span> <span class="ident">default_x_dimension</span>(<span class="ident">scrollbar</span>: <span class="kw-2">&amp;</span><span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span> {
+        <span class="ident">Dimension</span>::<span class="ident">Absolute</span>(<span class="ident">scrollbar</span>.<span class="ident">style</span>.<span class="ident">thickness</span>(<span class="kw-2">&amp;</span><span class="ident">ui</span>.<span class="ident">theme</span>))
     }
 
-    <span class='kw'>fn</span> <span class='ident'>default_y_dimension</span>(<span class='ident'>scrollbar</span>: <span class='kw-2'>&amp;</span><span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>, <span class='ident'>_ui</span>: <span class='kw-2'>&amp;</span><span class='ident'>Ui</span>) <span class='op'>-&gt;</span> <span class='ident'>Dimension</span> {
-        <span class='ident'>Dimension</span>::<span class='ident'>Of</span>(<span class='ident'>scrollbar</span>.<span class='ident'>widget</span>, <span class='prelude-val'>None</span>)
+    <span class="kw">fn</span> <span class="ident">default_y_dimension</span>(<span class="ident">scrollbar</span>: <span class="kw-2">&amp;</span><span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">_ui</span>: <span class="kw-2">&amp;</span><span class="ident">Ui</span>) <span class="op">-&gt;</span> <span class="ident">Dimension</span> {
+        <span class="ident">Dimension</span>::<span class="ident">Of</span>(<span class="ident">scrollbar</span>.<span class="ident">widget</span>, <span class="prelude-val">None</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>to_2d</span>(<span class='ident'>scalar</span>: <span class='ident'>Scalar</span>) <span class='op'>-&gt;</span> [<span class='ident'>Scalar</span>; <span class='number'>2</span>] {
-        [<span class='number'>0.0</span>, <span class='ident'>scalar</span>]
+    <span class="kw">fn</span> <span class="ident">to_2d</span>(<span class="ident">scalar</span>: <span class="ident">Scalar</span>) <span class="op">-&gt;</span> [<span class="ident">Scalar</span>; <span class="number">2</span>] {
+        [<span class="number">0.0</span>, <span class="ident">scalar</span>]
     }
 
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='ident'>Colorable</span> <span class='kw'>for</span> <span class='ident'>Scrollbar</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='macro'>builder_method</span><span class='macro'>!</span>(<span class='ident'>color</span> { <span class='ident'>style</span>.<span class='ident'>color</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Color</span>) });
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="ident">Colorable</span> <span class="kw">for</span> <span class="ident">Scrollbar</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="macro">builder_method</span><span class="macro">!</span>(<span class="ident">color</span> { <span class="ident">style</span>.<span class="ident">color</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Color</span>) });
 }
 </pre>
 </section>

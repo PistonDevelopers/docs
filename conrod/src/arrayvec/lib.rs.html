@@ -920,671 +920,671 @@
 <span id="875">875</span>
 <span id="876">876</span>
 <span id="877">877</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! **arrayvec** provides the types `ArrayVec` and `ArrayString`: </span>
-<span class='doccomment'>//! array-backed vector and string types, which store their contents inline.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The **arrayvec** crate has the following cargo feature flags:</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! - `std`</span>
-<span class='doccomment'>//!   - Optional, enabled by default</span>
-<span class='doccomment'>//!   - Requires Rust 1.6 *to disable*</span>
-<span class='doccomment'>//!   - Use libstd</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! - `use_union`</span>
-<span class='doccomment'>//!   - Optional</span>
-<span class='doccomment'>//!   - Requires Rust nightly channel</span>
-<span class='doccomment'>//!   - Use the unstable feature untagged unions for the internal implementation,</span>
-<span class='doccomment'>//!     which has reduced space overhead</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! - `use_generic_array`</span>
-<span class='doccomment'>//!   - Optional</span>
-<span class='doccomment'>//!   - Requires Rust stable channel</span>
-<span class='doccomment'>//!   - Depend on generic-array and allow using it just like a fixed</span>
-<span class='doccomment'>//!     size array for ArrayVec storage.</span>
-<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>doc</span>(<span class='ident'>html_root_url</span><span class='op'>=</span><span class='string'>&quot;https://docs.rs/arrayvec/0.3/&quot;</span>)]</span>
-<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>cfg_attr</span>(<span class='ident'>not</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>), <span class='ident'>no_std</span>)]</span>
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>odds</span>;
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>nodrop</span>;
+</pre><pre class="rust ">
+<span class="doccomment">//! **arrayvec** provides the types `ArrayVec` and `ArrayString`: </span>
+<span class="doccomment">//! array-backed vector and string types, which store their contents inline.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The **arrayvec** crate has the following cargo feature flags:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! - `std`</span>
+<span class="doccomment">//!   - Optional, enabled by default</span>
+<span class="doccomment">//!   - Requires Rust 1.6 *to disable*</span>
+<span class="doccomment">//!   - Use libstd</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! - `use_union`</span>
+<span class="doccomment">//!   - Optional</span>
+<span class="doccomment">//!   - Requires Rust nightly channel</span>
+<span class="doccomment">//!   - Use the unstable feature untagged unions for the internal implementation,</span>
+<span class="doccomment">//!     which has reduced space overhead</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! - `use_generic_array`</span>
+<span class="doccomment">//!   - Optional</span>
+<span class="doccomment">//!   - Requires Rust stable channel</span>
+<span class="doccomment">//!   - Depend on generic-array and allow using it just like a fixed</span>
+<span class="doccomment">//!     size array for ArrayVec storage.</span>
+<span class="attribute">#<span class="op">!</span>[<span class="ident">doc</span>(<span class="ident">html_root_url</span><span class="op">=</span><span class="string">&quot;https://docs.rs/arrayvec/0.3/&quot;</span>)]</span>
+<span class="attribute">#<span class="op">!</span>[<span class="ident">cfg_attr</span>(<span class="ident">not</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>), <span class="ident">no_std</span>)]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">odds</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">nodrop</span>;
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span> <span class='op'>=</span> <span class='string'>&quot;use_generic_array&quot;</span>)]</span>
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>generic_array</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;use_generic_array&quot;</span>)]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">generic_array</span>;
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>not</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>))]</span>
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>core</span> <span class='kw'>as</span> <span class='ident'>std</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>))]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">core</span> <span class="kw">as</span> <span class="ident">std</span>;
 
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>iter</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ptr</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::{
-    <span class='ident'>Deref</span>,
-    <span class='ident'>DerefMut</span>,
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">iter</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ptr</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ops</span>::{
+    <span class="ident">Deref</span>,
+    <span class="ident">DerefMut</span>,
 };
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>slice</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">slice</span>;
 
-<span class='comment'>// extra traits</span>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>borrow</span>::{<span class='ident'>Borrow</span>, <span class='ident'>BorrowMut</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>hash</span>::{<span class='ident'>Hash</span>, <span class='ident'>Hasher</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
+<span class="comment">// extra traits</span>
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::{<span class="ident">Borrow</span>, <span class="ident">BorrowMut</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">hash</span>::{<span class="ident">Hash</span>, <span class="ident">Hasher</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>)]</span>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>;
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>)]</span>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>error</span>::<span class='ident'>Error</span>;
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>)]</span>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>; <span class='comment'>// core but unused</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>)]</span>
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>)]</span>
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">error</span>::<span class="ident">Error</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>)]</span>
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">Any</span>; <span class="comment">// core but unused</span>
 
-<span class='kw'>use</span> <span class='ident'>nodrop</span>::<span class='ident'>NoDrop</span>;
+<span class="kw">use</span> <span class="ident">nodrop</span>::<span class="ident">NoDrop</span>;
 
-<span class='kw'>mod</span> <span class='ident'>array</span>;
-<span class='kw'>mod</span> <span class='ident'>array_string</span>;
-<span class='kw'>mod</span> <span class='ident'>char_ext</span>;
+<span class="kw">mod</span> <span class="ident">array</span>;
+<span class="kw">mod</span> <span class="ident">array_string</span>;
+<span class="kw">mod</span> <span class="ident">char_ext</span>;
 
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>array</span>::<span class='ident'>Array</span>;
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>odds</span>::<span class='ident'>IndexRange</span> <span class='kw'>as</span> <span class='ident'>RangeArgument</span>;
-<span class='kw'>use</span> <span class='ident'>array</span>::<span class='ident'>Index</span>;
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>array_string</span>::<span class='ident'>ArrayString</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">array</span>::<span class="ident">Array</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">odds</span>::<span class="ident">IndexRange</span> <span class="kw">as</span> <span class="ident">RangeArgument</span>;
+<span class="kw">use</span> <span class="ident">array</span>::<span class="ident">Index</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">array_string</span>::<span class="ident">ArrayString</span>;
 
 
-<span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>new_array</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span>() <span class='op'>-&gt;</span> <span class='ident'>A</span> {
-    <span class='comment'>// Note: Returning an uninitialized value here only works</span>
-    <span class='comment'>// if we can be sure the data is never used. The nullable pointer</span>
-    <span class='comment'>// inside enum optimization conflicts with this this for example,</span>
-    <span class='comment'>// so we need to be extra careful. See `NoDrop` enum.</span>
-    <span class='ident'>mem</span>::<span class='ident'>uninitialized</span>()
+<span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">new_array</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span>() <span class="op">-&gt;</span> <span class="ident">A</span> {
+    <span class="comment">// Note: Returning an uninitialized value here only works</span>
+    <span class="comment">// if we can be sure the data is never used. The nullable pointer</span>
+    <span class="comment">// inside enum optimization conflicts with this this for example,</span>
+    <span class="comment">// so we need to be extra careful. See `NoDrop` enum.</span>
+    <span class="ident">mem</span>::<span class="ident">uninitialized</span>()
 }
 
-<span class='doccomment'>/// A vector with a fixed capacity.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The `ArrayVec` is a vector backed by a fixed size array. It keeps track of</span>
-<span class='doccomment'>/// the number of initialized elements.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The vector is a contiguous value that you can store directly on the stack</span>
-<span class='doccomment'>/// if needed.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// It offers a simple API but also dereferences to a slice, so</span>
-<span class='doccomment'>/// that the full slice API is available.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ArrayVec can be converted into a by value iterator.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> {
-    <span class='ident'>xs</span>: <span class='ident'>NoDrop</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
-    <span class='ident'>len</span>: <span class='ident'>A</span>::<span class='ident'>Index</span>,
+<span class="doccomment">/// A vector with a fixed capacity.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The `ArrayVec` is a vector backed by a fixed size array. It keeps track of</span>
+<span class="doccomment">/// the number of initialized elements.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The vector is a contiguous value that you can store directly on the stack</span>
+<span class="doccomment">/// if needed.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// It offers a simple API but also dereferences to a slice, so</span>
+<span class="doccomment">/// that the full slice API is available.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ArrayVec can be converted into a by value iterator.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> {
+    <span class="ident">xs</span>: <span class="ident">NoDrop</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>,
+    <span class="ident">len</span>: <span class="ident">A</span>::<span class="ident">Index</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='self'>self</span>.<span class='ident'>clear</span>();
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="self">self</span>.<span class="ident">clear</span>();
 
-        <span class='comment'>// NoDrop inhibits array&#39;s drop</span>
-        <span class='comment'>// panic safety: NoDrop::drop will trigger on panic, so the inner</span>
-        <span class='comment'>// array will not drop even after panic.</span>
+        <span class="comment">// NoDrop inhibits array&#39;s drop</span>
+        <span class="comment">// panic safety: NoDrop::drop will trigger on panic, so the inner</span>
+        <span class="comment">// array will not drop even after panic.</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create a new empty `ArrayVec`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Capacity is inferred from the type parameter.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::&lt;[_; 16]&gt;::new();</span>
-    <span class='doccomment'>/// array.push(1);</span>
-    <span class='doccomment'>/// array.push(2);</span>
-    <span class='doccomment'>/// assert_eq!(&amp;array[..], &amp;[1, 2]);</span>
-    <span class='doccomment'>/// assert_eq!(array.capacity(), 16);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='kw'>unsafe</span> {
-            <span class='ident'>ArrayVec</span> { <span class='ident'>xs</span>: <span class='ident'>NoDrop</span>::<span class='ident'>new</span>(<span class='ident'>new_array</span>()), <span class='ident'>len</span>: <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='number'>0</span>) }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Create a new empty `ArrayVec`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Capacity is inferred from the type parameter.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::&lt;[_; 16]&gt;::new();</span>
+    <span class="doccomment">/// array.push(1);</span>
+    <span class="doccomment">/// array.push(2);</span>
+    <span class="doccomment">/// assert_eq!(&amp;array[..], &amp;[1, 2]);</span>
+    <span class="doccomment">/// assert_eq!(array.capacity(), 16);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+        <span class="kw">unsafe</span> {
+            <span class="ident">ArrayVec</span> { <span class="ident">xs</span>: <span class="ident">NoDrop</span>::<span class="ident">new</span>(<span class="ident">new_array</span>()), <span class="ident">len</span>: <span class="ident">Index</span>::<span class="ident">from</span>(<span class="number">0</span>) }
         }
     }
 
-    <span class='doccomment'>/// Return the number of elements in the `ArrayVec`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::from([1, 2, 3]);</span>
-    <span class='doccomment'>/// array.pop();</span>
-    <span class='doccomment'>/// assert_eq!(array.len(), 2);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> { <span class='self'>self</span>.<span class='ident'>len</span>.<span class='ident'>to_usize</span>() }
+    <span class="doccomment">/// Return the number of elements in the `ArrayVec`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::from([1, 2, 3]);</span>
+    <span class="doccomment">/// array.pop();</span>
+    <span class="doccomment">/// assert_eq!(array.len(), 2);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> { <span class="self">self</span>.<span class="ident">len</span>.<span class="ident">to_usize</span>() }
 
-    <span class='doccomment'>/// Return the capacity of the `ArrayVec`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let array = ArrayVec::from([1, 2, 3]);</span>
-    <span class='doccomment'>/// assert_eq!(array.capacity(), 3);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>capacity</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> { <span class='ident'>A</span>::<span class='ident'>capacity</span>() }
+    <span class="doccomment">/// Return the capacity of the `ArrayVec`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let array = ArrayVec::from([1, 2, 3]);</span>
+    <span class="doccomment">/// assert_eq!(array.capacity(), 3);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">capacity</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> { <span class="ident">A</span>::<span class="ident">capacity</span>() }
 
-    <span class='doccomment'>/// Return if the `ArrayVec` is completely filled.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::&lt;[_; 1]&gt;::new();</span>
-    <span class='doccomment'>/// assert!(!array.is_full());</span>
-    <span class='doccomment'>/// array.push(1);</span>
-    <span class='doccomment'>/// assert!(array.is_full());</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_full</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> { <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() }
+    <span class="doccomment">/// Return if the `ArrayVec` is completely filled.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::&lt;[_; 1]&gt;::new();</span>
+    <span class="doccomment">/// assert!(!array.is_full());</span>
+    <span class="doccomment">/// array.push(1);</span>
+    <span class="doccomment">/// assert!(array.is_full());</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_full</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="self">self</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="self">self</span>.<span class="ident">capacity</span>() }
 
-    <span class='doccomment'>/// Push `element` to the end of the vector.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return `None` if the push succeeds, or and return `Some(` *element* `)`</span>
-    <span class='doccomment'>/// if the vector is full.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::&lt;[_; 2]&gt;::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// array.push(1);</span>
-    <span class='doccomment'>/// array.push(2);</span>
-    <span class='doccomment'>/// let overflow = array.push(3);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(&amp;array[..], &amp;[1, 2]);</span>
-    <span class='doccomment'>/// assert_eq!(overflow, Some(3));</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>push</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>element</span>: <span class='ident'>A</span>::<span class='ident'>Item</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>&lt;</span> <span class='ident'>A</span>::<span class='ident'>capacity</span>() {
-            <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-            <span class='kw'>unsafe</span> {
-                <span class='ident'>ptr</span>::<span class='ident'>write</span>(<span class='self'>self</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>len</span>), <span class='ident'>element</span>);
-                <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>len</span> <span class='op'>+</span> <span class='number'>1</span>);
+    <span class="doccomment">/// Push `element` to the end of the vector.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return `None` if the push succeeds, or and return `Some(` *element* `)`</span>
+    <span class="doccomment">/// if the vector is full.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::&lt;[_; 2]&gt;::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// array.push(1);</span>
+    <span class="doccomment">/// array.push(2);</span>
+    <span class="doccomment">/// let overflow = array.push(3);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(&amp;array[..], &amp;[1, 2]);</span>
+    <span class="doccomment">/// assert_eq!(overflow, Some(3));</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">push</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">element</span>: <span class="ident">A</span>::<span class="ident">Item</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="ident">A</span>::<span class="ident">capacity</span>() {
+            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+            <span class="kw">unsafe</span> {
+                <span class="ident">ptr</span>::<span class="ident">write</span>(<span class="self">self</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">len</span>), <span class="ident">element</span>);
+                <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">len</span> <span class="op">+</span> <span class="number">1</span>);
             }
-            <span class='prelude-val'>None</span>
-        } <span class='kw'>else</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>element</span>)
+            <span class="prelude-val">None</span>
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">element</span>)
         }
     }
 
-    <span class='doccomment'>/// Insert `element` in position `index`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Shift up all elements after `index`. If any is pushed out, it is returned.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return `None` if no element is shifted out.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// `index` must be &lt;= `self.len()` and &lt; `self.capacity()`. Note that any</span>
-    <span class='doccomment'>/// out of bounds index insert results in the element being &quot;shifted out&quot;</span>
-    <span class='doccomment'>/// and returned directly.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::&lt;[_; 2]&gt;::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(array.insert(0, &quot;x&quot;), None);</span>
-    <span class='doccomment'>/// assert_eq!(array.insert(0, &quot;y&quot;), None);</span>
-    <span class='doccomment'>/// assert_eq!(array.insert(0, &quot;z&quot;), Some(&quot;x&quot;));</span>
-    <span class='doccomment'>/// assert_eq!(array.insert(1, &quot;w&quot;), Some(&quot;y&quot;));</span>
-    <span class='doccomment'>/// assert_eq!(&amp;array[..], &amp;[&quot;z&quot;, &quot;w&quot;]);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>insert</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>index</span>: <span class='ident'>usize</span>, <span class='ident'>element</span>: <span class='ident'>A</span>::<span class='ident'>Item</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='ident'>index</span> <span class='op'>&gt;</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>||</span> <span class='ident'>index</span> <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() {
-            <span class='kw'>return</span> <span class='prelude-val'>Some</span>(<span class='ident'>element</span>);
+    <span class="doccomment">/// Insert `element` in position `index`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Shift up all elements after `index`. If any is pushed out, it is returned.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return `None` if no element is shifted out.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// `index` must be &lt;= `self.len()` and &lt; `self.capacity()`. Note that any</span>
+    <span class="doccomment">/// out of bounds index insert results in the element being &quot;shifted out&quot;</span>
+    <span class="doccomment">/// and returned directly.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::&lt;[_; 2]&gt;::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(array.insert(0, &quot;x&quot;), None);</span>
+    <span class="doccomment">/// assert_eq!(array.insert(0, &quot;y&quot;), None);</span>
+    <span class="doccomment">/// assert_eq!(array.insert(0, &quot;z&quot;), Some(&quot;x&quot;));</span>
+    <span class="doccomment">/// assert_eq!(array.insert(1, &quot;w&quot;), Some(&quot;y&quot;));</span>
+    <span class="doccomment">/// assert_eq!(&amp;array[..], &amp;[&quot;z&quot;, &quot;w&quot;]);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>, <span class="ident">element</span>: <span class="ident">A</span>::<span class="ident">Item</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">index</span> <span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">||</span> <span class="ident">index</span> <span class="op">==</span> <span class="self">self</span>.<span class="ident">capacity</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">element</span>);
         }
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ret</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() {
-            <span class='ident'>ret</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>pop</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ret</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="self">self</span>.<span class="ident">capacity</span>() {
+            <span class="ident">ret</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pop</span>();
         }
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
 
-        <span class='comment'>// follows is just like Vec&lt;T&gt;</span>
-        <span class='kw'>unsafe</span> { <span class='comment'>// infallible</span>
-            <span class='comment'>// The spot to put the new value</span>
+        <span class="comment">// follows is just like Vec&lt;T&gt;</span>
+        <span class="kw">unsafe</span> { <span class="comment">// infallible</span>
+            <span class="comment">// The spot to put the new value</span>
             {
-                <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>index</span>) <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> _;
-                <span class='comment'>// Shift everything over to make space. (Duplicating the</span>
-                <span class='comment'>// `index`th element into two consecutive places.)</span>
-                <span class='ident'>ptr</span>::<span class='ident'>copy</span>(<span class='ident'>p</span>, <span class='ident'>p</span>.<span class='ident'>offset</span>(<span class='number'>1</span>), <span class='ident'>len</span> <span class='op'>-</span> <span class='ident'>index</span>);
-                <span class='comment'>// Write it in, overwriting the first copy of the `index`th</span>
-                <span class='comment'>// element.</span>
-                <span class='ident'>ptr</span>::<span class='ident'>write</span>(<span class='ident'>p</span>, <span class='ident'>element</span>);
+                <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">index</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _;
+                <span class="comment">// Shift everything over to make space. (Duplicating the</span>
+                <span class="comment">// `index`th element into two consecutive places.)</span>
+                <span class="ident">ptr</span>::<span class="ident">copy</span>(<span class="ident">p</span>, <span class="ident">p</span>.<span class="ident">offset</span>(<span class="number">1</span>), <span class="ident">len</span> <span class="op">-</span> <span class="ident">index</span>);
+                <span class="comment">// Write it in, overwriting the first copy of the `index`th</span>
+                <span class="comment">// element.</span>
+                <span class="ident">ptr</span>::<span class="ident">write</span>(<span class="ident">p</span>, <span class="ident">element</span>);
             }
-            <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>len</span> <span class='op'>+</span> <span class='number'>1</span>);
+            <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">len</span> <span class="op">+</span> <span class="number">1</span>);
         }
-        <span class='ident'>ret</span>
+        <span class="ident">ret</span>
     }
 
-    <span class='doccomment'>/// Remove the last element in the vector.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return `Some(` *element* `)` if the vector is non-empty, else `None`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::&lt;[_; 2]&gt;::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// array.push(1);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(array.pop(), Some(1));</span>
-    <span class='doccomment'>/// assert_eq!(array.pop(), None);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span> {
-            <span class='kw'>return</span> <span class='prelude-val'>None</span>
+    <span class="doccomment">/// Remove the last element in the vector.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return `Some(` *element* `)` if the vector is non-empty, else `None`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::&lt;[_; 2]&gt;::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// array.push(1);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(array.pop(), Some(1));</span>
+    <span class="doccomment">/// assert_eq!(array.pop(), None);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">pop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="number">0</span> {
+            <span class="kw">return</span> <span class="prelude-val">None</span>
         }
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='ident'>new_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='number'>1</span>;
-            <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>new_len</span>);
-            <span class='prelude-val'>Some</span>(<span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='self'>self</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>new_len</span>)))
-        }
-    }
-
-    <span class='doccomment'>/// Remove the element at `index` and swap the last element into its place.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This operation is O(1).</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return `Some(` *element* `)` if the index is in bounds, else `None`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::from([1, 2, 3]);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(array.swap_remove(0), Some(1));</span>
-    <span class='doccomment'>/// assert_eq!(&amp;array[..], &amp;[3, 2]);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(array.swap_remove(10), None);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>swap_remove</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>index</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-        <span class='kw'>if</span> <span class='ident'>index</span> <span class='op'>&gt;=</span> <span class='ident'>len</span> {
-            <span class='kw'>return</span> <span class='prelude-val'>None</span>
-        }
-        <span class='self'>self</span>.<span class='ident'>swap</span>(<span class='ident'>index</span>, <span class='ident'>len</span> <span class='op'>-</span> <span class='number'>1</span>);
-        <span class='self'>self</span>.<span class='ident'>pop</span>()
-    }
-
-    <span class='doccomment'>/// Remove the element at `index` and shift down the following elements.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return `Some(` *element* `)` if the index is in bounds, else `None`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::from([1, 2, 3]);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(array.remove(0), Some(1));</span>
-    <span class='doccomment'>/// assert_eq!(&amp;array[..], &amp;[2, 3]);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(array.remove(10), None);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>remove</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>index</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='ident'>index</span> <span class='op'>&gt;=</span> <span class='self'>self</span>.<span class='ident'>len</span>() {
-            <span class='prelude-val'>None</span>
-        } <span class='kw'>else</span> {
-            <span class='self'>self</span>.<span class='ident'>drain</span>(<span class='ident'>index</span>..<span class='ident'>index</span> <span class='op'>+</span> <span class='number'>1</span>).<span class='ident'>next</span>()
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">new_len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>;
+            <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">new_len</span>);
+            <span class="prelude-val">Some</span>(<span class="ident">ptr</span>::<span class="ident">read</span>(<span class="self">self</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">new_len</span>)))
         }
     }
 
-    <span class='doccomment'>/// Remove all elements in the vector.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(_) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>pop</span>() { }
+    <span class="doccomment">/// Remove the element at `index` and swap the last element into its place.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This operation is O(1).</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return `Some(` *element* `)` if the index is in bounds, else `None`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::from([1, 2, 3]);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(array.swap_remove(0), Some(1));</span>
+    <span class="doccomment">/// assert_eq!(&amp;array[..], &amp;[3, 2]);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(array.swap_remove(10), None);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">swap_remove</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">if</span> <span class="ident">index</span> <span class="op">&gt;=</span> <span class="ident">len</span> {
+            <span class="kw">return</span> <span class="prelude-val">None</span>
+        }
+        <span class="self">self</span>.<span class="ident">swap</span>(<span class="ident">index</span>, <span class="ident">len</span> <span class="op">-</span> <span class="number">1</span>);
+        <span class="self">self</span>.<span class="ident">pop</span>()
     }
 
-    <span class='doccomment'>/// Retains only the elements specified by the predicate.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// In other words, remove all elements `e` such that `f(&amp;mut e)` returns false.</span>
-    <span class='doccomment'>/// This method operates in place and preserves the order of the retained</span>
-    <span class='doccomment'>/// elements.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut array = ArrayVec::from([1, 2, 3, 4]);</span>
-    <span class='doccomment'>/// array.retain(|x| *x &amp; 1 != 0 );</span>
-    <span class='doccomment'>/// assert_eq!(&amp;array[..], &amp;[1, 3]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>retain</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>f</span>: <span class='ident'>F</span>)
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnMut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>A</span>::<span class='ident'>Item</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
+    <span class="doccomment">/// Remove the element at `index` and shift down the following elements.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return `Some(` *element* `)` if the index is in bounds, else `None`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::from([1, 2, 3]);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(array.remove(0), Some(1));</span>
+    <span class="doccomment">/// assert_eq!(&amp;array[..], &amp;[2, 3]);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(array.remove(10), None);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">index</span> <span class="op">&gt;=</span> <span class="self">self</span>.<span class="ident">len</span>() {
+            <span class="prelude-val">None</span>
+        } <span class="kw">else</span> {
+            <span class="self">self</span>.<span class="ident">drain</span>(<span class="ident">index</span>..<span class="ident">index</span> <span class="op">+</span> <span class="number">1</span>).<span class="ident">next</span>()
+        }
+    }
+
+    <span class="doccomment">/// Remove all elements in the vector.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(_) <span class="op">=</span> <span class="self">self</span>.<span class="ident">pop</span>() { }
+    }
+
+    <span class="doccomment">/// Retains only the elements specified by the predicate.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// In other words, remove all elements `e` such that `f(&amp;mut e)` returns false.</span>
+    <span class="doccomment">/// This method operates in place and preserves the order of the retained</span>
+    <span class="doccomment">/// elements.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut array = ArrayVec::from([1, 2, 3, 4]);</span>
+    <span class="doccomment">/// array.retain(|x| *x &amp; 1 != 0 );</span>
+    <span class="doccomment">/// assert_eq!(&amp;array[..], &amp;[1, 3]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">retain</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">f</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">A</span>::<span class="ident">Item</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
     {
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>del</span> <span class='op'>=</span> <span class='number'>0</span>;
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">del</span> <span class="op">=</span> <span class="number">0</span>;
         {
-            <span class='kw'>let</span> <span class='ident'>v</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>;
+            <span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>;
 
-            <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>len</span> {
-                <span class='kw'>if</span> <span class='op'>!</span><span class='ident'>f</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>v</span>[<span class='ident'>i</span>]) {
-                    <span class='ident'>del</span> <span class='op'>+=</span> <span class='number'>1</span>;
-                } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>del</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
-                    <span class='ident'>v</span>.<span class='ident'>swap</span>(<span class='ident'>i</span> <span class='op'>-</span> <span class='ident'>del</span>, <span class='ident'>i</span>);
+            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">len</span> {
+                <span class="kw">if</span> <span class="op">!</span><span class="ident">f</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">v</span>[<span class="ident">i</span>]) {
+                    <span class="ident">del</span> <span class="op">+=</span> <span class="number">1</span>;
+                } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">del</span> <span class="op">&gt;</span> <span class="number">0</span> {
+                    <span class="ident">v</span>.<span class="ident">swap</span>(<span class="ident">i</span> <span class="op">-</span> <span class="ident">del</span>, <span class="ident">i</span>);
                 }
             }
         }
-        <span class='kw'>if</span> <span class='ident'>del</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
-            <span class='self'>self</span>.<span class='ident'>drain</span>(<span class='ident'>len</span> <span class='op'>-</span> <span class='ident'>del</span>..);
+        <span class="kw">if</span> <span class="ident">del</span> <span class="op">&gt;</span> <span class="number">0</span> {
+            <span class="self">self</span>.<span class="ident">drain</span>(<span class="ident">len</span> <span class="op">-</span> <span class="ident">del</span>..);
         }
     }
 
-    <span class='doccomment'>/// Set the vector&#39;s length without dropping or moving out elements</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// May panic if `length` is greater than the capacity.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This function is `unsafe` because it changes the notion of the</span>
-    <span class='doccomment'>/// number of “valid” elements in the vector. Use with care.</span>
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>set_len</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>length</span>: <span class='ident'>usize</span>) {
-        <span class='macro'>debug_assert</span><span class='macro'>!</span>(<span class='ident'>length</span> <span class='op'>&lt;=</span> <span class='self'>self</span>.<span class='ident'>capacity</span>());
-        <span class='self'>self</span>.<span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='ident'>length</span>);
+    <span class="doccomment">/// Set the vector&#39;s length without dropping or moving out elements</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// May panic if `length` is greater than the capacity.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This function is `unsafe` because it changes the notion of the</span>
+    <span class="doccomment">/// number of “valid” elements in the vector. Use with care.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">set_len</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">length</span>: <span class="ident">usize</span>) {
+        <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">length</span> <span class="op">&lt;=</span> <span class="self">self</span>.<span class="ident">capacity</span>());
+        <span class="self">self</span>.<span class="ident">len</span> <span class="op">=</span> <span class="ident">Index</span>::<span class="ident">from</span>(<span class="ident">length</span>);
     }
 
 
-    <span class='doccomment'>/// Create a draining iterator that removes the specified range in the vector</span>
-    <span class='doccomment'>/// and yields the removed items from start to end. The element range is</span>
-    <span class='doccomment'>/// removed even if the iterator is not consumed until the end.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Note: It is unspecified how many elements are removed from the vector,</span>
-    <span class='doccomment'>/// if the `Drain` value is leaked.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// **Panics** if the starting point is greater than the end point or if</span>
-    <span class='doccomment'>/// the end point is greater than the length of the vector.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut v = ArrayVec::from([1, 2, 3]);</span>
-    <span class='doccomment'>/// let u: Vec&lt;_&gt; = v.drain(0..2).collect();</span>
-    <span class='doccomment'>/// assert_eq!(&amp;v[..], &amp;[3]);</span>
-    <span class='doccomment'>/// assert_eq!(&amp;u[..], &amp;[1, 2]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>drain</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>RangeArgument</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>range</span>: <span class='ident'>R</span>) <span class='op'>-&gt;</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='comment'>// Memory safety</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// When the Drain is first created, it shortens the length of</span>
-        <span class='comment'>// the source vector to make sure no uninitalized or moved-from elements</span>
-        <span class='comment'>// are accessible at all if the Drain&#39;s destructor never gets to run.</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// Drain will ptr::read out the values to remove.</span>
-        <span class='comment'>// When finished, remaining tail of the vec is copied back to cover</span>
-        <span class='comment'>// the hole, and the vector length is restored to the new length.</span>
-        <span class='comment'>//</span>
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-        <span class='kw'>let</span> <span class='ident'>start</span> <span class='op'>=</span> <span class='ident'>range</span>.<span class='ident'>start</span>().<span class='ident'>unwrap_or</span>(<span class='number'>0</span>);
-        <span class='kw'>let</span> <span class='ident'>end</span> <span class='op'>=</span> <span class='ident'>range</span>.<span class='ident'>end</span>().<span class='ident'>unwrap_or</span>(<span class='ident'>len</span>);
-        <span class='comment'>// bounds check happens here</span>
-        <span class='kw'>let</span> <span class='ident'>range_slice</span>: <span class='kw-2'>*</span><span class='kw'>const</span> _ <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>[<span class='ident'>start</span>..<span class='ident'>end</span>];
+    <span class="doccomment">/// Create a draining iterator that removes the specified range in the vector</span>
+    <span class="doccomment">/// and yields the removed items from start to end. The element range is</span>
+    <span class="doccomment">/// removed even if the iterator is not consumed until the end.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note: It is unspecified how many elements are removed from the vector,</span>
+    <span class="doccomment">/// if the `Drain` value is leaked.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// **Panics** if the starting point is greater than the end point or if</span>
+    <span class="doccomment">/// the end point is greater than the length of the vector.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use arrayvec::ArrayVec;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut v = ArrayVec::from([1, 2, 3]);</span>
+    <span class="doccomment">/// let u: Vec&lt;_&gt; = v.drain(0..2).collect();</span>
+    <span class="doccomment">/// assert_eq!(&amp;v[..], &amp;[3]);</span>
+    <span class="doccomment">/// assert_eq!(&amp;u[..], &amp;[1, 2]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">drain</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">RangeArgument</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">range</span>: <span class="ident">R</span>) <span class="op">-&gt;</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+        <span class="comment">// Memory safety</span>
+        <span class="comment">//</span>
+        <span class="comment">// When the Drain is first created, it shortens the length of</span>
+        <span class="comment">// the source vector to make sure no uninitalized or moved-from elements</span>
+        <span class="comment">// are accessible at all if the Drain&#39;s destructor never gets to run.</span>
+        <span class="comment">//</span>
+        <span class="comment">// Drain will ptr::read out the values to remove.</span>
+        <span class="comment">// When finished, remaining tail of the vec is copied back to cover</span>
+        <span class="comment">// the hole, and the vector length is restored to the new length.</span>
+        <span class="comment">//</span>
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="ident">start</span> <span class="op">=</span> <span class="ident">range</span>.<span class="ident">start</span>().<span class="ident">unwrap_or</span>(<span class="number">0</span>);
+        <span class="kw">let</span> <span class="ident">end</span> <span class="op">=</span> <span class="ident">range</span>.<span class="ident">end</span>().<span class="ident">unwrap_or</span>(<span class="ident">len</span>);
+        <span class="comment">// bounds check happens here</span>
+        <span class="kw">let</span> <span class="ident">range_slice</span>: <span class="kw-2">*</span><span class="kw">const</span> _ <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>[<span class="ident">start</span>..<span class="ident">end</span>];
 
-        <span class='kw'>unsafe</span> {
-            <span class='comment'>// set self.vec length&#39;s to start, to be safe in case Drain is leaked</span>
-            <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>start</span>);
-            <span class='ident'>Drain</span> {
-                <span class='ident'>tail_start</span>: <span class='ident'>end</span>,
-                <span class='ident'>tail_len</span>: <span class='ident'>len</span> <span class='op'>-</span> <span class='ident'>end</span>,
-                <span class='ident'>iter</span>: (<span class='kw-2'>*</span><span class='ident'>range_slice</span>).<span class='ident'>iter</span>(),
-                <span class='ident'>vec</span>: <span class='self'>self</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> _,
+        <span class="kw">unsafe</span> {
+            <span class="comment">// set self.vec length&#39;s to start, to be safe in case Drain is leaked</span>
+            <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">start</span>);
+            <span class="ident">Drain</span> {
+                <span class="ident">tail_start</span>: <span class="ident">end</span>,
+                <span class="ident">tail_len</span>: <span class="ident">len</span> <span class="op">-</span> <span class="ident">end</span>,
+                <span class="ident">iter</span>: (<span class="kw-2">*</span><span class="ident">range_slice</span>).<span class="ident">iter</span>(),
+                <span class="ident">vec</span>: <span class="self">self</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _,
             }
         }
     }
 
-    <span class='doccomment'>/// Return the inner fixed size array, if it is full to its capacity.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Return an `Ok` value with the array if length equals capacity,</span>
-    <span class='doccomment'>/// return an `Err` with self otherwise.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// `Note:` This function may incur unproportionally large overhead</span>
-    <span class='doccomment'>/// to move the array out, its performance is not optimal.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>into_inner</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>A</span>, <span class='self'>Self</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>&lt;</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() {
-            <span class='prelude-val'>Err</span>(<span class='self'>self</span>)
-        } <span class='kw'>else</span> {
-            <span class='kw'>unsafe</span> {
-                <span class='kw'>let</span> <span class='ident'>array</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>*</span><span class='self'>self</span>.<span class='ident'>xs</span>);
-                <span class='ident'>mem</span>::<span class='ident'>forget</span>(<span class='self'>self</span>);
-                <span class='prelude-val'>Ok</span>(<span class='ident'>array</span>)
+    <span class="doccomment">/// Return the inner fixed size array, if it is full to its capacity.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Return an `Ok` value with the array if length equals capacity,</span>
+    <span class="doccomment">/// return an `Err` with self otherwise.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// `Note:` This function may incur unproportionally large overhead</span>
+    <span class="doccomment">/// to move the array out, its performance is not optimal.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_inner</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">A</span>, <span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">capacity</span>() {
+            <span class="prelude-val">Err</span>(<span class="self">self</span>)
+        } <span class="kw">else</span> {
+            <span class="kw">unsafe</span> {
+                <span class="kw">let</span> <span class="ident">array</span> <span class="op">=</span> <span class="ident">ptr</span>::<span class="ident">read</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">xs</span>);
+                <span class="ident">mem</span>::<span class="ident">forget</span>(<span class="self">self</span>);
+                <span class="prelude-val">Ok</span>(<span class="ident">array</span>)
             }
         }
     }
 
-    <span class='doccomment'>/// Dispose of `self` without the overwriting that is needed in Drop.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>dispose</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='self'>self</span>.<span class='ident'>clear</span>();
-        <span class='ident'>mem</span>::<span class='ident'>forget</span>(<span class='self'>self</span>);
+    <span class="doccomment">/// Dispose of `self` without the overwriting that is needed in Drop.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dispose</span>(<span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="self">self</span>.<span class="ident">clear</span>();
+        <span class="ident">mem</span>::<span class="ident">forget</span>(<span class="self">self</span>);
     }
 
-    <span class='doccomment'>/// Return a slice containing all elements of the vector.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_slice</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>] {
-        <span class='self'>self</span>
+    <span class="doccomment">/// Return a slice containing all elements of the vector.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_slice</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">A</span>::<span class="ident">Item</span>] {
+        <span class="self">self</span>
     }
 
-    <span class='doccomment'>/// Return a mutable slice containing all elements of the vector.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>as_mut_slice</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>A</span>::<span class='ident'>Item</span>] {
-        <span class='self'>self</span>
+    <span class="doccomment">/// Return a mutable slice containing all elements of the vector.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_mut_slice</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">A</span>::<span class="ident">Item</span>] {
+        <span class="self">self</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> [<span class='ident'>A</span>::<span class='ident'>Item</span>];
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>] {
-        <span class='kw'>unsafe</span> {
-            <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='self'>self</span>.<span class='ident'>xs</span>.<span class='ident'>as_ptr</span>(), <span class='self'>self</span>.<span class='ident'>len</span>())
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> [<span class="ident">A</span>::<span class="ident">Item</span>];
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">A</span>::<span class="ident">Item</span>] {
+        <span class="kw">unsafe</span> {
+            <span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="self">self</span>.<span class="ident">xs</span>.<span class="ident">as_ptr</span>(), <span class="self">self</span>.<span class="ident">len</span>())
         }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>DerefMut</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>deref_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>A</span>::<span class='ident'>Item</span>] {
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-        <span class='kw'>unsafe</span> {
-            <span class='ident'>slice</span>::<span class='ident'>from_raw_parts_mut</span>(<span class='self'>self</span>.<span class='ident'>xs</span>.<span class='ident'>as_mut_ptr</span>(), <span class='ident'>len</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">DerefMut</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">deref_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">A</span>::<span class="ident">Item</span>] {
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">unsafe</span> {
+            <span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(<span class="self">self</span>.<span class="ident">xs</span>.<span class="ident">as_mut_ptr</span>(), <span class="ident">len</span>)
         }
     }
 }
 
-<span class='doccomment'>/// Create an `ArrayVec` from an array.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```</span>
-<span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// let mut array = ArrayVec::from([1, 2, 3]);</span>
-<span class='doccomment'>/// assert_eq!(array.len(), 3);</span>
-<span class='doccomment'>/// assert_eq!(array.capacity(), 3);</span>
-<span class='doccomment'>/// ```</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>array</span>: <span class='ident'>A</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>ArrayVec</span> { <span class='ident'>xs</span>: <span class='ident'>NoDrop</span>::<span class='ident'>new</span>(<span class='ident'>array</span>), <span class='ident'>len</span>: <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='ident'>A</span>::<span class='ident'>capacity</span>()) }
+<span class="doccomment">/// Create an `ArrayVec` from an array.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// use arrayvec::ArrayVec;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let mut array = ArrayVec::from([1, 2, 3]);</span>
+<span class="doccomment">/// assert_eq!(array.len(), 3);</span>
+<span class="doccomment">/// assert_eq!(array.capacity(), 3);</span>
+<span class="doccomment">/// ```</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">array</span>: <span class="ident">A</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">ArrayVec</span> { <span class="ident">xs</span>: <span class="ident">NoDrop</span>::<span class="ident">new</span>(<span class="ident">array</span>), <span class="ident">len</span>: <span class="ident">Index</span>::<span class="ident">from</span>(<span class="ident">A</span>::<span class="ident">capacity</span>()) }
     }
 }
 
 
-<span class='doccomment'>/// Iterate the `ArrayVec` with references to each element.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```</span>
-<span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// let array = ArrayVec::from([1, 2, 3]);</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// for elt in &amp;array {</span>
-<span class='doccomment'>///     // ...</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>/// ```</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>IntoIterator</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>A</span>::<span class='ident'>Item</span>;
-    <span class='kw'>type</span> <span class='ident'>IntoIter</span> <span class='op'>=</span> <span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>into_iter</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>IntoIter</span> { <span class='self'>self</span>.<span class='ident'>iter</span>() }
+<span class="doccomment">/// Iterate the `ArrayVec` with references to each element.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// use arrayvec::ArrayVec;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let array = ArrayVec::from([1, 2, 3]);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// for elt in &amp;array {</span>
+<span class="doccomment">///     // ...</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">A</span>::<span class="ident">Item</span>;
+    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span>;
+    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">IntoIter</span> { <span class="self">self</span>.<span class="ident">iter</span>() }
 }
 
-<span class='doccomment'>/// Iterate the `ArrayVec` with mutable references to each element.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```</span>
-<span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// let mut array = ArrayVec::from([1, 2, 3]);</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// for elt in &amp;mut array {</span>
-<span class='doccomment'>///     // ...</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>/// ```</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>IntoIterator</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='kw-2'>mut</span> <span class='ident'>A</span>::<span class='ident'>Item</span>;
-    <span class='kw'>type</span> <span class='ident'>IntoIter</span> <span class='op'>=</span> <span class='ident'>slice</span>::<span class='ident'>IterMut</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>into_iter</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>::<span class='ident'>IntoIter</span> { <span class='self'>self</span>.<span class='ident'>iter_mut</span>() }
+<span class="doccomment">/// Iterate the `ArrayVec` with mutable references to each element.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// use arrayvec::ArrayVec;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let mut array = ArrayVec::from([1, 2, 3]);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// for elt in &amp;mut array {</span>
+<span class="doccomment">///     // ...</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">A</span>::<span class="ident">Item</span>;
+    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">IterMut</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span>;
+    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">IntoIter</span> { <span class="self">self</span>.<span class="ident">iter_mut</span>() }
 }
 
-<span class='doccomment'>/// Iterate the `ArrayVec` with each element by value.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The vector is consumed by this operation.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```</span>
-<span class='doccomment'>/// use arrayvec::ArrayVec;</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// for elt in ArrayVec::from([1, 2, 3]) {</span>
-<span class='doccomment'>///     // ...</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>/// ```</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>IntoIterator</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>Item</span>;
-    <span class='kw'>type</span> <span class='ident'>IntoIter</span> <span class='op'>=</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>;
-    <span class='kw'>fn</span> <span class='ident'>into_iter</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='ident'>IntoIter</span> { <span class='ident'>index</span>: <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='number'>0</span>), <span class='ident'>v</span>: <span class='self'>self</span>, }
+<span class="doccomment">/// Iterate the `ArrayVec` with each element by value.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The vector is consumed by this operation.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// use arrayvec::ArrayVec;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// for elt in ArrayVec::from([1, 2, 3]) {</span>
+<span class="doccomment">///     // ...</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">Item</span>;
+    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>;
+    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+        <span class="ident">IntoIter</span> { <span class="ident">index</span>: <span class="ident">Index</span>::<span class="ident">from</span>(<span class="number">0</span>), <span class="ident">v</span>: <span class="self">self</span>, }
     }
 }
 
 
-<span class='doccomment'>/// By-value iterator for `ArrayVec`.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> {
-    <span class='ident'>index</span>: <span class='ident'>A</span>::<span class='ident'>Index</span>,
-    <span class='ident'>v</span>: <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+<span class="doccomment">/// By-value iterator for `ArrayVec`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> {
+    <span class="ident">index</span>: <span class="ident">A</span>::<span class="ident">Index</span>,
+    <span class="ident">v</span>: <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>Item</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">Item</span>;
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>index</span> <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>len</span> {
-            <span class='prelude-val'>None</span>
-        } <span class='kw'>else</span> {
-            <span class='kw'>unsafe</span> {
-                <span class='kw'>let</span> <span class='ident'>index</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>index</span>.<span class='ident'>to_usize</span>();
-                <span class='self'>self</span>.<span class='ident'>index</span> <span class='op'>=</span> <span class='ident'>Index</span>::<span class='ident'>from</span>(<span class='ident'>index</span> <span class='op'>+</span> <span class='number'>1</span>);
-                <span class='prelude-val'>Some</span>(<span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>index</span>)))
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">index</span> <span class="op">==</span> <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">len</span> {
+            <span class="prelude-val">None</span>
+        } <span class="kw">else</span> {
+            <span class="kw">unsafe</span> {
+                <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">index</span>.<span class="ident">to_usize</span>();
+                <span class="self">self</span>.<span class="ident">index</span> <span class="op">=</span> <span class="ident">Index</span>::<span class="ident">from</span>(<span class="ident">index</span> <span class="op">+</span> <span class="number">1</span>);
+                <span class="prelude-val">Some</span>(<span class="ident">ptr</span>::<span class="ident">read</span>(<span class="self">self</span>.<span class="ident">v</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">index</span>)))
             }
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>index</span>.<span class='ident'>to_usize</span>();
-        (<span class='ident'>len</span>, <span class='prelude-val'>Some</span>(<span class='ident'>len</span>))
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="self">self</span>.<span class="ident">index</span>.<span class="ident">to_usize</span>();
+        (<span class="ident">len</span>, <span class="prelude-val">Some</span>(<span class="ident">len</span>))
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>DoubleEndedIterator</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>next_back</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>index</span> <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>len</span> {
-            <span class='prelude-val'>None</span>
-        } <span class='kw'>else</span> {
-            <span class='kw'>unsafe</span> {
-                <span class='kw'>let</span> <span class='ident'>new_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='number'>1</span>;
-                <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>set_len</span>(<span class='ident'>new_len</span>);
-                <span class='prelude-val'>Some</span>(<span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>new_len</span>)))
-            }
-        }
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>ExactSizeIterator</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> { }
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='comment'>// panic safety: Set length to 0 before dropping elements.</span>
-        <span class='kw'>let</span> <span class='ident'>index</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>index</span>.<span class='ident'>to_usize</span>();
-        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>len</span>();
-        <span class='kw'>unsafe</span> {
-            <span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>set_len</span>(<span class='number'>0</span>);
-            <span class='kw'>let</span> <span class='ident'>elements</span> <span class='op'>=</span> <span class='ident'>slice</span>::<span class='ident'>from_raw_parts</span>(<span class='self'>self</span>.<span class='ident'>v</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>index</span>),
-                                                 <span class='ident'>len</span> <span class='op'>-</span> <span class='ident'>index</span>);
-            <span class='kw'>for</span> <span class='ident'>elt</span> <span class='kw'>in</span> <span class='ident'>elements</span> {
-                <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='ident'>elt</span>);
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">DoubleEndedIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">next_back</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">index</span> <span class="op">==</span> <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">len</span> {
+            <span class="prelude-val">None</span>
+        } <span class="kw">else</span> {
+            <span class="kw">unsafe</span> {
+                <span class="kw">let</span> <span class="ident">new_len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>;
+                <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">set_len</span>(<span class="ident">new_len</span>);
+                <span class="prelude-val">Some</span>(<span class="ident">ptr</span>::<span class="ident">read</span>(<span class="self">self</span>.<span class="ident">v</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">new_len</span>)))
             }
         }
     }
 }
 
-<span class='doccomment'>/// A draining iterator for `ArrayVec`.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span> 
-    <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Array</span>,
-          <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='lifetime'>&#39;a</span>,
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">ExactSizeIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> { }
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="comment">// panic safety: Set length to 0 before dropping elements.</span>
+        <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">index</span>.<span class="ident">to_usize</span>();
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">len</span>();
+        <span class="kw">unsafe</span> {
+            <span class="self">self</span>.<span class="ident">v</span>.<span class="ident">set_len</span>(<span class="number">0</span>);
+            <span class="kw">let</span> <span class="ident">elements</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="self">self</span>.<span class="ident">v</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">index</span>),
+                                                 <span class="ident">len</span> <span class="op">-</span> <span class="ident">index</span>);
+            <span class="kw">for</span> <span class="ident">elt</span> <span class="kw">in</span> <span class="ident">elements</span> {
+                <span class="ident">ptr</span>::<span class="ident">read</span>(<span class="ident">elt</span>);
+            }
+        }
+    }
+}
+
+<span class="doccomment">/// A draining iterator for `ArrayVec`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span> 
+    <span class="kw">where</span> <span class="ident">A</span>: <span class="ident">Array</span>,
+          <span class="ident">A</span>::<span class="ident">Item</span>: <span class="lifetime">&#39;a</span>,
 {
-    <span class='doccomment'>/// Index of tail to preserve</span>
-    <span class='ident'>tail_start</span>: <span class='ident'>usize</span>,
-    <span class='doccomment'>/// Length of tail</span>
-    <span class='ident'>tail_len</span>: <span class='ident'>usize</span>,
-    <span class='doccomment'>/// Current remaining range to remove</span>
-    <span class='ident'>iter</span>: <span class='ident'>slice</span>::<span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span>,
-    <span class='ident'>vec</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+    <span class="doccomment">/// Index of tail to preserve</span>
+    <span class="ident">tail_start</span>: <span class="ident">usize</span>,
+    <span class="doccomment">/// Length of tail</span>
+    <span class="ident">tail_len</span>: <span class="ident">usize</span>,
+    <span class="doccomment">/// Current remaining range to remove</span>
+    <span class="ident">iter</span>: <span class="ident">slice</span>::<span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span>,
+    <span class="ident">vec</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>,
 }
 
-<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span> <span class='op'>+</span> <span class='ident'>Sync</span><span class='op'>&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span> {}
-<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span> <span class="op">+</span> <span class="ident">Sync</span><span class="op">&gt;</span> <span class="ident">Sync</span> <span class="kw">for</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">Send</span> <span class="kw">for</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span> {}
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='lifetime'>&#39;a</span>,
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="lifetime">&#39;a</span>,
 {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>A</span>::<span class='ident'>Item</span>;
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">A</span>::<span class="ident">Item</span>;
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='self'>Self</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>elt</span><span class='op'>|</span>
-            <span class='kw'>unsafe</span> {
-                <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='ident'>elt</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> _)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">elt</span><span class="op">|</span>
+            <span class="kw">unsafe</span> {
+                <span class="ident">ptr</span>::<span class="ident">read</span>(<span class="ident">elt</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _)
             }
         )
     }
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>size_hint</span>()
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">size_hint</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>DoubleEndedIterator</span> <span class='kw'>for</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='lifetime'>&#39;a</span>,
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">DoubleEndedIterator</span> <span class="kw">for</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="lifetime">&#39;a</span>,
 {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>next_back</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='self'>Self</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next_back</span>().<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>elt</span><span class='op'>|</span>
-            <span class='kw'>unsafe</span> {
-                <span class='ident'>ptr</span>::<span class='ident'>read</span>(<span class='ident'>elt</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> _)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">next_back</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next_back</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">elt</span><span class="op">|</span>
+            <span class="kw">unsafe</span> {
+                <span class="ident">ptr</span>::<span class="ident">read</span>(<span class="ident">elt</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _)
             }
         )
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>ExactSizeIterator</span> <span class='kw'>for</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='lifetime'>&#39;a</span> {}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">ExactSizeIterator</span> <span class="kw">for</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span> <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="lifetime">&#39;a</span> {}
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>Drain</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>A</span><span class='op'>&gt;</span> 
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='lifetime'>&#39;a</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">Drain</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">A</span><span class="op">&gt;</span> 
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="lifetime">&#39;a</span>
 {
-    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='comment'>// len is currently 0 so panicking while dropping will not cause a double drop.</span>
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="comment">// len is currently 0 so panicking while dropping will not cause a double drop.</span>
 
-        <span class='comment'>// exhaust self first</span>
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(_) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>next</span>() { }
+        <span class="comment">// exhaust self first</span>
+        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(_) <span class="op">=</span> <span class="self">self</span>.<span class="ident">next</span>() { }
 
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>tail_len</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
-            <span class='kw'>unsafe</span> {
-                <span class='kw'>let</span> <span class='ident'>source_vec</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='self'>self</span>.<span class='ident'>vec</span>;
-                <span class='comment'>// memmove back untouched tail, update to new length</span>
-                <span class='kw'>let</span> <span class='ident'>start</span> <span class='op'>=</span> <span class='ident'>source_vec</span>.<span class='ident'>len</span>();
-                <span class='kw'>let</span> <span class='ident'>tail</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>tail_start</span>;
-                <span class='kw'>let</span> <span class='ident'>src</span> <span class='op'>=</span> <span class='ident'>source_vec</span>.<span class='ident'>as_ptr</span>().<span class='ident'>offset</span>(<span class='ident'>tail</span> <span class='kw'>as</span> <span class='ident'>isize</span>);
-                <span class='kw'>let</span> <span class='ident'>dst</span> <span class='op'>=</span> <span class='ident'>source_vec</span>.<span class='ident'>as_mut_ptr</span>().<span class='ident'>offset</span>(<span class='ident'>start</span> <span class='kw'>as</span> <span class='ident'>isize</span>);
-                <span class='ident'>ptr</span>::<span class='ident'>copy</span>(<span class='ident'>src</span>, <span class='ident'>dst</span>, <span class='self'>self</span>.<span class='ident'>tail_len</span>);
-                <span class='ident'>source_vec</span>.<span class='ident'>set_len</span>(<span class='ident'>start</span> <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>tail_len</span>);
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">tail_len</span> <span class="op">&gt;</span> <span class="number">0</span> {
+            <span class="kw">unsafe</span> {
+                <span class="kw">let</span> <span class="ident">source_vec</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">vec</span>;
+                <span class="comment">// memmove back untouched tail, update to new length</span>
+                <span class="kw">let</span> <span class="ident">start</span> <span class="op">=</span> <span class="ident">source_vec</span>.<span class="ident">len</span>();
+                <span class="kw">let</span> <span class="ident">tail</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">tail_start</span>;
+                <span class="kw">let</span> <span class="ident">src</span> <span class="op">=</span> <span class="ident">source_vec</span>.<span class="ident">as_ptr</span>().<span class="ident">offset</span>(<span class="ident">tail</span> <span class="kw">as</span> <span class="ident">isize</span>);
+                <span class="kw">let</span> <span class="ident">dst</span> <span class="op">=</span> <span class="ident">source_vec</span>.<span class="ident">as_mut_ptr</span>().<span class="ident">offset</span>(<span class="ident">start</span> <span class="kw">as</span> <span class="ident">isize</span>);
+                <span class="ident">ptr</span>::<span class="ident">copy</span>(<span class="ident">src</span>, <span class="ident">dst</span>, <span class="self">self</span>.<span class="ident">tail_len</span>);
+                <span class="ident">source_vec</span>.<span class="ident">set_len</span>(<span class="ident">start</span> <span class="op">+</span> <span class="self">self</span>.<span class="ident">tail_len</span>);
             }
         }
     }
@@ -1593,209 +1593,209 @@
 
 
 
-<span class='doccomment'>/// Extend the `ArrayVec` with an iterator.</span>
-<span class='doccomment'>/// </span>
-<span class='doccomment'>/// Does not extract more items than there is space for. No error</span>
-<span class='doccomment'>/// occurs if there are more iterator elements.</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Extend</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>extend</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>IntoIterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>iter</span>: <span class='ident'>T</span>) {
-        <span class='kw'>let</span> <span class='ident'>take</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>capacity</span>() <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-        <span class='kw'>for</span> <span class='ident'>elt</span> <span class='kw'>in</span> <span class='ident'>iter</span>.<span class='ident'>into_iter</span>().<span class='ident'>take</span>(<span class='ident'>take</span>) {
-            <span class='self'>self</span>.<span class='ident'>push</span>(<span class='ident'>elt</span>);
+<span class="doccomment">/// Extend the `ArrayVec` with an iterator.</span>
+<span class="doccomment">/// </span>
+<span class="doccomment">/// Does not extract more items than there is space for. No error</span>
+<span class="doccomment">/// occurs if there are more iterator elements.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Extend</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">extend</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">iter</span>: <span class="ident">T</span>) {
+        <span class="kw">let</span> <span class="ident">take</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">capacity</span>() <span class="op">-</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">for</span> <span class="ident">elt</span> <span class="kw">in</span> <span class="ident">iter</span>.<span class="ident">into_iter</span>().<span class="ident">take</span>(<span class="ident">take</span>) {
+            <span class="self">self</span>.<span class="ident">push</span>(<span class="ident">elt</span>);
         }
     }
 }
 
-<span class='doccomment'>/// Create an `ArrayVec` from an iterator.</span>
-<span class='doccomment'>/// </span>
-<span class='doccomment'>/// Does not extract more items than there is space for. No error</span>
-<span class='doccomment'>/// occurs if there are more iterator elements.</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>iter</span>::<span class='ident'>FromIterator</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>from_iter</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>IntoIterator</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>A</span>::<span class='ident'>Item</span><span class='op'>&gt;&gt;</span>(<span class='ident'>iter</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>array</span> <span class='op'>=</span> <span class='ident'>ArrayVec</span>::<span class='ident'>new</span>();
-        <span class='ident'>array</span>.<span class='ident'>extend</span>(<span class='ident'>iter</span>);
-        <span class='ident'>array</span>
+<span class="doccomment">/// Create an `ArrayVec` from an iterator.</span>
+<span class="doccomment">/// </span>
+<span class="doccomment">/// Does not extract more items than there is space for. No error</span>
+<span class="doccomment">/// occurs if there are more iterator elements.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">iter</span>::<span class="ident">FromIterator</span><span class="op">&lt;</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">from_iter</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">A</span>::<span class="ident">Item</span><span class="op">&gt;&gt;</span>(<span class="ident">iter</span>: <span class="ident">T</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">array</span> <span class="op">=</span> <span class="ident">ArrayVec</span>::<span class="ident">new</span>();
+        <span class="ident">array</span>.<span class="ident">extend</span>(<span class="ident">iter</span>);
+        <span class="ident">array</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>Clone</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">Clone</span>
 {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>().<span class='ident'>collect</span>()
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>().<span class="ident">collect</span>()
     }
 
-    <span class='kw'>fn</span> <span class='ident'>clone_from</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) {
-        <span class='comment'>// recursive case for the common prefix</span>
-        <span class='kw'>let</span> <span class='ident'>prefix</span> <span class='op'>=</span> <span class='ident'>cmp</span>::<span class='ident'>min</span>(<span class='self'>self</span>.<span class='ident'>len</span>(), <span class='ident'>rhs</span>.<span class='ident'>len</span>());
+    <span class="kw">fn</span> <span class="ident">clone_from</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) {
+        <span class="comment">// recursive case for the common prefix</span>
+        <span class="kw">let</span> <span class="ident">prefix</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">min</span>(<span class="self">self</span>.<span class="ident">len</span>(), <span class="ident">rhs</span>.<span class="ident">len</span>());
         {
-            <span class='kw'>let</span> <span class='ident'>a</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>[..<span class='ident'>prefix</span>];
-            <span class='kw'>let</span> <span class='ident'>b</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>rhs</span>[..<span class='ident'>prefix</span>];
-            <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>prefix</span> {
-                <span class='ident'>a</span>[<span class='ident'>i</span>].<span class='ident'>clone_from</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>[<span class='ident'>i</span>]);
+            <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>[..<span class="ident">prefix</span>];
+            <span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">rhs</span>[..<span class="ident">prefix</span>];
+            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">prefix</span> {
+                <span class="ident">a</span>[<span class="ident">i</span>].<span class="ident">clone_from</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>[<span class="ident">i</span>]);
             }
         }
-        <span class='kw'>if</span> <span class='ident'>prefix</span> <span class='op'>&lt;</span> <span class='self'>self</span>.<span class='ident'>len</span>() {
-            <span class='comment'>// rhs was shorter</span>
-            <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='number'>0</span>..<span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='ident'>prefix</span> {
-                <span class='self'>self</span>.<span class='ident'>pop</span>();
+        <span class="kw">if</span> <span class="ident">prefix</span> <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">len</span>() {
+            <span class="comment">// rhs was shorter</span>
+            <span class="kw">for</span> _ <span class="kw">in</span> <span class="number">0</span>..<span class="self">self</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">prefix</span> {
+                <span class="self">self</span>.<span class="ident">pop</span>();
             }
-        } <span class='kw'>else</span> {
-            <span class='kw'>for</span> <span class='ident'>elt</span> <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='ident'>rhs</span>[<span class='self'>self</span>.<span class='ident'>len</span>()..] {
-                <span class='self'>self</span>.<span class='ident'>push</span>(<span class='ident'>elt</span>.<span class='ident'>clone</span>());
+        } <span class="kw">else</span> {
+            <span class="kw">for</span> <span class="ident">elt</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">rhs</span>[<span class="self">self</span>.<span class="ident">len</span>()..] {
+                <span class="self">self</span>.<span class="ident">push</span>(<span class="ident">elt</span>.<span class="ident">clone</span>());
             }
         }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Hash</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>Hash</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Hash</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">Hash</span>
 {
-    <span class='kw'>fn</span> <span class='ident'>hash</span><span class='op'>&lt;</span><span class='ident'>H</span>: <span class='ident'>Hasher</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>state</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>H</span>) {
-        <span class='ident'>Hash</span>::<span class='ident'>hash</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>, <span class='ident'>state</span>)
+    <span class="kw">fn</span> <span class="ident">hash</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Hasher</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">H</span>) {
+        <span class="ident">Hash</span>::<span class="ident">hash</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>, <span class="ident">state</span>)
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>PartialEq</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>PartialEq</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">PartialEq</span>
 {
-    <span class='kw'>fn</span> <span class='ident'>eq</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span> <span class='op'>==</span> <span class='kw-2'>*</span><span class='kw-2'>*</span><span class='ident'>other</span>
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span> <span class="op">==</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">other</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>PartialEq</span><span class='op'>&lt;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>]<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>PartialEq</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">PartialEq</span><span class="op">&lt;</span>[<span class="ident">A</span>::<span class="ident">Item</span>]<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">PartialEq</span>
 {
-    <span class='kw'>fn</span> <span class='ident'>eq</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>]) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span> <span class='op'>==</span> <span class='kw-2'>*</span><span class='ident'>other</span>
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span>[<span class="ident">A</span>::<span class="ident">Item</span>]) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span> <span class="op">==</span> <span class="kw-2">*</span><span class="ident">other</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Eq</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>Eq</span> { }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Eq</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">Eq</span> { }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Borrow</span><span class='op'>&lt;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>]<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>borrow</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>] { <span class='self'>self</span> }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Borrow</span><span class="op">&lt;</span>[<span class="ident">A</span>::<span class="ident">Item</span>]<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">borrow</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">A</span>::<span class="ident">Item</span>] { <span class="self">self</span> }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>BorrowMut</span><span class='op'>&lt;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>]<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>borrow_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>A</span>::<span class='ident'>Item</span>] { <span class='self'>self</span> }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">BorrowMut</span><span class="op">&lt;</span>[<span class="ident">A</span>::<span class="ident">Item</span>]<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">borrow_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">A</span>::<span class="ident">Item</span>] { <span class="self">self</span> }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>AsRef</span><span class='op'>&lt;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>]<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>as_ref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>] { <span class='self'>self</span> }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">A</span>::<span class="ident">Item</span>]<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">as_ref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">A</span>::<span class="ident">Item</span>] { <span class="self">self</span> }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>AsMut</span><span class='op'>&lt;</span>[<span class='ident'>A</span>::<span class='ident'>Item</span>]<span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>as_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>A</span>::<span class='ident'>Item</span>] { <span class='self'>self</span> }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">AsMut</span><span class="op">&lt;</span>[<span class="ident">A</span>::<span class="ident">Item</span>]<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">as_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">A</span>::<span class="ident">Item</span>] { <span class="self">self</span> }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>fmt</span>::<span class='ident'>Debug</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> { (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>fmt</span>(<span class='ident'>f</span>) }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">fmt</span>::<span class="ident">Debug</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> { (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">fmt</span>(<span class="ident">f</span>) }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>default</span>() <span class='op'>-&gt;</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='ident'>ArrayVec</span>::<span class='ident'>new</span>()
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-&gt;</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+        <span class="ident">ArrayVec</span>::<span class="ident">new</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>PartialOrd</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>PartialOrd</span> {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>partial_cmp</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>cmp</span>::<span class='ident'>Ordering</span><span class='op'>&gt;</span> {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>partial_cmp</span>(<span class='ident'>other</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">PartialOrd</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">PartialOrd</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">partial_cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">cmp</span>::<span class="ident">Ordering</span><span class="op">&gt;</span> {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">partial_cmp</span>(<span class="ident">other</span>)
     }
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>lt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>lt</span>(<span class='ident'>other</span>)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">lt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">lt</span>(<span class="ident">other</span>)
     }
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>le</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>le</span>(<span class='ident'>other</span>)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">le</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">le</span>(<span class="ident">other</span>)
     }
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>ge</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>ge</span>(<span class='ident'>other</span>)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">ge</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">ge</span>(<span class="ident">other</span>)
     }
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>gt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='self'>Self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>gt</span>(<span class='ident'>other</span>)
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&gt;</span> <span class='ident'>Ord</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>A</span>::<span class='ident'>Item</span>: <span class='ident'>Ord</span> {
-    <span class='kw'>fn</span> <span class='ident'>cmp</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>cmp</span>::<span class='ident'>Ordering</span> {
-        (<span class='kw-2'>*</span><span class='kw-2'>*</span><span class='self'>self</span>).<span class='ident'>cmp</span>(<span class='ident'>other</span>)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">gt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">gt</span>(<span class="ident">other</span>)
     }
 }
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>)]</span>
-<span class='doccomment'>/// `Write` appends written data to the end of the vector.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Requires `features=&quot;std&quot;`.</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Array</span><span class='op'>&lt;</span><span class='ident'>Item</span><span class='op'>=</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span> <span class='ident'>io</span>::<span class='ident'>Write</span> <span class='kw'>for</span> <span class='ident'>ArrayVec</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span> {
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>len</span>();
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>tail</span> <span class='op'>=</span> <span class='ident'>slice</span>::<span class='ident'>from_raw_parts_mut</span>(<span class='self'>self</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>len</span>),
-                                                     <span class='ident'>A</span>::<span class='ident'>capacity</span>() <span class='op'>-</span> <span class='ident'>len</span>);
-            <span class='kw'>let</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='ident'>tail</span>.<span class='ident'>write</span>(<span class='ident'>data</span>);
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>written</span>) <span class='op'>=</span> <span class='ident'>result</span> {
-                <span class='self'>self</span>.<span class='ident'>set_len</span>(<span class='ident'>len</span> <span class='op'>+</span> <span class='ident'>written</span>);
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&gt;</span> <span class="ident">Ord</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> <span class="kw">where</span> <span class="ident">A</span>::<span class="ident">Item</span>: <span class="ident">Ord</span> {
+    <span class="kw">fn</span> <span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">cmp</span>::<span class="ident">Ordering</span> {
+        (<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>).<span class="ident">cmp</span>(<span class="ident">other</span>)
+    }
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>)]</span>
+<span class="doccomment">/// `Write` appends written data to the end of the vector.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Requires `features=&quot;std&quot;`.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">A</span>: <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="ident">io</span>::<span class="ident">Write</span> <span class="kw">for</span> <span class="ident">ArrayVec</span><span class="op">&lt;</span><span class="ident">A</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tail</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(<span class="self">self</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">len</span>),
+                                                     <span class="ident">A</span>::<span class="ident">capacity</span>() <span class="op">-</span> <span class="ident">len</span>);
+            <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">tail</span>.<span class="ident">write</span>(<span class="ident">data</span>);
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">written</span>) <span class="op">=</span> <span class="ident">result</span> {
+                <span class="self">self</span>.<span class="ident">set_len</span>(<span class="ident">len</span> <span class="op">+</span> <span class="ident">written</span>);
             }
-            <span class='ident'>result</span>
+            <span class="ident">result</span>
         }
     }
-    <span class='kw'>fn</span> <span class='ident'>flush</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> { <span class='prelude-val'>Ok</span>(()) }
+    <span class="kw">fn</span> <span class="ident">flush</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> { <span class="prelude-val">Ok</span>(()) }
 }
 
-<span class='doccomment'>/// Error value indicating insufficient capacity</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Copy</span>, <span class='ident'>Eq</span>, <span class='ident'>Ord</span>, <span class='ident'>PartialEq</span>, <span class='ident'>PartialOrd</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>T</span> <span class='op'>=</span> ()<span class='op'>&gt;</span> {
-    <span class='ident'>element</span>: <span class='ident'>T</span>,
+<span class="doccomment">/// Error value indicating insufficient capacity</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">Eq</span>, <span class="ident">Ord</span>, <span class="ident">PartialEq</span>, <span class="ident">PartialOrd</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">T</span> <span class="op">=</span> ()<span class="op">&gt;</span> {
+    <span class="ident">element</span>: <span class="ident">T</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>element</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>CapacityError</span> {
-            <span class='ident'>element</span>: <span class='ident'>element</span>,
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">element</span>: <span class="ident">T</span>) <span class="op">-&gt;</span> <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">CapacityError</span> {
+            <span class="ident">element</span>: <span class="ident">element</span>,
         }
     }
 
-    <span class='doccomment'>/// Extract the overflowing element</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>element</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span> {
-        <span class='self'>self</span>.<span class='ident'>element</span>
+    <span class="doccomment">/// Extract the overflowing element</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">element</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">T</span> {
+        <span class="self">self</span>.<span class="ident">element</span>
     }
 
-    <span class='doccomment'>/// Convert into a `CapacityError` that does not carry an element.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>simplify</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>CapacityError</span> {
-        <span class='ident'>CapacityError</span> { <span class='ident'>element</span>: () }
-    }
-}
-
-<span class='kw'>const</span> <span class='ident'>CAPERROR</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;insufficient capacity&quot;</span>;
-
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>feature</span><span class='op'>=</span><span class='string'>&quot;std&quot;</span>)]</span>
-<span class='doccomment'>/// Requires `features=&quot;std&quot;`.</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Any</span><span class='op'>&gt;</span> <span class='ident'>Error</span> <span class='kw'>for</span> <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>description</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>str</span> {
-        <span class='ident'>CAPERROR</span>
+    <span class="doccomment">/// Convert into a `CapacityError` that does not carry an element.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">simplify</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">CapacityError</span> {
+        <span class="ident">CapacityError</span> { <span class="ident">element</span>: () }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Display</span> <span class='kw'>for</span> <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;{}&quot;</span>, <span class='ident'>CAPERROR</span>)
+<span class="kw">const</span> <span class="ident">CAPERROR</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;insufficient capacity&quot;</span>;
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span><span class="op">=</span><span class="string">&quot;std&quot;</span>)]</span>
+<span class="doccomment">/// Requires `features=&quot;std&quot;`.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Any</span><span class="op">&gt;</span> <span class="ident">Error</span> <span class="kw">for</span> <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">description</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
+        <span class="ident">CAPERROR</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>CapacityError</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>, <span class='string'>&quot;{}: {}&quot;</span>, <span class='string'>&quot;CapacityError&quot;</span>, <span class='ident'>CAPERROR</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;{}&quot;</span>, <span class="ident">CAPERROR</span>)
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">CapacityError</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;{}: {}&quot;</span>, <span class="string">&quot;CapacityError&quot;</span>, <span class="ident">CAPERROR</span>)
     }
 }
 </pre>

@@ -890,852 +890,852 @@
 <span id="845">845</span>
 <span id="846">846</span>
 <span id="847">847</span>
-</pre><pre class='rust '>
-<span class='comment'>// Copyright 2014 The Rust Project Developers. See the COPYRIGHT</span>
-<span class='comment'>// file at the top-level directory of this distribution and at</span>
-<span class='comment'>// http://rust-lang.org/COPYRIGHT.</span>
-<span class='comment'>//</span>
-<span class='comment'>// Licensed under the Apache License, Version 2.0 &lt;LICENSE-APACHE or</span>
-<span class='comment'>// http://www.apache.org/licenses/LICENSE-2.0&gt; or the MIT license</span>
-<span class='comment'>// &lt;LICENSE-MIT or http://opensource.org/licenses/MIT&gt;, at your</span>
-<span class='comment'>// option. This file may not be copied, modified, or distributed</span>
-<span class='comment'>// except according to those terms.</span>
+</pre><pre class="rust ">
+<span class="comment">// Copyright 2014 The Rust Project Developers. See the COPYRIGHT</span>
+<span class="comment">// file at the top-level directory of this distribution and at</span>
+<span class="comment">// http://rust-lang.org/COPYRIGHT.</span>
+<span class="comment">//</span>
+<span class="comment">// Licensed under the Apache License, Version 2.0 &lt;LICENSE-APACHE or</span>
+<span class="comment">// http://www.apache.org/licenses/LICENSE-2.0&gt; or the MIT license</span>
+<span class="comment">// &lt;LICENSE-MIT or http://opensource.org/licenses/MIT&gt;, at your</span>
+<span class="comment">// option. This file may not be copied, modified, or distributed</span>
+<span class="comment">// except according to those terms.</span>
 
-<span class='comment'>// This is pretty much entirely stolen from TreeSet, since BTreeMap has an identical interface</span>
-<span class='comment'>// to TreeMap</span>
+<span class="comment">// This is pretty much entirely stolen from TreeSet, since BTreeMap has an identical interface</span>
+<span class="comment">// to TreeMap</span>
 
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>Ordering</span>::{<span class='self'>self</span>, <span class='ident'>Less</span>, <span class='ident'>Greater</span>, <span class='ident'>Equal</span>};
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>cmp</span>::{<span class='ident'>min</span>, <span class='ident'>max</span>};
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>fmt</span>::<span class='ident'>Debug</span>;
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>fmt</span>;
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>iter</span>::{<span class='ident'>Peekable</span>, <span class='ident'>FromIterator</span>};
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>ops</span>::{<span class='ident'>BitOr</span>, <span class='ident'>BitAnd</span>, <span class='ident'>BitXor</span>, <span class='ident'>Sub</span>};
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">Ordering</span>::{<span class="self">self</span>, <span class="ident">Less</span>, <span class="ident">Greater</span>, <span class="ident">Equal</span>};
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">cmp</span>::{<span class="ident">min</span>, <span class="ident">max</span>};
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>;
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">fmt</span>;
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">iter</span>::{<span class="ident">Peekable</span>, <span class="ident">FromIterator</span>};
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">ops</span>::{<span class="ident">BitOr</span>, <span class="ident">BitAnd</span>, <span class="ident">BitXor</span>, <span class="ident">Sub</span>};
 
-<span class='kw'>use</span> ::<span class='ident'>std</span>::<span class='ident'>borrow</span>::<span class='ident'>Borrow</span>;
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>map</span>::{<span class='ident'>BTreeMap</span>, <span class='ident'>Keys</span>};
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>Recover</span>;
-<span class='kw'>use</span> <span class='kw'>super</span>::<span class='ident'>Bound</span>;
+<span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Borrow</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">map</span>::{<span class="ident">BTreeMap</span>, <span class="ident">Keys</span>};
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Recover</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Bound</span>;
 
-<span class='comment'>// FIXME(conventions): implement bounded iterators</span>
+<span class="comment">// FIXME(conventions): implement bounded iterators</span>
 
-<span class='doccomment'>/// A set based on a B-Tree.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// See [`BTreeMap`]&#39;s documentation for a detailed discussion of this collection&#39;s performance</span>
-<span class='doccomment'>/// benefits and drawbacks.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// It is a logic error for an item to be modified in such a way that the item&#39;s ordering relative</span>
-<span class='doccomment'>/// to any other item, as determined by the [`Ord`] trait, changes while it is in the set. This is</span>
-<span class='doccomment'>/// normally only possible through [`Cell`], [`RefCell`], global state, I/O, or unsafe code.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// [`BTreeMap`]: ../struct.BTreeMap.html</span>
-<span class='doccomment'>/// [`Ord`]: ../../core/cmp/trait.Ord.html</span>
-<span class='doccomment'>/// [`Cell`]: ../../std/cell/struct.Cell.html</span>
-<span class='doccomment'>/// [`RefCell`]: ../../std/cell/struct.RefCell.html</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Hash</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Eq</span>, <span class='ident'>Ord</span>, <span class='ident'>PartialOrd</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='ident'>map</span>: <span class='ident'>BTreeMap</span><span class='op'>&lt;</span><span class='ident'>T</span>, ()<span class='op'>&gt;</span>,
+<span class="doccomment">/// A set based on a B-Tree.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// See [`BTreeMap`]&#39;s documentation for a detailed discussion of this collection&#39;s performance</span>
+<span class="doccomment">/// benefits and drawbacks.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// It is a logic error for an item to be modified in such a way that the item&#39;s ordering relative</span>
+<span class="doccomment">/// to any other item, as determined by the [`Ord`] trait, changes while it is in the set. This is</span>
+<span class="doccomment">/// normally only possible through [`Cell`], [`RefCell`], global state, I/O, or unsafe code.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`BTreeMap`]: ../struct.BTreeMap.html</span>
+<span class="doccomment">/// [`Ord`]: ../../core/cmp/trait.Ord.html</span>
+<span class="doccomment">/// [`Cell`]: ../../std/cell/struct.Cell.html</span>
+<span class="doccomment">/// [`RefCell`]: ../../std/cell/struct.RefCell.html</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Ord</span>, <span class="ident">PartialOrd</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="ident">map</span>: <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">T</span>, ()<span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// An iterator over a BTreeSet&#39;s items.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>iter</span>: <span class='ident'>Keys</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>, ()<span class='op'>&gt;</span>,
+<span class="doccomment">/// An iterator over a BTreeSet&#39;s items.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">iter</span>: <span class="ident">Keys</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>, ()<span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// An owning iterator over a BTreeSet&#39;s items.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='ident'>iter</span>: <span class='kw'>super</span>::<span class='ident'>map</span>::<span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span>, ()<span class='op'>&gt;</span>,
+<span class="doccomment">/// An owning iterator over a BTreeSet&#39;s items.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="ident">iter</span>: <span class="kw">super</span>::<span class="ident">map</span>::<span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span>, ()<span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// An iterator over a sub-range of BTreeSet&#39;s items.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>iter</span>: <span class='kw'>super</span>::<span class='ident'>map</span>::<span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>, ()<span class='op'>&gt;</span>,
+<span class="doccomment">/// An iterator over a sub-range of BTreeSet&#39;s items.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">iter</span>: <span class="kw">super</span>::<span class="ident">map</span>::<span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>, ()<span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// A lazy iterator producing elements in the set difference (in-order).</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>a</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>b</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+<span class="doccomment">/// A lazy iterator producing elements in the set difference (in-order).</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">a</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">b</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='doccomment'>/// A lazy iterator producing elements in the set symmetric difference (in-order).</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>SymmetricDifference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>a</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>b</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+<span class="doccomment">/// A lazy iterator producing elements in the set symmetric difference (in-order).</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SymmetricDifference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">a</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">b</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='doccomment'>/// A lazy iterator producing elements in the set intersection (in-order).</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Intersection</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>a</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>b</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+<span class="doccomment">/// A lazy iterator producing elements in the set intersection (in-order).</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Intersection</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">a</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">b</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='doccomment'>/// A lazy iterator producing elements in the set union (in-order).</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Union</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>a</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>b</span>: <span class='ident'>Peekable</span><span class='op'>&lt;</span><span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+<span class="doccomment">/// A lazy iterator producing elements in the set union (in-order).</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Union</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="ident">a</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">b</span>: <span class="ident">Peekable</span><span class="op">&lt;</span><span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Makes a new BTreeSet with a reasonable choice of B.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// # #![allow(unused_mut)]</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut set: BTreeSet&lt;i32&gt; = BTreeSet::new();</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>BTreeSet</span> { <span class='ident'>map</span>: <span class='ident'>BTreeMap</span>::<span class='ident'>new</span>() }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Makes a new BTreeSet with a reasonable choice of B.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// # #![allow(unused_mut)]</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut set: BTreeSet&lt;i32&gt; = BTreeSet::new();</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">BTreeSet</span> { <span class="ident">map</span>: <span class="ident">BTreeMap</span>::<span class="ident">new</span>() }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Gets an iterator over the BTreeSet&#39;s contents.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let set: BTreeSet&lt;usize&gt; = [1, 2, 3, 4].iter().cloned().collect();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// for x in set.iter() {</span>
-    <span class='doccomment'>///     println!(&quot;{}&quot;, x);</span>
-    <span class='doccomment'>/// }</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let v: Vec&lt;_&gt; = set.iter().cloned().collect();</span>
-    <span class='doccomment'>/// assert_eq!(v, [1, 2, 3, 4]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>iter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Iter</span> { <span class='ident'>iter</span>: <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>keys</span>() }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Gets an iterator over the BTreeSet&#39;s contents.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let set: BTreeSet&lt;usize&gt; = [1, 2, 3, 4].iter().cloned().collect();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// for x in set.iter() {</span>
+    <span class="doccomment">///     println!(&quot;{}&quot;, x);</span>
+    <span class="doccomment">/// }</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let v: Vec&lt;_&gt; = set.iter().cloned().collect();</span>
+    <span class="doccomment">/// assert_eq!(v, [1, 2, 3, 4]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">iter</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Iter</span> { <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">keys</span>() }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Constructs a double-ended iterator over a sub-range of elements in the set, starting</span>
-    <span class='doccomment'>/// at min, and ending at max. If min is `Unbounded`, then it will be treated as &quot;negative</span>
-    <span class='doccomment'>/// infinity&quot;, and if max is `Unbounded`, then it will be treated as &quot;positive infinity&quot;.</span>
-    <span class='doccomment'>/// Thus range(Unbounded, Unbounded) will yield the whole collection.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// #![feature(btree_range, collections_bound)]</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>/// use std::collections::Bound::{Included, Unbounded};</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut set = BTreeSet::new();</span>
-    <span class='doccomment'>/// set.insert(3);</span>
-    <span class='doccomment'>/// set.insert(5);</span>
-    <span class='doccomment'>/// set.insert(8);</span>
-    <span class='doccomment'>/// for &amp;elem in set.range(Included(&amp;4), Included(&amp;8)) {</span>
-    <span class='doccomment'>///     println!(&quot;{}&quot;, elem);</span>
-    <span class='doccomment'>/// }</span>
-    <span class='doccomment'>/// assert_eq!(Some(&amp;5), set.range(Included(&amp;4), Unbounded).next());</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>Min</span>: <span class='question-mark'>?</span><span class='ident'>Sized</span> <span class='op'>+</span> <span class='ident'>Ord</span>, <span class='ident'>Max</span>: <span class='question-mark'>?</span><span class='ident'>Sized</span> <span class='op'>+</span> <span class='ident'>Ord</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>,
-                                                           <span class='ident'>min</span>: <span class='ident'>Bound</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Min</span><span class='op'>&gt;</span>,
-                                                           <span class='ident'>max</span>: <span class='ident'>Bound</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>Max</span><span class='op'>&gt;</span>)
-                                                           <span class='op'>-&gt;</span> <span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Min</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Max</span><span class='op'>&gt;</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Constructs a double-ended iterator over a sub-range of elements in the set, starting</span>
+    <span class="doccomment">/// at min, and ending at max. If min is `Unbounded`, then it will be treated as &quot;negative</span>
+    <span class="doccomment">/// infinity&quot;, and if max is `Unbounded`, then it will be treated as &quot;positive infinity&quot;.</span>
+    <span class="doccomment">/// Thus range(Unbounded, Unbounded) will yield the whole collection.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// #![feature(btree_range, collections_bound)]</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">/// use std::collections::Bound::{Included, Unbounded};</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut set = BTreeSet::new();</span>
+    <span class="doccomment">/// set.insert(3);</span>
+    <span class="doccomment">/// set.insert(5);</span>
+    <span class="doccomment">/// set.insert(8);</span>
+    <span class="doccomment">/// for &amp;elem in set.range(Included(&amp;4), Included(&amp;8)) {</span>
+    <span class="doccomment">///     println!(&quot;{}&quot;, elem);</span>
+    <span class="doccomment">/// }</span>
+    <span class="doccomment">/// assert_eq!(Some(&amp;5), set.range(Included(&amp;4), Unbounded).next());</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">Min</span>: <span class="question-mark">?</span><span class="ident">Sized</span> <span class="op">+</span> <span class="ident">Ord</span>, <span class="ident">Max</span>: <span class="question-mark">?</span><span class="ident">Sized</span> <span class="op">+</span> <span class="ident">Ord</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>,
+                                                           <span class="ident">min</span>: <span class="ident">Bound</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Min</span><span class="op">&gt;</span>,
+                                                           <span class="ident">max</span>: <span class="ident">Bound</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Max</span><span class="op">&gt;</span>)
+                                                           <span class="op">-&gt;</span> <span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Min</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Max</span><span class="op">&gt;</span>
     {
-        <span class='ident'>Range</span> { <span class='ident'>iter</span>: <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>range</span>(<span class='ident'>min</span>, <span class='ident'>max</span>) }
+        <span class="ident">Range</span> { <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">range</span>(<span class="ident">min</span>, <span class="ident">max</span>) }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Visits the values representing the difference, in ascending order.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut a = BTreeSet::new();</span>
-    <span class='doccomment'>/// a.insert(1);</span>
-    <span class='doccomment'>/// a.insert(2);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut b = BTreeSet::new();</span>
-    <span class='doccomment'>/// b.insert(2);</span>
-    <span class='doccomment'>/// b.insert(3);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let diff: Vec&lt;_&gt; = a.difference(&amp;b).cloned().collect();</span>
-    <span class='doccomment'>/// assert_eq!(diff, [1]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Difference</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
-            <span class='ident'>b</span>: <span class='ident'>other</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Visits the values representing the difference, in ascending order.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut a = BTreeSet::new();</span>
+    <span class="doccomment">/// a.insert(1);</span>
+    <span class="doccomment">/// a.insert(2);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut b = BTreeSet::new();</span>
+    <span class="doccomment">/// b.insert(2);</span>
+    <span class="doccomment">/// b.insert(3);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let diff: Vec&lt;_&gt; = a.difference(&amp;b).cloned().collect();</span>
+    <span class="doccomment">/// assert_eq!(diff, [1]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Difference</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
+            <span class="ident">b</span>: <span class="ident">other</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
         }
     }
 
-    <span class='doccomment'>/// Visits the values representing the symmetric difference, in ascending order.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut a = BTreeSet::new();</span>
-    <span class='doccomment'>/// a.insert(1);</span>
-    <span class='doccomment'>/// a.insert(2);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut b = BTreeSet::new();</span>
-    <span class='doccomment'>/// b.insert(2);</span>
-    <span class='doccomment'>/// b.insert(3);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let sym_diff: Vec&lt;_&gt; = a.symmetric_difference(&amp;b).cloned().collect();</span>
-    <span class='doccomment'>/// assert_eq!(sym_diff, [1, 3]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>symmetric_difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>,
-                                    <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>)
-                                    <span class='op'>-&gt;</span> <span class='ident'>SymmetricDifference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>SymmetricDifference</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
-            <span class='ident'>b</span>: <span class='ident'>other</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
+    <span class="doccomment">/// Visits the values representing the symmetric difference, in ascending order.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut a = BTreeSet::new();</span>
+    <span class="doccomment">/// a.insert(1);</span>
+    <span class="doccomment">/// a.insert(2);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut b = BTreeSet::new();</span>
+    <span class="doccomment">/// b.insert(2);</span>
+    <span class="doccomment">/// b.insert(3);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let sym_diff: Vec&lt;_&gt; = a.symmetric_difference(&amp;b).cloned().collect();</span>
+    <span class="doccomment">/// assert_eq!(sym_diff, [1, 3]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">symmetric_difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>,
+                                    <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>)
+                                    <span class="op">-&gt;</span> <span class="ident">SymmetricDifference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">SymmetricDifference</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
+            <span class="ident">b</span>: <span class="ident">other</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
         }
     }
 
-    <span class='doccomment'>/// Visits the values representing the intersection, in ascending order.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut a = BTreeSet::new();</span>
-    <span class='doccomment'>/// a.insert(1);</span>
-    <span class='doccomment'>/// a.insert(2);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut b = BTreeSet::new();</span>
-    <span class='doccomment'>/// b.insert(2);</span>
-    <span class='doccomment'>/// b.insert(3);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let intersection: Vec&lt;_&gt; = a.intersection(&amp;b).cloned().collect();</span>
-    <span class='doccomment'>/// assert_eq!(intersection, [2]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>intersection</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Intersection</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Intersection</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
-            <span class='ident'>b</span>: <span class='ident'>other</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
+    <span class="doccomment">/// Visits the values representing the intersection, in ascending order.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut a = BTreeSet::new();</span>
+    <span class="doccomment">/// a.insert(1);</span>
+    <span class="doccomment">/// a.insert(2);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut b = BTreeSet::new();</span>
+    <span class="doccomment">/// b.insert(2);</span>
+    <span class="doccomment">/// b.insert(3);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let intersection: Vec&lt;_&gt; = a.intersection(&amp;b).cloned().collect();</span>
+    <span class="doccomment">/// assert_eq!(intersection, [2]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">intersection</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Intersection</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Intersection</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
+            <span class="ident">b</span>: <span class="ident">other</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
         }
     }
 
-    <span class='doccomment'>/// Visits the values representing the union, in ascending order.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut a = BTreeSet::new();</span>
-    <span class='doccomment'>/// a.insert(1);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut b = BTreeSet::new();</span>
-    <span class='doccomment'>/// b.insert(2);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let union: Vec&lt;_&gt; = a.union(&amp;b).cloned().collect();</span>
-    <span class='doccomment'>/// assert_eq!(union, [1, 2]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>union</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Union</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Union</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
-            <span class='ident'>b</span>: <span class='ident'>other</span>.<span class='ident'>iter</span>().<span class='ident'>peekable</span>(),
+    <span class="doccomment">/// Visits the values representing the union, in ascending order.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut a = BTreeSet::new();</span>
+    <span class="doccomment">/// a.insert(1);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut b = BTreeSet::new();</span>
+    <span class="doccomment">/// b.insert(2);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let union: Vec&lt;_&gt; = a.union(&amp;b).cloned().collect();</span>
+    <span class="doccomment">/// assert_eq!(union, [1, 2]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">union</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Union</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Union</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
+            <span class="ident">b</span>: <span class="ident">other</span>.<span class="ident">iter</span>().<span class="ident">peekable</span>(),
         }
     }
 
-    <span class='doccomment'>/// Returns the number of elements in the set.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut v = BTreeSet::new();</span>
-    <span class='doccomment'>/// assert_eq!(v.len(), 0);</span>
-    <span class='doccomment'>/// v.insert(1);</span>
-    <span class='doccomment'>/// assert_eq!(v.len(), 1);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>len</span>()
+    <span class="doccomment">/// Returns the number of elements in the set.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut v = BTreeSet::new();</span>
+    <span class="doccomment">/// assert_eq!(v.len(), 0);</span>
+    <span class="doccomment">/// v.insert(1);</span>
+    <span class="doccomment">/// assert_eq!(v.len(), 1);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">len</span>()
     }
 
-    <span class='doccomment'>/// Returns true if the set contains no elements.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut v = BTreeSet::new();</span>
-    <span class='doccomment'>/// assert!(v.is_empty());</span>
-    <span class='doccomment'>/// v.insert(1);</span>
-    <span class='doccomment'>/// assert!(!v.is_empty());</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_empty</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span>
+    <span class="doccomment">/// Returns true if the set contains no elements.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut v = BTreeSet::new();</span>
+    <span class="doccomment">/// assert!(v.is_empty());</span>
+    <span class="doccomment">/// v.insert(1);</span>
+    <span class="doccomment">/// assert!(!v.is_empty());</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_empty</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="number">0</span>
     }
 
-    <span class='doccomment'>/// Clears the set, removing all values.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut v = BTreeSet::new();</span>
-    <span class='doccomment'>/// v.insert(1);</span>
-    <span class='doccomment'>/// v.clear();</span>
-    <span class='doccomment'>/// assert!(v.is_empty());</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>clear</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>clear</span>()
+    <span class="doccomment">/// Clears the set, removing all values.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut v = BTreeSet::new();</span>
+    <span class="doccomment">/// v.insert(1);</span>
+    <span class="doccomment">/// v.clear();</span>
+    <span class="doccomment">/// assert!(v.is_empty());</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">clear</span>()
     }
 
-    <span class='doccomment'>/// Returns `true` if the set contains a value.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The value may be any borrowed form of the set&#39;s value type,</span>
-    <span class='doccomment'>/// but the ordering on the borrowed form *must* match the</span>
-    <span class='doccomment'>/// ordering on the value type.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let set: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();</span>
-    <span class='doccomment'>/// assert_eq!(set.contains(&amp;1), true);</span>
-    <span class='doccomment'>/// assert_eq!(set.contains(&amp;4), false);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>contains</span><span class='op'>&lt;</span><span class='ident'>Q</span>: <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>value</span>: <span class='kw-2'>&amp;</span><span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>,
-              <span class='ident'>Q</span>: <span class='ident'>Ord</span>
+    <span class="doccomment">/// Returns `true` if the set contains a value.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The value may be any borrowed form of the set&#39;s value type,</span>
+    <span class="doccomment">/// but the ordering on the borrowed form *must* match the</span>
+    <span class="doccomment">/// ordering on the value type.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let set: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();</span>
+    <span class="doccomment">/// assert_eq!(set.contains(&amp;1), true);</span>
+    <span class="doccomment">/// assert_eq!(set.contains(&amp;4), false);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">contains</span><span class="op">&lt;</span><span class="ident">Q</span>: <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">Q</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>,
+              <span class="ident">Q</span>: <span class="ident">Ord</span>
     {
-        <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>contains_key</span>(<span class='ident'>value</span>)
+        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">contains_key</span>(<span class="ident">value</span>)
     }
 
-    <span class='doccomment'>/// Returns a reference to the value in the set, if any, that is equal to the given value.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The value may be any borrowed form of the set&#39;s value type,</span>
-    <span class='doccomment'>/// but the ordering on the borrowed form *must* match the</span>
-    <span class='doccomment'>/// ordering on the value type.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get</span><span class='op'>&lt;</span><span class='ident'>Q</span>: <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>value</span>: <span class='kw-2'>&amp;</span><span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>T</span><span class='op'>&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>,
-              <span class='ident'>Q</span>: <span class='ident'>Ord</span>
+    <span class="doccomment">/// Returns a reference to the value in the set, if any, that is equal to the given value.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The value may be any borrowed form of the set&#39;s value type,</span>
+    <span class="doccomment">/// but the ordering on the borrowed form *must* match the</span>
+    <span class="doccomment">/// ordering on the value type.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span><span class="op">&lt;</span><span class="ident">Q</span>: <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">Q</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">T</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>,
+              <span class="ident">Q</span>: <span class="ident">Ord</span>
     {
-        <span class='ident'>Recover</span>::<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>map</span>, <span class='ident'>value</span>)
+        <span class="ident">Recover</span>::<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">map</span>, <span class="ident">value</span>)
     }
 
-    <span class='doccomment'>/// Returns `true` if the set has no elements in common with `other`.</span>
-    <span class='doccomment'>/// This is equivalent to checking for an empty intersection.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let a: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();</span>
-    <span class='doccomment'>/// let mut b = BTreeSet::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(a.is_disjoint(&amp;b), true);</span>
-    <span class='doccomment'>/// b.insert(4);</span>
-    <span class='doccomment'>/// assert_eq!(a.is_disjoint(&amp;b), true);</span>
-    <span class='doccomment'>/// b.insert(1);</span>
-    <span class='doccomment'>/// assert_eq!(a.is_disjoint(&amp;b), false);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_disjoint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>intersection</span>(<span class='ident'>other</span>).<span class='ident'>next</span>().<span class='ident'>is_none</span>()
+    <span class="doccomment">/// Returns `true` if the set has no elements in common with `other`.</span>
+    <span class="doccomment">/// This is equivalent to checking for an empty intersection.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let a: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();</span>
+    <span class="doccomment">/// let mut b = BTreeSet::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(a.is_disjoint(&amp;b), true);</span>
+    <span class="doccomment">/// b.insert(4);</span>
+    <span class="doccomment">/// assert_eq!(a.is_disjoint(&amp;b), true);</span>
+    <span class="doccomment">/// b.insert(1);</span>
+    <span class="doccomment">/// assert_eq!(a.is_disjoint(&amp;b), false);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_disjoint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">intersection</span>(<span class="ident">other</span>).<span class="ident">next</span>().<span class="ident">is_none</span>()
     }
 
-    <span class='doccomment'>/// Returns `true` if the set is a subset of another.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let sup: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();</span>
-    <span class='doccomment'>/// let mut set = BTreeSet::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(set.is_subset(&amp;sup), true);</span>
-    <span class='doccomment'>/// set.insert(2);</span>
-    <span class='doccomment'>/// assert_eq!(set.is_subset(&amp;sup), true);</span>
-    <span class='doccomment'>/// set.insert(4);</span>
-    <span class='doccomment'>/// assert_eq!(set.is_subset(&amp;sup), false);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_subset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='comment'>// Stolen from TreeMap</span>
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>iter</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>y</span> <span class='op'>=</span> <span class='ident'>other</span>.<span class='ident'>iter</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>a</span> <span class='op'>=</span> <span class='ident'>x</span>.<span class='ident'>next</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>b</span> <span class='op'>=</span> <span class='ident'>y</span>.<span class='ident'>next</span>();
-        <span class='kw'>while</span> <span class='ident'>a</span>.<span class='ident'>is_some</span>() {
-            <span class='kw'>if</span> <span class='ident'>b</span>.<span class='ident'>is_none</span>() {
-                <span class='kw'>return</span> <span class='bool-val'>false</span>;
+    <span class="doccomment">/// Returns `true` if the set is a subset of another.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let sup: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();</span>
+    <span class="doccomment">/// let mut set = BTreeSet::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(set.is_subset(&amp;sup), true);</span>
+    <span class="doccomment">/// set.insert(2);</span>
+    <span class="doccomment">/// assert_eq!(set.is_subset(&amp;sup), true);</span>
+    <span class="doccomment">/// set.insert(4);</span>
+    <span class="doccomment">/// assert_eq!(set.is_subset(&amp;sup), false);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_subset</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="comment">// Stolen from TreeMap</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">x</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">iter</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">y</span> <span class="op">=</span> <span class="ident">other</span>.<span class="ident">iter</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">next</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">b</span> <span class="op">=</span> <span class="ident">y</span>.<span class="ident">next</span>();
+        <span class="kw">while</span> <span class="ident">a</span>.<span class="ident">is_some</span>() {
+            <span class="kw">if</span> <span class="ident">b</span>.<span class="ident">is_none</span>() {
+                <span class="kw">return</span> <span class="bool-val">false</span>;
             }
 
-            <span class='kw'>let</span> <span class='ident'>a1</span> <span class='op'>=</span> <span class='ident'>a</span>.<span class='ident'>unwrap</span>();
-            <span class='kw'>let</span> <span class='ident'>b1</span> <span class='op'>=</span> <span class='ident'>b</span>.<span class='ident'>unwrap</span>();
+            <span class="kw">let</span> <span class="ident">a1</span> <span class="op">=</span> <span class="ident">a</span>.<span class="ident">unwrap</span>();
+            <span class="kw">let</span> <span class="ident">b1</span> <span class="op">=</span> <span class="ident">b</span>.<span class="ident">unwrap</span>();
 
-            <span class='kw'>match</span> <span class='ident'>b1</span>.<span class='ident'>cmp</span>(<span class='ident'>a1</span>) {
-                <span class='ident'>Less</span> <span class='op'>=&gt;</span> (),
-                <span class='ident'>Greater</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='bool-val'>false</span>,
-                <span class='ident'>Equal</span> <span class='op'>=&gt;</span> <span class='ident'>a</span> <span class='op'>=</span> <span class='ident'>x</span>.<span class='ident'>next</span>(),
+            <span class="kw">match</span> <span class="ident">b1</span>.<span class="ident">cmp</span>(<span class="ident">a1</span>) {
+                <span class="ident">Less</span> <span class="op">=&gt;</span> (),
+                <span class="ident">Greater</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="bool-val">false</span>,
+                <span class="ident">Equal</span> <span class="op">=&gt;</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">next</span>(),
             }
 
-            <span class='ident'>b</span> <span class='op'>=</span> <span class='ident'>y</span>.<span class='ident'>next</span>();
+            <span class="ident">b</span> <span class="op">=</span> <span class="ident">y</span>.<span class="ident">next</span>();
         }
-        <span class='bool-val'>true</span>
+        <span class="bool-val">true</span>
     }
 
-    <span class='doccomment'>/// Returns `true` if the set is a superset of another.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let sub: BTreeSet&lt;_&gt; = [1, 2].iter().cloned().collect();</span>
-    <span class='doccomment'>/// let mut set = BTreeSet::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(set.is_superset(&amp;sub), false);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// set.insert(0);</span>
-    <span class='doccomment'>/// set.insert(1);</span>
-    <span class='doccomment'>/// assert_eq!(set.is_superset(&amp;sub), false);</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// set.insert(2);</span>
-    <span class='doccomment'>/// assert_eq!(set.is_superset(&amp;sub), true);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_superset</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>other</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='ident'>other</span>.<span class='ident'>is_subset</span>(<span class='self'>self</span>)
+    <span class="doccomment">/// Returns `true` if the set is a superset of another.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let sub: BTreeSet&lt;_&gt; = [1, 2].iter().cloned().collect();</span>
+    <span class="doccomment">/// let mut set = BTreeSet::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(set.is_superset(&amp;sub), false);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// set.insert(0);</span>
+    <span class="doccomment">/// set.insert(1);</span>
+    <span class="doccomment">/// assert_eq!(set.is_superset(&amp;sub), false);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// set.insert(2);</span>
+    <span class="doccomment">/// assert_eq!(set.is_superset(&amp;sub), true);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_superset</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="ident">other</span>.<span class="ident">is_subset</span>(<span class="self">self</span>)
     }
 
-    <span class='doccomment'>/// Adds a value to the set.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the set did not have a value present, `true` is returned.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the set did have this key present, `false` is returned, and the</span>
-    <span class='doccomment'>/// entry is not updated. See the [module-level documentation] for more.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// [module-level documentation]: index.html#insert-and-complex-keys</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut set = BTreeSet::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// assert_eq!(set.insert(2), true);</span>
-    <span class='doccomment'>/// assert_eq!(set.insert(2), false);</span>
-    <span class='doccomment'>/// assert_eq!(set.len(), 1);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>insert</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>insert</span>(<span class='ident'>value</span>, ()).<span class='ident'>is_none</span>()
+    <span class="doccomment">/// Adds a value to the set.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If the set did not have a value present, `true` is returned.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If the set did have this key present, `false` is returned, and the</span>
+    <span class="doccomment">/// entry is not updated. See the [module-level documentation] for more.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [module-level documentation]: index.html#insert-and-complex-keys</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut set = BTreeSet::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// assert_eq!(set.insert(2), true);</span>
+    <span class="doccomment">/// assert_eq!(set.insert(2), false);</span>
+    <span class="doccomment">/// assert_eq!(set.len(), 1);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">T</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">insert</span>(<span class="ident">value</span>, ()).<span class="ident">is_none</span>()
     }
 
-    <span class='doccomment'>/// Adds a value to the set, replacing the existing value, if any, that is equal to the given</span>
-    <span class='doccomment'>/// one. Returns the replaced value.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>replace</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Recover</span>::<span class='ident'>replace</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>map</span>, <span class='ident'>value</span>)
+    <span class="doccomment">/// Adds a value to the set, replacing the existing value, if any, that is equal to the given</span>
+    <span class="doccomment">/// one. Returns the replaced value.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="ident">T</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Recover</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">map</span>, <span class="ident">value</span>)
     }
 
-    <span class='doccomment'>/// Removes a value from the set. Returns `true` if the value was</span>
-    <span class='doccomment'>/// present in the set.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The value may be any borrowed form of the set&#39;s value type,</span>
-    <span class='doccomment'>/// but the ordering on the borrowed form *must* match the</span>
-    <span class='doccomment'>/// ordering on the value type.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let mut set = BTreeSet::new();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// set.insert(2);</span>
-    <span class='doccomment'>/// assert_eq!(set.remove(&amp;2), true);</span>
-    <span class='doccomment'>/// assert_eq!(set.remove(&amp;2), false);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>remove</span><span class='op'>&lt;</span><span class='ident'>Q</span>: <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='kw-2'>&amp;</span><span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>,
-              <span class='ident'>Q</span>: <span class='ident'>Ord</span>
+    <span class="doccomment">/// Removes a value from the set. Returns `true` if the value was</span>
+    <span class="doccomment">/// present in the set.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The value may be any borrowed form of the set&#39;s value type,</span>
+    <span class="doccomment">/// but the ordering on the borrowed form *must* match the</span>
+    <span class="doccomment">/// ordering on the value type.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let mut set = BTreeSet::new();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// set.insert(2);</span>
+    <span class="doccomment">/// assert_eq!(set.remove(&amp;2), true);</span>
+    <span class="doccomment">/// assert_eq!(set.remove(&amp;2), false);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remove</span><span class="op">&lt;</span><span class="ident">Q</span>: <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">Q</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>,
+              <span class="ident">Q</span>: <span class="ident">Ord</span>
     {
-        <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>remove</span>(<span class='ident'>value</span>).<span class='ident'>is_some</span>()
+        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">remove</span>(<span class="ident">value</span>).<span class="ident">is_some</span>()
     }
 
-    <span class='doccomment'>/// Removes and returns the value in the set, if any, that is equal to the given one.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The value may be any borrowed form of the set&#39;s value type,</span>
-    <span class='doccomment'>/// but the ordering on the borrowed form *must* match the</span>
-    <span class='doccomment'>/// ordering on the value type.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take</span><span class='op'>&lt;</span><span class='ident'>Q</span>: <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>value</span>: <span class='kw-2'>&amp;</span><span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>,
-              <span class='ident'>Q</span>: <span class='ident'>Ord</span>
+    <span class="doccomment">/// Removes and returns the value in the set, if any, that is equal to the given one.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The value may be any borrowed form of the set&#39;s value type,</span>
+    <span class="doccomment">/// but the ordering on the borrowed form *must* match the</span>
+    <span class="doccomment">/// ordering on the value type.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">take</span><span class="op">&lt;</span><span class="ident">Q</span>: <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">Q</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>,
+              <span class="ident">Q</span>: <span class="ident">Ord</span>
     {
-        <span class='ident'>Recover</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>map</span>, <span class='ident'>value</span>)
+        <span class="ident">Recover</span>::<span class="ident">take</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">map</span>, <span class="ident">value</span>)
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>FromIterator</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>from_iter</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>IntoIterator</span><span class='op'>&lt;</span><span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>T</span><span class='op'>&gt;&gt;</span>(<span class='ident'>iter</span>: <span class='ident'>I</span>) <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>set</span> <span class='op'>=</span> <span class='ident'>BTreeSet</span>::<span class='ident'>new</span>();
-        <span class='ident'>set</span>.<span class='ident'>extend</span>(<span class='ident'>iter</span>);
-        <span class='ident'>set</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">FromIterator</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">from_iter</span><span class="op">&lt;</span><span class="ident">I</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span><span class="op">&gt;&gt;</span>(<span class="ident">iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">set</span> <span class="op">=</span> <span class="ident">BTreeSet</span>::<span class="ident">new</span>();
+        <span class="ident">set</span>.<span class="ident">extend</span>(<span class="ident">iter</span>);
+        <span class="ident">set</span>
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>IntoIterator</span> <span class='kw'>for</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>T</span>;
-    <span class='kw'>type</span> <span class='ident'>IntoIter</span> <span class='op'>=</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span>;
+    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>;
 
-    <span class='doccomment'>/// Gets an iterator for moving out the BtreeSet&#39;s contents.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let set: BTreeSet&lt;usize&gt; = [1, 2, 3, 4].iter().cloned().collect();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let v: Vec&lt;_&gt; = set.into_iter().collect();</span>
-    <span class='doccomment'>/// assert_eq!(v, [1, 2, 3, 4]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>fn</span> <span class='ident'>into_iter</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>IntoIter</span> { <span class='ident'>iter</span>: <span class='self'>self</span>.<span class='ident'>map</span>.<span class='ident'>into_iter</span>() }
+    <span class="doccomment">/// Gets an iterator for moving out the BtreeSet&#39;s contents.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let set: BTreeSet&lt;usize&gt; = [1, 2, 3, 4].iter().cloned().collect();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let v: Vec&lt;_&gt; = set.into_iter().collect();</span>
+    <span class="doccomment">/// assert_eq!(v, [1, 2, 3, 4]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">IntoIter</span> { <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">into_iter</span>() }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>IntoIterator</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
-    <span class='kw'>type</span> <span class='ident'>IntoIter</span> <span class='op'>=</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
+    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>into_iter</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>()
+    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>Extend</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>extend</span><span class='op'>&lt;</span><span class='ident'>Iter</span>: <span class='ident'>IntoIterator</span><span class='op'>&lt;</span><span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>T</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>iter</span>: <span class='ident'>Iter</span>) {
-        <span class='kw'>for</span> <span class='ident'>elem</span> <span class='kw'>in</span> <span class='ident'>iter</span> {
-            <span class='self'>self</span>.<span class='ident'>insert</span>(<span class='ident'>elem</span>);
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Extend</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">extend</span><span class="op">&lt;</span><span class="ident">Iter</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span><span class="op">&gt;&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">iter</span>: <span class="ident">Iter</span>) {
+        <span class="kw">for</span> <span class="ident">elem</span> <span class="kw">in</span> <span class="ident">iter</span> {
+            <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">elem</span>);
         }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='lifetime'>&#39;a</span> <span class='op'>+</span> <span class='ident'>Ord</span> <span class='op'>+</span> <span class='ident'>Copy</span><span class='op'>&gt;</span> <span class='ident'>Extend</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>extend</span><span class='op'>&lt;</span><span class='ident'>I</span>: <span class='ident'>IntoIterator</span><span class='op'>&lt;</span><span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>iter</span>: <span class='ident'>I</span>) {
-        <span class='self'>self</span>.<span class='ident'>extend</span>(<span class='ident'>iter</span>.<span class='ident'>into_iter</span>().<span class='ident'>cloned</span>());
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="lifetime">&#39;a</span> <span class="op">+</span> <span class="ident">Ord</span> <span class="op">+</span> <span class="ident">Copy</span><span class="op">&gt;</span> <span class="ident">Extend</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">extend</span><span class="op">&lt;</span><span class="ident">I</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">iter</span>: <span class="ident">I</span>) {
+        <span class="self">self</span>.<span class="ident">extend</span>(<span class="ident">iter</span>.<span class="ident">into_iter</span>().<span class="ident">cloned</span>());
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>default</span>() <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>BTreeSet</span>::<span class='ident'>new</span>()
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">BTreeSet</span>::<span class="ident">new</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span> <span class='op'>+</span> <span class='ident'>Clone</span><span class='op'>&gt;</span> <span class='ident'>Sub</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span>, <span class="ident">T</span>: <span class="ident">Ord</span> <span class="op">+</span> <span class="ident">Clone</span><span class="op">&gt;</span> <span class="ident">Sub</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>;
 
-    <span class='doccomment'>/// Returns the difference of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
-    <span class='doccomment'>/// let b: BTreeSet&lt;_&gt; = vec![3, 4, 5].into_iter().collect();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let result = &amp;a - &amp;b;</span>
-    <span class='doccomment'>/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
-    <span class='doccomment'>/// assert_eq!(result_vec, [1, 2]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>fn</span> <span class='ident'>sub</span>(<span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>difference</span>(<span class='ident'>rhs</span>).<span class='ident'>cloned</span>().<span class='ident'>collect</span>()
+    <span class="doccomment">/// Returns the difference of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
+    <span class="doccomment">/// let b: BTreeSet&lt;_&gt; = vec![3, 4, 5].into_iter().collect();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let result = &amp;a - &amp;b;</span>
+    <span class="doccomment">/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
+    <span class="doccomment">/// assert_eq!(result_vec, [1, 2]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">fn</span> <span class="ident">sub</span>(<span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">difference</span>(<span class="ident">rhs</span>).<span class="ident">cloned</span>().<span class="ident">collect</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span> <span class='op'>+</span> <span class='ident'>Clone</span><span class='op'>&gt;</span> <span class='ident'>BitXor</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span>, <span class="ident">T</span>: <span class="ident">Ord</span> <span class="op">+</span> <span class="ident">Clone</span><span class="op">&gt;</span> <span class="ident">BitXor</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>;
 
-    <span class='doccomment'>/// Returns the symmetric difference of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
-    <span class='doccomment'>/// let b: BTreeSet&lt;_&gt; = vec![2, 3, 4].into_iter().collect();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let result = &amp;a ^ &amp;b;</span>
-    <span class='doccomment'>/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
-    <span class='doccomment'>/// assert_eq!(result_vec, [1, 4]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>fn</span> <span class='ident'>bitxor</span>(<span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>symmetric_difference</span>(<span class='ident'>rhs</span>).<span class='ident'>cloned</span>().<span class='ident'>collect</span>()
+    <span class="doccomment">/// Returns the symmetric difference of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
+    <span class="doccomment">/// let b: BTreeSet&lt;_&gt; = vec![2, 3, 4].into_iter().collect();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let result = &amp;a ^ &amp;b;</span>
+    <span class="doccomment">/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
+    <span class="doccomment">/// assert_eq!(result_vec, [1, 4]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">fn</span> <span class="ident">bitxor</span>(<span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">symmetric_difference</span>(<span class="ident">rhs</span>).<span class="ident">cloned</span>().<span class="ident">collect</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span> <span class='op'>+</span> <span class='ident'>Clone</span><span class='op'>&gt;</span> <span class='ident'>BitAnd</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span>, <span class="ident">T</span>: <span class="ident">Ord</span> <span class="op">+</span> <span class="ident">Clone</span><span class="op">&gt;</span> <span class="ident">BitAnd</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>;
 
-    <span class='doccomment'>/// Returns the intersection of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
-    <span class='doccomment'>/// let b: BTreeSet&lt;_&gt; = vec![2, 3, 4].into_iter().collect();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let result = &amp;a &amp; &amp;b;</span>
-    <span class='doccomment'>/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
-    <span class='doccomment'>/// assert_eq!(result_vec, [2, 3]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>fn</span> <span class='ident'>bitand</span>(<span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>intersection</span>(<span class='ident'>rhs</span>).<span class='ident'>cloned</span>().<span class='ident'>collect</span>()
+    <span class="doccomment">/// Returns the intersection of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
+    <span class="doccomment">/// let b: BTreeSet&lt;_&gt; = vec![2, 3, 4].into_iter().collect();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let result = &amp;a &amp; &amp;b;</span>
+    <span class="doccomment">/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
+    <span class="doccomment">/// assert_eq!(result_vec, [2, 3]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">fn</span> <span class="ident">bitand</span>(<span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">intersection</span>(<span class="ident">rhs</span>).<span class="ident">cloned</span>().<span class="ident">collect</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='lifetime'>&#39;b</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span> <span class='op'>+</span> <span class='ident'>Clone</span><span class='op'>&gt;</span> <span class='ident'>BitOr</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Output</span> <span class='op'>=</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span>, <span class="ident">T</span>: <span class="ident">Ord</span> <span class="op">+</span> <span class="ident">Clone</span><span class="op">&gt;</span> <span class="ident">BitOr</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>;
 
-    <span class='doccomment'>/// Returns the union of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// # Examples</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```text</span>
-    <span class='doccomment'>/// use std::collections::BTreeSet;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
-    <span class='doccomment'>/// let b: BTreeSet&lt;_&gt; = vec![3, 4, 5].into_iter().collect();</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let result = &amp;a | &amp;b;</span>
-    <span class='doccomment'>/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
-    <span class='doccomment'>/// assert_eq!(result_vec, [1, 2, 3, 4, 5]);</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>fn</span> <span class='ident'>bitor</span>(<span class='self'>self</span>, <span class='ident'>rhs</span>: <span class='kw-2'>&amp;</span><span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>union</span>(<span class='ident'>rhs</span>).<span class='ident'>cloned</span>().<span class='ident'>collect</span>()
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Debug</span><span class='op'>&gt;</span> <span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>BTreeSet</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='ident'>f</span>.<span class='ident'>debug_set</span>().<span class='ident'>entries</span>(<span class='self'>self</span>.<span class='ident'>iter</span>()).<span class='ident'>finish</span>()
+    <span class="doccomment">/// Returns the union of `self` and `rhs` as a new `BTreeSet&lt;T&gt;`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```text</span>
+    <span class="doccomment">/// use std::collections::BTreeSet;</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let a: BTreeSet&lt;_&gt; = vec![1, 2, 3].into_iter().collect();</span>
+    <span class="doccomment">/// let b: BTreeSet&lt;_&gt; = vec![3, 4, 5].into_iter().collect();</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let result = &amp;a | &amp;b;</span>
+    <span class="doccomment">/// let result_vec: Vec&lt;_&gt; = result.into_iter().collect();</span>
+    <span class="doccomment">/// assert_eq!(result_vec, [1, 2, 3, 4, 5]);</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">fn</span> <span class="ident">bitor</span>(<span class="self">self</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">union</span>(<span class="ident">rhs</span>).<span class="ident">cloned</span>().<span class="ident">collect</span>()
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Iter</span> { <span class='ident'>iter</span>: <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>clone</span>() }
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
-
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next</span>()
-    }
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>size_hint</span>()
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DoubleEndedIterator</span> <span class='kw'>for</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>next_back</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next_back</span>()
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>ExactSizeIterator</span> <span class='kw'>for</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> { <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>len</span>() }
-}
-
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='ident'>T</span>;
-
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>k</span>, _)<span class='op'>|</span> <span class='ident'>k</span>)
-    }
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>size_hint</span>()
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DoubleEndedIterator</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>next_back</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next_back</span>().<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>k</span>, _)<span class='op'>|</span> <span class='ident'>k</span>)
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>ExactSizeIterator</span> <span class='kw'>for</span> <span class='ident'>IntoIter</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> { <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>len</span>() }
-}
-
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Range</span> { <span class='ident'>iter</span>: <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>clone</span>() }
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
-
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next</span>().<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>k</span>, _)<span class='op'>|</span> <span class='ident'>k</span>)
-    }
-}
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>DoubleEndedIterator</span> <span class='kw'>for</span> <span class='ident'>Range</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>next_back</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>iter</span>.<span class='ident'>next_back</span>().<span class='ident'>map</span>(<span class='op'>|</span>(<span class='ident'>k</span>, _)<span class='op'>|</span> <span class='ident'>k</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Debug</span><span class="op">&gt;</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">BTreeSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="ident">f</span>.<span class="ident">debug_set</span>().<span class="ident">entries</span>(<span class="self">self</span>.<span class="ident">iter</span>()).<span class="ident">finish</span>()
     }
 }
 
-<span class='doccomment'>/// Compare `x` and `y`, but return `short` if x is None and `long` if y is None</span>
-<span class='kw'>fn</span> <span class='ident'>cmp_opt</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span>(<span class='ident'>x</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>y</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>short</span>: <span class='ident'>Ordering</span>, <span class='ident'>long</span>: <span class='ident'>Ordering</span>) <span class='op'>-&gt;</span> <span class='ident'>Ordering</span> {
-    <span class='kw'>match</span> (<span class='ident'>x</span>, <span class='ident'>y</span>) {
-        (<span class='prelude-val'>None</span>, _) <span class='op'>=&gt;</span> <span class='ident'>short</span>,
-        (_, <span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='ident'>long</span>,
-        (<span class='prelude-val'>Some</span>(<span class='ident'>x1</span>), <span class='prelude-val'>Some</span>(<span class='ident'>y1</span>)) <span class='op'>=&gt;</span> <span class='ident'>x1</span>.<span class='ident'>cmp</span>(<span class='ident'>y1</span>),
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Iter</span> { <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">clone</span>() }
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
+
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next</span>()
+    }
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">size_hint</span>()
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">DoubleEndedIterator</span> <span class="kw">for</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">next_back</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next_back</span>()
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">ExactSizeIterator</span> <span class="kw">for</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> { <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">len</span>() }
+}
+
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span>;
+
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next</span>().<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">k</span>, _)<span class="op">|</span> <span class="ident">k</span>)
+    }
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">size_hint</span>()
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">DoubleEndedIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">next_back</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next_back</span>().<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">k</span>, _)<span class="op">|</span> <span class="ident">k</span>)
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">ExactSizeIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> { <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">len</span>() }
+}
+
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Range</span> { <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">clone</span>() }
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
+
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next</span>().<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">k</span>, _)<span class="op">|</span> <span class="ident">k</span>)
+    }
+}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">DoubleEndedIterator</span> <span class="kw">for</span> <span class="ident">Range</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">next_back</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next_back</span>().<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">k</span>, _)<span class="op">|</span> <span class="ident">k</span>)
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>Difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Difference</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>clone</span>(),
-            <span class='ident'>b</span>: <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>clone</span>(),
+<span class="doccomment">/// Compare `x` and `y`, but return `short` if x is None and `long` if y is None</span>
+<span class="kw">fn</span> <span class="ident">cmp_opt</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span>(<span class="ident">x</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">T</span><span class="op">&gt;</span>, <span class="ident">y</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">T</span><span class="op">&gt;</span>, <span class="ident">short</span>: <span class="ident">Ordering</span>, <span class="ident">long</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="ident">Ordering</span> {
+    <span class="kw">match</span> (<span class="ident">x</span>, <span class="ident">y</span>) {
+        (<span class="prelude-val">None</span>, _) <span class="op">=&gt;</span> <span class="ident">short</span>,
+        (_, <span class="prelude-val">None</span>) <span class="op">=&gt;</span> <span class="ident">long</span>,
+        (<span class="prelude-val">Some</span>(<span class="ident">x1</span>), <span class="prelude-val">Some</span>(<span class="ident">y1</span>)) <span class="op">=&gt;</span> <span class="ident">x1</span>.<span class="ident">cmp</span>(<span class="ident">y1</span>),
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Difference</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">clone</span>(),
+            <span class="ident">b</span>: <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">clone</span>(),
         }
     }
 }
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>Difference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">Difference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='kw'>loop</span> {
-            <span class='kw'>match</span> <span class='ident'>cmp_opt</span>(<span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>peek</span>(), <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>peek</span>(), <span class='ident'>Less</span>, <span class='ident'>Less</span>) {
-                <span class='ident'>Less</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>(),
-                <span class='ident'>Equal</span> <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>();
-                    <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>();
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="kw">loop</span> {
+            <span class="kw">match</span> <span class="ident">cmp_opt</span>(<span class="self">self</span>.<span class="ident">a</span>.<span class="ident">peek</span>(), <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">peek</span>(), <span class="ident">Less</span>, <span class="ident">Less</span>) {
+                <span class="ident">Less</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>(),
+                <span class="ident">Equal</span> <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>();
+                    <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>();
                 }
-                <span class='ident'>Greater</span> <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>();
+                <span class="ident">Greater</span> <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>();
                 }
             }
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        <span class='kw'>let</span> <span class='ident'>a_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>len</span>();
-        <span class='kw'>let</span> <span class='ident'>b_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>len</span>();
-        (<span class='ident'>a_len</span>.<span class='ident'>saturating_sub</span>(<span class='ident'>b_len</span>), <span class='prelude-val'>Some</span>(<span class='ident'>a_len</span>))
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">a_len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="ident">b_len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">len</span>();
+        (<span class="ident">a_len</span>.<span class="ident">saturating_sub</span>(<span class="ident">b_len</span>), <span class="prelude-val">Some</span>(<span class="ident">a_len</span>))
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>SymmetricDifference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>SymmetricDifference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>SymmetricDifference</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>clone</span>(),
-            <span class='ident'>b</span>: <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>clone</span>(),
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">SymmetricDifference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">SymmetricDifference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">SymmetricDifference</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">clone</span>(),
+            <span class="ident">b</span>: <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">clone</span>(),
         }
     }
 }
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>SymmetricDifference</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">SymmetricDifference</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='kw'>loop</span> {
-            <span class='kw'>match</span> <span class='ident'>cmp_opt</span>(<span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>peek</span>(), <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>peek</span>(), <span class='ident'>Greater</span>, <span class='ident'>Less</span>) {
-                <span class='ident'>Less</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>(),
-                <span class='ident'>Equal</span> <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>();
-                    <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>();
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="kw">loop</span> {
+            <span class="kw">match</span> <span class="ident">cmp_opt</span>(<span class="self">self</span>.<span class="ident">a</span>.<span class="ident">peek</span>(), <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">peek</span>(), <span class="ident">Greater</span>, <span class="ident">Less</span>) {
+                <span class="ident">Less</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>(),
+                <span class="ident">Equal</span> <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>();
+                    <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>();
                 }
-                <span class='ident'>Greater</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>(),
+                <span class="ident">Greater</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>(),
             }
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        (<span class='number'>0</span>, <span class='prelude-val'>Some</span>(<span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>len</span>()))
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        (<span class="number">0</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">a</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">len</span>()))
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>Intersection</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Intersection</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Intersection</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>clone</span>(),
-            <span class='ident'>b</span>: <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>clone</span>(),
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Intersection</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Intersection</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Intersection</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">clone</span>(),
+            <span class="ident">b</span>: <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">clone</span>(),
         }
     }
 }
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>Intersection</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">Intersection</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='kw'>loop</span> {
-            <span class='kw'>let</span> <span class='ident'>o_cmp</span> <span class='op'>=</span> <span class='kw'>match</span> (<span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>peek</span>(), <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>peek</span>()) {
-                (<span class='prelude-val'>None</span>, _) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-                (_, <span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
-                (<span class='prelude-val'>Some</span>(<span class='ident'>a1</span>), <span class='prelude-val'>Some</span>(<span class='ident'>b1</span>)) <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>a1</span>.<span class='ident'>cmp</span>(<span class='ident'>b1</span>)),
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="kw">loop</span> {
+            <span class="kw">let</span> <span class="ident">o_cmp</span> <span class="op">=</span> <span class="kw">match</span> (<span class="self">self</span>.<span class="ident">a</span>.<span class="ident">peek</span>(), <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">peek</span>()) {
+                (<span class="prelude-val">None</span>, _) <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
+                (_, <span class="prelude-val">None</span>) <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
+                (<span class="prelude-val">Some</span>(<span class="ident">a1</span>), <span class="prelude-val">Some</span>(<span class="ident">b1</span>)) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">a1</span>.<span class="ident">cmp</span>(<span class="ident">b1</span>)),
             };
-            <span class='kw'>match</span> <span class='ident'>o_cmp</span> {
-                <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>None</span>,
-                <span class='prelude-val'>Some</span>(<span class='ident'>Less</span>) <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>();
+            <span class="kw">match</span> <span class="ident">o_cmp</span> {
+                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">None</span>,
+                <span class="prelude-val">Some</span>(<span class="ident">Less</span>) <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>();
                 }
-                <span class='prelude-val'>Some</span>(<span class='ident'>Equal</span>) <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>();
-                    <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>();
+                <span class="prelude-val">Some</span>(<span class="ident">Equal</span>) <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>();
+                    <span class="kw">return</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>();
                 }
-                <span class='prelude-val'>Some</span>(<span class='ident'>Greater</span>) <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>();
+                <span class="prelude-val">Some</span>(<span class="ident">Greater</span>) <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>();
                 }
             }
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        (<span class='number'>0</span>, <span class='prelude-val'>Some</span>(<span class='ident'>min</span>(<span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>len</span>(), <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>len</span>())))
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        (<span class="number">0</span>, <span class="prelude-val">Some</span>(<span class="ident">min</span>(<span class="self">self</span>.<span class="ident">a</span>.<span class="ident">len</span>(), <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">len</span>())))
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>Union</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Union</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>Union</span> {
-            <span class='ident'>a</span>: <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>clone</span>(),
-            <span class='ident'>b</span>: <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>clone</span>(),
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Union</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Union</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="ident">Union</span> {
+            <span class="ident">a</span>: <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">clone</span>(),
+            <span class="ident">b</span>: <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">clone</span>(),
         }
     }
 }
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span>: <span class='ident'>Ord</span><span class='op'>&gt;</span> <span class='ident'>Iterator</span> <span class='kw'>for</span> <span class='ident'>Union</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span>, <span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>type</span> <span class='ident'>Item</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">Union</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='kw'>loop</span> {
-            <span class='kw'>match</span> <span class='ident'>cmp_opt</span>(<span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>peek</span>(), <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>peek</span>(), <span class='ident'>Greater</span>, <span class='ident'>Less</span>) {
-                <span class='ident'>Less</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>(),
-                <span class='ident'>Equal</span> <span class='op'>=&gt;</span> {
-                    <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>();
-                    <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>next</span>();
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="kw">loop</span> {
+            <span class="kw">match</span> <span class="ident">cmp_opt</span>(<span class="self">self</span>.<span class="ident">a</span>.<span class="ident">peek</span>(), <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">peek</span>(), <span class="ident">Greater</span>, <span class="ident">Less</span>) {
+                <span class="ident">Less</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>(),
+                <span class="ident">Equal</span> <span class="op">=&gt;</span> {
+                    <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>();
+                    <span class="kw">return</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">next</span>();
                 }
-                <span class='ident'>Greater</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>next</span>(),
+                <span class="ident">Greater</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">next</span>(),
             }
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>size_hint</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>) {
-        <span class='kw'>let</span> <span class='ident'>a_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>a</span>.<span class='ident'>len</span>();
-        <span class='kw'>let</span> <span class='ident'>b_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>b</span>.<span class='ident'>len</span>();
-        (<span class='ident'>max</span>(<span class='ident'>a_len</span>, <span class='ident'>b_len</span>), <span class='prelude-val'>Some</span>(<span class='ident'>a_len</span> <span class='op'>+</span> <span class='ident'>b_len</span>))
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">a_len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">a</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="ident">b_len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">b</span>.<span class="ident">len</span>();
+        (<span class="ident">max</span>(<span class="ident">a_len</span>, <span class="ident">b_len</span>), <span class="prelude-val">Some</span>(<span class="ident">a_len</span> <span class="op">+</span> <span class="ident">b_len</span>))
     }
 }
 </pre>
