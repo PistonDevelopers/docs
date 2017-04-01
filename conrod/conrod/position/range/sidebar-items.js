@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Edge","Represents either the **Start** or **End** **Edge** of a **Range**."]],"struct":[["Range","Some start and end position along a single axis."]]});
+initSidebarItems({"enum":[["Edge","Represents either the Start or End Edge of a Range."]],"struct":[["Range","Some start and end position along a single axis."]]});

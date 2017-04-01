@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Circle","A tiny wrapper around the **Oval** widget type."]]});
+initSidebarItems({"struct":[["Circle","A tiny wrapper around the Oval widget type."]]});
