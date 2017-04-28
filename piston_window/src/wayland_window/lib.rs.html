@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-window-0.4.3/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-window-0.4.4/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1"> 1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1"> 1</span>
 <span id="2"> 2</span>
 <span id="3"> 3</span>
 <span id="4"> 4</span>
@@ -131,95 +131,95 @@
 <span id="86">86</span>
 <span id="87">87</span>
 <span id="88">88</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! Wayland Window, a minimalistic decoration-drawing library for</span>
-<span class='doccomment'>//! wayland applications.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! This crate is only usable in conjuction of the</span>
-<span class='doccomment'>//! [`wayland-client`](https://crates.io/crates/wayland-client) crate.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ## Creating a decorated shell surface</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! Creating a decorated window is as simple as wrapping it in a</span>
-<span class='doccomment'>//! `DecoratedSurface`:</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ```ignore</span>
-<span class='doccomment'>//! use wayland_window::DecoratedSurface;</span>
-<span class='doccomment'>//! let decorated = DecoratedSurface::new(my_surface, width, height, &amp;compositor, &amp;subcompositor, &amp;shm, &amp;shell, Some(seat));</span>
-<span class='doccomment'>//! ```</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! As you can see, you need to pass several references to global objects as well as a `WlSeat`.</span>
-<span class='doccomment'>//! It is required for the library to be able to create the surfaces to draw the borders, react</span>
-<span class='doccomment'>//! to user input in the borders, for resizeing and move. It will use the events provided on the</span>
-<span class='doccomment'>//! seat you passed as argument. (So if you are on a setup with more than one pointer,</span>
-<span class='doccomment'>//! only the one associated with this seat will be able to resize the window).</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ## Processing the events</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The `DecoratedSurface` object will not resize your window itself, as it cannot do it.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! When the user clicks on a border and starts a resize, the server will start to generate a</span>
-<span class='doccomment'>//! number of `configure` events on the shell surface. You&#39;ll need to process the events generated</span>
-<span class='doccomment'>//! by the surface to handle them, as the surface is also an event iterator :</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ```ignore</span>
-<span class='doccomment'>//! for (time, x, y) in &amp;mut decorated_surface {</span>
-<span class='doccomment'>//!     // handle the event</span>
-<span class='doccomment'>//! }</span>
-<span class='doccomment'>//! ```</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The wayland server can (and will) generate a ton of `configure` events during a single</span>
-<span class='doccomment'>//! `WlDisplay::dispatch()` if the user is currently resizing the window. You are only required to</span>
-<span class='doccomment'>//! process the last one, and if you try to handle them all your aplication will be very</span>
-<span class='doccomment'>//! laggy.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! The proper way is to prcess the iterator and only store them in a container, overwriting the</span>
-<span class='doccomment'>//! the previous one each time, and manually checking if one has been received in the main loop</span>
-<span class='doccomment'>//! of your program, like this:</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ```ignore</span>
-<span class='doccomment'>//! let mut newsize = None;</span>
-<span class='doccomment'>//! for (_, x, y) in &amp;mut decorated_surface {</span>
-<span class='doccomment'>//!     newsize = Some((x, y))</span>
-<span class='doccomment'>//! }</span>
-<span class='doccomment'>//! if let Some((x, y)) = newsize {</span>
-<span class='doccomment'>//!     let (x, y) = substract_borders(x, y);</span>
-<span class='doccomment'>//!     window.resize(x, y);</span>
-<span class='doccomment'>//! }</span>
-<span class='doccomment'>//! ```</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ## Resizing the surface</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! When resizing your main surface, you need to tell the `DecoratedSurface` that it</span>
-<span class='doccomment'>//! must update its dimensions. This is very simple:</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! ```ignore</span>
-<span class='doccomment'>//! /* update the borders size */</span>
-<span class='doccomment'>//! surface.attach(Some(&amp;new_buffer));</span>
-<span class='doccomment'>//! decorated_surface.resize(width, height);</span>
-<span class='doccomment'>//! surface.commit();</span>
-<span class='doccomment'>//! ```</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! If you do this as a response of a `configure` event, note the following points:</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! - You do not have to respect the exact sizes provided by the compositor, it is</span>
-<span class='doccomment'>//!   just a hint. You can even ignore it if you don&#39;t want the window to be resized.</span>
-<span class='doccomment'>//! - In case you chose to ignore the resize, it can be appropiate to still resize your</span>
-<span class='doccomment'>//!   window to its current size (update the buffer to the compositor), as the compositer</span>
-<span class='doccomment'>//!   might have resized your window without telling you.</span>
-<span class='doccomment'>//! - The size hint provided by the compositor counts the borders size, to get the real</span>
-<span class='doccomment'>//!   size hint for your interior surface, use the function `substract_borders(..)` provided</span>
-<span class='doccomment'>//!   by this library.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! Wayland Window, a minimalistic decoration-drawing library for</span>
+<span class="doccomment">//! wayland applications.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! This crate is only usable in conjuction of the</span>
+<span class="doccomment">//! [`wayland-client`](https://crates.io/crates/wayland-client) crate.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ## Creating a decorated shell surface</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Creating a decorated window is as simple as wrapping it in a</span>
+<span class="doccomment">//! `DecoratedSurface`:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```ignore</span>
+<span class="doccomment">//! use wayland_window::DecoratedSurface;</span>
+<span class="doccomment">//! let decorated = DecoratedSurface::new(my_surface, width, height, &amp;compositor, &amp;subcompositor, &amp;shm, &amp;shell, Some(seat));</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! As you can see, you need to pass several references to global objects as well as a `WlSeat`.</span>
+<span class="doccomment">//! It is required for the library to be able to create the surfaces to draw the borders, react</span>
+<span class="doccomment">//! to user input in the borders, for resizeing and move. It will use the events provided on the</span>
+<span class="doccomment">//! seat you passed as argument. (So if you are on a setup with more than one pointer,</span>
+<span class="doccomment">//! only the one associated with this seat will be able to resize the window).</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ## Processing the events</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The `DecoratedSurface` object will not resize your window itself, as it cannot do it.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! When the user clicks on a border and starts a resize, the server will start to generate a</span>
+<span class="doccomment">//! number of `configure` events on the shell surface. You&#39;ll need to process the events generated</span>
+<span class="doccomment">//! by the surface to handle them, as the surface is also an event iterator :</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```ignore</span>
+<span class="doccomment">//! for (time, x, y) in &amp;mut decorated_surface {</span>
+<span class="doccomment">//!     // handle the event</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The wayland server can (and will) generate a ton of `configure` events during a single</span>
+<span class="doccomment">//! `WlDisplay::dispatch()` if the user is currently resizing the window. You are only required to</span>
+<span class="doccomment">//! process the last one, and if you try to handle them all your aplication will be very</span>
+<span class="doccomment">//! laggy.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The proper way is to prcess the iterator and only store them in a container, overwriting the</span>
+<span class="doccomment">//! the previous one each time, and manually checking if one has been received in the main loop</span>
+<span class="doccomment">//! of your program, like this:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```ignore</span>
+<span class="doccomment">//! let mut newsize = None;</span>
+<span class="doccomment">//! for (_, x, y) in &amp;mut decorated_surface {</span>
+<span class="doccomment">//!     newsize = Some((x, y))</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//! if let Some((x, y)) = newsize {</span>
+<span class="doccomment">//!     let (x, y) = substract_borders(x, y);</span>
+<span class="doccomment">//!     window.resize(x, y);</span>
+<span class="doccomment">//! }</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ## Resizing the surface</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! When resizing your main surface, you need to tell the `DecoratedSurface` that it</span>
+<span class="doccomment">//! must update its dimensions. This is very simple:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ```ignore</span>
+<span class="doccomment">//! /* update the borders size */</span>
+<span class="doccomment">//! surface.attach(Some(&amp;new_buffer));</span>
+<span class="doccomment">//! decorated_surface.resize(width, height);</span>
+<span class="doccomment">//! surface.commit();</span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! If you do this as a response of a `configure` event, note the following points:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! - You do not have to respect the exact sizes provided by the compositor, it is</span>
+<span class="doccomment">//!   just a hint. You can even ignore it if you don&#39;t want the window to be resized.</span>
+<span class="doccomment">//! - In case you chose to ignore the resize, it can be appropiate to still resize your</span>
+<span class="doccomment">//!   window to its current size (update the buffer to the compositor), as the compositer</span>
+<span class="doccomment">//!   might have resized your window without telling you.</span>
+<span class="doccomment">//! - The size hint provided by the compositor counts the borders size, to get the real</span>
+<span class="doccomment">//!   size hint for your interior surface, use the function `substract_borders(..)` provided</span>
+<span class="doccomment">//!   by this library.</span>
 
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>byteorder</span>;
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>tempfile</span>;
-<span class='attribute'>#[<span class='ident'>macro_use</span>]</span>
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>wayland_client</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">byteorder</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">tempfile</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">wayland_client</span>;
 
-<span class='kw'>mod</span> <span class='ident'>decorated_surface</span>;
-<span class='kw'>mod</span> <span class='ident'>themed_pointer</span>;
+<span class="kw">mod</span> <span class="ident">decorated_surface</span>;
+<span class="kw">mod</span> <span class="ident">themed_pointer</span>;
 
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>decorated_surface</span>::{<span class='ident'>DecoratedSurface</span>, <span class='ident'>substract_borders</span>, <span class='ident'>add_borders</span>, <span class='ident'>Handler</span>};
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">decorated_surface</span>::{<span class="ident">DecoratedSurface</span>, <span class="ident">substract_borders</span>, <span class="ident">add_borders</span>, <span class="ident">Handler</span>};
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

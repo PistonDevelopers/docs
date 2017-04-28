@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.4/src/huffman_table.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.8/src/huffman_table.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>huffman_table.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -583,545 +583,569 @@
 <span id="538">538</span>
 <span id="539">539</span>
 <span id="540">540</span>
-</pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
-<span class='kw'>use</span> <span class='ident'>bit_reverse</span>::<span class='ident'>reverse_bits</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>;
-<span class='kw'>use</span> <span class='ident'>lzvalue</span>::<span class='ident'>StoredLength</span>;
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+</pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
+<span class="kw">use</span> <span class="ident">bit_reverse</span>::<span class="ident">reverse_bits</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
+<span class="kw">use</span> <span class="ident">lzvalue</span>::<span class="ident">StoredLength</span>;
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>HuffmanError</span> {
-    <span class='ident'>EmptyLengthTable</span>,
-    <span class='ident'>CodeTooLong</span>,
-    <span class='ident'>_TooManyOfLength</span>,
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HuffmanError</span> {
+    <span class="ident">EmptyLengthTable</span>,
+    <span class="ident">CodeTooLong</span>,
+    <span class="ident">_TooManyOfLength</span>,
 }
 
-<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>HuffmanError</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>io</span>::<span class='ident'>Error</span> {
-    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>err</span>: <span class='ident'>HuffmanError</span>) <span class='op'>-&gt;</span> <span class='ident'>io</span>::<span class='ident'>Error</span> {
-        <span class='comment'>// As these errors indicate bugs, rather than invalid input,</span>
-        <span class='comment'>// we don&#39;t bother returning custom error types for them to the user.</span>
-        <span class='kw'>match</span> <span class='ident'>err</span> {
-            <span class='ident'>HuffmanError</span>::<span class='ident'>EmptyLengthTable</span> <span class='op'>=&gt;</span> {
-                <span class='ident'>io</span>::<span class='ident'>Error</span>::<span class='ident'>new</span>(<span class='ident'>io</span>::<span class='ident'>ErrorKind</span>::<span class='ident'>Other</span>, <span class='string'>&quot;BUG! The length table was empty!&quot;</span>)
+<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">HuffmanError</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">io</span>::<span class="ident">Error</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">err</span>: <span class="ident">HuffmanError</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="ident">Error</span> {
+        <span class="comment">// As these errors indicate bugs, rather than invalid input,</span>
+        <span class="comment">// we don&#39;t bother returning custom error types for them to the user.</span>
+        <span class="kw">match</span> <span class="ident">err</span> {
+            <span class="ident">HuffmanError</span>::<span class="ident">EmptyLengthTable</span> <span class="op">=&gt;</span> {
+                <span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>, <span class="string">&quot;BUG! The length table was empty!&quot;</span>)
             }
-            <span class='ident'>HuffmanError</span>::<span class='ident'>CodeTooLong</span> <span class='op'>=&gt;</span> {
-                <span class='ident'>io</span>::<span class='ident'>Error</span>::<span class='ident'>new</span>(<span class='ident'>io</span>::<span class='ident'>ErrorKind</span>::<span class='ident'>Other</span>,
-                               <span class='string'>&quot;BUG! One or more huffman codes had a length that exceeded the \
+            <span class="ident">HuffmanError</span>::<span class="ident">CodeTooLong</span> <span class="op">=&gt;</span> {
+                <span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+                               <span class="string">&quot;BUG! One or more huffman codes had a length that exceeded the \
                                 maximum allowed length value.&quot;</span>)
             }
-            _ <span class='op'>=&gt;</span> <span class='macro'>unimplemented</span><span class='macro'>!</span>(),
+            _ <span class="op">=&gt;</span> <span class="macro">unimplemented</span><span class="macro">!</span>(),
         }
     }
 }
 
-<span class='comment'>// The number of length codes in the huffman table</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>NUM_LENGTH_CODES</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>29</span>;
+<span class="comment">// The number of length codes in the huffman table</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">NUM_LENGTH_CODES</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">29</span>;
 
-<span class='comment'>// The number of distance codes in the distance huffman table</span>
-<span class='comment'>// NOTE: two mode codes are actually used when constructing codes</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>NUM_DISTANCE_CODES</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>30</span>;
+<span class="comment">// The number of distance codes in the distance huffman table</span>
+<span class="comment">// NOTE: two mode codes are actually used when constructing codes</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">NUM_DISTANCE_CODES</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">30</span>;
 
-<span class='comment'>// Combined number of literal and length codes</span>
-<span class='comment'>// NOTE: two mode codes are actually used when constructing codes</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>NUM_LITERALS_AND_LENGTHS</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>286</span>;
-
-
-<span class='comment'>// The maximum length of a huffman code</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>MAX_CODE_LENGTH</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>15</span>;
-
-<span class='comment'>// The minimun and maximum lengths for a match according to the DEFLATE specification</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>MIN_MATCH</span>: <span class='ident'>u16</span> <span class='op'>=</span> <span class='number'>3</span>;
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>MAX_MATCH</span>: <span class='ident'>u16</span> <span class='op'>=</span> <span class='number'>258</span>;
-
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>MIN_DISTANCE</span>: <span class='ident'>u16</span> <span class='op'>=</span> <span class='number'>1</span>;
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>MAX_DISTANCE</span>: <span class='ident'>u16</span> <span class='op'>=</span> <span class='number'>32768</span>;
+<span class="comment">// Combined number of literal and length codes</span>
+<span class="comment">// NOTE: two mode codes are actually used when constructing codes</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">NUM_LITERALS_AND_LENGTHS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">286</span>;
 
 
-<span class='comment'>// The position in the literal/length table of the end of block symbol</span>
-<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>END_OF_BLOCK_POSITION</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>256</span>;
+<span class="comment">// The maximum length of a huffman code</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MAX_CODE_LENGTH</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">15</span>;
 
-<span class='comment'>// Bit lengths for literal and length codes in the fixed huffman table</span>
-<span class='comment'>// The huffman codes are generated from this and the distance bit length table</span>
-<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>unused</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>static</span> <span class='ident'>FIXED_CODE_LENGTHS</span>: [<span class='ident'>u8</span>; <span class='ident'>NUM_LITERALS_AND_LENGTHS</span> <span class='op'>+</span> <span class='number'>2</span>] <span class='op'>=</span>
-    [<span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>,
-     <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>,
-     <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>,
-     <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>,
-     <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>,
-     <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>,
-     <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>,
-     <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>,
-     <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>,
-     <span class='number'>7</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>];
+<span class="comment">// The minimun and maximum lengths for a match according to the DEFLATE specification</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MIN_MATCH</span>: <span class="ident">u16</span> <span class="op">=</span> <span class="number">3</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MAX_MATCH</span>: <span class="ident">u16</span> <span class="op">=</span> <span class="number">258</span>;
+
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MIN_DISTANCE</span>: <span class="ident">u16</span> <span class="op">=</span> <span class="number">1</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MAX_DISTANCE</span>: <span class="ident">u16</span> <span class="op">=</span> <span class="number">32768</span>;
 
 
+<span class="comment">// The position in the literal/length table of the end of block symbol</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">END_OF_BLOCK_POSITION</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">256</span>;
 
-<span class='comment'>// The number of extra bits for the length codes</span>
-<span class='kw'>static</span> <span class='ident'>LENGTH_EXTRA_BITS_LENGTH</span>: [<span class='ident'>u8</span>; <span class='ident'>NUM_LENGTH_CODES</span>] <span class='op'>=</span>
-    [<span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>1</span>, <span class='number'>1</span>, <span class='number'>1</span>, <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>2</span>, <span class='number'>2</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>3</span>, <span class='number'>3</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>4</span>, <span class='number'>4</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>0</span>];
+<span class="comment">// Bit lengths for literal and length codes in the fixed huffman table</span>
+<span class="comment">// The huffman codes are generated from this and the distance bit length table</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">unused</span>)]</span>
+<span class="kw">pub</span> <span class="kw">static</span> <span class="ident">FIXED_CODE_LENGTHS</span>: [<span class="ident">u8</span>; <span class="ident">NUM_LITERALS_AND_LENGTHS</span> <span class="op">+</span> <span class="number">2</span>] <span class="op">=</span>
+    [<span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>,
+     <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>,
+     <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>,
+     <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>,
+     <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>,
+     <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>,
+     <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>,
+     <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>,
+     <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>,
+     <span class="number">7</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>];
 
-<span class='comment'>// Table used to get a code from a length value (see get_distance_code_and_extra_bits)</span>
-<span class='kw'>static</span> <span class='ident'>LENGTH_CODE</span>: [<span class='ident'>u8</span>; <span class='number'>256</span>] <span class='op'>=</span>
-    [<span class='number'>0</span>, <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>14</span>, <span class='number'>14</span>,
-     <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>16</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>17</span>, <span class='number'>18</span>,
-     <span class='number'>18</span>, <span class='number'>18</span>, <span class='number'>18</span>, <span class='number'>18</span>, <span class='number'>18</span>, <span class='number'>18</span>, <span class='number'>18</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>,
-     <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>,
-     <span class='number'>21</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>,
-     <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>,
-     <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>,
-     <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>,
-     <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>,
-     <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>,
-     <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>28</span>];
 
-<span class='comment'>// Base values to calculate the value of the bits in length codes</span>
-<span class='kw'>static</span> <span class='ident'>BASE_LENGTH</span>: [<span class='ident'>u8</span>; <span class='ident'>NUM_LENGTH_CODES</span>] <span class='op'>=</span> [<span class='number'>0</span>, <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>, <span class='number'>10</span>, <span class='number'>12</span>, <span class='number'>14</span>, <span class='number'>16</span>, <span class='number'>20</span>, <span class='number'>24</span>,
-                                              <span class='number'>28</span>, <span class='number'>32</span>, <span class='number'>40</span>, <span class='number'>48</span>, <span class='number'>56</span>, <span class='number'>64</span>, <span class='number'>80</span>, <span class='number'>96</span>, <span class='number'>112</span>, <span class='number'>128</span>, <span class='number'>160</span>, <span class='number'>192</span>,
-                                              <span class='number'>224</span>, <span class='number'>255</span>]; <span class='comment'>// 258 - MIN_MATCh</span>
 
-<span class='comment'>// What number in the literal/length table the lengths start at</span>
-<span class='kw'>const</span> <span class='ident'>LENGTH_BITS_START</span>: <span class='ident'>u16</span> <span class='op'>=</span> <span class='number'>257</span>;
+<span class="comment">// The number of extra bits for the length codes</span>
+<span class="kw">static</span> <span class="ident">LENGTH_EXTRA_BITS_LENGTH</span>: [<span class="ident">u8</span>; <span class="ident">NUM_LENGTH_CODES</span>] <span class="op">=</span>
+    [<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">4</span>, <span class="number">4</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">0</span>];
 
-<span class='comment'>// Lengths for the distance codes in the pre-defined/fixed huffman table</span>
-<span class='comment'>// (All distance codes are 5 bits long)</span>
-<span class='kw'>pub</span> <span class='kw'>static</span> <span class='ident'>FIXED_CODE_LENGTHS_DISTANCE</span>: [<span class='ident'>u8</span>; <span class='ident'>NUM_DISTANCE_CODES</span> <span class='op'>+</span> <span class='number'>2</span>] <span class='op'>=</span> [<span class='number'>5</span>; <span class='ident'>NUM_DISTANCE_CODES</span> <span class='op'>+</span> <span class='number'>2</span>];
+<span class="comment">// Table used to get a code from a length value (see get_distance_code_and_extra_bits)</span>
+<span class="kw">static</span> <span class="ident">LENGTH_CODE</span>: [<span class="ident">u8</span>; <span class="number">256</span>] <span class="op">=</span>
+    [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">14</span>, <span class="number">14</span>,
+     <span class="number">14</span>, <span class="number">14</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">16</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">17</span>, <span class="number">18</span>,
+     <span class="number">18</span>, <span class="number">18</span>, <span class="number">18</span>, <span class="number">18</span>, <span class="number">18</span>, <span class="number">18</span>, <span class="number">18</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">19</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>,
+     <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>,
+     <span class="number">21</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>,
+     <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>,
+     <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>,
+     <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>,
+     <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>,
+     <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>,
+     <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">28</span>];
 
-<span class='kw'>static</span> <span class='ident'>DISTANCE_CODES</span>: [<span class='ident'>u8</span>; <span class='number'>512</span>] <span class='op'>=</span>
-    [<span class='number'>0</span>, <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>6</span>, <span class='number'>6</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>9</span>,
-     <span class='number'>9</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>,
-     <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>11</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>,
-     <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>,
-     <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>,
-     <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>13</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>,
-     <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>,
-     <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>, <span class='number'>14</span>,
-     <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>,
-     <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>,
-     <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>15</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>16</span>, <span class='number'>17</span>, <span class='number'>18</span>, <span class='number'>18</span>,
-     <span class='number'>19</span>, <span class='number'>19</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>20</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>21</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>22</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>,
-     <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>23</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>24</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>,
-     <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>25</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>,
-     <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>26</span>, <span class='number'>27</span>, <span class='number'>27</span>,
-     <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>,
-     <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>27</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>,
-     <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>,
-     <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>28</span>,
-     <span class='number'>28</span>, <span class='number'>28</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>,
-     <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>,
-     <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>, <span class='number'>29</span>];
+<span class="comment">// Base values to calculate the value of the bits in length codes</span>
+<span class="kw">static</span> <span class="ident">BASE_LENGTH</span>: [<span class="ident">u8</span>; <span class="ident">NUM_LENGTH_CODES</span>] <span class="op">=</span> [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">10</span>, <span class="number">12</span>, <span class="number">14</span>, <span class="number">16</span>, <span class="number">20</span>, <span class="number">24</span>,
+                                              <span class="number">28</span>, <span class="number">32</span>, <span class="number">40</span>, <span class="number">48</span>, <span class="number">56</span>, <span class="number">64</span>, <span class="number">80</span>, <span class="number">96</span>, <span class="number">112</span>, <span class="number">128</span>, <span class="number">160</span>, <span class="number">192</span>,
+                                              <span class="number">224</span>, <span class="number">255</span>]; <span class="comment">// 258 - MIN_MATCh</span>
 
-<span class='comment'>// Number of extra bits following the distance codes</span>
-<span class='kw'>static</span> <span class='ident'>DISTANCE_EXTRA_BITS</span>: [<span class='ident'>u8</span>; <span class='ident'>NUM_DISTANCE_CODES</span>] <span class='op'>=</span> [<span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>1</span>, <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>5</span>,
-                                                        <span class='number'>6</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>7</span>, <span class='number'>8</span>, <span class='number'>8</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>11</span>, <span class='number'>11</span>,
-                                                        <span class='number'>12</span>, <span class='number'>12</span>, <span class='number'>13</span>, <span class='number'>13</span>];
+<span class="comment">// What number in the literal/length table the lengths start at</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LENGTH_BITS_START</span>: <span class="ident">u16</span> <span class="op">=</span> <span class="number">257</span>;
 
-<span class='kw'>static</span> <span class='ident'>DISTANCE_BASE</span>: [<span class='ident'>u16</span>; <span class='ident'>NUM_DISTANCE_CODES</span>] <span class='op'>=</span>
-    [<span class='number'>0</span>, <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>6</span>, <span class='number'>8</span>, <span class='number'>12</span>, <span class='number'>16</span>, <span class='number'>24</span>, <span class='number'>32</span>, <span class='number'>48</span>, <span class='number'>64</span>, <span class='number'>96</span>, <span class='number'>128</span>, <span class='number'>192</span>, <span class='number'>256</span>, <span class='number'>384</span>, <span class='number'>512</span>, <span class='number'>768</span>, <span class='number'>1024</span>, <span class='number'>1536</span>,
-     <span class='number'>2048</span>, <span class='number'>3072</span>, <span class='number'>4096</span>, <span class='number'>6144</span>, <span class='number'>8192</span>, <span class='number'>12288</span>, <span class='number'>16384</span>, <span class='number'>24576</span>];
+<span class="comment">// Lengths for the distance codes in the pre-defined/fixed huffman table</span>
+<span class="comment">// (All distance codes are 5 bits long)</span>
+<span class="kw">pub</span> <span class="kw">static</span> <span class="ident">FIXED_CODE_LENGTHS_DISTANCE</span>: [<span class="ident">u8</span>; <span class="ident">NUM_DISTANCE_CODES</span> <span class="op">+</span> <span class="number">2</span>] <span class="op">=</span> [<span class="number">5</span>; <span class="ident">NUM_DISTANCE_CODES</span> <span class="op">+</span> <span class="number">2</span>];
 
-<span class='doccomment'>/// A struct representing the data needed to generate the bit codes for</span>
-<span class='doccomment'>/// a given value and huffman table.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>)]</span>
-<span class='kw'>struct</span> <span class='ident'>ExtraBits</span> {
-    <span class='comment'>// The position of the length in the huffman table.</span>
-    <span class='kw'>pub</span> <span class='ident'>code_number</span>: <span class='ident'>u16</span>,
-    <span class='comment'>// Number of extra bits following the code.</span>
-    <span class='kw'>pub</span> <span class='ident'>num_bits</span>: <span class='ident'>u8</span>,
-    <span class='comment'>// The value of the extra bits, which together with the length/distance code</span>
-    <span class='comment'>// allow us to calculate the exact length/distance.</span>
-    <span class='kw'>pub</span> <span class='ident'>value</span>: <span class='ident'>u16</span>,
+<span class="kw">static</span> <span class="ident">DISTANCE_CODES</span>: [<span class="ident">u8</span>; <span class="number">512</span>] <span class="op">=</span>
+    [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">6</span>, <span class="number">6</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">9</span>,
+     <span class="number">9</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>,
+     <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">11</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>,
+     <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">12</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>,
+     <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>,
+     <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">13</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>,
+     <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>,
+     <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>, <span class="number">14</span>,
+     <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>,
+     <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>,
+     <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">15</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">16</span>, <span class="number">17</span>, <span class="number">18</span>, <span class="number">18</span>,
+     <span class="number">19</span>, <span class="number">19</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">20</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">21</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">22</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>,
+     <span class="number">23</span>, <span class="number">23</span>, <span class="number">23</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">24</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>,
+     <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">25</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>,
+     <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">26</span>, <span class="number">27</span>, <span class="number">27</span>,
+     <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>,
+     <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">27</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>,
+     <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>,
+     <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>, <span class="number">28</span>,
+     <span class="number">28</span>, <span class="number">28</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>,
+     <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>,
+     <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>, <span class="number">29</span>];
+
+<span class="comment">// Number of extra bits following the distance codes</span>
+<span class="kw">static</span> <span class="ident">DISTANCE_EXTRA_BITS</span>: [<span class="ident">u8</span>; <span class="ident">NUM_DISTANCE_CODES</span>] <span class="op">=</span> [<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">5</span>,
+                                                        <span class="number">6</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">11</span>, <span class="number">11</span>,
+                                                        <span class="number">12</span>, <span class="number">12</span>, <span class="number">13</span>, <span class="number">13</span>];
+
+<span class="kw">static</span> <span class="ident">DISTANCE_BASE</span>: [<span class="ident">u16</span>; <span class="ident">NUM_DISTANCE_CODES</span>] <span class="op">=</span>
+    [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">6</span>, <span class="number">8</span>, <span class="number">12</span>, <span class="number">16</span>, <span class="number">24</span>, <span class="number">32</span>, <span class="number">48</span>, <span class="number">64</span>, <span class="number">96</span>, <span class="number">128</span>, <span class="number">192</span>, <span class="number">256</span>, <span class="number">384</span>, <span class="number">512</span>, <span class="number">768</span>, <span class="number">1024</span>, <span class="number">1536</span>,
+     <span class="number">2048</span>, <span class="number">3072</span>, <span class="number">4096</span>, <span class="number">6144</span>, <span class="number">8192</span>, <span class="number">12288</span>, <span class="number">16384</span>, <span class="number">24576</span>];
+
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">num_extra_bits_for_length_code</span>(<span class="ident">code</span>: <span class="ident">u8</span>) <span class="op">-&gt;</span> <span class="ident">u8</span> {
+    <span class="ident">LENGTH_EXTRA_BITS_LENGTH</span>[<span class="ident">code</span> <span class="kw">as</span> <span class="ident">usize</span>]
 }
 
-<span class='doccomment'>/// Get the length code that corresponds to the length value</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_length_code</span>(<span class='ident'>length</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span> {
-    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>c</span>) <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>usize</span>::<span class='ident'>from</span>(<span class='ident'>LENGTH_CODE</span>[(<span class='ident'>length</span> <span class='op'>-</span> <span class='ident'>MIN_MATCH</span>) <span class='kw'>as</span> <span class='ident'>usize</span>])) {
-        <span class='prelude-val'>Some</span>(<span class='ident'>c</span> <span class='op'>+</span> <span class='ident'>LENGTH_BITS_START</span> <span class='kw'>as</span> <span class='ident'>usize</span>)
-    } <span class='kw'>else</span> {
-        <span class='prelude-val'>None</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">num_extra_bits_for_distance_code</span>(<span class="ident">code</span>: <span class="ident">u8</span>) <span class="op">-&gt;</span> <span class="ident">u8</span> {
+    <span class="ident">DISTANCE_EXTRA_BITS</span>[<span class="ident">code</span> <span class="kw">as</span> <span class="ident">usize</span>]
+}
+
+<span class="doccomment">/// A struct representing the data needed to generate the bit codes for</span>
+<span class="doccomment">/// a given value and huffman table.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
+<span class="kw">struct</span> <span class="ident">ExtraBits</span> {
+    <span class="comment">// The position of the length in the huffman table.</span>
+    <span class="kw">pub</span> <span class="ident">code_number</span>: <span class="ident">u16</span>,
+    <span class="comment">// Number of extra bits following the code.</span>
+    <span class="kw">pub</span> <span class="ident">num_bits</span>: <span class="ident">u8</span>,
+    <span class="comment">// The value of the extra bits, which together with the length/distance code</span>
+    <span class="comment">// allow us to calculate the exact length/distance.</span>
+    <span class="kw">pub</span> <span class="ident">value</span>: <span class="ident">u16</span>,
+}
+
+<span class="doccomment">/// Get the length code that corresponds to the length value</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_length_code</span>(<span class="ident">length</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">c</span>) <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">usize</span>::<span class="ident">from</span>(<span class="ident">LENGTH_CODE</span>[(<span class="ident">length</span> <span class="op">-</span> <span class="ident">MIN_MATCH</span>) <span class="kw">as</span> <span class="ident">usize</span>])) {
+        <span class="prelude-val">Some</span>(<span class="ident">c</span> <span class="op">+</span> <span class="ident">LENGTH_BITS_START</span> <span class="kw">as</span> <span class="ident">usize</span>)
+    } <span class="kw">else</span> {
+        <span class="prelude-val">None</span>
     }
 }
 
-<span class='doccomment'>/// Get the code for the huffman table and the extra bits for the requested length.</span>
-<span class='kw'>fn</span> <span class='ident'>get_length_code_and_extra_bits</span>(<span class='ident'>length</span>: <span class='ident'>StoredLength</span>) <span class='op'>-&gt;</span> <span class='ident'>ExtraBits</span> {
-    <span class='comment'>// The minimun match length is 3, but length code table starts at 0,</span>
-    <span class='comment'>// so we need to subtract 3 to get the correct code.</span>
-    <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>LENGTH_CODE</span>[<span class='ident'>length</span>.<span class='ident'>stored_length</span>() <span class='kw'>as</span> <span class='ident'>usize</span>];
+<span class="doccomment">/// Get the code for the huffman table and the extra bits for the requested length.</span>
+<span class="kw">fn</span> <span class="ident">get_length_code_and_extra_bits</span>(<span class="ident">length</span>: <span class="ident">StoredLength</span>) <span class="op">-&gt;</span> <span class="ident">ExtraBits</span> {
+    <span class="comment">// Length values are stored as unsigned bytes, where the actual length is the value - 3</span>
+    <span class="comment">// The `StoredLength` struct takes care of this conversion for us.</span>
+    <span class="kw">let</span> <span class="ident">n</span> <span class="op">=</span> <span class="ident">LENGTH_CODE</span>[<span class="ident">length</span>.<span class="ident">stored_length</span>() <span class="kw">as</span> <span class="ident">usize</span>];
 
-    <span class='comment'>// We can then get the base length from the base length table,</span>
-    <span class='comment'>// which we use to calculate the value of the extra bits.</span>
-    <span class='kw'>let</span> <span class='ident'>base</span> <span class='op'>=</span> <span class='ident'>BASE_LENGTH</span>[<span class='ident'>n</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
-    <span class='kw'>let</span> <span class='ident'>num_bits</span> <span class='op'>=</span> <span class='ident'>LENGTH_EXTRA_BITS_LENGTH</span>[<span class='ident'>n</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
-    <span class='ident'>ExtraBits</span> {
-        <span class='ident'>code_number</span>: <span class='ident'>u16</span>::<span class='ident'>from</span>(<span class='ident'>n</span>) <span class='op'>+</span> <span class='ident'>LENGTH_BITS_START</span>,
-        <span class='ident'>num_bits</span>: <span class='ident'>num_bits</span>,
-        <span class='ident'>value</span>: (<span class='ident'>length</span>.<span class='ident'>stored_length</span>() <span class='op'>-</span> <span class='ident'>base</span>).<span class='ident'>into</span>(),
+    <span class="comment">// We can then get the base length from the base length table,</span>
+    <span class="comment">// which we use to calculate the value of the extra bits.</span>
+    <span class="kw">let</span> <span class="ident">base</span> <span class="op">=</span> <span class="ident">BASE_LENGTH</span>[<span class="ident">n</span> <span class="kw">as</span> <span class="ident">usize</span>];
+    <span class="kw">let</span> <span class="ident">num_bits</span> <span class="op">=</span> <span class="ident">num_extra_bits_for_length_code</span>(<span class="ident">n</span>);
+    <span class="ident">ExtraBits</span> {
+        <span class="ident">code_number</span>: <span class="ident">u16</span>::<span class="ident">from</span>(<span class="ident">n</span>) <span class="op">+</span> <span class="ident">LENGTH_BITS_START</span>,
+        <span class="ident">num_bits</span>: <span class="ident">num_bits</span>,
+        <span class="ident">value</span>: (<span class="ident">length</span>.<span class="ident">stored_length</span>() <span class="op">-</span> <span class="ident">base</span>).<span class="ident">into</span>(),
     }
 
 }
 
-<span class='doccomment'>/// Get the spot in the huffman table for distances `distance` corresponds to</span>
-<span class='doccomment'>/// Returns none if the distance is 0, or above 32768</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_distance_code</span>(<span class='ident'>distance</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='ident'>distance</span> <span class='op'>=</span> <span class='ident'>distance</span> <span class='kw'>as</span> <span class='ident'>usize</span>;
-    <span class='kw'>match</span> <span class='ident'>distance</span> {
-        <span class='comment'>// Since the array starts at 0, we need to subtract 1 to get the correct code number.</span>
-        <span class='number'>1</span>...<span class='number'>256</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>DISTANCE_CODES</span>[<span class='ident'>distance</span> <span class='op'>-</span> <span class='number'>1</span>]),
-        <span class='comment'>// Due to the distrubution of the distance codes above 256, we can get away with only</span>
-        <span class='comment'>// using the top bits to determine the code, rather than having a 32k long table of</span>
-        <span class='comment'>// distance codes.</span>
-        <span class='number'>257</span>...<span class='number'>32768</span> <span class='op'>=&gt;</span> <span class='prelude-val'>Some</span>(<span class='ident'>DISTANCE_CODES</span>[<span class='number'>256</span> <span class='op'>+</span> ((<span class='ident'>distance</span> <span class='op'>-</span> <span class='number'>1</span>) <span class='op'>&gt;&gt;</span> <span class='number'>7</span>)]),
-        _ <span class='op'>=&gt;</span> <span class='prelude-val'>None</span>,
+<span class="doccomment">/// Get the spot in the huffman table for distances `distance` corresponds to</span>
+<span class="doccomment">/// Returns none if the distance is 0, or above 32768</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_distance_code</span>(<span class="ident">distance</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
+    <span class="kw">let</span> <span class="ident">distance</span> <span class="op">=</span> <span class="ident">distance</span> <span class="kw">as</span> <span class="ident">usize</span>;
+
+    <span class="kw">match</span> <span class="ident">distance</span> {
+        <span class="comment">// Since the array starts at 0, we need to subtract 1 to get the correct code number.</span>
+        <span class="number">1</span>...<span class="number">256</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">DISTANCE_CODES</span>[<span class="ident">distance</span> <span class="op">-</span> <span class="number">1</span>]),
+        <span class="comment">// Due to the distrubution of the distance codes above 256, we can get away with only</span>
+        <span class="comment">// using the top bits to determine the code, rather than having a 32k long table of</span>
+        <span class="comment">// distance codes.</span>
+        <span class="number">257</span>...<span class="number">32768</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">DISTANCE_CODES</span>[<span class="number">256</span> <span class="op">+</span> ((<span class="ident">distance</span> <span class="op">-</span> <span class="number">1</span>) <span class="op">&gt;&gt;</span> <span class="number">7</span>)]),
+        _ <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
     }
 }
 
 
-<span class='kw'>fn</span> <span class='ident'>get_distance_code_and_extra_bits</span>(<span class='ident'>distance</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>ExtraBits</span><span class='op'>&gt;</span> {
-    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>distance_code</span>) <span class='op'>=</span> <span class='ident'>get_distance_code</span>(<span class='ident'>distance</span>) {
-        <span class='kw'>let</span> <span class='ident'>extra</span> <span class='op'>=</span> <span class='ident'>DISTANCE_EXTRA_BITS</span>[<span class='ident'>distance_code</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
-        <span class='comment'>// FIXME: We should add 1 to the values in distance_base to avoid having to add one here</span>
-        <span class='kw'>let</span> <span class='ident'>base</span> <span class='op'>=</span> <span class='ident'>DISTANCE_BASE</span>[<span class='ident'>distance_code</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>+</span> <span class='number'>1</span>;
-        <span class='prelude-val'>Some</span>(<span class='ident'>ExtraBits</span> {
-            <span class='ident'>code_number</span>: <span class='ident'>distance_code</span>.<span class='ident'>into</span>(),
-            <span class='ident'>num_bits</span>: <span class='ident'>extra</span>,
-            <span class='ident'>value</span>: <span class='ident'>distance</span> <span class='op'>-</span> <span class='ident'>base</span>,
-        })
-    } <span class='kw'>else</span> {
-        <span class='prelude-val'>None</span>
+<span class="kw">fn</span> <span class="ident">get_distance_code_and_extra_bits</span>(<span class="ident">distance</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ExtraBits</span><span class="op">&gt;</span> {
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">distance_code</span>) <span class="op">=</span> <span class="ident">get_distance_code</span>(<span class="ident">distance</span>) {
+        <span class="kw">let</span> <span class="ident">extra</span> <span class="op">=</span> <span class="ident">num_extra_bits_for_distance_code</span>(<span class="ident">distance_code</span>);
+        <span class="comment">// FIXME: We should add 1 to the values in distance_base to avoid having to add one here</span>
+        <span class="kw">let</span> <span class="ident">base</span> <span class="op">=</span> <span class="ident">DISTANCE_BASE</span>[<span class="ident">distance_code</span> <span class="kw">as</span> <span class="ident">usize</span>] <span class="op">+</span> <span class="number">1</span>;
+        <span class="prelude-val">Some</span>(<span class="ident">ExtraBits</span> {
+                 <span class="ident">code_number</span>: <span class="ident">distance_code</span>.<span class="ident">into</span>(),
+                 <span class="ident">num_bits</span>: <span class="ident">extra</span>,
+                 <span class="ident">value</span>: <span class="ident">distance</span> <span class="op">-</span> <span class="ident">base</span>,
+             })
+    } <span class="kw">else</span> {
+        <span class="prelude-val">None</span>
     }
 }
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>, <span class='ident'>Default</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>HuffmanCode</span> {
-    <span class='kw'>pub</span> <span class='ident'>code</span>: <span class='ident'>u16</span>,
-    <span class='kw'>pub</span> <span class='ident'>length</span>: <span class='ident'>u8</span>,
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Default</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HuffmanCode</span> {
+    <span class="kw">pub</span> <span class="ident">code</span>: <span class="ident">u16</span>,
+    <span class="kw">pub</span> <span class="ident">length</span>: <span class="ident">u8</span>,
 }
 
-<span class='kw'>impl</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>HuffmanCode</span> {
-    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>f</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='ident'>fmt</span>::<span class='prelude-ty'>Result</span> {
-        <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>,
-               <span class='string'>&quot;HuffmanCode {{ code: {:b}, length: {}}}&quot;</span>,
-               <span class='self'>self</span>.<span class='ident'>code</span>,
-               <span class='self'>self</span>.<span class='ident'>length</span>)
+<span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">HuffmanCode</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>,
+               <span class="string">&quot;HuffmanCode {{ code: {:b}, length: {}}}&quot;</span>,
+               <span class="self">self</span>.<span class="ident">code</span>,
+               <span class="self">self</span>.<span class="ident">length</span>)
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>HuffmanCode</span> {
-    <span class='doccomment'>/// Create a new huffman code struct, reversing the bits in the code</span>
-    <span class='doccomment'>/// Returns None if the code is longer than 15 bits (the maximum allowed by the DEFLATE spec)</span>
-    <span class='kw'>fn</span> <span class='ident'>from_reversed_bits</span>(<span class='ident'>code</span>: <span class='ident'>u16</span>, <span class='ident'>length</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>HuffmanCode</span><span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='ident'>length</span> <span class='op'>&lt;=</span> <span class='number'>15</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>HuffmanCode</span> {
-                <span class='ident'>code</span>: <span class='ident'>reverse_bits</span>(<span class='ident'>code</span>, <span class='ident'>length</span>),
-                <span class='ident'>length</span>: <span class='ident'>length</span>,
-            })
-        } <span class='kw'>else</span> {
-            <span class='prelude-val'>None</span>
+<span class="kw">impl</span> <span class="ident">HuffmanCode</span> {
+    <span class="doccomment">/// Create a new huffman code struct, reversing the bits in the code</span>
+    <span class="doccomment">/// Returns None if the code is longer than 15 bits (the maximum allowed by the DEFLATE spec)</span>
+    <span class="kw">fn</span> <span class="ident">from_reversed_bits</span>(<span class="ident">code</span>: <span class="ident">u16</span>, <span class="ident">length</span>: <span class="ident">u8</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">HuffmanCode</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">length</span> <span class="op">&lt;=</span> <span class="number">15</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">HuffmanCode</span> {
+                     <span class="ident">code</span>: <span class="ident">reverse_bits</span>(<span class="ident">code</span>, <span class="ident">length</span>),
+                     <span class="ident">length</span>: <span class="ident">length</span>,
+                 })
+        } <span class="kw">else</span> {
+            <span class="prelude-val">None</span>
         }
     }
 }
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>LengthAndDistanceBits</span> {
-    <span class='kw'>pub</span> <span class='ident'>length_code</span>: <span class='ident'>HuffmanCode</span>,
-    <span class='kw'>pub</span> <span class='ident'>length_extra_bits</span>: <span class='ident'>HuffmanCode</span>,
-    <span class='kw'>pub</span> <span class='ident'>distance_code</span>: <span class='ident'>HuffmanCode</span>,
-    <span class='kw'>pub</span> <span class='ident'>distance_extra_bits</span>: <span class='ident'>HuffmanCode</span>,
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LengthAndDistanceBits</span> {
+    <span class="kw">pub</span> <span class="ident">length_code</span>: <span class="ident">HuffmanCode</span>,
+    <span class="kw">pub</span> <span class="ident">length_extra_bits</span>: <span class="ident">HuffmanCode</span>,
+    <span class="kw">pub</span> <span class="ident">distance_code</span>: <span class="ident">HuffmanCode</span>,
+    <span class="kw">pub</span> <span class="ident">distance_extra_bits</span>: <span class="ident">HuffmanCode</span>,
 }
 
-<span class='doccomment'>/// Counts the number of values of each length.</span>
-<span class='doccomment'>/// Returns a tuple containing the longest length value in the table, it&#39;s position,</span>
-<span class='doccomment'>/// and a vector of lengths.</span>
-<span class='doccomment'>/// Returns an error if `table` is empty, or if any of the lengths exceed 15.</span>
-<span class='kw'>fn</span> <span class='ident'>build_length_count_table</span>(<span class='ident'>table</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(<span class='ident'>usize</span>, <span class='ident'>usize</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u16</span><span class='op'>&gt;</span>), <span class='ident'>HuffmanError</span><span class='op'>&gt;</span> {
-    <span class='comment'>// TODO: Validate the length table properly</span>
-    <span class='comment'>//</span>
-    <span class='kw'>let</span> <span class='ident'>max_length</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>table</span>.<span class='ident'>iter</span>().<span class='ident'>max</span>() {
-        <span class='prelude-val'>Some</span>(<span class='ident'>l</span>) <span class='op'>=&gt;</span> (<span class='kw-2'>*</span><span class='ident'>l</span>).<span class='ident'>into</span>(),
-        <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>HuffmanError</span>::<span class='ident'>EmptyLengthTable</span>),
+<span class="doccomment">/// Counts the number of values of each length.</span>
+<span class="doccomment">/// Returns a tuple containing the longest length value in the table, it&#39;s position,</span>
+<span class="doccomment">/// and a vector of lengths.</span>
+<span class="doccomment">/// Returns an error if `table` is empty, or if any of the lengths exceed 15.</span>
+<span class="kw">fn</span> <span class="ident">build_length_count_table</span>(<span class="ident">table</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span>), <span class="ident">HuffmanError</span><span class="op">&gt;</span> {
+    <span class="comment">// TODO: Validate the length table properly</span>
+    <span class="comment">//</span>
+    <span class="kw">let</span> <span class="ident">max_length</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">table</span>.<span class="ident">iter</span>().<span class="ident">max</span>() {
+        <span class="prelude-val">Some</span>(<span class="ident">l</span>) <span class="op">=&gt;</span> (<span class="kw-2">*</span><span class="ident">l</span>).<span class="ident">into</span>(),
+        <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">HuffmanError</span>::<span class="ident">EmptyLengthTable</span>),
     };
 
-    <span class='comment'>// Check if the longest code length is longer than allowed</span>
-    <span class='kw'>if</span> <span class='ident'>max_length</span> <span class='op'>&gt;</span> <span class='ident'>MAX_CODE_LENGTH</span> {
-        <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>HuffmanError</span>::<span class='ident'>CodeTooLong</span>);
+    <span class="comment">// Check if the longest code length is longer than allowed</span>
+    <span class="kw">if</span> <span class="ident">max_length</span> <span class="op">&gt;</span> <span class="ident">MAX_CODE_LENGTH</span> {
+        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">HuffmanError</span>::<span class="ident">CodeTooLong</span>);
     }
 
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>max_length_pos</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">max_length_pos</span> <span class="op">=</span> <span class="number">0</span>;
 
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>len_counts</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u16</span>; <span class='ident'>max_length</span> <span class='op'>+</span> <span class='number'>1</span>];
-    <span class='kw'>for</span> (<span class='ident'>n</span>, <span class='kw-2'>&amp;</span><span class='ident'>length</span>) <span class='kw'>in</span> <span class='ident'>table</span>.<span class='ident'>iter</span>().<span class='ident'>enumerate</span>() {
-        <span class='comment'>// TODO: Make sure we don&#39;t have more of one length than we can make</span>
-        <span class='comment'>// codes for</span>
-        <span class='ident'>len_counts</span>[<span class='ident'>usize</span>::<span class='ident'>from</span>(<span class='ident'>length</span>)] <span class='op'>+=</span> <span class='number'>1</span>;
-        <span class='kw'>if</span> <span class='ident'>length</span> <span class='op'>&gt;</span> <span class='number'>0</span> {
-            <span class='ident'>max_length_pos</span> <span class='op'>=</span> <span class='ident'>n</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">len_counts</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0u16</span>; <span class="ident">max_length</span> <span class="op">+</span> <span class="number">1</span>];
+    <span class="kw">for</span> (<span class="ident">n</span>, <span class="kw-2">&amp;</span><span class="ident">length</span>) <span class="kw">in</span> <span class="ident">table</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+        <span class="comment">// TODO: Make sure we don&#39;t have more of one length than we can make</span>
+        <span class="comment">// codes for</span>
+        <span class="kw">if</span> <span class="ident">length</span> <span class="op">&gt;</span> <span class="number">0</span> {
+            <span class="ident">len_counts</span>[<span class="ident">usize</span>::<span class="ident">from</span>(<span class="ident">length</span>)] <span class="op">+=</span> <span class="number">1</span>;
+            <span class="ident">max_length_pos</span> <span class="op">=</span> <span class="ident">n</span>;
         }
     }
-    <span class='prelude-val'>Ok</span>((<span class='ident'>max_length</span>, <span class='ident'>max_length_pos</span>, <span class='ident'>len_counts</span>))
+    <span class="prelude-val">Ok</span>((<span class="ident">max_length</span>, <span class="ident">max_length_pos</span>, <span class="ident">len_counts</span>))
 }
 
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>create_codes</span>(<span class='ident'>length_table</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>HuffmanCode</span><span class='op'>&gt;</span>, <span class='ident'>HuffmanError</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>codes</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>HuffmanCode</span>::<span class='ident'>default</span>(); <span class='ident'>length_table</span>.<span class='ident'>len</span>()];
-    <span class='ident'>create_codes_in_place</span>(<span class='ident'>codes</span>.<span class='ident'>as_mut_slice</span>(), <span class='ident'>length_table</span>)<span class='question-mark'>?</span>;
-    <span class='prelude-val'>Ok</span>(<span class='ident'>codes</span>)
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_codes</span>(<span class="ident">length_table</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">HuffmanCode</span><span class="op">&gt;</span>, <span class="ident">HuffmanError</span><span class="op">&gt;</span> {
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">codes</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">HuffmanCode</span>::<span class="ident">default</span>(); <span class="ident">length_table</span>.<span class="ident">len</span>()];
+    <span class="ident">create_codes_in_place</span>(<span class="ident">codes</span>.<span class="ident">as_mut_slice</span>(), <span class="ident">length_table</span>)<span class="question-mark">?</span>;
+    <span class="prelude-val">Ok</span>(<span class="ident">codes</span>)
 }
 
-<span class='doccomment'>/// Generats a vector of huffman codes given a table of bit lengths</span>
-<span class='doccomment'>/// Returns an error if any of the lengths are &gt; 15</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>create_codes_in_place</span>(<span class='ident'>code_table</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>HuffmanCode</span>],
-                             <span class='ident'>length_table</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>])
-                             <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>HuffmanError</span><span class='op'>&gt;</span> {
+<span class="doccomment">/// Generats a vector of huffman codes given a table of bit lengths</span>
+<span class="doccomment">/// Returns an error if any of the lengths are &gt; 15</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_codes_in_place</span>(<span class="ident">code_table</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">HuffmanCode</span>],
+                             <span class="ident">length_table</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>])
+                             <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">HuffmanError</span><span class="op">&gt;</span> {
 
 
-    <span class='kw'>let</span> (<span class='ident'>max_length</span>, <span class='ident'>max_length_pos</span>, <span class='ident'>lengths</span>) <span class='op'>=</span> <span class='ident'>build_length_count_table</span>(<span class='ident'>length_table</span>)<span class='question-mark'>?</span>;
+    <span class="kw">let</span> (<span class="ident">max_length</span>, <span class="ident">max_length_pos</span>, <span class="ident">lengths</span>) <span class="op">=</span> <span class="ident">build_length_count_table</span>(<span class="ident">length_table</span>)<span class="question-mark">?</span>;
 
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>code</span> <span class='op'>=</span> <span class='number'>0u16</span>;
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>next_code</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u16</span>];
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">code</span> <span class="op">=</span> <span class="number">0u16</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">next_code</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0u16</span>];
 
-    <span class='kw'>for</span> <span class='ident'>bits</span> <span class='kw'>in</span> <span class='number'>1</span>..<span class='ident'>max_length</span> <span class='op'>+</span> <span class='number'>1</span> {
-        <span class='ident'>code</span> <span class='op'>=</span> (<span class='ident'>code</span> <span class='op'>+</span> <span class='ident'>lengths</span>[<span class='ident'>bits</span> <span class='op'>-</span> <span class='number'>1</span>]) <span class='op'>&lt;&lt;</span> <span class='number'>1</span>;
-        <span class='ident'>next_code</span>.<span class='ident'>push</span>(<span class='ident'>code</span>.<span class='ident'>into</span>());
+    <span class="kw">for</span> <span class="ident">bits</span> <span class="kw">in</span> <span class="number">1</span>..<span class="ident">max_length</span> <span class="op">+</span> <span class="number">1</span> {
+        <span class="ident">code</span> <span class="op">=</span> (<span class="ident">code</span> <span class="op">+</span> <span class="ident">lengths</span>[<span class="ident">bits</span> <span class="op">-</span> <span class="number">1</span>]) <span class="op">&lt;&lt;</span> <span class="number">1</span>;
+        <span class="ident">next_code</span>.<span class="ident">push</span>(<span class="ident">code</span>);
     }
 
-    <span class='kw'>for</span> <span class='ident'>n</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>max_length_pos</span> <span class='op'>+</span> <span class='number'>1</span> {
-        <span class='kw'>let</span> <span class='ident'>length</span> <span class='op'>=</span> <span class='ident'>usize</span>::<span class='ident'>from</span>(<span class='ident'>length_table</span>[<span class='ident'>n</span>]);
-        <span class='kw'>if</span> <span class='ident'>length</span> <span class='op'>!=</span> <span class='number'>0</span> {
-            <span class='comment'>// The algorithm generates the code in the reverse bit order, so we need to reverse them</span>
-            <span class='comment'>// to get the correct codes.</span>
-            <span class='ident'>code_table</span>[<span class='ident'>n</span>] <span class='op'>=</span> <span class='ident'>HuffmanCode</span>::<span class='ident'>from_reversed_bits</span>(<span class='ident'>next_code</span>[<span class='ident'>length</span>], <span class='ident'>length</span> <span class='kw'>as</span> <span class='ident'>u8</span>)
-                .<span class='ident'>ok_or</span>(<span class='ident'>HuffmanError</span>::<span class='ident'>CodeTooLong</span>)<span class='question-mark'>?</span>;
-            <span class='comment'>// We use wrapping here as we would otherwise overflow on the last code</span>
-            <span class='comment'>// This should be okay as we exit the loop after this so the value is ignored</span>
-            <span class='ident'>next_code</span>[<span class='ident'>length</span>] <span class='op'>=</span> <span class='ident'>next_code</span>[<span class='ident'>length</span>].<span class='ident'>wrapping_add</span>(<span class='number'>1</span>);
+    <span class="kw">for</span> <span class="ident">n</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">max_length_pos</span> <span class="op">+</span> <span class="number">1</span> {
+        <span class="kw">let</span> <span class="ident">length</span> <span class="op">=</span> <span class="ident">usize</span>::<span class="ident">from</span>(<span class="ident">length_table</span>[<span class="ident">n</span>]);
+        <span class="kw">if</span> <span class="ident">length</span> <span class="op">!=</span> <span class="number">0</span> {
+            <span class="comment">// The algorithm generates the code in the reverse bit order, so we need to reverse them</span>
+            <span class="comment">// to get the correct codes.</span>
+            <span class="ident">code_table</span>[<span class="ident">n</span>] <span class="op">=</span> <span class="ident">HuffmanCode</span>::<span class="ident">from_reversed_bits</span>(<span class="ident">next_code</span>[<span class="ident">length</span>], <span class="ident">length</span> <span class="kw">as</span> <span class="ident">u8</span>)
+                .<span class="ident">ok_or</span>(<span class="ident">HuffmanError</span>::<span class="ident">CodeTooLong</span>)<span class="question-mark">?</span>;
+            <span class="comment">// We use wrapping here as we would otherwise overflow on the last code</span>
+            <span class="comment">// This should be okay as we exit the loop after this so the value is ignored</span>
+            <span class="ident">next_code</span>[<span class="ident">length</span>] <span class="op">=</span> <span class="ident">next_code</span>[<span class="ident">length</span>].<span class="ident">wrapping_add</span>(<span class="number">1</span>);
         }
     }
-    <span class='prelude-val'>Ok</span>(())
+    <span class="prelude-val">Ok</span>(())
 }
 
-<span class='doccomment'>/// A structure containing the tables of huffman codes for lengths, literals and distances</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>HuffmanTable</span> {
-    <span class='comment'>// Literal, end of block and length codes</span>
-    <span class='ident'>codes</span>: [<span class='ident'>HuffmanCode</span>; <span class='number'>288</span>],
-    <span class='comment'>// Distance codes</span>
-    <span class='ident'>distance_codes</span>: [<span class='ident'>HuffmanCode</span>; <span class='number'>32</span>],
+<span class="doccomment">/// A structure containing the tables of huffman codes for lengths, literals and distances</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HuffmanTable</span> {
+    <span class="comment">// Literal, end of block and length codes</span>
+    <span class="ident">codes</span>: [<span class="ident">HuffmanCode</span>; <span class="number">288</span>],
+    <span class="comment">// Distance codes</span>
+    <span class="ident">distance_codes</span>: [<span class="ident">HuffmanCode</span>; <span class="number">32</span>],
 }
 
-<span class='kw'>impl</span> <span class='ident'>HuffmanTable</span> {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>empty</span>() <span class='op'>-&gt;</span> <span class='ident'>HuffmanTable</span> {
-        <span class='ident'>HuffmanTable</span> {
-            <span class='ident'>codes</span>: [<span class='ident'>HuffmanCode</span> {
-                <span class='ident'>code</span>: <span class='number'>0</span>,
-                <span class='ident'>length</span>: <span class='number'>0</span>,
-            }; <span class='number'>288</span>],
-            <span class='ident'>distance_codes</span>: [<span class='ident'>HuffmanCode</span> {
-                <span class='ident'>code</span>: <span class='number'>0</span>,
-                <span class='ident'>length</span>: <span class='number'>0</span>,
-            }; <span class='number'>32</span>],
+<span class="kw">impl</span> <span class="ident">HuffmanTable</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">empty</span>() <span class="op">-&gt;</span> <span class="ident">HuffmanTable</span> {
+        <span class="ident">HuffmanTable</span> {
+            <span class="ident">codes</span>: [<span class="ident">HuffmanCode</span> { <span class="ident">code</span>: <span class="number">0</span>, <span class="ident">length</span>: <span class="number">0</span> }; <span class="number">288</span>],
+            <span class="ident">distance_codes</span>: [<span class="ident">HuffmanCode</span> { <span class="ident">code</span>: <span class="number">0</span>, <span class="ident">length</span>: <span class="number">0</span> }; <span class="number">32</span>],
         }
     }
 
-    <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_length_tables</span>(<span class='ident'>literals_and_lengths</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
-                              <span class='ident'>distances</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>])
-                              <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>HuffmanTable</span>, <span class='ident'>HuffmanError</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>table</span> <span class='op'>=</span> <span class='ident'>HuffmanTable</span> {
-            <span class='ident'>codes</span>: [<span class='ident'>HuffmanCode</span>::<span class='ident'>default</span>(); <span class='number'>288</span>],
-            <span class='ident'>distance_codes</span>: [<span class='ident'>HuffmanCode</span>::<span class='ident'>default</span>(); <span class='number'>32</span>],
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_length_tables</span>(<span class="ident">literals_and_lengths</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+                              <span class="ident">distances</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>])
+                              <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">HuffmanTable</span>, <span class="ident">HuffmanError</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">table</span> <span class="op">=</span> <span class="ident">HuffmanTable</span> {
+            <span class="ident">codes</span>: [<span class="ident">HuffmanCode</span>::<span class="ident">default</span>(); <span class="number">288</span>],
+            <span class="ident">distance_codes</span>: [<span class="ident">HuffmanCode</span>::<span class="ident">default</span>(); <span class="number">32</span>],
         };
 
-        <span class='ident'>create_codes_in_place</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>.<span class='ident'>as_mut</span>(), <span class='ident'>literals_and_lengths</span>)<span class='question-mark'>?</span>;
-        <span class='ident'>create_codes_in_place</span>(<span class='ident'>table</span>.<span class='ident'>distance_codes</span>.<span class='ident'>as_mut</span>(), <span class='ident'>distances</span>)<span class='question-mark'>?</span>;
-        <span class='prelude-val'>Ok</span>(<span class='ident'>table</span>)
+        <span class="ident">create_codes_in_place</span>(<span class="ident">table</span>.<span class="ident">codes</span>.<span class="ident">as_mut</span>(), <span class="ident">literals_and_lengths</span>)<span class="question-mark">?</span>;
+        <span class="ident">create_codes_in_place</span>(<span class="ident">table</span>.<span class="ident">distance_codes</span>.<span class="ident">as_mut</span>(), <span class="ident">distances</span>)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="ident">table</span>)
     }
 
-    <span class='doccomment'>/// Update the `HuffmanTable` from the provided length tables.</span>
-    <span class='doccomment'>/// Returns Err if the tables have lengths &gt; 50, the</span>
-    <span class='doccomment'>/// tables are too short, or are otherwise not formed correctly.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>update_from_length_tables</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
-                                     <span class='ident'>literals_and_lengths</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
-                                     <span class='ident'>distances</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>])
-                                     <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>HuffmanError</span><span class='op'>&gt;</span> {
-        <span class='ident'>create_codes_in_place</span>(<span class='self'>self</span>.<span class='ident'>codes</span>.<span class='ident'>as_mut</span>(), <span class='ident'>literals_and_lengths</span>)<span class='question-mark'>?</span>;
-        <span class='ident'>create_codes_in_place</span>(<span class='self'>self</span>.<span class='ident'>distance_codes</span>.<span class='ident'>as_mut</span>(), <span class='ident'>distances</span>)
+    <span class="doccomment">/// Update the `HuffmanTable` from the provided length tables.</span>
+    <span class="doccomment">/// Returns Err if the tables have lengths &gt; 50, the</span>
+    <span class="doccomment">/// tables are too short, or are otherwise not formed correctly.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_from_length_tables</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
+                                     <span class="ident">literals_and_lengths</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+                                     <span class="ident">distances</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>])
+                                     <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">HuffmanError</span><span class="op">&gt;</span> {
+        <span class="ident">create_codes_in_place</span>(<span class="self">self</span>.<span class="ident">codes</span>.<span class="ident">as_mut</span>(), <span class="ident">literals_and_lengths</span>)<span class="question-mark">?</span>;
+        <span class="ident">create_codes_in_place</span>(<span class="self">self</span>.<span class="ident">distance_codes</span>.<span class="ident">as_mut</span>(), <span class="ident">distances</span>)
     }
 
-    <span class='doccomment'>/// Create a HuffmanTable using the fixed tables specified in the DEFLATE format specification.</span>
-    <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fixed_table</span>() <span class='op'>-&gt;</span> <span class='ident'>HuffmanTable</span> {
-        <span class='comment'>// This should be safe to unwrap, if it were to panic the code is wrong,</span>
-        <span class='comment'>// tests should catch it.</span>
-        <span class='ident'>HuffmanTable</span>::<span class='ident'>from_length_tables</span>(<span class='kw-2'>&amp;</span><span class='ident'>FIXED_CODE_LENGTHS</span>, <span class='kw-2'>&amp;</span><span class='ident'>FIXED_CODE_LENGTHS_DISTANCE</span>)
-            .<span class='ident'>expect</span>(<span class='string'>&quot;Error: Failed to build table for fixed huffman codes, this indicates an \
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_to_fixed</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">HuffmanError</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">update_from_length_tables</span>(<span class="kw-2">&amp;</span><span class="ident">FIXED_CODE_LENGTHS</span>, <span class="kw-2">&amp;</span><span class="ident">FIXED_CODE_LENGTHS_DISTANCE</span>)
+    }
+
+    <span class="doccomment">/// Create a HuffmanTable using the fixed tables specified in the DEFLATE format specification.</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">fixed_table</span>() <span class="op">-&gt;</span> <span class="ident">HuffmanTable</span> {
+        <span class="comment">// This should be safe to unwrap, if it were to panic the code is wrong,</span>
+        <span class="comment">// tests should catch it.</span>
+        <span class="ident">HuffmanTable</span>::<span class="ident">from_length_tables</span>(<span class="kw-2">&amp;</span><span class="ident">FIXED_CODE_LENGTHS</span>, <span class="kw-2">&amp;</span><span class="ident">FIXED_CODE_LENGTHS_DISTANCE</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Error: Failed to build table for fixed huffman codes, this indicates an \
                      error somewhere in the code.&quot;</span>)
     }
 
-    <span class='doccomment'>/// Get the huffman code from the corresponding literal value</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_literal</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>HuffmanCode</span> {
-        <span class='self'>self</span>.<span class='ident'>codes</span>[<span class='ident'>usize</span>::<span class='ident'>from</span>(<span class='ident'>value</span>)]
+    <span class="doccomment">/// Get the huffman code from the corresponding literal value</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_literal</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">value</span>: <span class="ident">u8</span>) <span class="op">-&gt;</span> <span class="ident">HuffmanCode</span> {
+        <span class="self">self</span>.<span class="ident">codes</span>[<span class="ident">usize</span>::<span class="ident">from</span>(<span class="ident">value</span>)]
     }
 
-    <span class='doccomment'>/// Get the huffman code for the end of block value</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_end_of_block</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>HuffmanCode</span> {
-        <span class='self'>self</span>.<span class='ident'>codes</span>[<span class='ident'>END_OF_BLOCK_POSITION</span>]
+    <span class="doccomment">/// Get the huffman code for the end of block value</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_end_of_block</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">HuffmanCode</span> {
+        <span class="self">self</span>.<span class="ident">codes</span>[<span class="ident">END_OF_BLOCK_POSITION</span>]
     }
 
-    <span class='doccomment'>/// Get the huffman code and extra bits for the specified length</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// returns None if the length is larger than MIN_MATCH or smaller than MAX_MATCH</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_length_huffman</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>length</span>: <span class='ident'>StoredLength</span>) <span class='op'>-&gt;</span> (<span class='ident'>HuffmanCode</span>, <span class='ident'>HuffmanCode</span>) {
+    <span class="doccomment">/// Get the huffman code and extra bits for the specified length</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// returns None if the length is larger than MIN_MATCH or smaller than MAX_MATCH</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_length_huffman</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">length</span>: <span class="ident">StoredLength</span>) <span class="op">-&gt;</span> (<span class="ident">HuffmanCode</span>, <span class="ident">HuffmanCode</span>) {
 
-        <span class='kw'>let</span> <span class='ident'>length_data</span> <span class='op'>=</span> <span class='ident'>get_length_code_and_extra_bits</span>(<span class='ident'>length</span>);
+        <span class="kw">let</span> <span class="ident">length_data</span> <span class="op">=</span> <span class="ident">get_length_code_and_extra_bits</span>(<span class="ident">length</span>);
 
-        <span class='kw'>let</span> <span class='ident'>length_huffman_code</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>codes</span>[<span class='ident'>length_data</span>.<span class='ident'>code_number</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
-        (<span class='ident'>length_huffman_code</span>,
-         <span class='ident'>HuffmanCode</span> {
-             <span class='ident'>code</span>: <span class='ident'>length_data</span>.<span class='ident'>value</span>,
-             <span class='ident'>length</span>: <span class='ident'>length_data</span>.<span class='ident'>num_bits</span>,
+        <span class="kw">let</span> <span class="ident">length_huffman_code</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">codes</span>[<span class="ident">length_data</span>.<span class="ident">code_number</span> <span class="kw">as</span> <span class="ident">usize</span>];
+        (<span class="ident">length_huffman_code</span>,
+         <span class="ident">HuffmanCode</span> {
+             <span class="ident">code</span>: <span class="ident">length_data</span>.<span class="ident">value</span>,
+             <span class="ident">length</span>: <span class="ident">length_data</span>.<span class="ident">num_bits</span>,
          })
     }
 
-    <span class='doccomment'>/// Get the huffman code and extra bits for the specified distance</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns None if distance is 0 or above 32768</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_distance_huffman</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>distance</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>((<span class='ident'>HuffmanCode</span>, <span class='ident'>HuffmanCode</span>))<span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='ident'>distance</span> <span class='op'>&lt;</span> <span class='ident'>MIN_DISTANCE</span> <span class='op'>||</span> <span class='ident'>distance</span> <span class='op'>&gt;</span> <span class='ident'>MAX_DISTANCE</span> {
-            <span class='kw'>return</span> <span class='prelude-val'>None</span>;
+    <span class="doccomment">/// Get the huffman code and extra bits for the specified distance</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns None if distance is 0 or above 32768</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_distance_huffman</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">distance</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>((<span class="ident">HuffmanCode</span>, <span class="ident">HuffmanCode</span>))<span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">distance</span> <span class="op">&lt;</span> <span class="ident">MIN_DISTANCE</span> <span class="op">||</span> <span class="ident">distance</span> <span class="op">&gt;</span> <span class="ident">MAX_DISTANCE</span> {
+            <span class="kw">return</span> <span class="prelude-val">None</span>;
         }
 
-        <span class='kw'>let</span> <span class='ident'>distance_data</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>get_distance_code_and_extra_bits</span>(<span class='ident'>distance</span>) {
-            <span class='prelude-val'>Some</span>(<span class='ident'>t</span>) <span class='op'>=&gt;</span> <span class='ident'>t</span>,
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='prelude-val'>None</span>,
+        <span class="kw">let</span> <span class="ident">distance_data</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">get_distance_code_and_extra_bits</span>(<span class="ident">distance</span>) {
+            <span class="prelude-val">Some</span>(<span class="ident">t</span>) <span class="op">=&gt;</span> <span class="ident">t</span>,
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">None</span>,
         };
 
-        <span class='kw'>let</span> <span class='ident'>distance_huffman_code</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>distance_codes</span>[<span class='ident'>distance_data</span>.<span class='ident'>code_number</span> <span class='kw'>as</span> <span class='ident'>usize</span>];
+        <span class="kw">let</span> <span class="ident">distance_huffman_code</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">distance_codes</span>[<span class="ident">distance_data</span>.<span class="ident">code_number</span> <span class="kw">as</span> <span class="ident">usize</span>];
 
-        <span class='prelude-val'>Some</span>((<span class='ident'>distance_huffman_code</span>,
-              <span class='ident'>HuffmanCode</span> {
-                  <span class='ident'>code</span>: <span class='ident'>distance_data</span>.<span class='ident'>value</span>,
-                  <span class='ident'>length</span>: <span class='ident'>distance_data</span>.<span class='ident'>num_bits</span>,
+        <span class="prelude-val">Some</span>((<span class="ident">distance_huffman_code</span>,
+              <span class="ident">HuffmanCode</span> {
+                  <span class="ident">code</span>: <span class="ident">distance_data</span>.<span class="ident">value</span>,
+                  <span class="ident">length</span>: <span class="ident">distance_data</span>.<span class="ident">num_bits</span>,
               }))
     }
 
-    <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_length_distance_code</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>,
-                                    <span class='ident'>length</span>: <span class='ident'>u16</span>,
-                                    <span class='ident'>distance</span>: <span class='ident'>u16</span>)
-                                    <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='ident'>LengthAndDistanceBits</span>)<span class='op'>&gt;</span> {
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>length</span> <span class='op'>&gt;=</span> <span class='ident'>MIN_MATCH</span> <span class='op'>&amp;&amp;</span> <span class='ident'>length</span> <span class='op'>&lt;</span> <span class='ident'>MAX_DISTANCE</span>);
-        <span class='kw'>let</span> <span class='ident'>l_codes</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>get_length_huffman</span>(<span class='ident'>StoredLength</span>::<span class='ident'>from_actual_length</span>(<span class='ident'>length</span>));
-        <span class='kw'>let</span> <span class='ident'>d_codes</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>get_distance_huffman</span>(<span class='ident'>distance</span>).<span class='ident'>unwrap</span>();
-        <span class='prelude-val'>Some</span>(<span class='ident'>LengthAndDistanceBits</span> {
-            <span class='ident'>length_code</span>: <span class='ident'>l_codes</span>.<span class='number'>0</span>,
-            <span class='ident'>length_extra_bits</span>: <span class='ident'>l_codes</span>.<span class='number'>1</span>,
-            <span class='ident'>distance_code</span>: <span class='ident'>d_codes</span>.<span class='number'>0</span>,
-            <span class='ident'>distance_extra_bits</span>: <span class='ident'>d_codes</span>.<span class='number'>1</span>,
-        })
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_length_distance_code</span>(<span class="kw-2">&amp;</span><span class="self">self</span>,
+                                    <span class="ident">length</span>: <span class="ident">u16</span>,
+                                    <span class="ident">distance</span>: <span class="ident">u16</span>)
+                                    <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">LengthAndDistanceBits</span>)<span class="op">&gt;</span> {
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">length</span> <span class="op">&gt;=</span> <span class="ident">MIN_MATCH</span> <span class="op">&amp;&amp;</span> <span class="ident">length</span> <span class="op">&lt;</span> <span class="ident">MAX_DISTANCE</span>);
+        <span class="kw">let</span> <span class="ident">l_codes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_length_huffman</span>(<span class="ident">StoredLength</span>::<span class="ident">from_actual_length</span>(<span class="ident">length</span>));
+        <span class="kw">let</span> <span class="ident">d_codes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_distance_huffman</span>(<span class="ident">distance</span>).<span class="ident">unwrap</span>();
+        <span class="prelude-val">Some</span>(<span class="ident">LengthAndDistanceBits</span> {
+                 <span class="ident">length_code</span>: <span class="ident">l_codes</span>.<span class="number">0</span>,
+                 <span class="ident">length_extra_bits</span>: <span class="ident">l_codes</span>.<span class="number">1</span>,
+                 <span class="ident">distance_code</span>: <span class="ident">d_codes</span>.<span class="number">0</span>,
+                 <span class="ident">distance_extra_bits</span>: <span class="ident">d_codes</span>.<span class="number">1</span>,
+             })
     }
 }
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-<span class='kw'>mod</span> <span class='ident'>test</span> {
-    <span class='comment'>// There seems to be a bug with unused importwarnings here, so we ignore them for now</span>
-    <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>unused_imports</span>)]</span>
-    <span class='kw'>use</span> <span class='kw'>super</span>::<span class='kw-2'>*</span>;
-    <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>unused_imports</span>)]</span>
-    <span class='kw'>use</span> <span class='kw'>super</span>::{<span class='ident'>get_length_code_and_extra_bits</span>, <span class='ident'>get_distance_code_and_extra_bits</span>,
-                <span class='ident'>build_length_count_table</span>};
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">mod</span> <span class="ident">test</span> {
+    <span class="comment">// There seems to be a bug with unused importwarnings here, so we ignore them for now</span>
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">unused_imports</span>)]</span>
+    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">unused_imports</span>)]</span>
+    <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">get_length_code_and_extra_bits</span>, <span class="ident">get_distance_code_and_extra_bits</span>,
+                <span class="ident">build_length_count_table</span>};
 
-    <span class='kw'>use</span> <span class='ident'>lzvalue</span>::<span class='ident'>StoredLength</span>;
+    <span class="kw">use</span> <span class="ident">lzvalue</span>::<span class="ident">StoredLength</span>;
 
-    <span class='kw'>fn</span> <span class='ident'>l</span>(<span class='ident'>length</span>: <span class='ident'>u16</span>) <span class='op'>-&gt;</span> <span class='ident'>StoredLength</span> {
-        <span class='ident'>StoredLength</span>::<span class='ident'>from_actual_length</span>(<span class='ident'>length</span>)
+    <span class="kw">fn</span> <span class="ident">l</span>(<span class="ident">length</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="ident">StoredLength</span> {
+        <span class="ident">StoredLength</span>::<span class="ident">from_actual_length</span>(<span class="ident">length</span>)
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_get_length_code</span>() {
-        <span class='kw'>let</span> <span class='ident'>extra_bits</span> <span class='op'>=</span> <span class='ident'>get_length_code_and_extra_bits</span>(<span class='ident'>l</span>(<span class='number'>4</span>));
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>code_number</span>, <span class='number'>258</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>num_bits</span>, <span class='number'>0</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>value</span>, <span class='number'>0</span>);
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_get_length_code</span>() {
+        <span class="kw">let</span> <span class="ident">extra_bits</span> <span class="op">=</span> <span class="ident">get_length_code_and_extra_bits</span>(<span class="ident">l</span>(<span class="number">4</span>));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">code_number</span>, <span class="number">258</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">num_bits</span>, <span class="number">0</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">value</span>, <span class="number">0</span>);
 
-        <span class='kw'>let</span> <span class='ident'>extra_bits</span> <span class='op'>=</span> <span class='ident'>get_length_code_and_extra_bits</span>(<span class='ident'>l</span>(<span class='number'>165</span>));
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>code_number</span>, <span class='number'>282</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>num_bits</span>, <span class='number'>5</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>value</span>, <span class='number'>2</span>);
+        <span class="kw">let</span> <span class="ident">extra_bits</span> <span class="op">=</span> <span class="ident">get_length_code_and_extra_bits</span>(<span class="ident">l</span>(<span class="number">165</span>));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">code_number</span>, <span class="number">282</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">num_bits</span>, <span class="number">5</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">value</span>, <span class="number">2</span>);
 
-        <span class='kw'>let</span> <span class='ident'>extra_bits</span> <span class='op'>=</span> <span class='ident'>get_length_code_and_extra_bits</span>(<span class='ident'>l</span>(<span class='number'>257</span>));
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>code_number</span>, <span class='number'>284</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>num_bits</span>, <span class='number'>5</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>value</span>, <span class='number'>30</span>);
+        <span class="kw">let</span> <span class="ident">extra_bits</span> <span class="op">=</span> <span class="ident">get_length_code_and_extra_bits</span>(<span class="ident">l</span>(<span class="number">257</span>));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">code_number</span>, <span class="number">284</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">num_bits</span>, <span class="number">5</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">value</span>, <span class="number">30</span>);
 
-        <span class='kw'>let</span> <span class='ident'>extra_bits</span> <span class='op'>=</span> <span class='ident'>get_length_code_and_extra_bits</span>(<span class='ident'>l</span>(<span class='number'>258</span>));
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>code_number</span>, <span class='number'>285</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra_bits</span>.<span class='ident'>num_bits</span>, <span class='number'>0</span>);
+        <span class="kw">let</span> <span class="ident">extra_bits</span> <span class="op">=</span> <span class="ident">get_length_code_and_extra_bits</span>(<span class="ident">l</span>(<span class="number">258</span>));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">code_number</span>, <span class="number">285</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra_bits</span>.<span class="ident">num_bits</span>, <span class="number">0</span>);
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_distance_code</span>() {
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>get_distance_code</span>(<span class='number'>1</span>).<span class='ident'>unwrap</span>(), <span class='number'>0</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>get_distance_code</span>(<span class='number'>0</span>), <span class='prelude-val'>None</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>get_distance_code</span>(<span class='number'>50000</span>), <span class='prelude-val'>None</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>get_distance_code</span>(<span class='number'>6146</span>).<span class='ident'>unwrap</span>(), <span class='number'>25</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>get_distance_code</span>(<span class='number'>256</span>).<span class='ident'>unwrap</span>(), <span class='number'>15</span>);
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_distance_code</span>() {
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">1</span>).<span class="ident">unwrap</span>(), <span class="number">0</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">0</span>), <span class="prelude-val">None</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">50000</span>), <span class="prelude-val">None</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">6146</span>).<span class="ident">unwrap</span>(), <span class="number">25</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">256</span>).<span class="ident">unwrap</span>(), <span class="number">15</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">4733</span>).<span class="ident">unwrap</span>(), <span class="number">24</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">get_distance_code</span>(<span class="number">257</span>).<span class="ident">unwrap</span>(), <span class="number">16</span>);
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_distance_extra_bits</span>() {
-        <span class='kw'>let</span> <span class='ident'>extra</span> <span class='op'>=</span> <span class='ident'>get_distance_code_and_extra_bits</span>(<span class='number'>527</span>).<span class='ident'>unwrap</span>();
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra</span>.<span class='ident'>value</span>, <span class='number'>0b1110</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra</span>.<span class='ident'>code_number</span>, <span class='number'>18</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra</span>.<span class='ident'>num_bits</span>, <span class='number'>8</span>);
-        <span class='kw'>let</span> <span class='ident'>extra</span> <span class='op'>=</span> <span class='ident'>get_distance_code_and_extra_bits</span>(<span class='number'>256</span>).<span class='ident'>unwrap</span>();
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra</span>.<span class='ident'>code_number</span>, <span class='number'>15</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>extra</span>.<span class='ident'>num_bits</span>, <span class='number'>6</span>);
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_distance_extra_bits</span>() {
+        <span class="kw">let</span> <span class="ident">extra</span> <span class="op">=</span> <span class="ident">get_distance_code_and_extra_bits</span>(<span class="number">527</span>).<span class="ident">unwrap</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">value</span>, <span class="number">0b1110</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">code_number</span>, <span class="number">18</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">num_bits</span>, <span class="number">8</span>);
+        <span class="kw">let</span> <span class="ident">extra</span> <span class="op">=</span> <span class="ident">get_distance_code_and_extra_bits</span>(<span class="number">256</span>).<span class="ident">unwrap</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">code_number</span>, <span class="number">15</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">num_bits</span>, <span class="number">6</span>);
+        <span class="kw">let</span> <span class="ident">extra</span> <span class="op">=</span> <span class="ident">get_distance_code_and_extra_bits</span>(<span class="number">4733</span>).<span class="ident">unwrap</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">code_number</span>, <span class="number">24</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">extra</span>.<span class="ident">num_bits</span>, <span class="number">11</span>);
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_length_table_fixed</span>() {
-        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='ident'>build_length_count_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>FIXED_CODE_LENGTHS</span>).<span class='ident'>unwrap</span>();
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_length_table_fixed</span>() {
+        <span class="kw">let</span> _ <span class="op">=</span> <span class="ident">build_length_count_table</span>(<span class="kw-2">&amp;</span><span class="ident">FIXED_CODE_LENGTHS</span>).<span class="ident">unwrap</span>();
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_length_table_max_length</span>() {
-        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> [<span class='number'>16u8</span>; <span class='number'>288</span>];
-        <span class='kw'>let</span> <span class='ident'>test</span> <span class='op'>=</span> <span class='ident'>build_length_count_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>table</span>);
-        <span class='kw'>match</span> <span class='ident'>test</span> {
-            <span class='prelude-val'>Err</span>(<span class='ident'>HuffmanError</span>::<span class='ident'>CodeTooLong</span>) <span class='op'>=&gt;</span> (),
-            _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Didn&#39;t fail with invalid length!&quot;</span>),
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_length_table_max_length</span>() {
+        <span class="kw">let</span> <span class="ident">table</span> <span class="op">=</span> [<span class="number">16u8</span>; <span class="number">288</span>];
+        <span class="kw">let</span> <span class="ident">test</span> <span class="op">=</span> <span class="ident">build_length_count_table</span>(<span class="kw-2">&amp;</span><span class="ident">table</span>);
+        <span class="kw">match</span> <span class="ident">test</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">HuffmanError</span>::<span class="ident">CodeTooLong</span>) <span class="op">=&gt;</span> (),
+            _ <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Didn&#39;t fail with invalid length!&quot;</span>),
         };
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>test_empty_table</span>() {
-        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> [];
-        <span class='kw'>let</span> <span class='ident'>test</span> <span class='op'>=</span> <span class='ident'>build_length_count_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>table</span>);
-        <span class='kw'>match</span> <span class='ident'>test</span> {
-            <span class='prelude-val'>Err</span>(<span class='ident'>HuffmanError</span>::<span class='ident'>EmptyLengthTable</span>) <span class='op'>=&gt;</span> (),
-            _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Empty length table didn&#39;t fail!&#39;&quot;</span>),
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_empty_table</span>() {
+        <span class="kw">let</span> <span class="ident">table</span> <span class="op">=</span> [];
+        <span class="kw">let</span> <span class="ident">test</span> <span class="op">=</span> <span class="ident">build_length_count_table</span>(<span class="kw-2">&amp;</span><span class="ident">table</span>);
+        <span class="kw">match</span> <span class="ident">test</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">HuffmanError</span>::<span class="ident">EmptyLengthTable</span>) <span class="op">=&gt;</span> (),
+            _ <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Empty length table didn&#39;t fail!&#39;&quot;</span>),
         }
     }
 
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>make_table_fixed</span>() {
-        <span class='kw'>let</span> <span class='ident'>table</span> <span class='op'>=</span> <span class='ident'>HuffmanTable</span>::<span class='ident'>fixed_table</span>();
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>0</span>].<span class='ident'>code</span>, <span class='number'>0b00001100</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>143</span>].<span class='ident'>code</span>, <span class='number'>0b11111101</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>144</span>].<span class='ident'>code</span>, <span class='number'>0b000010011</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>255</span>].<span class='ident'>code</span>, <span class='number'>0b111111111</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>256</span>].<span class='ident'>code</span>, <span class='number'>0b0000000</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>279</span>].<span class='ident'>code</span>, <span class='number'>0b1110100</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>280</span>].<span class='ident'>code</span>, <span class='number'>0b00000011</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>codes</span>[<span class='number'>287</span>].<span class='ident'>code</span>, <span class='number'>0b11100011</span>);
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">make_table_fixed</span>() {
+        <span class="kw">let</span> <span class="ident">table</span> <span class="op">=</span> <span class="ident">HuffmanTable</span>::<span class="ident">fixed_table</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">0</span>].<span class="ident">code</span>, <span class="number">0b00001100</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">143</span>].<span class="ident">code</span>, <span class="number">0b11111101</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">144</span>].<span class="ident">code</span>, <span class="number">0b000010011</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">255</span>].<span class="ident">code</span>, <span class="number">0b111111111</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">256</span>].<span class="ident">code</span>, <span class="number">0b0000000</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">279</span>].<span class="ident">code</span>, <span class="number">0b1110100</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">280</span>].<span class="ident">code</span>, <span class="number">0b00000011</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">codes</span>[<span class="number">287</span>].<span class="ident">code</span>, <span class="number">0b11100011</span>);
 
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>distance_codes</span>[<span class='number'>0</span>].<span class='ident'>code</span>, <span class='number'>0</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>table</span>.<span class='ident'>distance_codes</span>[<span class='number'>5</span>].<span class='ident'>code</span>, <span class='number'>20</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">distance_codes</span>[<span class="number">0</span>].<span class="ident">code</span>, <span class="number">0</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">table</span>.<span class="ident">distance_codes</span>[<span class="number">5</span>].<span class="ident">code</span>, <span class="number">20</span>);
 
-        <span class='kw'>let</span> <span class='ident'>ld</span> <span class='op'>=</span> <span class='ident'>table</span>.<span class='ident'>get_length_distance_code</span>(<span class='number'>4</span>, <span class='number'>5</span>).<span class='ident'>unwrap</span>();
+        <span class="kw">let</span> <span class="ident">ld</span> <span class="op">=</span> <span class="ident">table</span>.<span class="ident">get_length_distance_code</span>(<span class="number">4</span>, <span class="number">5</span>).<span class="ident">unwrap</span>();
 
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>ld</span>.<span class='ident'>length_code</span>.<span class='ident'>code</span>, <span class='number'>0b00100000</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>ld</span>.<span class='ident'>distance_code</span>.<span class='ident'>code</span>, <span class='number'>0b00100</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>ld</span>.<span class='ident'>distance_extra_bits</span>.<span class='ident'>length</span>, <span class='number'>1</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>ld</span>.<span class='ident'>distance_extra_bits</span>.<span class='ident'>code</span>, <span class='number'>0</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">ld</span>.<span class="ident">length_code</span>.<span class="ident">code</span>, <span class="number">0b00100000</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">ld</span>.<span class="ident">distance_code</span>.<span class="ident">code</span>, <span class="number">0b00100</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">ld</span>.<span class="ident">distance_extra_bits</span>.<span class="ident">length</span>, <span class="number">1</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">ld</span>.<span class="ident">distance_extra_bits</span>.<span class="ident">code</span>, <span class="number">0</span>);
     }
 }
 </pre>

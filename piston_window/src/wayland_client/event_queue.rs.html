@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.7.7/src/event_queue.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.7.8/src/event_queue.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>event_queue.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -517,477 +517,477 @@
 <span id="472">472</span>
 <span id="473">473</span>
 <span id="474">474</span>
-</pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::{<span class='prelude-ty'>Result</span> <span class='kw'>as</span> <span class='ident'>IoResult</span>, <span class='ident'>Error</span> <span class='kw'>as</span> <span class='ident'>IoError</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::{<span class='ident'>Deref</span>, <span class='ident'>DerefMut</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::{<span class='ident'>c_void</span>, <span class='ident'>c_int</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>Arc</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>AtomicBool</span>;
+</pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">Any</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="prelude-ty">Result</span> <span class="kw">as</span> <span class="ident">IoResult</span>, <span class="ident">Error</span> <span class="kw">as</span> <span class="ident">IoError</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::{<span class="ident">c_void</span>, <span class="ident">c_int</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">AtomicPtr</span>};
 
-<span class='kw'>use</span> <span class='ident'>wayland_sys</span>::<span class='ident'>client</span>::<span class='kw-2'>*</span>;
-<span class='kw'>use</span> <span class='ident'>wayland_sys</span>::<span class='ident'>common</span>::<span class='kw-2'>*</span>;
-<span class='kw'>use</span> {<span class='ident'>Handler</span>, <span class='ident'>Proxy</span>};
+<span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">client</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">common</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> {<span class="ident">Handler</span>, <span class="ident">Proxy</span>};
 
-<span class='kw'>type</span> <span class='ident'>ProxyUserData</span> <span class='op'>=</span> (<span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>EventQueueHandle</span>, <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>AtomicBool</span><span class='op'>&gt;</span>);
+<span class="kw">type</span> <span class="ident">ProxyUserData</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>, <span class="ident">Arc</span><span class="op">&lt;</span>(<span class="ident">AtomicBool</span>, <span class="ident">AtomicPtr</span><span class="op">&lt;</span>()<span class="op">&gt;</span>)<span class="op">&gt;</span>);
 
-<span class='doccomment'>/// Handle to an event queue</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This handle gives you access to methods on an event queue</span>
-<span class='doccomment'>/// that are safe to do from within a callback.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// They are also available on an `EventQueue` object via `Deref`.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>EventQueueHandle</span> {
-    <span class='ident'>handlers</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Any</span><span class='op'>+</span><span class='ident'>Send</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>wlevq</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_event_queue</span><span class='op'>&gt;</span>,
+<span class="doccomment">/// Handle to an event queue</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This handle gives you access to methods on an event queue</span>
+<span class="doccomment">/// that are safe to do from within a callback.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// They are also available on an `EventQueue` object via `Deref`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventQueueHandle</span> {
+    <span class="ident">handlers</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span><span class="op">+</span><span class="ident">Send</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">wlevq</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_event_queue</span><span class="op">&gt;</span>,
 }
 
-<span class='doccomment'>/// A trait to initialize handlers after they&#39;ve been inserted in an event queue</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Works with the `add_handler_with_init` method of `EventQueueHandle`.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Init</span> {
-    <span class='doccomment'>/// Init the handler</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// `index` is the current index of the handler in the event queue (you can</span>
-    <span class='doccomment'>/// use it to register objects to it)</span>
-    <span class='kw'>fn</span> <span class='ident'>init</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>evqh</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>EventQueueHandle</span>, <span class='ident'>index</span>: <span class='ident'>usize</span>);
+<span class="doccomment">/// A trait to initialize handlers after they&#39;ve been inserted in an event queue</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Works with the `add_handler_with_init` method of `EventQueueHandle`.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Init</span> {
+    <span class="doccomment">/// Init the handler</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// `index` is the current index of the handler in the event queue (you can</span>
+    <span class="doccomment">/// use it to register objects to it)</span>
+    <span class="kw">fn</span> <span class="ident">init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>, <span class="ident">index</span>: <span class="ident">usize</span>);
 }
 
-<span class='kw'>impl</span> <span class='ident'>EventQueueHandle</span> {
-    <span class='doccomment'>/// Register a proxy to a handler of this event queue.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The H type must be provided and match the type of the targetted Handler, or</span>
-    <span class='doccomment'>/// it will panic.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This overwrites any precedently set Handler for this proxy.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>register</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>Proxy</span>, <span class='ident'>H</span>: <span class='ident'>Handler</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>proxy</span>: <span class='kw-2'>&amp;</span><span class='ident'>P</span>, <span class='ident'>handler_id</span>: <span class='ident'>usize</span>) {
-        <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>handlers</span>[<span class='ident'>handler_id</span>].<span class='ident'>downcast_ref</span>::<span class='op'>&lt;</span><span class='ident'>H</span><span class='op'>&gt;</span>()
-                    .<span class='ident'>expect</span>(<span class='string'>&quot;Handler type do not match.&quot;</span>);
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='ident'>data</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>ProxyUserData</span> <span class='op'>=</span> <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                <span class='ident'>wl_proxy_get_user_data</span>,
-                <span class='ident'>proxy</span>.<span class='ident'>ptr</span>()
-            ) <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> _;
-            (<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='ident'>data</span>).<span class='number'>0</span> <span class='op'>=</span> <span class='self'>self</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> _ <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> _;
-            <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                <span class='ident'>wl_proxy_add_dispatcher</span>,
-                <span class='ident'>proxy</span>.<span class='ident'>ptr</span>(),
-                <span class='ident'>dispatch_func</span>::<span class='op'>&lt;</span><span class='ident'>P</span>,<span class='ident'>H</span><span class='op'>&gt;</span>,
-                <span class='ident'>h</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> _ <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>c_void</span>,
-                <span class='ident'>data</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>c_void</span>
+<span class="kw">impl</span> <span class="ident">EventQueueHandle</span> {
+    <span class="doccomment">/// Register a proxy to a handler of this event queue.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The H type must be provided and match the type of the targetted Handler, or</span>
+    <span class="doccomment">/// it will panic.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This overwrites any precedently set Handler for this proxy.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">register</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Proxy</span>, <span class="ident">H</span>: <span class="ident">Handler</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">P</span>, <span class="ident">handler_id</span>: <span class="ident">usize</span>) {
+        <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">handlers</span>[<span class="ident">handler_id</span>].<span class="ident">downcast_ref</span>::<span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span>()
+                    .<span class="ident">expect</span>(<span class="string">&quot;Handler type do not match.&quot;</span>);
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">data</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ProxyUserData</span> <span class="op">=</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                <span class="ident">wl_proxy_get_user_data</span>,
+                <span class="ident">proxy</span>.<span class="ident">ptr</span>()
+            ) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _;
+            (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">data</span>).<span class="number">0</span> <span class="op">=</span> <span class="self">self</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _ <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _;
+            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                <span class="ident">wl_proxy_add_dispatcher</span>,
+                <span class="ident">proxy</span>.<span class="ident">ptr</span>(),
+                <span class="ident">dispatch_func</span>::<span class="op">&lt;</span><span class="ident">P</span>,<span class="ident">H</span><span class="op">&gt;</span>,
+                <span class="ident">h</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _ <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span>,
+                <span class="ident">data</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>
             );
-            <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                <span class='ident'>wl_proxy_set_queue</span>,
-                <span class='ident'>proxy</span>.<span class='ident'>ptr</span>(),
-                <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>wlevq</span> {
-                    <span class='prelude-val'>Some</span>(<span class='ident'>ptr</span>) <span class='op'>=&gt;</span> <span class='ident'>ptr</span>,
-                    <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> ::<span class='ident'>std</span>::<span class='ident'>ptr</span>::<span class='ident'>null_mut</span>()
+            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                <span class="ident">wl_proxy_set_queue</span>,
+                <span class="ident">proxy</span>.<span class="ident">ptr</span>(),
+                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">wlevq</span> {
+                    <span class="prelude-val">Some</span>(<span class="ident">ptr</span>) <span class="op">=&gt;</span> <span class="ident">ptr</span>,
+                    <span class="prelude-val">None</span> <span class="op">=&gt;</span> ::<span class="ident">std</span>::<span class="ident">ptr</span>::<span class="ident">null_mut</span>()
                 }
             );
         }
     }
 
-    <span class='doccomment'>/// Insert a new handler to this event queue</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Returns the index of this handler in the internal array, which is needed</span>
-    <span class='doccomment'>/// to register proxies to it.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>add_handler</span><span class='op'>&lt;</span><span class='ident'>H</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handler</span>: <span class='ident'>H</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-        <span class='self'>self</span>.<span class='ident'>handlers</span>.<span class='ident'>push</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>handler</span>) <span class='kw'>as</span> <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>);
-        <span class='self'>self</span>.<span class='ident'>handlers</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='number'>1</span>
+    <span class="doccomment">/// Insert a new handler to this event queue</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns the index of this handler in the internal array, which is needed</span>
+    <span class="doccomment">/// to register proxies to it.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_handler</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">handler</span>: <span class="ident">H</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">push</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">handler</span>) <span class="kw">as</span> <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span>);
+        <span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>
     }
 
-    <span class='doccomment'>/// Insert a new handler with init</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Allows you to insert handlers that require some interaction with the</span>
-    <span class='doccomment'>/// event loop in their initialization, like registering some objects to it.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The handler must implement the `Init` trait, and its init method will</span>
-    <span class='doccomment'>/// be called after its insertion.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>add_handler_with_init</span><span class='op'>&lt;</span><span class='ident'>H</span>: <span class='ident'>Init</span> <span class='op'>+</span> <span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handler</span>: <span class='ident'>H</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span>
+    <span class="doccomment">/// Insert a new handler with init</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Allows you to insert handlers that require some interaction with the</span>
+    <span class="doccomment">/// event loop in their initialization, like registering some objects to it.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The handler must implement the `Init` trait, and its init method will</span>
+    <span class="doccomment">/// be called after its insertion.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_handler_with_init</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Init</span> <span class="op">+</span> <span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">handler</span>: <span class="ident">H</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>
     {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>box_</span> <span class='op'>=</span> <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>handler</span>);
-        <span class='comment'>// this little juggling is to avoid the double-borrow, which is actually safe,</span>
-        <span class='comment'>// as handlers cannot be mutably accessed outside of an event-dispatch,</span>
-        <span class='comment'>// and this new handler cannot receive any events before the return</span>
-        <span class='comment'>// of this function</span>
-        <span class='kw'>let</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='ident'>box_</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>H</span>;
-        <span class='self'>self</span>.<span class='ident'>handlers</span>.<span class='ident'>push</span>(<span class='ident'>box_</span> <span class='kw'>as</span> <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>);
-        <span class='kw'>let</span> <span class='ident'>index</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>handlers</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='number'>1</span>;
-        <span class='kw'>unsafe</span> { (<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='ident'>h</span>).<span class='ident'>init</span>(<span class='self'>self</span>, <span class='ident'>index</span>) };
-        <span class='ident'>index</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">box_</span> <span class="op">=</span> <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">handler</span>);
+        <span class="comment">// this little juggling is to avoid the double-borrow, which is actually safe,</span>
+        <span class="comment">// as handlers cannot be mutably accessed outside of an event-dispatch,</span>
+        <span class="comment">// and this new handler cannot receive any events before the return</span>
+        <span class="comment">// of this function</span>
+        <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">box_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">H</span>;
+        <span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">push</span>(<span class="ident">box_</span> <span class="kw">as</span> <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span>);
+        <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>;
+        <span class="kw">unsafe</span> { (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">h</span>).<span class="ident">init</span>(<span class="self">self</span>, <span class="ident">index</span>) };
+        <span class="ident">index</span>
     }
 }
 
-<span class='doccomment'>/// Guard to access internal state of an event queue</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This guard allows you to get references to the handlers you</span>
-<span class='doccomment'>/// previously stored inside an event queue.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// It borrows the event queue, so no event dispatching is possible</span>
-<span class='doccomment'>/// as long as the guard is in scope, for safety reasons.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>StateGuard</span><span class='op'>&lt;</span><span class='lifetime'>&#39;evq</span><span class='op'>&gt;</span> {
-    <span class='ident'>evq</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;evq</span> <span class='kw-2'>mut</span> <span class='ident'>EventQueue</span>
+<span class="doccomment">/// Guard to access internal state of an event queue</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This guard allows you to get references to the handlers you</span>
+<span class="doccomment">/// previously stored inside an event queue.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// It borrows the event queue, so no event dispatching is possible</span>
+<span class="doccomment">/// as long as the guard is in scope, for safety reasons.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StateGuard</span><span class="op">&lt;</span><span class="lifetime">&#39;evq</span><span class="op">&gt;</span> {
+    <span class="ident">evq</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;evq</span> <span class="kw-2">mut</span> <span class="ident">EventQueue</span>
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;evq</span><span class='op'>&gt;</span> <span class='ident'>StateGuard</span><span class='op'>&lt;</span><span class='lifetime'>&#39;evq</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Get a reference to a handler</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Provides a reference to a handler stored in this event loop.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The H type must be provided and match the type of the targetted Handler, or</span>
-    <span class='doccomment'>/// it will panic.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_handler</span><span class='op'>&lt;</span><span class='ident'>H</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>handler_id</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>H</span> {
-        <span class='self'>self</span>.<span class='ident'>evq</span>.<span class='ident'>handle</span>.<span class='ident'>handlers</span>[<span class='ident'>handler_id</span>].<span class='ident'>downcast_ref</span>::<span class='op'>&lt;</span><span class='ident'>H</span><span class='op'>&gt;</span>()
-            .<span class='ident'>expect</span>(<span class='string'>&quot;Handler type do not match.&quot;</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;evq</span><span class="op">&gt;</span> <span class="ident">StateGuard</span><span class="op">&lt;</span><span class="lifetime">&#39;evq</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Get a reference to a handler</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Provides a reference to a handler stored in this event loop.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The H type must be provided and match the type of the targetted Handler, or</span>
+    <span class="doccomment">/// it will panic.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_handler</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">handler_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">H</span> {
+        <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">handle</span>.<span class="ident">handlers</span>[<span class="ident">handler_id</span>].<span class="ident">downcast_ref</span>::<span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span>()
+            .<span class="ident">expect</span>(<span class="string">&quot;Handler type do not match.&quot;</span>)
     }
 
-    <span class='doccomment'>/// Get a mutable reference to a handler</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Provides a reference to a handler stored in this event loop.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The H type must be provided and match the type of the targetted Handler, or</span>
-    <span class='doccomment'>/// it will panic.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_mut_handler</span><span class='op'>&lt;</span><span class='ident'>H</span>: <span class='ident'>Any</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>handler_id</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>H</span> {
-        <span class='self'>self</span>.<span class='ident'>evq</span>.<span class='ident'>handle</span>.<span class='ident'>handlers</span>[<span class='ident'>handler_id</span>].<span class='ident'>downcast_mut</span>::<span class='op'>&lt;</span><span class='ident'>H</span><span class='op'>&gt;</span>()
-            .<span class='ident'>expect</span>(<span class='string'>&quot;Handler type do not match.&quot;</span>)
+    <span class="doccomment">/// Get a mutable reference to a handler</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Provides a reference to a handler stored in this event loop.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The H type must be provided and match the type of the targetted Handler, or</span>
+    <span class="doccomment">/// it will panic.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_mut_handler</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Any</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">handler_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">H</span> {
+        <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">handle</span>.<span class="ident">handlers</span>[<span class="ident">handler_id</span>].<span class="ident">downcast_mut</span>::<span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span>()
+            .<span class="ident">expect</span>(<span class="string">&quot;Handler type do not match.&quot;</span>)
     }
 }
 
-<span class='doccomment'>/// An event queue managing wayland events</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Each wayland object can receive events from the server. To handle these events</span>
-<span class='doccomment'>/// you must use a handler object: a struct (or enum) which you have implemented</span>
-<span class='doccomment'>/// the appropriate `Handler` traits on it (each wayland interface defines a `Handler`</span>
-<span class='doccomment'>/// trait in its module), and declared it using the `declare_handler!(..)` macro.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This handler contains the state all your handler methods will be able to access</span>
-<span class='doccomment'>/// via the `&amp;mut self` argument. You can then instanciate your type, and give ownership of</span>
-<span class='doccomment'>/// the handler object to the event queue, via the `add_handler(..)` method. Then, each</span>
-<span class='doccomment'>/// wayland object must be registered to a handler via the `register(..)` method (or its events</span>
-<span class='doccomment'>/// will all be ignored).</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The event queues also provides you control on the flow of the program, via the `dispatch()` and</span>
-<span class='doccomment'>/// `dispatch_pending()` methods.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ## example of use</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```ignore</span>
-<span class='doccomment'>/// struct MyHandler { /* ... */ }</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// impl wl_surface::Handler for MyHandler {</span>
-<span class='doccomment'>///     // implementation of the handler methods</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// declare_handler!(MyHandler, wl_surface::Handler, wl_surface::WlSurface);</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// fn main() {</span>
-<span class='doccomment'>///     /* ... setup of your environment ... */</span>
-<span class='doccomment'>///     let surface = compositor.create_surface().expect(&quot;Compositor cannot be destroyed.&quot;);</span>
-<span class='doccomment'>///     let my_id = eventqueue.add_handler(MyHandler::new());</span>
-<span class='doccomment'>///     eventqueue.register::&lt;_, MyHandler&gt;(&amp;surface, my_id);</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>///     // main event loop</span>
-<span class='doccomment'>///     loop {</span>
-<span class='doccomment'>///         // flush requests to the server</span>
-<span class='doccomment'>///         display.flush().unwrap();</span>
-<span class='doccomment'>///         // dispatch events from the server, blocking if needed</span>
-<span class='doccomment'>///         eventqueue.dispatch().unwrap();</span>
-<span class='doccomment'>///     }</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>/// ```</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>EventQueue</span> {
-    <span class='ident'>handle</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>EventQueueHandle</span><span class='op'>&gt;</span>,
-    <span class='ident'>display</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_display</span>
+<span class="doccomment">/// An event queue managing wayland events</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Each wayland object can receive events from the server. To handle these events</span>
+<span class="doccomment">/// you must use a handler object: a struct (or enum) which you have implemented</span>
+<span class="doccomment">/// the appropriate `Handler` traits on it (each wayland interface defines a `Handler`</span>
+<span class="doccomment">/// trait in its module), and declared it using the `declare_handler!(..)` macro.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This handler contains the state all your handler methods will be able to access</span>
+<span class="doccomment">/// via the `&amp;mut self` argument. You can then instanciate your type, and give ownership of</span>
+<span class="doccomment">/// the handler object to the event queue, via the `add_handler(..)` method. Then, each</span>
+<span class="doccomment">/// wayland object must be registered to a handler via the `register(..)` method (or its events</span>
+<span class="doccomment">/// will all be ignored).</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The event queues also provides you control on the flow of the program, via the `dispatch()` and</span>
+<span class="doccomment">/// `dispatch_pending()` methods.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ## example of use</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```ignore</span>
+<span class="doccomment">/// struct MyHandler { /* ... */ }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// impl wl_surface::Handler for MyHandler {</span>
+<span class="doccomment">///     // implementation of the handler methods</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// declare_handler!(MyHandler, wl_surface::Handler, wl_surface::WlSurface);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// fn main() {</span>
+<span class="doccomment">///     /* ... setup of your environment ... */</span>
+<span class="doccomment">///     let surface = compositor.create_surface().expect(&quot;Compositor cannot be destroyed.&quot;);</span>
+<span class="doccomment">///     let my_id = eventqueue.add_handler(MyHandler::new());</span>
+<span class="doccomment">///     eventqueue.register::&lt;_, MyHandler&gt;(&amp;surface, my_id);</span>
+<span class="doccomment">///</span>
+<span class="doccomment">///     // main event loop</span>
+<span class="doccomment">///     loop {</span>
+<span class="doccomment">///         // flush requests to the server</span>
+<span class="doccomment">///         display.flush().unwrap();</span>
+<span class="doccomment">///         // dispatch events from the server, blocking if needed</span>
+<span class="doccomment">///         eventqueue.dispatch().unwrap();</span>
+<span class="doccomment">///     }</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventQueue</span> {
+    <span class="ident">handle</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">EventQueueHandle</span><span class="op">&gt;</span>,
+    <span class="ident">display</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_display</span>
 }
 
-<span class='kw'>impl</span> <span class='ident'>EventQueue</span> {
-    <span class='doccomment'>/// Dispatches events from the internal buffer.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Dispatches all events to their appropriate handlers.</span>
-    <span class='doccomment'>/// If not events were in the internal buffer, will block until</span>
-    <span class='doccomment'>/// some events are read and dispatch them.</span>
-    <span class='doccomment'>/// This process can insert events in the internal buffers of</span>
-    <span class='doccomment'>/// other event queues.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If an error is returned, your connexion with the wayland</span>
-    <span class='doccomment'>/// compositor is probably lost.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>dispatch</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>IoResult</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ret</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>handle</span>.<span class='ident'>wlevq</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>evq</span>) <span class='op'>=&gt;</span> <span class='kw'>unsafe</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                    <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                    <span class='ident'>wl_display_dispatch_queue</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>,
-                    <span class='ident'>evq</span>
+<span class="kw">impl</span> <span class="ident">EventQueue</span> {
+    <span class="doccomment">/// Dispatches events from the internal buffer.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Dispatches all events to their appropriate handlers.</span>
+    <span class="doccomment">/// If not events were in the internal buffer, will block until</span>
+    <span class="doccomment">/// some events are read and dispatch them.</span>
+    <span class="doccomment">/// This process can insert events in the internal buffers of</span>
+    <span class="doccomment">/// other event queues.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If an error is returned, your connexion with the wayland</span>
+    <span class="doccomment">/// compositor is probably lost.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dispatch</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                    <span class="ident">wl_display_dispatch_queue</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>,
+                    <span class="ident">evq</span>
                 )
             },
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>unsafe</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                    <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                    <span class='ident'>wl_display_dispatch</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                    <span class="ident">wl_display_dispatch</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>
                 )
             }
         };
-        <span class='kw'>if</span> <span class='ident'>ret</span> <span class='op'>&gt;=</span> <span class='number'>0</span> {
-            <span class='prelude-val'>Ok</span>(<span class='ident'>ret</span> <span class='kw'>as</span> <span class='ident'>u32</span>)
-        } <span class='kw'>else</span> {
-            <span class='prelude-val'>Err</span>(<span class='ident'>IoError</span>::<span class='ident'>last_os_error</span>())
+        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">ret</span> <span class="kw">as</span> <span class="ident">u32</span>)
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
         }
     }
 
-    <span class='doccomment'>/// Dispatches pending events from the internal buffer.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Dispatches all events to their appropriate handlers.</span>
-    <span class='doccomment'>/// Never blocks, if not events were pending, simply returns</span>
-    <span class='doccomment'>/// `Ok(0)`.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If an error is returned, your connexion with the wayland</span>
-    <span class='doccomment'>/// compositor is probably lost.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>dispatch_pending</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>IoResult</span><span class='op'>&lt;</span><span class='ident'>u32</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ret</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>handle</span>.<span class='ident'>wlevq</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>evq</span>) <span class='op'>=&gt;</span> <span class='kw'>unsafe</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                    <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                    <span class='ident'>wl_display_dispatch_queue_pending</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>,
-                    <span class='ident'>evq</span>
+    <span class="doccomment">/// Dispatches pending events from the internal buffer.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Dispatches all events to their appropriate handlers.</span>
+    <span class="doccomment">/// Never blocks, if not events were pending, simply returns</span>
+    <span class="doccomment">/// `Ok(0)`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If an error is returned, your connexion with the wayland</span>
+    <span class="doccomment">/// compositor is probably lost.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dispatch_pending</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                    <span class="ident">wl_display_dispatch_queue_pending</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>,
+                    <span class="ident">evq</span>
                 )
             },
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='kw'>unsafe</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-                    <span class='ident'>WAYLAND_CLIENT_HANDLE</span>,
-                    <span class='ident'>wl_display_dispatch_pending</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                    <span class="ident">wl_display_dispatch_pending</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>
                 )
             }
         };
-        <span class='kw'>if</span> <span class='ident'>ret</span> <span class='op'>&gt;=</span> <span class='number'>0</span> {
-            <span class='prelude-val'>Ok</span>(<span class='ident'>ret</span> <span class='kw'>as</span> <span class='ident'>u32</span>)
-        } <span class='kw'>else</span> {
-            <span class='prelude-val'>Err</span>(<span class='ident'>IoError</span>::<span class='ident'>last_os_error</span>())
+        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">ret</span> <span class="kw">as</span> <span class="ident">u32</span>)
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
         }
     }
 
-    <span class='doccomment'>/// Synchronous roundtrip</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This call will cause a synchonous roundtrip with the wayland server. It will block until all</span>
-    <span class='doccomment'>/// pending requests of this queue are send to the server and it has processed all of them and</span>
-    <span class='doccomment'>/// send the appropriate events.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Handlers are called as a consequence.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// On success returns the number of dispatched events.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>sync_roundtrip</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>IoResult</span><span class='op'>&lt;</span><span class='ident'>i32</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ret</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>handle</span>.<span class='ident'>wlevq</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>evtq</span>) <span class='op'>=&gt;</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_display_roundtrip_queue</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>, <span class='ident'>evtq</span>)
+    <span class="doccomment">/// Synchronous roundtrip</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This call will cause a synchonous roundtrip with the wayland server. It will block until all</span>
+    <span class="doccomment">/// pending requests of this queue are send to the server and it has processed all of them and</span>
+    <span class="doccomment">/// send the appropriate events.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Handlers are called as a consequence.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// On success returns the number of dispatched events.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sync_roundtrip</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">i32</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">evtq</span>) <span class="op">=&gt;</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_roundtrip_queue</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>, <span class="ident">evtq</span>)
             }
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_display_roundtrip</span>, <span class='self'>self</span>.<span class='ident'>display</span>)
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_roundtrip</span>, <span class="self">self</span>.<span class="ident">display</span>)
             }
         }};
-        <span class='kw'>if</span> <span class='ident'>ret</span> <span class='op'>&gt;=</span> <span class='number'>0</span> { <span class='prelude-val'>Ok</span>(<span class='ident'>ret</span>) } <span class='kw'>else</span> { <span class='prelude-val'>Err</span>(<span class='ident'>IoError</span>::<span class='ident'>last_os_error</span>()) }
+        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> { <span class="prelude-val">Ok</span>(<span class="ident">ret</span>) } <span class="kw">else</span> { <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>()) }
     }
 
-    <span class='doccomment'>/// Get a handle to the internal state</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The returned guard object allows you to get references</span>
-    <span class='doccomment'>/// to the handler objects you previously inserted in this</span>
-    <span class='doccomment'>/// event queue.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>state</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>StateGuard</span> {
-        <span class='ident'>StateGuard</span> { <span class='ident'>evq</span>: <span class='self'>self</span> }
+    <span class="doccomment">/// Get a handle to the internal state</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The returned guard object allows you to get references</span>
+    <span class="doccomment">/// to the handler objects you previously inserted in this</span>
+    <span class="doccomment">/// event queue.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">state</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">StateGuard</span> {
+        <span class="ident">StateGuard</span> { <span class="ident">evq</span>: <span class="self">self</span> }
     }
 
-    <span class='doccomment'>/// Prepare an conccurent read</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Will declare your intention to read events from the server socket.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Will return `None` if there are still some events awaiting dispatch on this EventIterator.</span>
-    <span class='doccomment'>/// In this case, you need to call `dispatch_pending()` before calling this method again.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// As long as the returned guard is in scope, no events can be dispatched to any event iterator.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The guard can then be destroyed by two means:</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>///  - Calling its `cancel()` method (or letting it go out of scope): the read intention will</span>
-    <span class='doccomment'>///    be cancelled</span>
-    <span class='doccomment'>///  - Calling its `read_events()` method: will block until all existing guards are destroyed</span>
-    <span class='doccomment'>///    by one of these methods, then events will be read and all blocked `read_events()` calls</span>
-    <span class='doccomment'>///    will return.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// This call will otherwise not block on the server socket if it is empty, and return</span>
-    <span class='doccomment'>/// an io error `WouldBlock` in such cases.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>prepare_read</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>ReadEventsGuard</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ret</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>handle</span>.<span class='ident'>wlevq</span> {
-            <span class='prelude-val'>Some</span>(<span class='ident'>evtq</span>) <span class='op'>=&gt;</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_display_prepare_read_queue</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>, <span class='ident'>evtq</span>)
+    <span class="doccomment">/// Prepare an conccurent read</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Will declare your intention to read events from the server socket.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Will return `None` if there are still some events awaiting dispatch on this EventIterator.</span>
+    <span class="doccomment">/// In this case, you need to call `dispatch_pending()` before calling this method again.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// As long as the returned guard is in scope, no events can be dispatched to any event iterator.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The guard can then be destroyed by two means:</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">///  - Calling its `cancel()` method (or letting it go out of scope): the read intention will</span>
+    <span class="doccomment">///    be cancelled</span>
+    <span class="doccomment">///  - Calling its `read_events()` method: will block until all existing guards are destroyed</span>
+    <span class="doccomment">///    by one of these methods, then events will be read and all blocked `read_events()` calls</span>
+    <span class="doccomment">///    will return.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This call will otherwise not block on the server socket if it is empty, and return</span>
+    <span class="doccomment">/// an io error `WouldBlock` in such cases.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">prepare_read</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ReadEventsGuard</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">evtq</span>) <span class="op">=&gt;</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_prepare_read_queue</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>, <span class="ident">evtq</span>)
             },
-            <span class='prelude-val'>None</span> <span class='op'>=&gt;</span> {
-                <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_display_prepare_read</span>,
-                    <span class='self'>self</span>.<span class='ident'>display</span>)
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> {
+                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_prepare_read</span>,
+                    <span class="self">self</span>.<span class="ident">display</span>)
             }
         }};
-        <span class='kw'>if</span> <span class='ident'>ret</span> <span class='op'>&gt;=</span> <span class='number'>0</span> { <span class='prelude-val'>Some</span>(<span class='ident'>ReadEventsGuard</span> { <span class='ident'>display</span>: <span class='self'>self</span>.<span class='ident'>display</span> }) } <span class='kw'>else</span> { <span class='prelude-val'>None</span> }
+        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> { <span class="prelude-val">Some</span>(<span class="ident">ReadEventsGuard</span> { <span class="ident">display</span>: <span class="self">self</span>.<span class="ident">display</span> }) } <span class="kw">else</span> { <span class="prelude-val">None</span> }
 }
 }
 
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>EventQueue</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Send</span> <span class="kw">for</span> <span class="ident">EventQueue</span> {}
 
-<span class='kw'>impl</span> <span class='ident'>Deref</span> <span class='kw'>for</span> <span class='ident'>EventQueue</span> {
-    <span class='kw'>type</span> <span class='ident'>Target</span> <span class='op'>=</span> <span class='ident'>EventQueueHandle</span>;
-    <span class='kw'>fn</span> <span class='ident'>deref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>EventQueueHandle</span> {
-        <span class='kw-2'>&amp;</span><span class='kw-2'>*</span><span class='self'>self</span>.<span class='ident'>handle</span>
+<span class="kw">impl</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">EventQueue</span> {
+    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> <span class="ident">EventQueueHandle</span>;
+    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">EventQueueHandle</span> {
+        <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">handle</span>
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>DerefMut</span> <span class='kw'>for</span> <span class='ident'>EventQueue</span> {
-    <span class='kw'>fn</span> <span class='ident'>deref_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>EventQueueHandle</span> {
-        <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='self'>self</span>.<span class='ident'>handle</span>
+<span class="kw">impl</span> <span class="ident">DerefMut</span> <span class="kw">for</span> <span class="ident">EventQueue</span> {
+    <span class="kw">fn</span> <span class="ident">deref_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span> {
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">handle</span>
     }
 }
 
-<span class='doccomment'>/// A guard over a read intention.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// See `EventQueue::prepare_read()` for details about its use.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ReadEventsGuard</span> {
-    <span class='ident'>display</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_display</span>
+<span class="doccomment">/// A guard over a read intention.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// See `EventQueue::prepare_read()` for details about its use.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ReadEventsGuard</span> {
+    <span class="ident">display</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_display</span>
 }
 
-<span class='kw'>impl</span> <span class='ident'>ReadEventsGuard</span> {
-    <span class='doccomment'>/// Read events</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Reads events from the server socket. If other `ReadEventsGuard` exists, will block</span>
-    <span class='doccomment'>/// until they are all consumed or destroyed.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>read_events</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>IoResult</span><span class='op'>&lt;</span><span class='ident'>i32</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>ret</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_display_read_events</span>, <span class='self'>self</span>.<span class='ident'>display</span>) };
-        <span class='comment'>// Don&#39;t run destructor that would cancel the read intent</span>
-        ::<span class='ident'>std</span>::<span class='ident'>mem</span>::<span class='ident'>forget</span>(<span class='self'>self</span>);
-        <span class='kw'>if</span> <span class='ident'>ret</span> <span class='op'>&gt;=</span> <span class='number'>0</span> { <span class='prelude-val'>Ok</span>(<span class='ident'>ret</span>) } <span class='kw'>else</span> { <span class='prelude-val'>Err</span>(<span class='ident'>IoError</span>::<span class='ident'>last_os_error</span>()) }
+<span class="kw">impl</span> <span class="ident">ReadEventsGuard</span> {
+    <span class="doccomment">/// Read events</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Reads events from the server socket. If other `ReadEventsGuard` exists, will block</span>
+    <span class="doccomment">/// until they are all consumed or destroyed.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">read_events</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">i32</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_read_events</span>, <span class="self">self</span>.<span class="ident">display</span>) };
+        <span class="comment">// Don&#39;t run destructor that would cancel the read intent</span>
+        ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">forget</span>(<span class="self">self</span>);
+        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> { <span class="prelude-val">Ok</span>(<span class="ident">ret</span>) } <span class="kw">else</span> { <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>()) }
     }
 
-    <span class='doccomment'>/// Cancel the read</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Will cancel the read intention associated with this guard. Never blocks.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Has the same effet as letting the guard go out of scope.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='self'>self</span>) {
-        <span class='comment'>// just run the destructor</span>
-    }
-}
-
-<span class='kw'>impl</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>ReadEventsGuard</span> {
-    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='kw'>unsafe</span> { <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_display_cancel_read</span>, <span class='self'>self</span>.<span class='ident'>display</span>) }
+    <span class="doccomment">/// Cancel the read</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Will cancel the read intention associated with this guard. Never blocks.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Has the same effet as letting the guard go out of scope.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">cancel</span>(<span class="self">self</span>) {
+        <span class="comment">// just run the destructor</span>
     }
 }
 
-<span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>create_event_queue</span>(<span class='ident'>display</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_display</span>, <span class='ident'>evq</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_event_queue</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>EventQueue</span> {
-    <span class='ident'>EventQueue</span> {
-        <span class='ident'>display</span>: <span class='ident'>display</span>,
-        <span class='ident'>handle</span>: <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>EventQueueHandle</span> {
-            <span class='ident'>handlers</span>: <span class='ident'>Vec</span>::<span class='ident'>new</span>(),
-            <span class='ident'>wlevq</span>: <span class='ident'>evq</span>
+<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ReadEventsGuard</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_cancel_read</span>, <span class="self">self</span>.<span class="ident">display</span>) }
+    }
+}
+
+<span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">create_event_queue</span>(<span class="ident">display</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_display</span>, <span class="ident">evq</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_event_queue</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">EventQueue</span> {
+    <span class="ident">EventQueue</span> {
+        <span class="ident">display</span>: <span class="ident">display</span>,
+        <span class="ident">handle</span>: <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">EventQueueHandle</span> {
+            <span class="ident">handlers</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+            <span class="ident">wlevq</span>: <span class="ident">evq</span>
         })
     }
 }
 
-<span class='kw'>unsafe</span> <span class='kw'>extern</span> <span class='string'>&quot;C&quot;</span> <span class='kw'>fn</span> <span class='ident'>dispatch_func</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>Proxy</span>, <span class='ident'>H</span>: <span class='ident'>Handler</span><span class='op'>&lt;</span><span class='ident'>P</span><span class='op'>&gt;&gt;</span>(
-    <span class='ident'>handler</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>c_void</span>,
-    <span class='ident'>proxy</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>c_void</span>,
-    <span class='ident'>opcode</span>: <span class='ident'>u32</span>,
-    <span class='ident'>_msg</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>wl_message</span>,
-    <span class='ident'>args</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>wl_argument</span>
-) <span class='op'>-&gt;</span> <span class='ident'>c_int</span> {
-    <span class='comment'>// We don&#39;t need to worry about panic-safeness, because if there is a panic,</span>
-    <span class='comment'>// we&#39;ll abort the process, so no access to corrupted data is possible.</span>
-    <span class='kw'>let</span> <span class='ident'>ret</span> <span class='op'>=</span> ::<span class='ident'>std</span>::<span class='ident'>panic</span>::<span class='ident'>catch_unwind</span>(<span class='kw'>move</span> <span class='op'>||</span> {
-        <span class='comment'>// This cast from *const to *mut is legit because we enforce that a Handler</span>
-        <span class='comment'>// can only be assigned to a single EventQueue.</span>
-        <span class='comment'>// (this is actually the whole point of the design of this lib)</span>
-        <span class='kw'>let</span> <span class='ident'>handler</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span>(<span class='ident'>handler</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>H</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>H</span>);
-        <span class='kw'>let</span> <span class='ident'>proxy</span> <span class='op'>=</span> <span class='ident'>P</span>::<span class='ident'>from_ptr_initialized</span>(<span class='ident'>proxy</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_proxy</span>);
-        <span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span>(<span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(
-            <span class='ident'>WAYLAND_CLIENT_HANDLE</span>, <span class='ident'>wl_proxy_get_user_data</span>, <span class='ident'>proxy</span>.<span class='ident'>ptr</span>()
-        ) <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>ProxyUserData</span>);
-        <span class='kw'>let</span> <span class='ident'>evqhandle</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='kw-2'>*</span><span class='ident'>data</span>.<span class='number'>0</span>;
-        <span class='ident'>handler</span>.<span class='ident'>message</span>(<span class='ident'>evqhandle</span>, <span class='kw-2'>&amp;</span><span class='ident'>proxy</span>, <span class='ident'>opcode</span>, <span class='ident'>args</span>)
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">dispatch_func</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Proxy</span>, <span class="ident">H</span>: <span class="ident">Handler</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;&gt;</span>(
+    <span class="ident">handler</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span>,
+    <span class="ident">proxy</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>,
+    <span class="ident">opcode</span>: <span class="ident">u32</span>,
+    <span class="ident">_msg</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">wl_message</span>,
+    <span class="ident">args</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">wl_argument</span>
+) <span class="op">-&gt;</span> <span class="ident">c_int</span> {
+    <span class="comment">// We don&#39;t need to worry about panic-safeness, because if there is a panic,</span>
+    <span class="comment">// we&#39;ll abort the process, so no access to corrupted data is possible.</span>
+    <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">panic</span>::<span class="ident">catch_unwind</span>(<span class="kw">move</span> <span class="op">||</span> {
+        <span class="comment">// This cast from *const to *mut is legit because we enforce that a Handler</span>
+        <span class="comment">// can only be assigned to a single EventQueue.</span>
+        <span class="comment">// (this is actually the whole point of the design of this lib)</span>
+        <span class="kw">let</span> <span class="ident">handler</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span>(<span class="ident">handler</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">H</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">H</span>);
+        <span class="kw">let</span> <span class="ident">proxy</span> <span class="op">=</span> <span class="ident">P</span>::<span class="ident">from_ptr_initialized</span>(<span class="ident">proxy</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_proxy</span>);
+        <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span>(<span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+            <span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_proxy_get_user_data</span>, <span class="ident">proxy</span>.<span class="ident">ptr</span>()
+        ) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ProxyUserData</span>);
+        <span class="kw">let</span> <span class="ident">evqhandle</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">data</span>.<span class="number">0</span>;
+        <span class="ident">handler</span>.<span class="ident">message</span>(<span class="ident">evqhandle</span>, <span class="kw-2">&amp;</span><span class="ident">proxy</span>, <span class="ident">opcode</span>, <span class="ident">args</span>)
     });
-    <span class='kw'>match</span> <span class='ident'>ret</span> {
-        <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Ok</span>(())) <span class='op'>=&gt;</span> <span class='kw'>return</span> <span class='number'>0</span>,   <span class='comment'>// all went well</span>
-        <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Err</span>(())) <span class='op'>=&gt;</span> {
-            <span class='comment'>// an unknown opcode was dispatched, this is not normal</span>
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>write</span><span class='macro'>!</span>(
-                ::<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>stderr</span>(),
-                <span class='string'>&quot;[wayland-client error] Attempted to dispatch unknown opcode {} for {}, aborting.&quot;</span>,
-                <span class='ident'>opcode</span>, <span class='ident'>P</span>::<span class='ident'>interface_name</span>()
+    <span class="kw">match</span> <span class="ident">ret</span> {
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Ok</span>(())) <span class="op">=&gt;</span> <span class="kw">return</span> <span class="number">0</span>,   <span class="comment">// all went well</span>
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Err</span>(())) <span class="op">=&gt;</span> {
+            <span class="comment">// an unknown opcode was dispatched, this is not normal</span>
+            <span class="kw">let</span> _ <span class="op">=</span> <span class="macro">write</span><span class="macro">!</span>(
+                ::<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">stderr</span>(),
+                <span class="string">&quot;[wayland-client error] Attempted to dispatch unknown opcode {} for {}, aborting.&quot;</span>,
+                <span class="ident">opcode</span>, <span class="ident">P</span>::<span class="ident">interface_name</span>()
             );
-            ::<span class='ident'>libc</span>::<span class='ident'>abort</span>();
+            ::<span class="ident">libc</span>::<span class="ident">abort</span>();
         }
-        <span class='prelude-val'>Err</span>(_) <span class='op'>=&gt;</span> {
-            <span class='comment'>// a panic occured</span>
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='macro'>write</span><span class='macro'>!</span>(
-                ::<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>stderr</span>(),
-                <span class='string'>&quot;[wayland-client error] A handler for {} panicked, aborting.&quot;</span>,
-                <span class='ident'>P</span>::<span class='ident'>interface_name</span>()
+        <span class="prelude-val">Err</span>(_) <span class="op">=&gt;</span> {
+            <span class="comment">// a panic occured</span>
+            <span class="kw">let</span> _ <span class="op">=</span> <span class="macro">write</span><span class="macro">!</span>(
+                ::<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">stderr</span>(),
+                <span class="string">&quot;[wayland-client error] A handler for {} panicked, aborting.&quot;</span>,
+                <span class="ident">P</span>::<span class="ident">interface_name</span>()
             );
-            ::<span class='ident'>libc</span>::<span class='ident'>abort</span>();
+            ::<span class="ident">libc</span>::<span class="ident">abort</span>();
         }
     }
 }
 
-<span class='doccomment'>/// Registers a handler type so it can be used in event queue</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// After having implemented the appropriate Handler trait for your type,</span>
-<span class='doccomment'>/// declare it via this macro, like this:</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```ignore</span>
-<span class='doccomment'>/// struct MyHandler;</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// impl wl_foo::Handler for MyHandler {</span>
-<span class='doccomment'>///     ...</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// declare_handler!(MyHandler, wl_foo::Handler, wl_foo::WlFoo);</span>
-<span class='doccomment'>/// ```</span>
-<span class='attribute'>#[<span class='ident'>macro_export</span>]</span>
-<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>declare_handler</span>(
-    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_struct</span>: <span class='ident'>ty</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_trait</span>: <span class='ident'>path</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handled_type</span>: <span class='ident'>ty</span>) <span class='op'>=&gt;</span> {
-        <span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='macro-nonterminal'>$</span><span class='kw'>crate</span>::<span class='macro-nonterminal'>Handler</span><span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handled_type</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_struct</span> {
-            <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>message</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>evq</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='macro-nonterminal'>$</span><span class='kw'>crate</span>::<span class='macro-nonterminal'>EventQueueHandle</span>, <span class='ident'>proxy</span>: <span class='kw-2'>&amp;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handled_type</span>, <span class='ident'>opcode</span>: <span class='ident'>u32</span>, <span class='ident'>args</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='macro-nonterminal'>$</span><span class='kw'>crate</span>::<span class='macro-nonterminal'>sys</span>::<span class='ident'>wl_argument</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(),()<span class='op'>&gt;</span> {
-                <span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_struct</span> <span class='kw'>as</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_trait</span><span class='op'>&gt;</span>::<span class='ident'>__message</span>(<span class='self'>self</span>, <span class='ident'>evq</span>, <span class='ident'>proxy</span>, <span class='ident'>opcode</span>, <span class='ident'>args</span>)
+<span class="doccomment">/// Registers a handler type so it can be used in event queue</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// After having implemented the appropriate Handler trait for your type,</span>
+<span class="doccomment">/// declare it via this macro, like this:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```ignore</span>
+<span class="doccomment">/// struct MyHandler;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// impl wl_foo::Handler for MyHandler {</span>
+<span class="doccomment">///     ...</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// declare_handler!(MyHandler, wl_foo::Handler, wl_foo::WlFoo);</span>
+<span class="doccomment">/// ```</span>
+<span class="attribute">#[<span class="ident">macro_export</span>]</span>
+<span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">declare_handler</span>(
+    (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_struct</span>: <span class="ident">ty</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_trait</span>: <span class="ident">path</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handled_type</span>: <span class="ident">ty</span>) <span class="op">=&gt;</span> {
+        <span class="kw">unsafe</span> <span class="kw">impl</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">Handler</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">handled_type</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_struct</span> {
+            <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">message</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">evq</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">EventQueueHandle</span>, <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">handled_type</span>, <span class="ident">opcode</span>: <span class="ident">u32</span>, <span class="ident">args</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">sys</span>::<span class="ident">wl_argument</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(),()<span class="op">&gt;</span> {
+                <span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_struct</span> <span class="kw">as</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_trait</span><span class="op">&gt;</span>::<span class="ident">__message</span>(<span class="self">self</span>, <span class="ident">evq</span>, <span class="ident">proxy</span>, <span class="ident">opcode</span>, <span class="ident">args</span>)
             }
         }
     }
 );
 
-<span class='doccomment'>/// Registers a handler type so it as delegating to one of its fields</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This allows to declare your type as a handler, by delegating the impl</span>
-<span class='doccomment'>/// to one of its fields (or subfields).</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// ```ignore</span>
-<span class='doccomment'>/// // MySubHandler is a proper handler for wl_foo events</span>
-<span class='doccomment'>/// struct MySubHandler;</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// struct MyHandler {</span>
-<span class='doccomment'>///     sub: MySubHandler</span>
-<span class='doccomment'>/// }</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// declare_delegating_handler!(MySubHandler, sub, wl_foo::Handler, wl_foo::WlFoo);</span>
-<span class='doccomment'>/// ```</span>
-<span class='attribute'>#[<span class='ident'>macro_export</span>]</span>
-<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>declare_delegating_handler</span>(
-    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_struct</span>: <span class='ident'>ty</span>, $(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_field</span>: <span class='ident'>ident</span>).<span class='op'>+</span> , <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_trait</span>: <span class='ident'>path</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handled_type</span>: <span class='ident'>ty</span>) <span class='op'>=&gt;</span> {
-        <span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='macro-nonterminal'>$</span><span class='kw'>crate</span>::<span class='macro-nonterminal'>Handler</span><span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handled_type</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_struct</span> {
-            <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>message</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>evq</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='macro-nonterminal'>$</span><span class='kw'>crate</span>::<span class='macro-nonterminal'>EventQueueHandle</span>, <span class='ident'>proxy</span>: <span class='kw-2'>&amp;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handled_type</span>, <span class='ident'>opcode</span>: <span class='ident'>u32</span>, <span class='ident'>args</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='macro-nonterminal'>$</span><span class='kw'>crate</span>::<span class='macro-nonterminal'>sys</span>::<span class='ident'>wl_argument</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(),()<span class='op'>&gt;</span> {
-                <span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_trait</span><span class='op'>&gt;</span>::<span class='ident'>__message</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.$(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>handler_field</span>).<span class='op'>+</span>, <span class='ident'>evq</span>, <span class='ident'>proxy</span>, <span class='ident'>opcode</span>, <span class='ident'>args</span>)
+<span class="doccomment">/// Registers a handler type so it as delegating to one of its fields</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This allows to declare your type as a handler, by delegating the impl</span>
+<span class="doccomment">/// to one of its fields (or subfields).</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```ignore</span>
+<span class="doccomment">/// // MySubHandler is a proper handler for wl_foo events</span>
+<span class="doccomment">/// struct MySubHandler;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// struct MyHandler {</span>
+<span class="doccomment">///     sub: MySubHandler</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// declare_delegating_handler!(MySubHandler, sub, wl_foo::Handler, wl_foo::WlFoo);</span>
+<span class="doccomment">/// ```</span>
+<span class="attribute">#[<span class="ident">macro_export</span>]</span>
+<span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">declare_delegating_handler</span>(
+    (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_struct</span>: <span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_field</span>: <span class="ident">ident</span>).<span class="op">+</span> , <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_trait</span>: <span class="ident">path</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handled_type</span>: <span class="ident">ty</span>) <span class="op">=&gt;</span> {
+        <span class="kw">unsafe</span> <span class="kw">impl</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">Handler</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">handled_type</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_struct</span> {
+            <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">message</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">evq</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">EventQueueHandle</span>, <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">handled_type</span>, <span class="ident">opcode</span>: <span class="ident">u32</span>, <span class="ident">args</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">sys</span>::<span class="ident">wl_argument</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(),()<span class="op">&gt;</span> {
+                <span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_trait</span><span class="op">&gt;</span>::<span class="ident">__message</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.$(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">handler_field</span>).<span class="op">+</span>, <span class="ident">evq</span>, <span class="ident">proxy</span>, <span class="ident">opcode</span>, <span class="ident">args</span>)
             }
         }
     }

@@ -4,6 +4,7 @@ implementors["glutin_window"] = [];
 implementors["image"] = [];
 implementors["piston_window"] = [];
 implementors["rand"] = [];
+implementors["rayon"] = [];
 implementors["tempfile"] = [];
 implementors["wayland_window"] = [];
 implementors["winit"] = [];

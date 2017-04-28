@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.7.7/src/egl.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.7.8/src/egl.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>egl.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1"> 1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1"> 1</span>
 <span id="2"> 2</span>
 <span id="3"> 3</span>
 <span id="4"> 4</span>
@@ -124,86 +124,86 @@
 <span id="79">79</span>
 <span id="80">80</span>
 <span id="81">81</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! EGL utilities</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! This module contains bindings to the `libwayland-egl.so` library.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! This library is used to interface with the OpenGL stack, and creating</span>
-<span class='doccomment'>//! EGL surfaces from a wayland surface.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! See WlEglSurface documentation for details.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! EGL utilities</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! This module contains bindings to the `libwayland-egl.so` library.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! This library is used to interface with the OpenGL stack, and creating</span>
+<span class="doccomment">//! EGL surfaces from a wayland surface.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! See WlEglSurface documentation for details.</span>
 
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>os</span>::<span class='ident'>raw</span>::<span class='ident'>c_void</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::<span class="ident">c_void</span>;
 
-<span class='kw'>use</span> <span class='ident'>wayland_sys</span>::<span class='ident'>egl</span>::<span class='kw-2'>*</span>;
-<span class='kw'>use</span> <span class='ident'>protocol</span>::<span class='ident'>wl_surface</span>::<span class='ident'>WlSurface</span>;
-<span class='kw'>use</span> <span class='ident'>Proxy</span>;
+<span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">egl</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">protocol</span>::<span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>;
+<span class="kw">use</span> <span class="ident">Proxy</span>;
 
-<span class='doccomment'>/// Checks if the wayland-egl lib is available and can be used</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Trying to create an `WlEglSurface` while this function returns</span>
-<span class='doccomment'>/// `false` will result in a panic.</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_available</span>() <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-    <span class='ident'>is_lib_available</span>()
+<span class="doccomment">/// Checks if the wayland-egl lib is available and can be used</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Trying to create an `WlEglSurface` while this function returns</span>
+<span class="doccomment">/// `false` will result in a panic.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">is_lib_available</span>()
 }
 
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>WlEglSurface</span> {}
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>WlEglSurface</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Send</span> <span class="kw">for</span> <span class="ident">WlEglSurface</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Sync</span> <span class="kw">for</span> <span class="ident">WlEglSurface</span> {}
 
-<span class='doccomment'>/// EGL surface</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This object is a simple wrapper around a `WlSurface` to add the EGL</span>
-<span class='doccomment'>/// capabilities. Just use the `ptr` method once this object is created</span>
-<span class='doccomment'>/// to get the window pointer your OpenGL library is needing to initialize the</span>
-<span class='doccomment'>/// EGL context (you&#39;ll most likely need the display ptr as well, that you can</span>
-<span class='doccomment'>/// get via the `ptr` method of the `Proxy` trait on the `WlDisplay` object).</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>WlEglSurface</span> {
-    <span class='ident'>ptr</span>: <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>wl_egl_window</span>
+<span class="doccomment">/// EGL surface</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This object is a simple wrapper around a `WlSurface` to add the EGL</span>
+<span class="doccomment">/// capabilities. Just use the `ptr` method once this object is created</span>
+<span class="doccomment">/// to get the window pointer your OpenGL library is needing to initialize the</span>
+<span class="doccomment">/// EGL context (you&#39;ll most likely need the display ptr as well, that you can</span>
+<span class="doccomment">/// get via the `ptr` method of the `Proxy` trait on the `WlDisplay` object).</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WlEglSurface</span> {
+    <span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_egl_window</span>
 }
 
-<span class='kw'>impl</span> <span class='ident'>WlEglSurface</span> {
-    <span class='doccomment'>/// Create an EGL surface from a wayland surface</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>surface</span>: <span class='kw-2'>&amp;</span><span class='ident'>WlSurface</span>, <span class='ident'>width</span>: <span class='ident'>i32</span>, <span class='ident'>height</span>: <span class='ident'>i32</span>) <span class='op'>-&gt;</span> <span class='ident'>WlEglSurface</span> {
-        <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_EGL_HANDLE</span>, <span class='ident'>wl_egl_window_create</span>,
-            <span class='ident'>surface</span>.<span class='ident'>ptr</span>(), <span class='ident'>width</span>, <span class='ident'>height</span>) };
-        <span class='ident'>WlEglSurface</span> {
-            <span class='ident'>ptr</span>: <span class='ident'>ptr</span>,
+<span class="kw">impl</span> <span class="ident">WlEglSurface</span> {
+    <span class="doccomment">/// Create an EGL surface from a wayland surface</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">surface</span>: <span class="kw-2">&amp;</span><span class="ident">WlSurface</span>, <span class="ident">width</span>: <span class="ident">i32</span>, <span class="ident">height</span>: <span class="ident">i32</span>) <span class="op">-&gt;</span> <span class="ident">WlEglSurface</span> {
+        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_EGL_HANDLE</span>, <span class="ident">wl_egl_window_create</span>,
+            <span class="ident">surface</span>.<span class="ident">ptr</span>(), <span class="ident">width</span>, <span class="ident">height</span>) };
+        <span class="ident">WlEglSurface</span> {
+            <span class="ident">ptr</span>: <span class="ident">ptr</span>,
         }
     }
 
-    <span class='doccomment'>/// Fetch current size of the EGL surface</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_size</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> (<span class='ident'>i32</span>, <span class='ident'>i32</span>) {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>w</span> <span class='op'>=</span> <span class='number'>0i32</span>;
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>h</span> <span class='op'>=</span> <span class='number'>0i32</span>;
-        <span class='kw'>unsafe</span> { <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_EGL_HANDLE</span>, <span class='ident'>wl_egl_window_get_attached_size</span>,
-            <span class='self'>self</span>.<span class='ident'>ptr</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>w</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>i32</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>h</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw-2'>mut</span> <span class='ident'>i32</span>); }
-        (<span class='ident'>w</span>, <span class='ident'>h</span>)
+    <span class="doccomment">/// Fetch current size of the EGL surface</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_size</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">i32</span>, <span class="ident">i32</span>) {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">w</span> <span class="op">=</span> <span class="number">0i32</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">h</span> <span class="op">=</span> <span class="number">0i32</span>;
+        <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_EGL_HANDLE</span>, <span class="ident">wl_egl_window_get_attached_size</span>,
+            <span class="self">self</span>.<span class="ident">ptr</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">w</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">i32</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">h</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">i32</span>); }
+        (<span class="ident">w</span>, <span class="ident">h</span>)
     }
 
-    <span class='doccomment'>/// Resize the EGL surface</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The two first arguments `(width, height)` are the new size of</span>
-    <span class='doccomment'>/// the surface, the two others `(dx, dy)` represent the displacement</span>
-    <span class='doccomment'>/// of the top-left corner of the surface. It allows you to control the</span>
-    <span class='doccomment'>/// direction of the resizing if necessary.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>resize</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>width</span>: <span class='ident'>i32</span>, <span class='ident'>height</span>: <span class='ident'>i32</span>, <span class='ident'>dx</span>: <span class='ident'>i32</span>, <span class='ident'>dy</span>: <span class='ident'>i32</span>) {
-        <span class='kw'>unsafe</span> { <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_EGL_HANDLE</span>, <span class='ident'>wl_egl_window_resize</span>,
-            <span class='self'>self</span>.<span class='ident'>ptr</span>, <span class='ident'>width</span>, <span class='ident'>height</span>, <span class='ident'>dx</span>, <span class='ident'>dy</span>) }
+    <span class="doccomment">/// Resize the EGL surface</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The two first arguments `(width, height)` are the new size of</span>
+    <span class="doccomment">/// the surface, the two others `(dx, dy)` represent the displacement</span>
+    <span class="doccomment">/// of the top-left corner of the surface. It allows you to control the</span>
+    <span class="doccomment">/// direction of the resizing if necessary.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">resize</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">width</span>: <span class="ident">i32</span>, <span class="ident">height</span>: <span class="ident">i32</span>, <span class="ident">dx</span>: <span class="ident">i32</span>, <span class="ident">dy</span>: <span class="ident">i32</span>) {
+        <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_EGL_HANDLE</span>, <span class="ident">wl_egl_window_resize</span>,
+            <span class="self">self</span>.<span class="ident">ptr</span>, <span class="ident">width</span>, <span class="ident">height</span>, <span class="ident">dx</span>, <span class="ident">dy</span>) }
     }
 
-    <span class='doccomment'>/// Raw pointer to the EGL surface</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// You&#39;ll need this pointer to initialize the EGL context in your</span>
-    <span class='doccomment'>/// favourite OpenGL lib.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ptr</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>c_void</span> {
-        <span class='self'>self</span>.<span class='ident'>ptr</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>c_void</span>
+    <span class="doccomment">/// Raw pointer to the EGL surface</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// You&#39;ll need this pointer to initialize the EGL context in your</span>
+    <span class="doccomment">/// favourite OpenGL lib.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ptr</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span> {
+        <span class="self">self</span>.<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span>
     }
 }
 
-<span class='kw'>impl</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>WlEglSurface</span> {
-    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='kw'>unsafe</span> { <span class='macro'>ffi_dispatch</span><span class='macro'>!</span>(<span class='ident'>WAYLAND_EGL_HANDLE</span>, <span class='ident'>wl_egl_window_destroy</span>, <span class='self'>self</span>.<span class='ident'>ptr</span>); }
+<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">WlEglSurface</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_EGL_HANDLE</span>, <span class="ident">wl_egl_window_destroy</span>, <span class="self">self</span>.<span class="ident">ptr</span>); }
     }
 }
 </pre>

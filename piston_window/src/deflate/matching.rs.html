@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.4/src/matching.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.8/src/matching.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>matching.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -245,207 +245,231 @@
 <span id="200">200</span>
 <span id="201">201</span>
 <span id="202">202</span>
-</pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>;
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+</pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
 
-<span class='kw'>use</span> <span class='ident'>chained_hash_table</span>::{<span class='ident'>ChainedHashTable</span>, <span class='ident'>WINDOW_SIZE</span>};
-<span class='kw'>use</span> <span class='ident'>huffman_table</span>;
+<span class="kw">use</span> <span class="ident">chained_hash_table</span>::{<span class="ident">ChainedHashTable</span>, <span class="ident">WINDOW_SIZE</span>};
+<span class="kw">use</span> <span class="ident">huffman_table</span>;
 
-<span class='kw'>const</span> <span class='ident'>MAX_MATCH</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='ident'>huffman_table</span>::<span class='ident'>MAX_MATCH</span> <span class='kw'>as</span> <span class='ident'>usize</span>;
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-<span class='kw'>const</span> <span class='ident'>MIN_MATCH</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='ident'>huffman_table</span>::<span class='ident'>MIN_MATCH</span> <span class='kw'>as</span> <span class='ident'>usize</span>;
+<span class="kw">const</span> <span class="ident">MAX_MATCH</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">huffman_table</span>::<span class="ident">MAX_MATCH</span> <span class="kw">as</span> <span class="ident">usize</span>;
+<span class="kw">const</span> <span class="ident">MIN_MATCH</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">huffman_table</span>::<span class="ident">MIN_MATCH</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
-<span class='doccomment'>/// Get the length of the checked match</span>
-<span class='doccomment'>/// The function returns number of bytes at and including `current_pos` that are the same as the</span>
-<span class='doccomment'>/// ones at `pos_to_check`</span>
-<span class='kw'>fn</span> <span class='ident'>get_match_length</span>(<span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>current_pos</span>: <span class='ident'>usize</span>, <span class='ident'>pos_to_check</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-    <span class='comment'>// Unsafe version for comparison</span>
-    <span class='comment'>// This doesn&#39;t actually make it much faster</span>
+<span class="doccomment">/// Get the length of the checked match</span>
+<span class="doccomment">/// The function returns number of bytes at and including `current_pos` that are the same as the</span>
+<span class="doccomment">/// ones at `pos_to_check`</span>
+<span class="kw">fn</span> <span class="ident">get_match_length</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">current_pos</span>: <span class="ident">usize</span>, <span class="ident">pos_to_check</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="comment">// Unsafe version for comparison</span>
+    <span class="comment">// This doesn&#39;t actually make it much faster</span>
 
-    <span class='comment'>// use std::mem::transmute_copy;</span>
+    <span class="comment">// use std::mem::transmute_copy;</span>
 
-    <span class='comment'>// let mut counter = 0;</span>
-    <span class='comment'>// let max = cmp::min(data.len() - current_pos, MAX_MATCH);</span>
+    <span class="comment">// let mut counter = 0;</span>
+    <span class="comment">// let max = cmp::min(data.len() - current_pos, MAX_MATCH);</span>
 
-    <span class='comment'>// unsafe {</span>
-    <span class='comment'>//     let mut cur = data.as_ptr().offset(current_pos as isize);</span>
-    <span class='comment'>//     let mut tc = data.as_ptr().offset(pos_to_check as isize);</span>
-    <span class='comment'>//     while (counter &lt; max) &amp;&amp;</span>
-    <span class='comment'>//           (transmute_copy::&lt;u8, u32&gt;(&amp;*cur) == transmute_copy::&lt;u8, u32&gt;(&amp;*tc)) {</span>
-    <span class='comment'>//         counter += 4;</span>
-    <span class='comment'>//         cur = cur.offset(4);</span>
-    <span class='comment'>//         tc = tc.offset(4);</span>
-    <span class='comment'>//     }</span>
-    <span class='comment'>//     if counter &gt; 3 {</span>
-    <span class='comment'>//         cur = cur.offset(-4);</span>
-    <span class='comment'>//         tc = tc.offset(-4);</span>
-    <span class='comment'>//         counter -= 4;</span>
-    <span class='comment'>//     }</span>
-    <span class='comment'>//     while counter &lt; max &amp;&amp; *cur == *tc {</span>
-    <span class='comment'>//         counter += 1;</span>
-    <span class='comment'>//         cur = cur.offset(1);</span>
-    <span class='comment'>//         tc = tc.offset(1);</span>
-    <span class='comment'>//     }</span>
-    <span class='comment'>// }</span>
+    <span class="comment">// unsafe {</span>
+    <span class="comment">//     let mut cur = data.as_ptr().offset(current_pos as isize);</span>
+    <span class="comment">//     let mut tc = data.as_ptr().offset(pos_to_check as isize);</span>
+    <span class="comment">//     while (counter &lt; max) &amp;&amp;</span>
+    <span class="comment">//           (transmute_copy::&lt;u8, u32&gt;(&amp;*cur) == transmute_copy::&lt;u8, u32&gt;(&amp;*tc)) {</span>
+    <span class="comment">//         counter += 4;</span>
+    <span class="comment">//         cur = cur.offset(4);</span>
+    <span class="comment">//         tc = tc.offset(4);</span>
+    <span class="comment">//     }</span>
+    <span class="comment">//     if counter &gt; 3 {</span>
+    <span class="comment">//         cur = cur.offset(-4);</span>
+    <span class="comment">//         tc = tc.offset(-4);</span>
+    <span class="comment">//         counter -= 4;</span>
+    <span class="comment">//     }</span>
+    <span class="comment">//     while counter &lt; max &amp;&amp; *cur == *tc {</span>
+    <span class="comment">//         counter += 1;</span>
+    <span class="comment">//         cur = cur.offset(1);</span>
+    <span class="comment">//         tc = tc.offset(1);</span>
+    <span class="comment">//     }</span>
+    <span class="comment">// }</span>
 
-    <span class='comment'>//    counter</span>
-    <span class='ident'>data</span>[<span class='ident'>current_pos</span>..]
-        .<span class='ident'>iter</span>()
-        .<span class='ident'>zip</span>(<span class='ident'>data</span>[<span class='ident'>pos_to_check</span>..].<span class='ident'>iter</span>())
-        .<span class='ident'>take</span>(<span class='ident'>MAX_MATCH</span>)
-        .<span class='ident'>take_while</span>(<span class='op'>|</span><span class='kw-2'>&amp;</span>(<span class='kw-2'>&amp;</span><span class='ident'>a</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span>)<span class='op'>|</span> <span class='ident'>a</span> <span class='op'>==</span> <span class='ident'>b</span>)
-        .<span class='ident'>count</span>()
+    <span class="comment">//    counter</span>
+    <span class="ident">data</span>[<span class="ident">current_pos</span>..]
+        .<span class="ident">iter</span>()
+        .<span class="ident">zip</span>(<span class="ident">data</span>[<span class="ident">pos_to_check</span>..].<span class="ident">iter</span>())
+        .<span class="ident">take</span>(<span class="ident">MAX_MATCH</span>)
+        .<span class="ident">take_while</span>(<span class="op">|</span><span class="kw-2">&amp;</span>(<span class="kw-2">&amp;</span><span class="ident">a</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>)<span class="op">|</span> <span class="ident">a</span> <span class="op">==</span> <span class="ident">b</span>)
+        .<span class="ident">count</span>()
 }
 
-<span class='doccomment'>/// Try finding the position and length of the longest match in the input data.</span>
-<span class='doccomment'>/// # Returns</span>
-<span class='doccomment'>/// (length, distance from position)</span>
-<span class='doccomment'>/// If no match is found that was better than `prev_length` or at all, or we are at the start,</span>
-<span class='doccomment'>/// the length value returned will be 2.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// # Arguments:</span>
-<span class='doccomment'>/// `data`: The data to search in.</span>
-<span class='doccomment'>/// `hash_table`: Hash table to use for searching.</span>
-<span class='doccomment'>/// `position`: The position in the data to match against.</span>
-<span class='doccomment'>/// `prev_length`: The length of the previous `longest_match` check to compare against.</span>
-<span class='doccomment'>/// `max_hash_checks`: The maximum number of matching hash chain positions to check.</span>
-<span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>unused_assignments</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>longest_match</span>(<span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
-                     <span class='ident'>hash_table</span>: <span class='kw-2'>&amp;</span><span class='ident'>ChainedHashTable</span>,
-                     <span class='ident'>position</span>: <span class='ident'>usize</span>,
-                     <span class='ident'>prev_length</span>: <span class='ident'>usize</span>,
-                     <span class='ident'>max_hash_checks</span>: <span class='ident'>u16</span>)
-                     <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='ident'>usize</span>) {
+<span class="doccomment">/// Try finding the position and length of the longest match in the input data.</span>
+<span class="doccomment">/// # Returns</span>
+<span class="doccomment">/// (length, distance from position)</span>
+<span class="doccomment">/// If no match is found that was better than `prev_length` or at all, or we are at the start,</span>
+<span class="doccomment">/// the length value returned will be 2.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Arguments:</span>
+<span class="doccomment">/// `data`: The data to search in.</span>
+<span class="doccomment">/// `hash_table`: Hash table to use for searching.</span>
+<span class="doccomment">/// `position`: The position in the data to match against.</span>
+<span class="doccomment">/// `prev_length`: The length of the previous `longest_match` check to compare against.</span>
+<span class="doccomment">/// `max_hash_checks`: The maximum number of matching hash chain positions to check.</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">unused_assignments</span>)]</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">longest_match</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+                     <span class="ident">hash_table</span>: <span class="kw-2">&amp;</span><span class="ident">ChainedHashTable</span>,
+                     <span class="ident">position</span>: <span class="ident">usize</span>,
+                     <span class="ident">prev_length</span>: <span class="ident">usize</span>,
+                     <span class="ident">max_hash_checks</span>: <span class="ident">u16</span>)
+                     <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="ident">usize</span>) {
 
-    <span class='comment'>// debug_assert_eq!(position, hash_table.current_head() as usize);</span>
+    <span class="comment">// debug_assert_eq!(position, hash_table.current_head() as usize);</span>
 
-    <span class='comment'>// If we are at the start, we already have a match at the maximum length,</span>
-    <span class='comment'>// or we can&#39;t grow further, we stop here.</span>
-    <span class='kw'>if</span> <span class='ident'>position</span> <span class='op'>==</span> <span class='number'>0</span> <span class='op'>||</span> <span class='ident'>prev_length</span> <span class='op'>&gt;=</span> <span class='ident'>MAX_MATCH</span> <span class='op'>||</span> <span class='ident'>position</span> <span class='op'>+</span> <span class='ident'>prev_length</span> <span class='op'>&gt;=</span> <span class='ident'>data</span>.<span class='ident'>len</span>() {
-        <span class='kw'>return</span> (<span class='number'>2</span>, <span class='number'>0</span>);
+    <span class="comment">// If we are at the start, we already have a match at the maximum length,</span>
+    <span class="comment">// or we can&#39;t grow further, we stop here.</span>
+    <span class="kw">if</span> <span class="ident">position</span> <span class="op">==</span> <span class="number">0</span> <span class="op">||</span> <span class="ident">prev_length</span> <span class="op">&gt;=</span> <span class="ident">MAX_MATCH</span> <span class="op">||</span> <span class="ident">position</span> <span class="op">+</span> <span class="ident">prev_length</span> <span class="op">&gt;=</span> <span class="ident">data</span>.<span class="ident">len</span>() {
+        <span class="kw">return</span> (<span class="number">0</span>, <span class="number">0</span>);
     }
 
-    <span class='kw'>let</span> <span class='ident'>limit</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>position</span> <span class='op'>&gt;</span> <span class='ident'>WINDOW_SIZE</span> {
-        <span class='ident'>position</span> <span class='op'>-</span> <span class='ident'>WINDOW_SIZE</span>
-    } <span class='kw'>else</span> {
-        <span class='number'>0</span>
+    <span class="kw">let</span> <span class="ident">limit</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">position</span> <span class="op">&gt;</span> <span class="ident">WINDOW_SIZE</span> {
+        <span class="ident">position</span> <span class="op">-</span> <span class="ident">WINDOW_SIZE</span>
+    } <span class="kw">else</span> {
+        <span class="number">0</span>
     };
 
-    <span class='kw'>let</span> <span class='ident'>max_length</span> <span class='op'>=</span> <span class='ident'>cmp</span>::<span class='ident'>min</span>((<span class='ident'>data</span>.<span class='ident'>len</span>() <span class='op'>-</span> <span class='ident'>position</span>), <span class='ident'>MAX_MATCH</span>);
+    <span class="comment">// Make sure the length is at least one to simplify the matching code, as</span>
+    <span class="comment">// otherwise the matching code might underflow.</span>
+    <span class="kw">let</span> <span class="ident">prev_length</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">prev_length</span> <span class="op">&lt;</span> <span class="number">1</span> { <span class="number">1</span> } <span class="kw">else</span> { <span class="ident">prev_length</span> };
 
-    <span class='comment'>// The position in the hash chain we are currently checking.</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>current_head</span> <span class='op'>=</span> <span class='ident'>hash_table</span>.<span class='ident'>get_prev</span>(<span class='ident'>position</span>) <span class='kw'>as</span> <span class='ident'>usize</span>;
+    <span class="kw">let</span> <span class="ident">max_length</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">min</span>((<span class="ident">data</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">position</span>), <span class="ident">MAX_MATCH</span>);
 
-    <span class='kw'>if</span> <span class='ident'>current_head</span> <span class='op'>&gt;=</span> <span class='ident'>position</span> {
-        <span class='kw'>return</span> (<span class='number'>2</span>, <span class='number'>0</span>);
-    }
+    <span class="comment">// The position in the hash chain we are currently checking.</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">current_head</span> <span class="op">=</span> <span class="ident">position</span>;
 
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>best_length</span> <span class='op'>=</span> <span class='ident'>prev_length</span>;
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>best_distance</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class="comment">// The best match length we&#39;ve found so far, and it&#39;s distance.</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">best_length</span> <span class="op">=</span> <span class="ident">prev_length</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">best_distance</span> <span class="op">=</span> <span class="number">0</span>;
 
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>iters</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class="comment">// The position of the previous value in the hash chain.</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">prev_head</span>;
 
-    <span class='comment'>// The position of the previous value in the hash chain.</span>
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>prev_head</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class="kw">let</span> <span class="ident">max_hash_checks</span> <span class="op">=</span> (<span class="ident">max_hash_checks</span> <span class="op">+</span> <span class="number">2</span>) <span class="op">/</span> <span class="number">3</span>;
 
-    <span class='kw'>while</span> <span class='ident'>current_head</span> <span class='op'>&gt;=</span> <span class='ident'>limit</span> <span class='op'>&amp;&amp;</span> <span class='ident'>iters</span> <span class='op'>&lt;</span> <span class='ident'>max_hash_checks</span> {
-        <span class='comment'>// We only check further if the match length can actually increase</span>
-        <span class='kw'>if</span> <span class='ident'>data</span>[<span class='ident'>position</span> <span class='op'>+</span> <span class='ident'>best_length</span> <span class='op'>-</span> <span class='number'>1</span>..<span class='ident'>position</span> <span class='op'>+</span> <span class='ident'>best_length</span> <span class='op'>+</span> <span class='number'>1</span>] <span class='op'>==</span>
-           <span class='ident'>data</span>[<span class='ident'>current_head</span> <span class='op'>+</span> <span class='ident'>best_length</span> <span class='op'>-</span> <span class='number'>1</span>..<span class='ident'>current_head</span> <span class='op'>+</span> <span class='ident'>best_length</span> <span class='op'>+</span> <span class='number'>1</span>] {
-            <span class='kw'>let</span> <span class='ident'>length</span> <span class='op'>=</span> <span class='ident'>get_match_length</span>(<span class='ident'>data</span>, <span class='ident'>position</span>, <span class='ident'>current_head</span>);
-            <span class='kw'>if</span> <span class='ident'>length</span> <span class='op'>&gt;</span> <span class='ident'>best_length</span> {
-                <span class='ident'>best_length</span> <span class='op'>=</span> <span class='ident'>length</span>;
-                <span class='ident'>best_distance</span> <span class='op'>=</span> <span class='ident'>position</span> <span class='op'>-</span> <span class='ident'>current_head</span>;
-                <span class='kw'>if</span> <span class='ident'>length</span> <span class='op'>==</span> <span class='ident'>max_length</span> {
-                    <span class='comment'>// We are at the max length, so there is no point</span>
-                    <span class='comment'>// searching any longer</span>
-                    <span class='kw'>break</span>;
+    <span class="lifetime">&#39;outer</span>: <span class="kw">for</span> _ <span class="kw">in</span> <span class="number">0</span>..<span class="ident">max_hash_checks</span> {
+        <span class="lifetime">&#39;inner</span>: <span class="kw">for</span> _ <span class="kw">in</span> <span class="number">0</span>..<span class="number">3</span> {
+            <span class="ident">prev_head</span> <span class="op">=</span> <span class="ident">current_head</span>;
+            <span class="ident">current_head</span> <span class="op">=</span> <span class="ident">hash_table</span>.<span class="ident">get_prev</span>(<span class="ident">current_head</span>) <span class="kw">as</span> <span class="ident">usize</span>;
+            <span class="kw">if</span> <span class="ident">current_head</span> <span class="op">&gt;=</span> <span class="ident">prev_head</span> <span class="op">||</span> <span class="ident">current_head</span> <span class="op">&lt;</span> <span class="ident">limit</span> {
+                <span class="comment">// If the current hash chain value refers to itself, or is referring to</span>
+                <span class="comment">// a value that&#39;s higher (we only move backwars through the chain),</span>
+                <span class="comment">// we are at the end and can stop.</span>
+                <span class="kw">break</span> <span class="lifetime">&#39;outer</span>;
+            }
+
+            <span class="comment">// We only check further if the match length can actually increase</span>
+            <span class="comment">// Checking if the end byte and the potential next byte matches is generally</span>
+            <span class="comment">// more likely to give a quick answer rather than checking from the start first, given</span>
+            <span class="comment">// that the hashes match.</span>
+            <span class="comment">// If there is no previous match, best_length will be 1 and the two first bytes will</span>
+            <span class="comment">// be checked instead.</span>
+            <span class="comment">// Since we&#39;ve made sure best_length is always at least 1, this shouldn&#39;t underflow.</span>
+            <span class="kw">if</span> <span class="ident">data</span>[<span class="ident">position</span> <span class="op">+</span> <span class="ident">best_length</span> <span class="op">-</span> <span class="number">1</span>..<span class="ident">position</span> <span class="op">+</span> <span class="ident">best_length</span> <span class="op">+</span> <span class="number">1</span>] <span class="op">==</span>
+               <span class="ident">data</span>[<span class="ident">current_head</span> <span class="op">+</span> <span class="ident">best_length</span> <span class="op">-</span> <span class="number">1</span>..<span class="ident">current_head</span> <span class="op">+</span> <span class="ident">best_length</span> <span class="op">+</span> <span class="number">1</span>] {
+                <span class="comment">// Actually check how many bytes match.</span>
+                <span class="comment">// At the moment this will check the two bytes we just checked again,</span>
+                <span class="comment">// though adding code for skipping these bytes may not result in any speed</span>
+                <span class="comment">// gain due to the added complexity.</span>
+                <span class="kw">let</span> <span class="ident">length</span> <span class="op">=</span> <span class="ident">get_match_length</span>(<span class="ident">data</span>, <span class="ident">position</span>, <span class="ident">current_head</span>);
+                <span class="kw">if</span> <span class="ident">length</span> <span class="op">&gt;</span> <span class="ident">best_length</span> <span class="op">&amp;&amp;</span> <span class="ident">length</span> <span class="op">&gt;=</span> <span class="ident">MIN_MATCH</span> {
+                    <span class="ident">best_length</span> <span class="op">=</span> <span class="ident">length</span>;
+                    <span class="ident">best_distance</span> <span class="op">=</span> <span class="ident">position</span> <span class="op">-</span> <span class="ident">current_head</span>;
+                    <span class="kw">if</span> <span class="ident">length</span> <span class="op">==</span> <span class="ident">max_length</span> {
+                        <span class="comment">// We are at the max length, so there is no point</span>
+                        <span class="comment">// searching any longer</span>
+                        <span class="kw">break</span> <span class="lifetime">&#39;outer</span>;
+                    }
                 }
+                <span class="comment">//break;</span>
             }
         }
-
-        <span class='ident'>prev_head</span> <span class='op'>=</span> <span class='ident'>current_head</span>;
-        <span class='ident'>current_head</span> <span class='op'>=</span> <span class='ident'>hash_table</span>.<span class='ident'>get_prev</span>(<span class='ident'>current_head</span>) <span class='kw'>as</span> <span class='ident'>usize</span>;
-        <span class='kw'>if</span> <span class='ident'>current_head</span> <span class='op'>&gt;=</span> <span class='ident'>prev_head</span> {
-            <span class='comment'>// If the current hash chain value refers to itself, or is referring to</span>
-            <span class='comment'>// a value that&#39;s higher (we only move backwars through the chain),</span>
-            <span class='comment'>// we are at the end and can stop.</span>
-            <span class='kw'>break</span>;
-        }
-        <span class='ident'>iters</span> <span class='op'>+=</span> <span class='number'>1</span>;
     }
 
-    <span class='kw'>let</span> <span class='ident'>r</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>best_length</span> <span class='op'>&gt;</span> <span class='ident'>prev_length</span> {
-        <span class='ident'>best_length</span>
-    } <span class='kw'>else</span> {
-        <span class='number'>2</span>
+    <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">best_length</span> <span class="op">&gt;</span> <span class="ident">prev_length</span> {
+        <span class="ident">best_length</span>
+    } <span class="kw">else</span> {
+        <span class="number">0</span>
     };
 
-    (<span class='ident'>r</span>, <span class='ident'>best_distance</span>)
+    (<span class="ident">r</span>, <span class="ident">best_distance</span>)
 }
 
-<span class='comment'>// Get the longest match from the current position of the hash table.</span>
-<span class='attribute'>#[<span class='ident'>inline</span>]</span>
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>longest_match_current</span>(<span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>hash_table</span>: <span class='kw-2'>&amp;</span><span class='ident'>ChainedHashTable</span>) <span class='op'>-&gt;</span> (<span class='ident'>usize</span>, <span class='ident'>usize</span>) {
-    <span class='kw'>use</span> <span class='ident'>compression_options</span>::<span class='ident'>MAX_HASH_CHECKS</span>;
-    <span class='ident'>longest_match</span>(<span class='ident'>data</span>,
-                  <span class='ident'>hash_table</span>,
-                  <span class='ident'>hash_table</span>.<span class='ident'>current_position</span>(),
-                  <span class='ident'>MIN_MATCH</span> <span class='kw'>as</span> <span class='ident'>usize</span> <span class='op'>-</span> <span class='number'>1</span>,
-                  <span class='ident'>MAX_HASH_CHECKS</span>)
+<span class="comment">// Get the longest match from the current position of the hash table.</span>
+<span class="attribute">#[<span class="ident">inline</span>]</span>
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">longest_match_current</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">hash_table</span>: <span class="kw-2">&amp;</span><span class="ident">ChainedHashTable</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="ident">usize</span>) {
+    <span class="kw">use</span> <span class="ident">compression_options</span>::<span class="ident">MAX_HASH_CHECKS</span>;
+    <span class="ident">longest_match</span>(<span class="ident">data</span>,
+                  <span class="ident">hash_table</span>,
+                  <span class="ident">hash_table</span>.<span class="ident">current_head</span>() <span class="kw">as</span> <span class="ident">usize</span>,
+                  <span class="ident">MIN_MATCH</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">-</span> <span class="number">1</span>,
+                  <span class="ident">MAX_HASH_CHECKS</span>)
 }
 
-<span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
-<span class='kw'>mod</span> <span class='ident'>test</span> {
-    <span class='kw'>use</span> <span class='ident'>chained_hash_table</span>::{<span class='ident'>filled_hash_table</span>, <span class='ident'>HASH_BYTES</span>, <span class='ident'>ChainedHashTable</span>};
-    <span class='kw'>use</span> <span class='kw'>super</span>::{<span class='ident'>get_match_length</span>, <span class='ident'>longest_match</span>};
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">mod</span> <span class="ident">test</span> {
+    <span class="kw">use</span> <span class="ident">chained_hash_table</span>::{<span class="ident">filled_hash_table</span>, <span class="ident">HASH_BYTES</span>, <span class="ident">ChainedHashTable</span>};
+    <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">get_match_length</span>, <span class="ident">longest_match</span>};
 
-    <span class='doccomment'>/// Test that match lengths are calculated correctly</span>
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>match_length</span>() {
-        <span class='kw'>let</span> <span class='ident'>test_arr</span> <span class='op'>=</span> [<span class='number'>5u8</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>9</span>, <span class='number'>9</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>, <span class='number'>5</span>];
-        <span class='kw'>let</span> <span class='ident'>l</span> <span class='op'>=</span> <span class='ident'>get_match_length</span>(<span class='kw-2'>&amp;</span><span class='ident'>test_arr</span>, <span class='number'>9</span>, <span class='number'>0</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>l</span>, <span class='number'>5</span>);
-        <span class='kw'>let</span> <span class='ident'>l2</span> <span class='op'>=</span> <span class='ident'>get_match_length</span>(<span class='kw-2'>&amp;</span><span class='ident'>test_arr</span>, <span class='number'>9</span>, <span class='number'>7</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>l2</span>, <span class='number'>0</span>);
-        <span class='kw'>let</span> <span class='ident'>l3</span> <span class='op'>=</span> <span class='ident'>get_match_length</span>(<span class='kw-2'>&amp;</span><span class='ident'>test_arr</span>, <span class='number'>10</span>, <span class='number'>0</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>l3</span>, <span class='number'>4</span>);
+    <span class="doccomment">/// Test that match lengths are calculated correctly</span>
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">match_length</span>() {
+        <span class="kw">let</span> <span class="ident">test_arr</span> <span class="op">=</span> [<span class="number">5u8</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">9</span>, <span class="number">9</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>, <span class="number">5</span>];
+        <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">get_match_length</span>(<span class="kw-2">&amp;</span><span class="ident">test_arr</span>, <span class="number">9</span>, <span class="number">0</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">l</span>, <span class="number">5</span>);
+        <span class="kw">let</span> <span class="ident">l2</span> <span class="op">=</span> <span class="ident">get_match_length</span>(<span class="kw-2">&amp;</span><span class="ident">test_arr</span>, <span class="number">9</span>, <span class="number">7</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">l2</span>, <span class="number">0</span>);
+        <span class="kw">let</span> <span class="ident">l3</span> <span class="op">=</span> <span class="ident">get_match_length</span>(<span class="kw-2">&amp;</span><span class="ident">test_arr</span>, <span class="number">10</span>, <span class="number">0</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">l3</span>, <span class="number">4</span>);
     }
 
-    <span class='doccomment'>/// Test that we get the longest of the matches</span>
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>get_longest_match</span>() {
-        <span class='kw'>let</span> <span class='ident'>test_data</span> <span class='op'>=</span> <span class='string'>b&quot;xTest data, Test_data,zTest data&quot;</span>;
-        <span class='kw'>let</span> <span class='ident'>hash_table</span> <span class='op'>=</span> <span class='ident'>filled_hash_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>test_data</span>[..<span class='number'>23</span> <span class='op'>+</span> <span class='number'>1</span> <span class='op'>+</span> <span class='ident'>HASH_BYTES</span> <span class='op'>-</span> <span class='number'>1</span>]);
+    <span class="doccomment">/// Test that we get the longest of the matches</span>
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">get_longest_match</span>() {
+        <span class="kw">let</span> <span class="ident">test_data</span> <span class="op">=</span> <span class="string">b&quot;xTest data, Test_data,zTest data&quot;</span>;
+        <span class="kw">let</span> <span class="ident">hash_table</span> <span class="op">=</span> <span class="ident">filled_hash_table</span>(<span class="kw-2">&amp;</span><span class="ident">test_data</span>[..<span class="number">23</span> <span class="op">+</span> <span class="number">1</span> <span class="op">+</span> <span class="ident">HASH_BYTES</span> <span class="op">-</span> <span class="number">1</span>]);
 
-        <span class='kw'>let</span> (<span class='ident'>length</span>, <span class='ident'>distance</span>) <span class='op'>=</span> <span class='kw'>super</span>::<span class='ident'>longest_match_current</span>(<span class='ident'>test_data</span>, <span class='kw-2'>&amp;</span><span class='ident'>hash_table</span>);
+        <span class="kw">let</span> (<span class="ident">length</span>, <span class="ident">distance</span>) <span class="op">=</span> <span class="kw">super</span>::<span class="ident">longest_match_current</span>(<span class="ident">test_data</span>, <span class="kw-2">&amp;</span><span class="ident">hash_table</span>);
 
-        <span class='comment'>// We check that we get the longest match, rather than the shorter, but closer one.</span>
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>distance</span>, <span class='number'>22</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>length</span>, <span class='number'>9</span>);
-        <span class='kw'>let</span> <span class='ident'>test_arr2</span> <span class='op'>=</span> [<span class='number'>10u8</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>5</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>, <span class='number'>10</span>];
-        <span class='kw'>let</span> <span class='ident'>hash_table</span> <span class='op'>=</span> <span class='ident'>filled_hash_table</span>(<span class='kw-2'>&amp;</span><span class='ident'>test_arr2</span>[..<span class='ident'>HASH_BYTES</span> <span class='op'>+</span> <span class='number'>1</span> <span class='op'>+</span> <span class='number'>1</span> <span class='op'>+</span> <span class='number'>2</span>]);
-        <span class='kw'>let</span> (<span class='ident'>length</span>, <span class='ident'>distance</span>) <span class='op'>=</span> <span class='kw'>super</span>::<span class='ident'>longest_match_current</span>(<span class='kw-2'>&amp;</span><span class='ident'>test_arr2</span>, <span class='kw-2'>&amp;</span><span class='ident'>hash_table</span>);
+        <span class="comment">// We check that we get the longest match, rather than the shorter, but closer one.</span>
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">distance</span>, <span class="number">22</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">length</span>, <span class="number">9</span>);
+        <span class="kw">let</span> <span class="ident">test_arr2</span> <span class="op">=</span> [<span class="number">10u8</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>];
+        <span class="kw">let</span> <span class="ident">hash_table</span> <span class="op">=</span> <span class="ident">filled_hash_table</span>(<span class="kw-2">&amp;</span><span class="ident">test_arr2</span>[..<span class="ident">HASH_BYTES</span> <span class="op">+</span> <span class="number">1</span> <span class="op">+</span> <span class="number">1</span> <span class="op">+</span> <span class="number">2</span>]);
+        <span class="kw">let</span> (<span class="ident">length</span>, <span class="ident">distance</span>) <span class="op">=</span> <span class="kw">super</span>::<span class="ident">longest_match_current</span>(<span class="kw-2">&amp;</span><span class="ident">test_arr2</span>, <span class="kw-2">&amp;</span><span class="ident">hash_table</span>);
 
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>distance</span>, <span class='number'>1</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>length</span>, <span class='number'>4</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">distance</span>, <span class="number">1</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">length</span>, <span class="number">4</span>);
     }
 
-    <span class='doccomment'>/// Make sure we can get a match at index zero</span>
-    <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>match_index_zero</span>() {
-        <span class='kw'>let</span> <span class='ident'>test_data</span> <span class='op'>=</span> <span class='string'>b&quot;AAAAAAA&quot;</span>;
+    <span class="doccomment">/// Make sure we can get a match at index zero</span>
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">match_index_zero</span>() {
+        <span class="kw">let</span> <span class="ident">test_data</span> <span class="op">=</span> <span class="string">b&quot;AAAAAAA&quot;</span>;
 
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>hash_table</span> <span class='op'>=</span> <span class='ident'>ChainedHashTable</span>::<span class='ident'>from_starting_values</span>(<span class='ident'>test_data</span>[<span class='number'>0</span>], <span class='ident'>test_data</span>[<span class='number'>1</span>]);
-        <span class='kw'>for</span> (<span class='ident'>n</span>, <span class='kw-2'>&amp;</span><span class='ident'>b</span>) <span class='kw'>in</span> <span class='ident'>test_data</span>[<span class='number'>2</span>..<span class='number'>5</span>].<span class='ident'>iter</span>().<span class='ident'>enumerate</span>() {
-            <span class='ident'>hash_table</span>.<span class='ident'>add_hash_value</span>(<span class='ident'>n</span>, <span class='ident'>b</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hash_table</span> <span class="op">=</span> <span class="ident">ChainedHashTable</span>::<span class="ident">from_starting_values</span>(<span class="ident">test_data</span>[<span class="number">0</span>], <span class="ident">test_data</span>[<span class="number">1</span>]);
+        <span class="kw">for</span> (<span class="ident">n</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>) <span class="kw">in</span> <span class="ident">test_data</span>[<span class="number">2</span>..<span class="number">5</span>].<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+            <span class="ident">hash_table</span>.<span class="ident">add_hash_value</span>(<span class="ident">n</span>, <span class="ident">b</span>);
         }
 
-        <span class='kw'>let</span> (<span class='ident'>match_length</span>, <span class='ident'>match_dist</span>) <span class='op'>=</span> <span class='ident'>longest_match</span>(<span class='ident'>test_data</span>, <span class='kw-2'>&amp;</span><span class='ident'>hash_table</span>, <span class='number'>2</span>, <span class='number'>0</span>, <span class='number'>4096</span>);
+        <span class="kw">let</span> (<span class="ident">match_length</span>, <span class="ident">match_dist</span>) <span class="op">=</span> <span class="ident">longest_match</span>(<span class="ident">test_data</span>, <span class="kw-2">&amp;</span><span class="ident">hash_table</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">4096</span>);
 
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>match_dist</span>, <span class='number'>1</span>);
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>match_length</span> <span class='op'>&gt;</span> <span class='number'>2</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">match_dist</span>, <span class="number">1</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">match_length</span> <span class="op">&gt;</span> <span class="number">2</span>);
     }
 }
 </pre>
