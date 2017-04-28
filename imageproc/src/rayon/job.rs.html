@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -203,165 +203,165 @@
 <span id="158">158</span>
 <span id="159">159</span>
 <span id="160">160</span>
-</pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>latch</span>::<span class='ident'>Latch</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>any</span>::<span class='ident'>Any</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>UnsafeCell</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>;
-<span class='kw'>use</span> <span class='ident'>unwind</span>;
+</pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">latch</span>::<span class="ident">Latch</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">Any</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cell</span>::<span class="ident">UnsafeCell</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>;
+<span class="kw">use</span> <span class="ident">unwind</span>;
 
-<span class='kw'>enum</span> <span class='ident'>JobResult</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='prelude-val'>None</span>,
-    <span class='prelude-val'>Ok</span>(<span class='ident'>T</span>),
-    <span class='ident'>Panic</span>(<span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Any</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>),
+<span class="kw">enum</span> <span class="ident">JobResult</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="prelude-val">None</span>,
+    <span class="prelude-val">Ok</span>(<span class="ident">T</span>),
+    <span class="ident">Panic</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span>),
 }
 
-<span class='doccomment'>/// A `Job` is used to advertise work for other threads that they may</span>
-<span class='doccomment'>/// want to steal. In accordance with time honored tradition, jobs are</span>
-<span class='doccomment'>/// arranged in a deque, so that thieves can take from the top of the</span>
-<span class='doccomment'>/// deque while the main worker manages the bottom of the deque. This</span>
-<span class='doccomment'>/// deque is managed by the `thread_pool` module.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Job</span> {
-    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='ident'>this</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='self'>Self</span>, <span class='ident'>mode</span>: <span class='ident'>JobMode</span>);
+<span class="doccomment">/// A `Job` is used to advertise work for other threads that they may</span>
+<span class="doccomment">/// want to steal. In accordance with time honored tradition, jobs are</span>
+<span class="doccomment">/// arranged in a deque, so that thieves can take from the top of the</span>
+<span class="doccomment">/// deque while the main worker manages the bottom of the deque. This</span>
+<span class="doccomment">/// deque is managed by the `thread_pool` module.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Job</span> {
+    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">execute</span>(<span class="ident">this</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="self">Self</span>, <span class="ident">mode</span>: <span class="ident">JobMode</span>);
 }
 
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>JobMode</span> {
-    <span class='ident'>Execute</span>,
-    <span class='ident'>Abort</span>,
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JobMode</span> {
+    <span class="ident">Execute</span>,
+    <span class="ident">Abort</span>,
 }
 
-<span class='doccomment'>/// Effectively a Job trait object. Each JobRef **must** be executed</span>
-<span class='doccomment'>/// exactly once, or else data may leak.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Internally, we store the job&#39;s data in a `*const ()` pointer.  The</span>
-<span class='doccomment'>/// true type is something like `*const StackJob&lt;...&gt;`, but we hide</span>
-<span class='doccomment'>/// it. We also carry the &quot;execute fn&quot; from the `Job` trait.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Copy</span>, <span class='ident'>Clone</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>JobRef</span> {
-    <span class='ident'>pointer</span>: <span class='kw-2'>*</span><span class='kw'>const</span> (),
-    <span class='ident'>execute_fn</span>: <span class='kw'>unsafe</span> <span class='kw'>fn</span>(<span class='kw-2'>*</span><span class='kw'>const</span> (), <span class='ident'>mode</span>: <span class='ident'>JobMode</span>),
+<span class="doccomment">/// Effectively a Job trait object. Each JobRef **must** be executed</span>
+<span class="doccomment">/// exactly once, or else data may leak.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Internally, we store the job&#39;s data in a `*const ()` pointer.  The</span>
+<span class="doccomment">/// true type is something like `*const StackJob&lt;...&gt;`, but we hide</span>
+<span class="doccomment">/// it. We also carry the &quot;execute fn&quot; from the `Job` trait.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">JobRef</span> {
+    <span class="ident">pointer</span>: <span class="kw-2">*</span><span class="kw">const</span> (),
+    <span class="ident">execute_fn</span>: <span class="kw">unsafe</span> <span class="kw">fn</span>(<span class="kw-2">*</span><span class="kw">const</span> (), <span class="ident">mode</span>: <span class="ident">JobMode</span>),
 }
 
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>JobRef</span> {}
-<span class='kw'>unsafe</span> <span class='kw'>impl</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>JobRef</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Send</span> <span class="kw">for</span> <span class="ident">JobRef</span> {}
+<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Sync</span> <span class="kw">for</span> <span class="ident">JobRef</span> {}
 
-<span class='kw'>impl</span> <span class='ident'>JobRef</span> {
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>data</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>JobRef</span>
-        <span class='kw'>where</span> <span class='ident'>T</span>: <span class='ident'>Job</span>
+<span class="kw">impl</span> <span class="ident">JobRef</span> {
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">data</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">T</span>) <span class="op">-&gt;</span> <span class="ident">JobRef</span>
+        <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Job</span>
     {
-        <span class='kw'>let</span> <span class='ident'>fn_ptr</span>: <span class='kw'>unsafe</span> <span class='kw'>fn</span>(<span class='kw-2'>*</span><span class='kw'>const</span> <span class='ident'>T</span>, <span class='ident'>JobMode</span>) <span class='op'>=</span> <span class='op'>&lt;</span><span class='ident'>T</span> <span class='kw'>as</span> <span class='ident'>Job</span><span class='op'>&gt;</span>::<span class='ident'>execute</span>;
+        <span class="kw">let</span> <span class="ident">fn_ptr</span>: <span class="kw">unsafe</span> <span class="kw">fn</span>(<span class="kw-2">*</span><span class="kw">const</span> <span class="ident">T</span>, <span class="ident">JobMode</span>) <span class="op">=</span> <span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="ident">Job</span><span class="op">&gt;</span>::<span class="ident">execute</span>;
 
-        <span class='comment'>// erase types:</span>
-        <span class='kw'>let</span> <span class='ident'>fn_ptr</span>: <span class='kw'>unsafe</span> <span class='kw'>fn</span>(<span class='kw-2'>*</span><span class='kw'>const</span> (), <span class='ident'>JobMode</span>) <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>fn_ptr</span>);
-        <span class='kw'>let</span> <span class='ident'>pointer</span> <span class='op'>=</span> <span class='ident'>data</span> <span class='kw'>as</span> <span class='kw-2'>*</span><span class='kw'>const</span> ();
+        <span class="comment">// erase types:</span>
+        <span class="kw">let</span> <span class="ident">fn_ptr</span>: <span class="kw">unsafe</span> <span class="kw">fn</span>(<span class="kw-2">*</span><span class="kw">const</span> (), <span class="ident">JobMode</span>) <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">fn_ptr</span>);
+        <span class="kw">let</span> <span class="ident">pointer</span> <span class="op">=</span> <span class="ident">data</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> ();
 
-        <span class='ident'>JobRef</span> {
-            <span class='ident'>pointer</span>: <span class='ident'>pointer</span>,
-            <span class='ident'>execute_fn</span>: <span class='ident'>fn_ptr</span>,
+        <span class="ident">JobRef</span> {
+            <span class="ident">pointer</span>: <span class="ident">pointer</span>,
+            <span class="ident">execute_fn</span>: <span class="ident">fn_ptr</span>,
         }
     }
 
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>mode</span>: <span class='ident'>JobMode</span>) {
-        (<span class='self'>self</span>.<span class='ident'>execute_fn</span>)(<span class='self'>self</span>.<span class='ident'>pointer</span>, <span class='ident'>mode</span>)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">execute</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">mode</span>: <span class="ident">JobMode</span>) {
+        (<span class="self">self</span>.<span class="ident">execute_fn</span>)(<span class="self">self</span>.<span class="ident">pointer</span>, <span class="ident">mode</span>)
     }
 }
 
-<span class='doccomment'>/// A job that will be owned by a stack slot. This means that when it</span>
-<span class='doccomment'>/// executes it need not free any heap data, the cleanup occurs when</span>
-<span class='doccomment'>/// the stack frame is later popped.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>StackJob</span><span class='op'>&lt;</span><span class='ident'>L</span>: <span class='ident'>Latch</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='kw'>pub</span> <span class='ident'>latch</span>: <span class='ident'>L</span>,
-    <span class='ident'>func</span>: <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;&gt;</span>,
-    <span class='ident'>result</span>: <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='ident'>JobResult</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;&gt;</span>,
+<span class="doccomment">/// A job that will be owned by a stack slot. This means that when it</span>
+<span class="doccomment">/// executes it need not free any heap data, the cleanup occurs when</span>
+<span class="doccomment">/// the stack frame is later popped.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StackJob</span><span class="op">&lt;</span><span class="ident">L</span>: <span class="ident">Latch</span>, <span class="ident">F</span>, <span class="ident">R</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="ident">latch</span>: <span class="ident">L</span>,
+    <span class="ident">func</span>: <span class="ident">UnsafeCell</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">result</span>: <span class="ident">UnsafeCell</span><span class="op">&lt;</span><span class="ident">JobResult</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>L</span>: <span class='ident'>Latch</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span> <span class='ident'>StackJob</span><span class='op'>&lt;</span><span class='ident'>L</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span> <span class='op'>+</span> <span class='ident'>Send</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">L</span>: <span class="ident">Latch</span>, <span class="ident">F</span>, <span class="ident">R</span><span class="op">&gt;</span> <span class="ident">StackJob</span><span class="op">&lt;</span><span class="ident">L</span>, <span class="ident">F</span>, <span class="ident">R</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>() <span class="op">-&gt;</span> <span class="ident">R</span> <span class="op">+</span> <span class="ident">Send</span>
 {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>func</span>: <span class='ident'>F</span>, <span class='ident'>latch</span>: <span class='ident'>L</span>) <span class='op'>-&gt;</span> <span class='ident'>StackJob</span><span class='op'>&lt;</span><span class='ident'>L</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>StackJob</span> {
-            <span class='ident'>latch</span>: <span class='ident'>latch</span>,
-            <span class='ident'>func</span>: <span class='ident'>UnsafeCell</span>::<span class='ident'>new</span>(<span class='prelude-val'>Some</span>(<span class='ident'>func</span>)),
-            <span class='ident'>result</span>: <span class='ident'>UnsafeCell</span>::<span class='ident'>new</span>(<span class='ident'>JobResult</span>::<span class='prelude-val'>None</span>),
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">func</span>: <span class="ident">F</span>, <span class="ident">latch</span>: <span class="ident">L</span>) <span class="op">-&gt;</span> <span class="ident">StackJob</span><span class="op">&lt;</span><span class="ident">L</span>, <span class="ident">F</span>, <span class="ident">R</span><span class="op">&gt;</span> {
+        <span class="ident">StackJob</span> {
+            <span class="ident">latch</span>: <span class="ident">latch</span>,
+            <span class="ident">func</span>: <span class="ident">UnsafeCell</span>::<span class="ident">new</span>(<span class="prelude-val">Some</span>(<span class="ident">func</span>)),
+            <span class="ident">result</span>: <span class="ident">UnsafeCell</span>::<span class="ident">new</span>(<span class="ident">JobResult</span>::<span class="prelude-val">None</span>),
         }
     }
 
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>as_job_ref</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>JobRef</span> {
-        <span class='ident'>JobRef</span>::<span class='ident'>new</span>(<span class='self'>self</span>)
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">as_job_ref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">JobRef</span> {
+        <span class="ident">JobRef</span>::<span class="ident">new</span>(<span class="self">self</span>)
     }
 
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>run_inline</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
-        <span class='self'>self</span>.<span class='ident'>func</span>.<span class='ident'>into_inner</span>().<span class='ident'>unwrap</span>()()
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">run_inline</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">R</span> {
+        <span class="self">self</span>.<span class="ident">func</span>.<span class="ident">into_inner</span>().<span class="ident">unwrap</span>()()
     }
 
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>into_result</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
-        <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>result</span>.<span class='ident'>into_inner</span>() {
-            <span class='ident'>JobResult</span>::<span class='prelude-val'>None</span> <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
-            <span class='ident'>JobResult</span>::<span class='prelude-val'>Ok</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>x</span>,
-            <span class='ident'>JobResult</span>::<span class='ident'>Panic</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>unwind</span>::<span class='ident'>resume_unwinding</span>(<span class='ident'>x</span>),
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">into_result</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">R</span> {
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">result</span>.<span class="ident">into_inner</span>() {
+            <span class="ident">JobResult</span>::<span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(),
+            <span class="ident">JobResult</span>::<span class="prelude-val">Ok</span>(<span class="ident">x</span>) <span class="op">=&gt;</span> <span class="ident">x</span>,
+            <span class="ident">JobResult</span>::<span class="ident">Panic</span>(<span class="ident">x</span>) <span class="op">=&gt;</span> <span class="ident">unwind</span>::<span class="ident">resume_unwinding</span>(<span class="ident">x</span>),
         }
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>L</span>: <span class='ident'>Latch</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span> <span class='ident'>Job</span> <span class='kw'>for</span> <span class='ident'>StackJob</span><span class='op'>&lt;</span><span class='ident'>L</span>, <span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">L</span>: <span class="ident">Latch</span>, <span class="ident">F</span>, <span class="ident">R</span><span class="op">&gt;</span> <span class="ident">Job</span> <span class="kw">for</span> <span class="ident">StackJob</span><span class="op">&lt;</span><span class="ident">L</span>, <span class="ident">F</span>, <span class="ident">R</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>() <span class="op">-&gt;</span> <span class="ident">R</span>
 {
-    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='ident'>this</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='self'>Self</span>, <span class='ident'>mode</span>: <span class='ident'>JobMode</span>) {
-        <span class='kw'>let</span> <span class='ident'>this</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>*</span><span class='ident'>this</span>;
-        <span class='kw'>match</span> <span class='ident'>mode</span> {
-            <span class='ident'>JobMode</span>::<span class='ident'>Execute</span> <span class='op'>=&gt;</span> {
-                <span class='kw'>let</span> <span class='ident'>abort</span> <span class='op'>=</span> <span class='ident'>unwind</span>::<span class='ident'>AbortIfPanic</span>;
-                <span class='kw'>let</span> <span class='ident'>func</span> <span class='op'>=</span> (<span class='kw-2'>*</span><span class='ident'>this</span>.<span class='ident'>func</span>.<span class='ident'>get</span>()).<span class='ident'>take</span>().<span class='ident'>unwrap</span>();
-                (<span class='kw-2'>*</span><span class='ident'>this</span>.<span class='ident'>result</span>.<span class='ident'>get</span>()) <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>unwind</span>::<span class='ident'>halt_unwinding</span>(<span class='op'>||</span> <span class='ident'>func</span>()) {
-                    <span class='prelude-val'>Ok</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>JobResult</span>::<span class='prelude-val'>Ok</span>(<span class='ident'>x</span>),
-                    <span class='prelude-val'>Err</span>(<span class='ident'>x</span>) <span class='op'>=&gt;</span> <span class='ident'>JobResult</span>::<span class='ident'>Panic</span>(<span class='ident'>x</span>),
+    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">execute</span>(<span class="ident">this</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="self">Self</span>, <span class="ident">mode</span>: <span class="ident">JobMode</span>) {
+        <span class="kw">let</span> <span class="ident">this</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">this</span>;
+        <span class="kw">match</span> <span class="ident">mode</span> {
+            <span class="ident">JobMode</span>::<span class="ident">Execute</span> <span class="op">=&gt;</span> {
+                <span class="kw">let</span> <span class="ident">abort</span> <span class="op">=</span> <span class="ident">unwind</span>::<span class="ident">AbortIfPanic</span>;
+                <span class="kw">let</span> <span class="ident">func</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">this</span>.<span class="ident">func</span>.<span class="ident">get</span>()).<span class="ident">take</span>().<span class="ident">unwrap</span>();
+                (<span class="kw-2">*</span><span class="ident">this</span>.<span class="ident">result</span>.<span class="ident">get</span>()) <span class="op">=</span> <span class="kw">match</span> <span class="ident">unwind</span>::<span class="ident">halt_unwinding</span>(<span class="op">||</span> <span class="ident">func</span>()) {
+                    <span class="prelude-val">Ok</span>(<span class="ident">x</span>) <span class="op">=&gt;</span> <span class="ident">JobResult</span>::<span class="prelude-val">Ok</span>(<span class="ident">x</span>),
+                    <span class="prelude-val">Err</span>(<span class="ident">x</span>) <span class="op">=&gt;</span> <span class="ident">JobResult</span>::<span class="ident">Panic</span>(<span class="ident">x</span>),
                 };
-                <span class='ident'>this</span>.<span class='ident'>latch</span>.<span class='ident'>set</span>();
-                <span class='ident'>mem</span>::<span class='ident'>forget</span>(<span class='ident'>abort</span>);
+                <span class="ident">this</span>.<span class="ident">latch</span>.<span class="ident">set</span>();
+                <span class="ident">mem</span>::<span class="ident">forget</span>(<span class="ident">abort</span>);
             }
-            <span class='ident'>JobMode</span>::<span class='ident'>Abort</span> <span class='op'>=&gt;</span> {
-                <span class='ident'>this</span>.<span class='ident'>latch</span>.<span class='ident'>set</span>();
+            <span class="ident">JobMode</span>::<span class="ident">Abort</span> <span class="op">=&gt;</span> {
+                <span class="ident">this</span>.<span class="ident">latch</span>.<span class="ident">set</span>();
             }
         }
     }
 }
 
-<span class='doccomment'>/// Represents a job stored in the heap. Used to implement</span>
-<span class='doccomment'>/// `scope`. Unlike `StackJob`, when executed, `HeapJob` simply</span>
-<span class='doccomment'>/// invokes a closure, which then triggers the appropriate logic to</span>
-<span class='doccomment'>/// signal that the job executed.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// (Probably `StackJob` should be refactored in a similar fashion.)</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>HeapJob</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>BODY</span>: <span class='ident'>FnOnce</span>(<span class='ident'>JobMode</span>)
+<span class="doccomment">/// Represents a job stored in the heap. Used to implement</span>
+<span class="doccomment">/// `scope`. Unlike `StackJob`, when executed, `HeapJob` simply</span>
+<span class="doccomment">/// invokes a closure, which then triggers the appropriate logic to</span>
+<span class="doccomment">/// signal that the job executed.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// (Probably `StackJob` should be refactored in a similar fashion.)</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HeapJob</span><span class="op">&lt;</span><span class="ident">BODY</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">BODY</span>: <span class="ident">FnOnce</span>(<span class="ident">JobMode</span>)
 {
-    <span class='ident'>job</span>: <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;&gt;</span>,
+    <span class="ident">job</span>: <span class="ident">UnsafeCell</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">BODY</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span> <span class='ident'>HeapJob</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>BODY</span>: <span class='ident'>FnOnce</span>(<span class='ident'>JobMode</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">BODY</span><span class="op">&gt;</span> <span class="ident">HeapJob</span><span class="op">&lt;</span><span class="ident">BODY</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">BODY</span>: <span class="ident">FnOnce</span>(<span class="ident">JobMode</span>)
 {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>func</span>: <span class='ident'>BODY</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>HeapJob</span> { <span class='ident'>job</span>: <span class='ident'>UnsafeCell</span>::<span class='ident'>new</span>(<span class='prelude-val'>Some</span>(<span class='ident'>func</span>)) }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">func</span>: <span class="ident">BODY</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">HeapJob</span> { <span class="ident">job</span>: <span class="ident">UnsafeCell</span>::<span class="ident">new</span>(<span class="prelude-val">Some</span>(<span class="ident">func</span>)) }
     }
 
-    <span class='doccomment'>/// Creates a `JobRef` from this job -- note that this hides all</span>
-    <span class='doccomment'>/// lifetimes, so it is up to you to ensure that this JobRef</span>
-    <span class='doccomment'>/// doesn&#39;t outlive any data that it closes over.</span>
-    <span class='kw'>pub</span> <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>as_job_ref</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>JobRef</span> {
-        <span class='kw'>let</span> <span class='ident'>this</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='self'>Self</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='self'>self</span>);
-        <span class='ident'>JobRef</span>::<span class='ident'>new</span>(<span class='ident'>this</span>)
+    <span class="doccomment">/// Creates a `JobRef` from this job -- note that this hides all</span>
+    <span class="doccomment">/// lifetimes, so it is up to you to ensure that this JobRef</span>
+    <span class="doccomment">/// doesn&#39;t outlive any data that it closes over.</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">as_job_ref</span>(<span class="self">self</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">JobRef</span> {
+        <span class="kw">let</span> <span class="ident">this</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="self">Self</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="self">self</span>);
+        <span class="ident">JobRef</span>::<span class="ident">new</span>(<span class="ident">this</span>)
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span> <span class='ident'>Job</span> <span class='kw'>for</span> <span class='ident'>HeapJob</span><span class='op'>&lt;</span><span class='ident'>BODY</span><span class='op'>&gt;</span>
-    <span class='kw'>where</span> <span class='ident'>BODY</span>: <span class='ident'>FnOnce</span>(<span class='ident'>JobMode</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">BODY</span><span class="op">&gt;</span> <span class="ident">Job</span> <span class="kw">for</span> <span class="ident">HeapJob</span><span class="op">&lt;</span><span class="ident">BODY</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">BODY</span>: <span class="ident">FnOnce</span>(<span class="ident">JobMode</span>)
 {
-    <span class='kw'>unsafe</span> <span class='kw'>fn</span> <span class='ident'>execute</span>(<span class='ident'>this</span>: <span class='kw-2'>*</span><span class='kw'>const</span> <span class='self'>Self</span>, <span class='ident'>mode</span>: <span class='ident'>JobMode</span>) {
-        <span class='kw'>let</span> <span class='ident'>this</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='self'>Self</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>this</span>);
-        <span class='kw'>let</span> <span class='ident'>job</span> <span class='op'>=</span> (<span class='kw-2'>*</span><span class='ident'>this</span>.<span class='ident'>job</span>.<span class='ident'>get</span>()).<span class='ident'>take</span>().<span class='ident'>unwrap</span>();
-        <span class='ident'>job</span>(<span class='ident'>mode</span>);
+    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">execute</span>(<span class="ident">this</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="self">Self</span>, <span class="ident">mode</span>: <span class="ident">JobMode</span>) {
+        <span class="kw">let</span> <span class="ident">this</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">this</span>);
+        <span class="kw">let</span> <span class="ident">job</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">this</span>.<span class="ident">job</span>.<span class="ident">get</span>()).<span class="ident">take</span>().<span class="ident">unwrap</span>();
+        <span class="ident">job</span>(<span class="ident">mode</span>);
     }
 }
 </pre>

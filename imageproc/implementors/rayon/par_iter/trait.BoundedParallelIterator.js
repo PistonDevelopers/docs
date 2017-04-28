@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["image"] = [];
 implementors["imageproc"] = [];
 implementors["rayon"] = [];
 
