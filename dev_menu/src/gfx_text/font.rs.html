@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_text-0.15.0/src/font.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_text-0.16.0/src/font.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>font.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -340,302 +340,302 @@
 <span id="295">295</span>
 <span id="296">296</span>
 <span id="297">297</span>
-</pre><pre class='rust '>
-<span class='doccomment'>//! Construct bitmap font using FreeType library.</span>
-<span class='doccomment'>//! Generates raw texture data for the given font and collects information</span>
-<span class='doccomment'>//! about available font characters to map them into texture.</span>
+</pre><pre class="rust ">
+<span class="doccomment">//! Construct bitmap font using FreeType library.</span>
+<span class="doccomment">//! Generates raw texture data for the given font and collects information</span>
+<span class="doccomment">//! about available font characters to map them into texture.</span>
 
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>max</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>iter</span>::{<span class='ident'>repeat</span>, <span class='ident'>FromIterator</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::{<span class='ident'>HashMap</span>, <span class='ident'>HashSet</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>char</span>::<span class='ident'>from_u32</span>;
-<span class='kw'>use</span> ::<span class='ident'>freetype</span> <span class='kw'>as</span> <span class='ident'>ft</span>;
-<span class='kw'>use</span> ::<span class='ident'>freetype</span>::<span class='ident'>Error</span> <span class='kw'>as</span> <span class='ident'>FreetypeError</span>;
-<span class='kw'>use</span> ::<span class='ident'>freetype</span>::<span class='ident'>Face</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">max</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">iter</span>::{<span class="ident">repeat</span>, <span class="ident">FromIterator</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">char</span>::<span class="ident">from_u32</span>;
+<span class="kw">use</span> ::<span class="ident">freetype</span> <span class="kw">as</span> <span class="ident">ft</span>;
+<span class="kw">use</span> ::<span class="ident">freetype</span>::<span class="ident">Error</span> <span class="kw">as</span> <span class="ident">FreetypeError</span>;
+<span class="kw">use</span> ::<span class="ident">freetype</span>::<span class="ident">Face</span>;
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>BitmapFont</span> {
-    <span class='ident'>width</span>: <span class='ident'>u16</span>,
-    <span class='ident'>height</span>: <span class='ident'>u16</span>,
-    <span class='ident'>chars</span>: <span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>char</span>, <span class='ident'>BitmapChar</span><span class='op'>&gt;</span>,
-    <span class='ident'>image</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BitmapFont</span> {
+    <span class="ident">width</span>: <span class="ident">u16</span>,
+    <span class="ident">height</span>: <span class="ident">u16</span>,
+    <span class="ident">chars</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">char</span>, <span class="ident">BitmapChar</span><span class="op">&gt;</span>,
+    <span class="ident">image</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
 }
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>BitmapChar</span> {
-    <span class='comment'>// Real glyph&#39;s coordinates in pixels.</span>
-    <span class='kw'>pub</span> <span class='ident'>x_offset</span>: <span class='ident'>i32</span>,
-    <span class='kw'>pub</span> <span class='ident'>y_offset</span>: <span class='ident'>i32</span>,
-    <span class='kw'>pub</span> <span class='ident'>x_advance</span>: <span class='ident'>i32</span>,
-    <span class='kw'>pub</span> <span class='ident'>width</span>: <span class='ident'>i32</span>,
-    <span class='kw'>pub</span> <span class='ident'>height</span>: <span class='ident'>i32</span>,
-    <span class='comment'>// Precalculated scaled positions in texture.</span>
-    <span class='kw'>pub</span> <span class='ident'>tex</span>: [<span class='ident'>f32</span>; <span class='number'>2</span>],
-    <span class='kw'>pub</span> <span class='ident'>tex_width</span>: <span class='ident'>f32</span>,
-    <span class='kw'>pub</span> <span class='ident'>tex_height</span>: <span class='ident'>f32</span>,
-    <span class='comment'>// This field is used only while building the texture.</span>
-    <span class='ident'>data</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>,
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BitmapChar</span> {
+    <span class="comment">// Real glyph&#39;s coordinates in pixels.</span>
+    <span class="kw">pub</span> <span class="ident">x_offset</span>: <span class="ident">i32</span>,
+    <span class="kw">pub</span> <span class="ident">y_offset</span>: <span class="ident">i32</span>,
+    <span class="kw">pub</span> <span class="ident">x_advance</span>: <span class="ident">i32</span>,
+    <span class="kw">pub</span> <span class="ident">width</span>: <span class="ident">i32</span>,
+    <span class="kw">pub</span> <span class="ident">height</span>: <span class="ident">i32</span>,
+    <span class="comment">// Precalculated scaled positions in texture.</span>
+    <span class="kw">pub</span> <span class="ident">tex</span>: [<span class="ident">f32</span>; <span class="number">2</span>],
+    <span class="kw">pub</span> <span class="ident">tex_width</span>: <span class="ident">f32</span>,
+    <span class="kw">pub</span> <span class="ident">tex_height</span>: <span class="ident">f32</span>,
+    <span class="comment">// This field is used only while building the texture.</span>
+    <span class="ident">data</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;&gt;</span>,
 }
 
-<span class='doccomment'>/// Represents possible errors which may occur during the font loading.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>FontError</span> {
-    <span class='doccomment'>/// No font was specified</span>
-    <span class='ident'>NoFont</span>,
-    <span class='doccomment'>/// Character set is empty</span>
-    <span class='ident'>EmptyFont</span>,
-    <span class='doccomment'>/// FreeType library error</span>
-    <span class='ident'>FreetypeError</span>(<span class='ident'>FreetypeError</span>),
+<span class="doccomment">/// Represents possible errors which may occur during the font loading.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">FontError</span> {
+    <span class="doccomment">/// No font was specified</span>
+    <span class="ident">NoFont</span>,
+    <span class="doccomment">/// Character set is empty</span>
+    <span class="ident">EmptyFont</span>,
+    <span class="doccomment">/// FreeType library error</span>
+    <span class="ident">FreetypeError</span>(<span class="ident">FreetypeError</span>),
 }
 
-<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>FreetypeError</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>FontError</span> {
-    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>e</span>: <span class='ident'>FreetypeError</span>) <span class='op'>-&gt;</span> <span class='ident'>FontError</span> { <span class='ident'>FontError</span>::<span class='ident'>FreetypeError</span>(<span class='ident'>e</span>) }
+<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">FreetypeError</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">FontError</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">e</span>: <span class="ident">FreetypeError</span>) <span class="op">-&gt;</span> <span class="ident">FontError</span> { <span class="ident">FontError</span>::<span class="ident">FreetypeError</span>(<span class="ident">e</span>) }
 }
 
-<span class='kw'>pub</span> <span class='kw'>type</span> <span class='ident'>FontResult</span> <span class='op'>=</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>BitmapFont</span>, <span class='ident'>FontError</span><span class='op'>&gt;</span>;
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">FontResult</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">BitmapFont</span>, <span class="ident">FontError</span><span class="op">&gt;</span>;
 
-<span class='kw'>impl</span> <span class='ident'>BitmapFont</span> {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_path</span>(<span class='ident'>path</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>font_size</span>: <span class='ident'>u8</span>, <span class='ident'>chars</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span>[<span class='ident'>char</span>]<span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>FontResult</span> {
-        <span class='kw'>let</span> <span class='ident'>library</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>ft</span>::<span class='ident'>Library</span>::<span class='ident'>init</span>());
-        <span class='kw'>let</span> <span class='ident'>face</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>library</span>.<span class='ident'>new_face</span>(<span class='ident'>path</span>, <span class='number'>0</span>));
-        <span class='self'>Self</span>::<span class='ident'>new</span>(<span class='ident'>face</span>, <span class='ident'>font_size</span>, <span class='ident'>chars</span>)
+<span class="kw">impl</span> <span class="ident">BitmapFont</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_path</span>(<span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">font_size</span>: <span class="ident">u8</span>, <span class="ident">chars</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">char</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">FontResult</span> {
+        <span class="kw">let</span> <span class="ident">library</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">ft</span>::<span class="ident">Library</span>::<span class="ident">init</span>());
+        <span class="kw">let</span> <span class="ident">face</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">library</span>.<span class="ident">new_face</span>(<span class="ident">path</span>, <span class="number">0</span>));
+        <span class="self">Self</span>::<span class="ident">new</span>(<span class="ident">face</span>, <span class="ident">font_size</span>, <span class="ident">chars</span>)
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>from_bytes</span>(<span class='ident'>data</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>font_size</span>: <span class='ident'>u8</span>, <span class='ident'>chars</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span>[<span class='ident'>char</span>]<span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>FontResult</span> {
-        <span class='kw'>let</span> <span class='ident'>library</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>ft</span>::<span class='ident'>Library</span>::<span class='ident'>init</span>());
-        <span class='kw'>let</span> <span class='ident'>face</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>library</span>.<span class='ident'>new_memory_face</span>(<span class='ident'>data</span>, <span class='number'>0</span>));
-        <span class='self'>Self</span>::<span class='ident'>new</span>(<span class='ident'>face</span>, <span class='ident'>font_size</span>, <span class='ident'>chars</span>)
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_bytes</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">font_size</span>: <span class="ident">u8</span>, <span class="ident">chars</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">char</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">FontResult</span> {
+        <span class="kw">let</span> <span class="ident">library</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">ft</span>::<span class="ident">Library</span>::<span class="ident">init</span>());
+        <span class="kw">let</span> <span class="ident">face</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">library</span>.<span class="ident">new_memory_face</span>(<span class="ident">data</span>, <span class="number">0</span>));
+        <span class="self">Self</span>::<span class="ident">new</span>(<span class="ident">face</span>, <span class="ident">font_size</span>, <span class="ident">chars</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>get_all_face_chars</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='ident'>face</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Face</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>HashSet</span><span class='op'>&lt;</span><span class='ident'>char</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='ident'>HashSet</span>::<span class='ident'>new</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>index</span> <span class='op'>=</span> <span class='number'>0</span>;
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>face_ptr</span> <span class='op'>=</span> <span class='ident'>face</span>.<span class='ident'>raw_mut</span>();
-        <span class='kw'>unsafe</span> {
-            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>code</span> <span class='op'>=</span> <span class='ident'>ft</span>::<span class='ident'>ffi</span>::<span class='ident'>FT_Get_First_Char</span>(<span class='ident'>face_ptr</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>index</span>);
-            <span class='kw'>while</span> <span class='ident'>index</span> <span class='op'>!=</span> <span class='number'>0</span> {
-                <span class='ident'>from_u32</span>(<span class='ident'>code</span> <span class='kw'>as</span> <span class='ident'>u32</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>ch</span><span class='op'>|</span> <span class='ident'>result</span>.<span class='ident'>insert</span>(<span class='ident'>ch</span>));
-                <span class='ident'>code</span> <span class='op'>=</span> <span class='ident'>ft</span>::<span class='ident'>ffi</span>::<span class='ident'>FT_Get_Next_Char</span>(<span class='ident'>face_ptr</span>, <span class='ident'>code</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>index</span>);
+    <span class="kw">fn</span> <span class="ident">get_all_face_chars</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">face</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Face</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">HashSet</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">index</span> <span class="op">=</span> <span class="number">0</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">face_ptr</span> <span class="op">=</span> <span class="ident">face</span>.<span class="ident">raw_mut</span>();
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">code</span> <span class="op">=</span> <span class="ident">ft</span>::<span class="ident">ffi</span>::<span class="ident">FT_Get_First_Char</span>(<span class="ident">face_ptr</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">index</span>);
+            <span class="kw">while</span> <span class="ident">index</span> <span class="op">!=</span> <span class="number">0</span> {
+                <span class="ident">from_u32</span>(<span class="ident">code</span> <span class="kw">as</span> <span class="ident">u32</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">ch</span><span class="op">|</span> <span class="ident">result</span>.<span class="ident">insert</span>(<span class="ident">ch</span>));
+                <span class="ident">code</span> <span class="op">=</span> <span class="ident">ft</span>::<span class="ident">ffi</span>::<span class="ident">FT_Get_Next_Char</span>(<span class="ident">face_ptr</span>, <span class="ident">code</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">index</span>);
             }
         }
-        <span class='ident'>result</span>
+        <span class="ident">result</span>
     }
 
-    <span class='comment'>// FIXME(Kagami): Profile and optimize this function!</span>
-    <span class='comment'>// TODO(Kagami): Limit too huge textures? We should keep it less than</span>
-    <span class='comment'>// 8k X 8k in general.</span>
-    <span class='comment'>// TODO(Kagami): Add bunch of asserts to check for negative values and</span>
-    <span class='comment'>// overflows.</span>
-    <span class='doccomment'>/// Construct new BitMap font using provided parameters (this is general</span>
-    <span class='doccomment'>/// method, called via `from_` helpers).</span>
-    <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='ident'>face</span>: <span class='ident'>ft</span>::<span class='ident'>Face</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>, <span class='ident'>font_size</span>: <span class='ident'>u8</span>, <span class='ident'>chars</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span>[<span class='ident'>char</span>]<span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>FontResult</span> {
-        <span class='kw'>let</span> <span class='ident'>needed_chars</span> <span class='op'>=</span> <span class='ident'>chars</span>
-            .<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>sl</span><span class='op'>|</span> <span class='ident'>HashSet</span>::<span class='ident'>from_iter</span>(<span class='ident'>sl</span>.<span class='ident'>iter</span>().<span class='ident'>cloned</span>()))
-            .<span class='ident'>unwrap_or_else</span>(<span class='op'>||</span> <span class='self'>Self</span>::<span class='ident'>get_all_face_chars</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>face</span>));
-        <span class='kw'>if</span> <span class='ident'>needed_chars</span>.<span class='ident'>is_empty</span>() {
-            <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>FontError</span>::<span class='ident'>EmptyFont</span>);
+    <span class="comment">// FIXME(Kagami): Profile and optimize this function!</span>
+    <span class="comment">// TODO(Kagami): Limit too huge textures? We should keep it less than</span>
+    <span class="comment">// 8k X 8k in general.</span>
+    <span class="comment">// TODO(Kagami): Add bunch of asserts to check for negative values and</span>
+    <span class="comment">// overflows.</span>
+    <span class="doccomment">/// Construct new BitMap font using provided parameters (this is general</span>
+    <span class="doccomment">/// method, called via `from_` helpers).</span>
+    <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="ident">face</span>: <span class="ident">ft</span>::<span class="ident">Face</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>, <span class="ident">font_size</span>: <span class="ident">u8</span>, <span class="ident">chars</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">char</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">FontResult</span> {
+        <span class="kw">let</span> <span class="ident">needed_chars</span> <span class="op">=</span> <span class="ident">chars</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">sl</span><span class="op">|</span> <span class="ident">HashSet</span>::<span class="ident">from_iter</span>(<span class="ident">sl</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>()))
+            .<span class="ident">unwrap_or_else</span>(<span class="op">||</span> <span class="self">Self</span>::<span class="ident">get_all_face_chars</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">face</span>));
+        <span class="kw">if</span> <span class="ident">needed_chars</span>.<span class="ident">is_empty</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">FontError</span>::<span class="ident">EmptyFont</span>);
         }
 
-        <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>face</span>.<span class='ident'>set_pixel_sizes</span>(<span class='number'>0</span>, <span class='ident'>font_size</span> <span class='kw'>as</span> <span class='ident'>u32</span>));
+        <span class="macro">try</span><span class="macro">!</span>(<span class="ident">face</span>.<span class="ident">set_pixel_sizes</span>(<span class="number">0</span>, <span class="ident">font_size</span> <span class="kw">as</span> <span class="ident">u32</span>));
 
-        <span class='comment'>// FreeType representation of rendered glyph &#39;j&#39;:</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// b_left   w</span>
-        <span class='comment'>// +-----+-----+-----+</span>
-        <span class='comment'>// |     |     |     | font_size - bitmap_top()</span>
-        <span class='comment'>// +-----+-----+-----+</span>
-        <span class='comment'>// |     |  x  |     |</span>
-        <span class='comment'>// |     |     |     |</span>
-        <span class='comment'>// |     |  x  |     | bitmap_top()</span>
-        <span class='comment'>// |     |  x  |     |</span>
-        <span class='comment'>// |     |  x  |     |</span>
-        <span class='comment'>// |     |  x  |     |</span>
-        <span class='comment'>// +-----+--x--+-----+</span>
-        <span class='comment'>// |     | x   |     | rows() - bitmap_top()</span>
-        <span class='comment'>// |     |x    |     |</span>
-        <span class='comment'>// +-----------+-----+</span>
-        <span class='comment'>//      advance.x</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// (Read &lt;http://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html&gt;</span>
-        <span class='comment'>// for more details.)</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// Notes:</span>
-        <span class='comment'>// * Width/height of the rendered glyph generally smaller than the the</span>
-        <span class='comment'>//   specified font size</span>
-        <span class='comment'>// * But if we add x/y offsets to the real glyph&#39;s dimensions it might</span>
-        <span class='comment'>//   go beyound that limits (e.g. chars like &#39;j&#39;, &#39;q&#39;)</span>
-        <span class='comment'>// * `bottom_left()` may be less than zero for some tight characters</span>
-        <span class='comment'>//   (too push it to the previous one)</span>
-        <span class='comment'>// * Theoretically `bitmap_top()` may be bigger than the `font_size`</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// For simplicity we use fixed box height to store characters in the</span>
-        <span class='comment'>// texture (extended with blank pixels downwards), but width may vary:</span>
-        <span class='comment'>//</span>
-        <span class='comment'>//         width()</span>
-        <span class='comment'>//  +-----+-------+</span>
-        <span class='comment'>//  |  x  |   x   |</span>
-        <span class='comment'>//  |     |       |</span>
-        <span class='comment'>//  |  x  |   x   |</span>
-        <span class='comment'>//  |  x  |   x   | rows()</span>
-        <span class='comment'>//  |  x  |   x   |</span>
-        <span class='comment'>//  |  x  |   x   |</span>
-        <span class='comment'>//  +-----+  x    |</span>
-        <span class='comment'>//  |     | x     |</span>
-        <span class='comment'>//  |     +-------+</span>
-        <span class='comment'>//  |     |       | ch_box_height - rows()</span>
-        <span class='comment'>//  +-----+-------+</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// To construct the optimal texture (i.e. square enought and with box</span>
-        <span class='comment'>// height of the highest character) we need to do several passes.</span>
+        <span class="comment">// FreeType representation of rendered glyph &#39;j&#39;:</span>
+        <span class="comment">//</span>
+        <span class="comment">// b_left   w</span>
+        <span class="comment">// +-----+-----+-----+</span>
+        <span class="comment">// |     |     |     | font_size - bitmap_top()</span>
+        <span class="comment">// +-----+-----+-----+</span>
+        <span class="comment">// |     |  x  |     |</span>
+        <span class="comment">// |     |     |     |</span>
+        <span class="comment">// |     |  x  |     | bitmap_top()</span>
+        <span class="comment">// |     |  x  |     |</span>
+        <span class="comment">// |     |  x  |     |</span>
+        <span class="comment">// |     |  x  |     |</span>
+        <span class="comment">// +-----+--x--+-----+</span>
+        <span class="comment">// |     | x   |     | rows() - bitmap_top()</span>
+        <span class="comment">// |     |x    |     |</span>
+        <span class="comment">// +-----------+-----+</span>
+        <span class="comment">//      advance.x</span>
+        <span class="comment">//</span>
+        <span class="comment">// (Read &lt;http://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html&gt;</span>
+        <span class="comment">// for more details.)</span>
+        <span class="comment">//</span>
+        <span class="comment">// Notes:</span>
+        <span class="comment">// * Width/height of the rendered glyph generally smaller than the the</span>
+        <span class="comment">//   specified font size</span>
+        <span class="comment">// * But if we add x/y offsets to the real glyph&#39;s dimensions it might</span>
+        <span class="comment">//   go beyound that limits (e.g. chars like &#39;j&#39;, &#39;q&#39;)</span>
+        <span class="comment">// * `bottom_left()` may be less than zero for some tight characters</span>
+        <span class="comment">//   (too push it to the previous one)</span>
+        <span class="comment">// * Theoretically `bitmap_top()` may be bigger than the `font_size`</span>
+        <span class="comment">//</span>
+        <span class="comment">// For simplicity we use fixed box height to store characters in the</span>
+        <span class="comment">// texture (extended with blank pixels downwards), but width may vary:</span>
+        <span class="comment">//</span>
+        <span class="comment">//         width()</span>
+        <span class="comment">//  +-----+-------+</span>
+        <span class="comment">//  |  x  |   x   |</span>
+        <span class="comment">//  |     |       |</span>
+        <span class="comment">//  |  x  |   x   |</span>
+        <span class="comment">//  |  x  |   x   | rows()</span>
+        <span class="comment">//  |  x  |   x   |</span>
+        <span class="comment">//  |  x  |   x   |</span>
+        <span class="comment">//  +-----+  x    |</span>
+        <span class="comment">//  |     | x     |</span>
+        <span class="comment">//  |     +-------+</span>
+        <span class="comment">//  |     |       | ch_box_height - rows()</span>
+        <span class="comment">//  +-----+-------+</span>
+        <span class="comment">//</span>
+        <span class="comment">// To construct the optimal texture (i.e. square enought and with box</span>
+        <span class="comment">// height of the highest character) we need to do several passes.</span>
 
-        <span class='comment'>// In first pass we collect information about the chars and store their</span>
-        <span class='comment'>// raw bitmap data. It gives us max character height and summary width</span>
-        <span class='comment'>// of all characters.</span>
+        <span class="comment">// In first pass we collect information about the chars and store their</span>
+        <span class="comment">// raw bitmap data. It gives us max character height and summary width</span>
+        <span class="comment">// of all characters.</span>
 
-        <span class='kw'>let</span> <span class='ident'>chars_len</span> <span class='op'>=</span> <span class='ident'>needed_chars</span>.<span class='ident'>len</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>chars_info</span> <span class='op'>=</span> <span class='ident'>HashMap</span>::<span class='ident'>with_capacity</span>(<span class='ident'>chars_len</span>);
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>sum_image_width</span> <span class='op'>=</span> <span class='number'>0</span>;
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>max_ch_width</span> <span class='op'>=</span> <span class='number'>0</span>;
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>ch_box_height</span> <span class='op'>=</span> <span class='number'>0</span>;
+        <span class="kw">let</span> <span class="ident">chars_len</span> <span class="op">=</span> <span class="ident">needed_chars</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chars_info</span> <span class="op">=</span> <span class="ident">HashMap</span>::<span class="ident">with_capacity</span>(<span class="ident">chars_len</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum_image_width</span> <span class="op">=</span> <span class="number">0</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">max_ch_width</span> <span class="op">=</span> <span class="number">0</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ch_box_height</span> <span class="op">=</span> <span class="number">0</span>;
 
-        <span class='comment'>// debug!(&quot;Start building the bitmap (chars: {})&quot;, chars_len);</span>
+        <span class="comment">// debug!(&quot;Start building the bitmap (chars: {})&quot;, chars_len);</span>
 
-        <span class='kw'>for</span> <span class='ident'>ch</span> <span class='kw'>in</span> <span class='ident'>needed_chars</span> {
-            <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>face</span>.<span class='ident'>load_char</span>(<span class='ident'>ch</span> <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>ft</span>::<span class='ident'>face</span>::<span class='ident'>RENDER</span>));
-            <span class='kw'>let</span> <span class='ident'>glyph</span> <span class='op'>=</span> <span class='ident'>face</span>.<span class='ident'>glyph</span>();
-            <span class='kw'>let</span> <span class='ident'>bitmap</span> <span class='op'>=</span> <span class='ident'>glyph</span>.<span class='ident'>bitmap</span>();
-            <span class='kw'>let</span> <span class='ident'>ch_width</span> <span class='op'>=</span> <span class='ident'>bitmap</span>.<span class='ident'>width</span>();
-            <span class='kw'>let</span> <span class='ident'>ch_height</span> <span class='op'>=</span> <span class='ident'>bitmap</span>.<span class='ident'>rows</span>();
-            <span class='kw'>let</span> <span class='ident'>ch_x_offset</span> <span class='op'>=</span> <span class='ident'>glyph</span>.<span class='ident'>bitmap_left</span>();
-            <span class='kw'>let</span> <span class='ident'>ch_y_offset</span> <span class='op'>=</span> <span class='ident'>font_size</span> <span class='kw'>as</span> <span class='ident'>i32</span> <span class='op'>-</span> <span class='ident'>glyph</span>.<span class='ident'>bitmap_top</span>();
-            <span class='kw'>let</span> <span class='ident'>ch_x_advance</span> <span class='op'>=</span> (<span class='ident'>glyph</span>.<span class='ident'>advance</span>().<span class='ident'>x</span> <span class='op'>&gt;&gt;</span> <span class='number'>6</span>) <span class='kw'>as</span> <span class='ident'>i32</span>;
-            <span class='kw'>let</span> <span class='ident'>buffer</span> <span class='op'>=</span> <span class='ident'>bitmap</span>.<span class='ident'>buffer</span>();
-            <span class='kw'>let</span> <span class='ident'>ch_data</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>from</span>(<span class='ident'>buffer</span>);
+        <span class="kw">for</span> <span class="ident">ch</span> <span class="kw">in</span> <span class="ident">needed_chars</span> {
+            <span class="macro">try</span><span class="macro">!</span>(<span class="ident">face</span>.<span class="ident">load_char</span>(<span class="ident">ch</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">ft</span>::<span class="ident">face</span>::<span class="ident">RENDER</span>));
+            <span class="kw">let</span> <span class="ident">glyph</span> <span class="op">=</span> <span class="ident">face</span>.<span class="ident">glyph</span>();
+            <span class="kw">let</span> <span class="ident">bitmap</span> <span class="op">=</span> <span class="ident">glyph</span>.<span class="ident">bitmap</span>();
+            <span class="kw">let</span> <span class="ident">ch_width</span> <span class="op">=</span> <span class="ident">bitmap</span>.<span class="ident">width</span>();
+            <span class="kw">let</span> <span class="ident">ch_height</span> <span class="op">=</span> <span class="ident">bitmap</span>.<span class="ident">rows</span>();
+            <span class="kw">let</span> <span class="ident">ch_x_offset</span> <span class="op">=</span> <span class="ident">glyph</span>.<span class="ident">bitmap_left</span>();
+            <span class="kw">let</span> <span class="ident">ch_y_offset</span> <span class="op">=</span> <span class="ident">font_size</span> <span class="kw">as</span> <span class="ident">i32</span> <span class="op">-</span> <span class="ident">glyph</span>.<span class="ident">bitmap_top</span>();
+            <span class="kw">let</span> <span class="ident">ch_x_advance</span> <span class="op">=</span> (<span class="ident">glyph</span>.<span class="ident">advance</span>().<span class="ident">x</span> <span class="op">&gt;&gt;</span> <span class="number">6</span>) <span class="kw">as</span> <span class="ident">i32</span>;
+            <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">bitmap</span>.<span class="ident">buffer</span>();
+            <span class="kw">let</span> <span class="ident">ch_data</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">from</span>(<span class="ident">buffer</span>);
 
-            <span class='ident'>chars_info</span>.<span class='ident'>insert</span>(<span class='ident'>ch</span>, <span class='ident'>BitmapChar</span> {
-                <span class='ident'>x_offset</span>: <span class='ident'>ch_x_offset</span>,
-                <span class='ident'>y_offset</span>: <span class='ident'>ch_y_offset</span>,
-                <span class='ident'>x_advance</span>: <span class='ident'>ch_x_advance</span>,
-                <span class='ident'>width</span>: <span class='ident'>ch_width</span>,
-                <span class='ident'>height</span>: <span class='ident'>ch_height</span>,
-                <span class='comment'>// We&#39;ll need to fix that fields later:</span>
-                <span class='ident'>tex</span>: [<span class='number'>0.0</span>, <span class='number'>0.0</span>],
-                <span class='ident'>tex_width</span>: <span class='number'>0.0</span>,
-                <span class='ident'>tex_height</span>: <span class='number'>0.0</span>,
-                <span class='ident'>data</span>: <span class='prelude-val'>Some</span>(<span class='ident'>ch_data</span>),
+            <span class="ident">chars_info</span>.<span class="ident">insert</span>(<span class="ident">ch</span>, <span class="ident">BitmapChar</span> {
+                <span class="ident">x_offset</span>: <span class="ident">ch_x_offset</span>,
+                <span class="ident">y_offset</span>: <span class="ident">ch_y_offset</span>,
+                <span class="ident">x_advance</span>: <span class="ident">ch_x_advance</span>,
+                <span class="ident">width</span>: <span class="ident">ch_width</span>,
+                <span class="ident">height</span>: <span class="ident">ch_height</span>,
+                <span class="comment">// We&#39;ll need to fix that fields later:</span>
+                <span class="ident">tex</span>: [<span class="number">0.0</span>, <span class="number">0.0</span>],
+                <span class="ident">tex_width</span>: <span class="number">0.0</span>,
+                <span class="ident">tex_height</span>: <span class="number">0.0</span>,
+                <span class="ident">data</span>: <span class="prelude-val">Some</span>(<span class="ident">ch_data</span>),
             });
 
-            <span class='ident'>sum_image_width</span> <span class='op'>+=</span> <span class='ident'>ch_width</span>;
-            <span class='ident'>max_ch_width</span> <span class='op'>=</span> <span class='ident'>max</span>(<span class='ident'>max_ch_width</span>, <span class='ident'>ch_width</span>);
-            <span class='ident'>ch_box_height</span> <span class='op'>=</span> <span class='ident'>max</span>(<span class='ident'>ch_box_height</span>, <span class='ident'>ch_height</span>);
+            <span class="ident">sum_image_width</span> <span class="op">+=</span> <span class="ident">ch_width</span>;
+            <span class="ident">max_ch_width</span> <span class="op">=</span> <span class="ident">max</span>(<span class="ident">max_ch_width</span>, <span class="ident">ch_width</span>);
+            <span class="ident">ch_box_height</span> <span class="op">=</span> <span class="ident">max</span>(<span class="ident">ch_box_height</span>, <span class="ident">ch_height</span>);
         }
 
-        <span class='comment'>// In second pass we map character boxes with varying width onto the</span>
-        <span class='comment'>// fixed quad texture image and build the final texture image.</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// We start with optimist (square) assumption about texture dimensions</span>
-        <span class='comment'>// and adjust the image&#39;s height and size while filling the rows.</span>
-        <span class='comment'>//</span>
-        <span class='comment'>// TODO(Kagami): We may try some cool CS algorithm to fit char boxes</span>
-        <span class='comment'>// into the quad texture space with the best level of compression.</span>
-        <span class='comment'>// Though current level of inefficiency is good enough.</span>
+        <span class="comment">// In second pass we map character boxes with varying width onto the</span>
+        <span class="comment">// fixed quad texture image and build the final texture image.</span>
+        <span class="comment">//</span>
+        <span class="comment">// We start with optimist (square) assumption about texture dimensions</span>
+        <span class="comment">// and adjust the image&#39;s height and size while filling the rows.</span>
+        <span class="comment">//</span>
+        <span class="comment">// TODO(Kagami): We may try some cool CS algorithm to fit char boxes</span>
+        <span class="comment">// into the quad texture space with the best level of compression.</span>
+        <span class="comment">// Though current level of inefficiency is good enough.</span>
 
-        <span class='kw'>let</span> <span class='ident'>ideal_image_size</span> <span class='op'>=</span> <span class='ident'>sum_image_width</span> <span class='op'>*</span> <span class='ident'>ch_box_height</span>;
-        <span class='kw'>let</span> <span class='ident'>ideal_image_width</span> <span class='op'>=</span> (<span class='ident'>ideal_image_size</span> <span class='kw'>as</span> <span class='ident'>f32</span>).<span class='ident'>sqrt</span>() <span class='kw'>as</span> <span class='ident'>i32</span>;
-        <span class='kw'>let</span> <span class='ident'>image_width</span> <span class='op'>=</span> <span class='ident'>max</span>(<span class='ident'>max_ch_width</span>, <span class='ident'>ideal_image_width</span>);
-        <span class='kw'>let</span> <span class='ident'>assumed_size</span> <span class='op'>=</span> <span class='ident'>ideal_image_size</span> <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>*</span> <span class='number'>1.5</span>;
-        <span class='kw'>let</span> <span class='ident'>assumed_ch_in_row</span> <span class='op'>=</span> <span class='ident'>image_width</span> <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>/</span> <span class='ident'>max_ch_width</span> <span class='kw'>as</span> <span class='ident'>f32</span>;
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>image</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='ident'>assumed_size</span> <span class='kw'>as</span> <span class='ident'>usize</span>);
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>chars_row</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='ident'>assumed_ch_in_row</span> <span class='kw'>as</span> <span class='ident'>usize</span>);
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='number'>0</span>;
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>image_height</span> <span class='op'>=</span> <span class='number'>0</span>;
+        <span class="kw">let</span> <span class="ident">ideal_image_size</span> <span class="op">=</span> <span class="ident">sum_image_width</span> <span class="op">*</span> <span class="ident">ch_box_height</span>;
+        <span class="kw">let</span> <span class="ident">ideal_image_width</span> <span class="op">=</span> (<span class="ident">ideal_image_size</span> <span class="kw">as</span> <span class="ident">f32</span>).<span class="ident">sqrt</span>() <span class="kw">as</span> <span class="ident">i32</span>;
+        <span class="kw">let</span> <span class="ident">image_width</span> <span class="op">=</span> <span class="ident">max</span>(<span class="ident">max_ch_width</span>, <span class="ident">ideal_image_width</span>);
+        <span class="kw">let</span> <span class="ident">assumed_size</span> <span class="op">=</span> <span class="ident">ideal_image_size</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="number">1.5</span>;
+        <span class="kw">let</span> <span class="ident">assumed_ch_in_row</span> <span class="op">=</span> <span class="ident">image_width</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="ident">max_ch_width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">image</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">assumed_size</span> <span class="kw">as</span> <span class="ident">usize</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chars_row</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">assumed_ch_in_row</span> <span class="kw">as</span> <span class="ident">usize</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cursor_x</span> <span class="op">=</span> <span class="number">0</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">image_height</span> <span class="op">=</span> <span class="number">0</span>;
 
-        <span class='kw'>let</span> <span class='ident'>dump_row</span> <span class='op'>=</span> <span class='op'>|</span><span class='ident'>image</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>chars_row</span>: <span class='kw-2'>&amp;</span><span class='ident'>Vec</span><span class='op'>&lt;</span>(<span class='ident'>i32</span>, <span class='ident'>i32</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>)<span class='op'>&gt;</span><span class='op'>|</span> {
-            <span class='comment'>// Copy character data into the image row by row:</span>
-            <span class='comment'>//</span>
-            <span class='comment'>//       image_width</span>
-            <span class='comment'>// +-------+---------+---+</span>
-            <span class='comment'>// |   x   |    x    |   |</span>
-            <span class='comment'>// |       |         |   |</span>
-            <span class='comment'>// |   x   |    x    |   | ch_box_height</span>
-            <span class='comment'>// |   x   |    x    |   |</span>
-            <span class='comment'>// |   x   |    x    |   |</span>
-            <span class='comment'>// |   x   |   x     |   |</span>
-            <span class='comment'>// |       |  x      |   |</span>
-            <span class='comment'>// +-------+---------+---+</span>
-            <span class='comment'>//                     ^--- image_width - width_ch_i - width_ch_j</span>
-            <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>ch_box_height</span> {
-                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>x</span> <span class='op'>=</span> <span class='number'>0</span>;
-                <span class='kw'>for</span> <span class='kw-2'>&amp;</span>(<span class='ident'>width</span>, <span class='ident'>height</span>, <span class='kw-2'>ref</span> <span class='ident'>data</span>) <span class='kw'>in</span> <span class='ident'>chars_row</span> {
-                   <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&gt;=</span> <span class='ident'>height</span> {
-                       <span class='ident'>image</span>.<span class='ident'>extend</span>(<span class='ident'>repeat</span>(<span class='number'>0</span>).<span class='ident'>take</span>(<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>));
-                   } <span class='kw'>else</span> {
-                       <span class='kw'>let</span> <span class='ident'>skip</span> <span class='op'>=</span> <span class='ident'>i</span> <span class='op'>*</span> <span class='ident'>width</span>;
-                       <span class='macro'>debug_assert</span><span class='macro'>!</span>(<span class='ident'>data</span>.<span class='ident'>len</span>() <span class='op'>&gt;=</span> (<span class='ident'>skip</span> <span class='op'>+</span> <span class='ident'>width</span>) <span class='kw'>as</span> <span class='ident'>usize</span>);
-                       <span class='kw'>let</span> <span class='ident'>line</span> <span class='op'>=</span> <span class='ident'>data</span>.<span class='ident'>iter</span>().<span class='ident'>skip</span>(<span class='ident'>skip</span> <span class='kw'>as</span> <span class='ident'>usize</span>).<span class='ident'>take</span>(<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>usize</span>);
-                       <span class='ident'>image</span>.<span class='ident'>extend</span>(<span class='ident'>line</span>.<span class='ident'>cloned</span>());
+        <span class="kw">let</span> <span class="ident">dump_row</span> <span class="op">=</span> <span class="op">|</span><span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">chars_row</span>: <span class="kw-2">&amp;</span><span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">i32</span>, <span class="ident">i32</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>)<span class="op">&gt;</span><span class="op">|</span> {
+            <span class="comment">// Copy character data into the image row by row:</span>
+            <span class="comment">//</span>
+            <span class="comment">//       image_width</span>
+            <span class="comment">// +-------+---------+---+</span>
+            <span class="comment">// |   x   |    x    |   |</span>
+            <span class="comment">// |       |         |   |</span>
+            <span class="comment">// |   x   |    x    |   | ch_box_height</span>
+            <span class="comment">// |   x   |    x    |   |</span>
+            <span class="comment">// |   x   |    x    |   |</span>
+            <span class="comment">// |   x   |   x     |   |</span>
+            <span class="comment">// |       |  x      |   |</span>
+            <span class="comment">// +-------+---------+---+</span>
+            <span class="comment">//                     ^--- image_width - width_ch_i - width_ch_j</span>
+            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">ch_box_height</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">x</span> <span class="op">=</span> <span class="number">0</span>;
+                <span class="kw">for</span> <span class="kw-2">&amp;</span>(<span class="ident">width</span>, <span class="ident">height</span>, <span class="kw-2">ref</span> <span class="ident">data</span>) <span class="kw">in</span> <span class="ident">chars_row</span> {
+                   <span class="kw">if</span> <span class="ident">i</span> <span class="op">&gt;=</span> <span class="ident">height</span> {
+                       <span class="ident">image</span>.<span class="ident">extend</span>(<span class="ident">repeat</span>(<span class="number">0</span>).<span class="ident">take</span>(<span class="ident">width</span> <span class="kw">as</span> <span class="ident">usize</span>));
+                   } <span class="kw">else</span> {
+                       <span class="kw">let</span> <span class="ident">skip</span> <span class="op">=</span> <span class="ident">i</span> <span class="op">*</span> <span class="ident">width</span>;
+                       <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">data</span>.<span class="ident">len</span>() <span class="op">&gt;=</span> (<span class="ident">skip</span> <span class="op">+</span> <span class="ident">width</span>) <span class="kw">as</span> <span class="ident">usize</span>);
+                       <span class="kw">let</span> <span class="ident">line</span> <span class="op">=</span> <span class="ident">data</span>.<span class="ident">iter</span>().<span class="ident">skip</span>(<span class="ident">skip</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="ident">take</span>(<span class="ident">width</span> <span class="kw">as</span> <span class="ident">usize</span>);
+                       <span class="ident">image</span>.<span class="ident">extend</span>(<span class="ident">line</span>.<span class="ident">cloned</span>());
                    };
-                   <span class='ident'>x</span> <span class='op'>+=</span> <span class='ident'>width</span>;
+                   <span class="ident">x</span> <span class="op">+=</span> <span class="ident">width</span>;
                 }
-                <span class='kw'>let</span> <span class='ident'>cols_to_fill</span> <span class='op'>=</span> <span class='ident'>image_width</span> <span class='op'>-</span> <span class='ident'>x</span>;
-                <span class='ident'>image</span>.<span class='ident'>extend</span>(<span class='ident'>repeat</span>(<span class='number'>0</span>).<span class='ident'>take</span>(<span class='ident'>cols_to_fill</span> <span class='kw'>as</span> <span class='ident'>usize</span>));
+                <span class="kw">let</span> <span class="ident">cols_to_fill</span> <span class="op">=</span> <span class="ident">image_width</span> <span class="op">-</span> <span class="ident">x</span>;
+                <span class="ident">image</span>.<span class="ident">extend</span>(<span class="ident">repeat</span>(<span class="number">0</span>).<span class="ident">take</span>(<span class="ident">cols_to_fill</span> <span class="kw">as</span> <span class="ident">usize</span>));
             }
         };
 
-        <span class='comment'>// debug!(&quot;Placing chars onto a plane&quot;);</span>
+        <span class="comment">// debug!(&quot;Placing chars onto a plane&quot;);</span>
 
-        <span class='comment'>// Hashmap doesn&#39;t preserve the order but we don&#39;t need it anyway.</span>
-        <span class='kw'>for</span> (_, <span class='ident'>ch_info</span>) <span class='kw'>in</span> <span class='ident'>chars_info</span>.<span class='ident'>iter_mut</span>() {
-            <span class='kw'>if</span> <span class='ident'>cursor_x</span> <span class='op'>+</span> <span class='ident'>ch_info</span>.<span class='ident'>width</span> <span class='op'>&gt;</span> <span class='ident'>image_width</span> {
-                <span class='ident'>dump_row</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>image</span>, <span class='kw-2'>&amp;</span><span class='ident'>chars_row</span>);
-                <span class='ident'>chars_row</span>.<span class='ident'>clear</span>();
-                <span class='ident'>cursor_x</span> <span class='op'>=</span> <span class='number'>0</span>;
-                <span class='ident'>image_height</span> <span class='op'>+=</span> <span class='ident'>ch_box_height</span>;
+        <span class="comment">// Hashmap doesn&#39;t preserve the order but we don&#39;t need it anyway.</span>
+        <span class="kw">for</span> (_, <span class="ident">ch_info</span>) <span class="kw">in</span> <span class="ident">chars_info</span>.<span class="ident">iter_mut</span>() {
+            <span class="kw">if</span> <span class="ident">cursor_x</span> <span class="op">+</span> <span class="ident">ch_info</span>.<span class="ident">width</span> <span class="op">&gt;</span> <span class="ident">image_width</span> {
+                <span class="ident">dump_row</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">chars_row</span>);
+                <span class="ident">chars_row</span>.<span class="ident">clear</span>();
+                <span class="ident">cursor_x</span> <span class="op">=</span> <span class="number">0</span>;
+                <span class="ident">image_height</span> <span class="op">+=</span> <span class="ident">ch_box_height</span>;
             }
-            <span class='kw'>let</span> <span class='ident'>ch_data</span> <span class='op'>=</span> <span class='ident'>ch_info</span>.<span class='ident'>data</span>.<span class='ident'>take</span>().<span class='ident'>unwrap</span>();
-            <span class='ident'>chars_row</span>.<span class='ident'>push</span>((<span class='ident'>ch_info</span>.<span class='ident'>width</span>, <span class='ident'>ch_info</span>.<span class='ident'>height</span>, <span class='ident'>ch_data</span>));
-            <span class='ident'>ch_info</span>.<span class='ident'>tex</span> <span class='op'>=</span> [<span class='ident'>cursor_x</span> <span class='kw'>as</span> <span class='ident'>f32</span>, <span class='ident'>image_height</span> <span class='kw'>as</span> <span class='ident'>f32</span>];
-            <span class='ident'>cursor_x</span> <span class='op'>+=</span> <span class='ident'>ch_info</span>.<span class='ident'>width</span>;
+            <span class="kw">let</span> <span class="ident">ch_data</span> <span class="op">=</span> <span class="ident">ch_info</span>.<span class="ident">data</span>.<span class="ident">take</span>().<span class="ident">unwrap</span>();
+            <span class="ident">chars_row</span>.<span class="ident">push</span>((<span class="ident">ch_info</span>.<span class="ident">width</span>, <span class="ident">ch_info</span>.<span class="ident">height</span>, <span class="ident">ch_data</span>));
+            <span class="ident">ch_info</span>.<span class="ident">tex</span> <span class="op">=</span> [<span class="ident">cursor_x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">image_height</span> <span class="kw">as</span> <span class="ident">f32</span>];
+            <span class="ident">cursor_x</span> <span class="op">+=</span> <span class="ident">ch_info</span>.<span class="ident">width</span>;
         }
-        <span class='ident'>dump_row</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>image</span>, <span class='kw-2'>&amp;</span><span class='ident'>chars_row</span>);
-        <span class='ident'>image_height</span> <span class='op'>+=</span> <span class='ident'>ch_box_height</span>;
+        <span class="ident">dump_row</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">chars_row</span>);
+        <span class="ident">image_height</span> <span class="op">+=</span> <span class="ident">ch_box_height</span>;
 
-        <span class='comment'>// Finally, we just precalculate some fields to make it easier to use</span>
-        <span class='comment'>// our font.</span>
+        <span class="comment">// Finally, we just precalculate some fields to make it easier to use</span>
+        <span class="comment">// our font.</span>
 
-        <span class='kw'>for</span> (_, <span class='ident'>ch_info</span>) <span class='kw'>in</span> <span class='ident'>chars_info</span>.<span class='ident'>iter_mut</span>() {
-            <span class='ident'>ch_info</span>.<span class='ident'>tex</span>[<span class='number'>0</span>] <span class='op'>/=</span> <span class='ident'>image_width</span> <span class='kw'>as</span> <span class='ident'>f32</span>;
-            <span class='ident'>ch_info</span>.<span class='ident'>tex</span>[<span class='number'>1</span>] <span class='op'>/=</span> <span class='ident'>image_height</span> <span class='kw'>as</span> <span class='ident'>f32</span>;
-            <span class='ident'>ch_info</span>.<span class='ident'>tex_width</span> <span class='op'>=</span> <span class='ident'>ch_info</span>.<span class='ident'>width</span> <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>/</span> <span class='ident'>image_width</span> <span class='kw'>as</span> <span class='ident'>f32</span>;
-            <span class='ident'>ch_info</span>.<span class='ident'>tex_height</span> <span class='op'>=</span> <span class='ident'>ch_info</span>.<span class='ident'>height</span> <span class='kw'>as</span> <span class='ident'>f32</span> <span class='op'>/</span> <span class='ident'>image_height</span> <span class='kw'>as</span> <span class='ident'>f32</span>;
+        <span class="kw">for</span> (_, <span class="ident">ch_info</span>) <span class="kw">in</span> <span class="ident">chars_info</span>.<span class="ident">iter_mut</span>() {
+            <span class="ident">ch_info</span>.<span class="ident">tex</span>[<span class="number">0</span>] <span class="op">/=</span> <span class="ident">image_width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+            <span class="ident">ch_info</span>.<span class="ident">tex</span>[<span class="number">1</span>] <span class="op">/=</span> <span class="ident">image_height</span> <span class="kw">as</span> <span class="ident">f32</span>;
+            <span class="ident">ch_info</span>.<span class="ident">tex_width</span> <span class="op">=</span> <span class="ident">ch_info</span>.<span class="ident">width</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="ident">image_width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+            <span class="ident">ch_info</span>.<span class="ident">tex_height</span> <span class="op">=</span> <span class="ident">ch_info</span>.<span class="ident">height</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="ident">image_height</span> <span class="kw">as</span> <span class="ident">f32</span>;
         }
 
-        <span class='comment'>// info!(&quot;Image width: {}, image height: {}, total size: {}&quot;,</span>
-        <span class='comment'>//     image_width, image_height, image.len());</span>
+        <span class="comment">// info!(&quot;Image width: {}, image height: {}, total size: {}&quot;,</span>
+        <span class="comment">//     image_width, image_height, image.len());</span>
 
-        <span class='prelude-val'>Ok</span>(<span class='ident'>BitmapFont</span> {
-            <span class='ident'>width</span>: <span class='ident'>image_width</span> <span class='kw'>as</span> <span class='ident'>u16</span>,
-            <span class='ident'>height</span>: <span class='ident'>image_height</span> <span class='kw'>as</span> <span class='ident'>u16</span>,
-            <span class='ident'>chars</span>: <span class='ident'>chars_info</span>,
-            <span class='ident'>image</span>: <span class='ident'>image</span>,
+        <span class="prelude-val">Ok</span>(<span class="ident">BitmapFont</span> {
+            <span class="ident">width</span>: <span class="ident">image_width</span> <span class="kw">as</span> <span class="ident">u16</span>,
+            <span class="ident">height</span>: <span class="ident">image_height</span> <span class="kw">as</span> <span class="ident">u16</span>,
+            <span class="ident">chars</span>: <span class="ident">chars_info</span>,
+            <span class="ident">image</span>: <span class="ident">image</span>,
         })
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_width</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u16</span> {
-        <span class='self'>self</span>.<span class='ident'>width</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_width</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">u16</span> {
+        <span class="self">self</span>.<span class="ident">width</span>
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_height</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>u16</span> {
-        <span class='self'>self</span>.<span class='ident'>height</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_height</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">u16</span> {
+        <span class="self">self</span>.<span class="ident">height</span>
     }
 
-    <span class='doccomment'>/// Return 8-bit texture raw data (grayscale).</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_image</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>] {
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>image</span>
+    <span class="doccomment">/// Return 8-bit texture raw data (grayscale).</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_image</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">image</span>
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>find_char</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ch</span>: <span class='ident'>char</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>BitmapChar</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>chars</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='ident'>ch</span>)
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_char</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ch</span>: <span class="ident">char</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">BitmapChar</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">chars</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">ch</span>)
     }
 }
 </pre>
