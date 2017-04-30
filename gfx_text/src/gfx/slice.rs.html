@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.14.0/src/slice.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.15.1/src/slice.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>slice.rs.html -- source</title>
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc">
+<body class="rustdoc source">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -43,7 +43,7 @@
         </form>
     </nav>
 
-    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -231,195 +231,203 @@
 <span id="186">186</span>
 <span id="187">187</span>
 <span id="188">188</span>
-</pre><pre class='rust '>
-<span class='comment'>// Copyright 2014 The Gfx-rs Developers.</span>
-<span class='comment'>//</span>
-<span class='comment'>// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class='comment'>// you may not use this file except in compliance with the License.</span>
-<span class='comment'>// You may obtain a copy of the License at</span>
-<span class='comment'>//</span>
-<span class='comment'>//     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class='comment'>//</span>
-<span class='comment'>// Unless required by applicable law or agreed to in writing, software</span>
-<span class='comment'>// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class='comment'>// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class='comment'>// See the License for the specific language governing permissions and</span>
-<span class='comment'>// limitations under the License.</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+</pre><pre class="rust ">
+<span class="comment">// Copyright 2014 The Gfx-rs Developers.</span>
+<span class="comment">//</span>
+<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="comment">// you may not use this file except in compliance with the License.</span>
+<span class="comment">// You may obtain a copy of the License at</span>
+<span class="comment">//</span>
+<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="comment">//</span>
+<span class="comment">// Unless required by applicable law or agreed to in writing, software</span>
+<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="comment">// See the License for the specific language governing permissions and</span>
+<span class="comment">// limitations under the License.</span>
 
-<span class='doccomment'>//! Slices</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! See `Slice`-structure documentation for more information on this module.</span>
+<span class="doccomment">//! Slices</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! See `Slice`-structure documentation for more information on this module.</span>
 
-<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='ident'>handle</span>, <span class='ident'>buffer</span>};
-<span class='kw'>use</span> <span class='ident'>core</span>::{<span class='ident'>Primitive</span>, <span class='ident'>Resources</span>, <span class='ident'>VertexCount</span>};
-<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>command</span>::<span class='ident'>InstanceParams</span>;
-<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>factory</span>::<span class='ident'>Factory</span>;
-<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>memory</span>::<span class='ident'>Bind</span>;
-<span class='kw'>use</span> <span class='ident'>format</span>::<span class='ident'>Format</span>;
-<span class='kw'>use</span> <span class='ident'>pso</span>;
+<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">handle</span>, <span class="ident">buffer</span>};
+<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">Primitive</span>, <span class="ident">Resources</span>, <span class="ident">VertexCount</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">command</span>::<span class="ident">InstanceParams</span>;
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">factory</span>::<span class="ident">Factory</span>;
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">memory</span>::<span class="ident">Bind</span>;
+<span class="kw">use</span> <span class="ident">format</span>::<span class="ident">Format</span>;
+<span class="kw">use</span> <span class="ident">pso</span>;
 
-<span class='doccomment'>/// A `Slice` dictates in which and in what order vertices get processed. It is required for</span>
-<span class='doccomment'>/// processing a PSO.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// # Overview</span>
-<span class='doccomment'>/// A `Slice` object in essence dictates in what order the vertices in a `VertexBuffer` get</span>
-<span class='doccomment'>/// processed. To do this, it contains an internal index-buffer. This `Buffer` is a list of</span>
-<span class='doccomment'>/// indices into this `VertexBuffer` (vertex-index). A vertex-index of 0 represents the first</span>
-<span class='doccomment'>/// vertex in the `VertexBuffer`, a vertex-index of 1 represents the second, 2 represents the</span>
-<span class='doccomment'>/// third, and so on. The vertex-indices in the index-buffer are read in order; every vertex-index</span>
-<span class='doccomment'>/// tells the pipeline which vertex to process next. </span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// Because the same index can re-appear multiple times, duplicate-vertices can be avoided. For</span>
-<span class='doccomment'>/// instance, if you want to draw a square, you need two triangles, and thus six vertices. Because</span>
-<span class='doccomment'>/// the same index can reappear multiple times, this means we can instead use 4 vertices, and 6</span>
-<span class='doccomment'>/// vertex-indices.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// This index-buffer has a few variants. See the `IndexBuffer` documentation for a detailed</span>
-<span class='doccomment'>/// description.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The `start` and `end` fields say where in the index-buffer to start and stop reading.</span>
-<span class='doccomment'>/// Setting `start` to 0, and `end` to the length of the index-buffer, will cause the entire</span>
-<span class='doccomment'>/// index-buffer to be processed. The `base_vertex` dictates the index of the first vertex</span>
-<span class='doccomment'>/// in the `VertexBuffer`. This essentially moves the the start of the `VertexBuffer`, to the</span>
-<span class='doccomment'>/// vertex with this index.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// # Constuction &amp; Handling</span>
-<span class='doccomment'>/// The `Slice` structure can be constructed automatically when using a `Factory` to create a</span>
-<span class='doccomment'>/// vertex buffer. If needed, it can also be created manually.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// A `Slice` is required to process a PSO, as it contains the needed information on in what order</span>
-<span class='doccomment'>/// to draw which vertices. As such, every `draw` call on an `Encoder` requires a `Slice`.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// The start index of the index-buffer. Processing will start at this location in the</span>
-    <span class='doccomment'>/// index-buffer. </span>
-    <span class='kw'>pub</span> <span class='ident'>start</span>: <span class='ident'>VertexCount</span>,
-    <span class='doccomment'>/// The end index in the index-buffer. Processing will stop at this location (exclusive) in</span>
-    <span class='doccomment'>/// the index buffer.</span>
-    <span class='kw'>pub</span> <span class='ident'>end</span>: <span class='ident'>VertexCount</span>,
-    <span class='doccomment'>/// This is the index of the first vertex in the `VertexBuffer`. This value will be added to</span>
-    <span class='doccomment'>/// every index in the index-buffer, effectively moving the start of the `VertexBuffer` to this</span>
-    <span class='doccomment'>/// base-vertex.</span>
-    <span class='kw'>pub</span> <span class='ident'>base_vertex</span>: <span class='ident'>VertexCount</span>,
-    <span class='doccomment'>/// Instancing configuration.</span>
-    <span class='kw'>pub</span> <span class='ident'>instances</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>InstanceParams</span><span class='op'>&gt;</span>,
-    <span class='doccomment'>/// Represents the type of index-buffer used. </span>
-    <span class='kw'>pub</span> <span class='ident'>buffer</span>: <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>,
+<span class="doccomment">/// A `Slice` dictates in which and in what order vertices get processed. It is required for</span>
+<span class="doccomment">/// processing a PSO.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Overview</span>
+<span class="doccomment">/// A `Slice` object in essence dictates in what order the vertices in a `VertexBuffer` get</span>
+<span class="doccomment">/// processed. To do this, it contains an internal index-buffer. This `Buffer` is a list of</span>
+<span class="doccomment">/// indices into this `VertexBuffer` (vertex-index). A vertex-index of 0 represents the first</span>
+<span class="doccomment">/// vertex in the `VertexBuffer`, a vertex-index of 1 represents the second, 2 represents the</span>
+<span class="doccomment">/// third, and so on. The vertex-indices in the index-buffer are read in order; every vertex-index</span>
+<span class="doccomment">/// tells the pipeline which vertex to process next. </span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Because the same index can re-appear multiple times, duplicate-vertices can be avoided. For</span>
+<span class="doccomment">/// instance, if you want to draw a square, you need two triangles, and thus six vertices. Because</span>
+<span class="doccomment">/// the same index can reappear multiple times, this means we can instead use 4 vertices, and 6</span>
+<span class="doccomment">/// vertex-indices.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This index-buffer has a few variants. See the `IndexBuffer` documentation for a detailed</span>
+<span class="doccomment">/// description.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The `start` and `end` fields say where in the index-buffer to start and stop reading.</span>
+<span class="doccomment">/// Setting `start` to 0, and `end` to the length of the index-buffer, will cause the entire</span>
+<span class="doccomment">/// index-buffer to be processed. The `base_vertex` dictates the index of the first vertex</span>
+<span class="doccomment">/// in the `VertexBuffer`. This essentially moves the the start of the `VertexBuffer`, to the</span>
+<span class="doccomment">/// vertex with this index.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Constuction &amp; Handling</span>
+<span class="doccomment">/// The `Slice` structure can be constructed automatically when using a `Factory` to create a</span>
+<span class="doccomment">/// vertex buffer. If needed, it can also be created manually.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// A `Slice` is required to process a PSO, as it contains the needed information on in what order</span>
+<span class="doccomment">/// to draw which vertices. As such, every `draw` call on an `Encoder` requires a `Slice`.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Eq</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Slice</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// The start index of the index-buffer. Processing will start at this location in the</span>
+    <span class="doccomment">/// index-buffer. </span>
+    <span class="kw">pub</span> <span class="ident">start</span>: <span class="ident">VertexCount</span>,
+    <span class="doccomment">/// The end index in the index-buffer. Processing will stop at this location (exclusive) in</span>
+    <span class="doccomment">/// the index buffer.</span>
+    <span class="kw">pub</span> <span class="ident">end</span>: <span class="ident">VertexCount</span>,
+    <span class="doccomment">/// This is the index of the first vertex in the `VertexBuffer`. This value will be added to</span>
+    <span class="doccomment">/// every index in the index-buffer, effectively moving the start of the `VertexBuffer` to this</span>
+    <span class="doccomment">/// base-vertex.</span>
+    <span class="kw">pub</span> <span class="ident">base_vertex</span>: <span class="ident">VertexCount</span>,
+    <span class="doccomment">/// Instancing configuration.</span>
+    <span class="kw">pub</span> <span class="ident">instances</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">InstanceParams</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Represents the type of index-buffer used. </span>
+    <span class="kw">pub</span> <span class="ident">buffer</span>: <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Slice</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Creates a new `Slice` to match the supplied vertex buffer, from start to end, in order.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new_match_vertex_buffer</span><span class='op'>&lt;</span><span class='ident'>V</span><span class='op'>&gt;</span>(<span class='ident'>vbuf</span>: <span class='kw-2'>&amp;</span><span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>V</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span>
-                                      <span class='kw'>where</span> <span class='ident'>V</span>: <span class='ident'>pso</span>::<span class='ident'>buffer</span>::<span class='ident'>Structure</span><span class='op'>&lt;</span><span class='ident'>Format</span><span class='op'>&gt;</span> {
-        <span class='ident'>Slice</span> {
-            <span class='ident'>start</span>: <span class='number'>0</span>,
-            <span class='ident'>end</span>: <span class='ident'>vbuf</span>.<span class='ident'>len</span>() <span class='kw'>as</span> <span class='ident'>u32</span>,
-            <span class='ident'>base_vertex</span>: <span class='number'>0</span>,
-            <span class='ident'>instances</span>: <span class='prelude-val'>None</span>,
-            <span class='ident'>buffer</span>: <span class='ident'>IndexBuffer</span>::<span class='ident'>Auto</span>,
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> <span class="ident">Slice</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Creates a new `Slice` to match the supplied vertex buffer, from start to end, in order.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new_match_vertex_buffer</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(<span class="ident">vbuf</span>: <span class="kw-2">&amp;</span><span class="ident">handle</span>::<span class="ident">Buffer</span><span class="op">&lt;</span><span class="ident">R</span>, <span class="ident">V</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
+                                      <span class="kw">where</span> <span class="ident">V</span>: <span class="ident">pso</span>::<span class="ident">buffer</span>::<span class="ident">Structure</span><span class="op">&lt;</span><span class="ident">Format</span><span class="op">&gt;</span> {
+        <span class="ident">Slice</span> {
+            <span class="ident">start</span>: <span class="number">0</span>,
+            <span class="ident">end</span>: <span class="ident">vbuf</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">u32</span>,
+            <span class="ident">base_vertex</span>: <span class="number">0</span>,
+            <span class="ident">instances</span>: <span class="prelude-val">None</span>,
+            <span class="ident">buffer</span>: <span class="ident">IndexBuffer</span>::<span class="ident">Auto</span>,
         }
     }
     
-    <span class='doccomment'>/// Calculates the number of primitives of the specified type in this `Slice`.</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_prim_count</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>prim</span>: <span class='ident'>Primitive</span>) <span class='op'>-&gt;</span> <span class='ident'>u32</span> {
-        <span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>Primitive</span> <span class='kw'>as</span> <span class='ident'>p</span>;
-        <span class='kw'>let</span> <span class='ident'>nv</span> <span class='op'>=</span> (<span class='self'>self</span>.<span class='ident'>end</span> <span class='op'>-</span> <span class='self'>self</span>.<span class='ident'>start</span>) <span class='kw'>as</span> <span class='ident'>u32</span>;
-        <span class='kw'>match</span> <span class='ident'>prim</span> {
-            <span class='ident'>p</span>::<span class='ident'>PointList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span>,
-            <span class='ident'>p</span>::<span class='ident'>LineList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> <span class='number'>2</span>,
-            <span class='ident'>p</span>::<span class='ident'>LineStrip</span> <span class='op'>=&gt;</span> (<span class='ident'>nv</span><span class='op'>-</span><span class='number'>1</span>),
-            <span class='ident'>p</span>::<span class='ident'>TriangleList</span> <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> <span class='number'>3</span>,
-            <span class='ident'>p</span>::<span class='ident'>TriangleStrip</span> <span class='op'>=&gt;</span> (<span class='ident'>nv</span><span class='op'>-</span><span class='number'>2</span>) <span class='op'>/</span> <span class='number'>3</span>,
-            <span class='ident'>p</span>::<span class='ident'>PatchList</span>(<span class='ident'>num</span>) <span class='op'>=&gt;</span> <span class='ident'>nv</span> <span class='op'>/</span> (<span class='ident'>num</span> <span class='kw'>as</span> <span class='ident'>u32</span>),
+    <span class="doccomment">/// Calculates the number of primitives of the specified type in this `Slice`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_prim_count</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">prim</span>: <span class="ident">Primitive</span>) <span class="op">-&gt;</span> <span class="ident">u32</span> {
+        <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">Primitive</span> <span class="kw">as</span> <span class="ident">p</span>;
+        <span class="kw">let</span> <span class="ident">nv</span> <span class="op">=</span> (<span class="self">self</span>.<span class="ident">end</span> <span class="op">-</span> <span class="self">self</span>.<span class="ident">start</span>) <span class="kw">as</span> <span class="ident">u32</span>;
+        <span class="kw">match</span> <span class="ident">prim</span> {
+            <span class="ident">p</span>::<span class="ident">PointList</span> <span class="op">=&gt;</span> <span class="ident">nv</span>,
+            <span class="ident">p</span>::<span class="ident">LineList</span> <span class="op">=&gt;</span> <span class="ident">nv</span> <span class="op">/</span> <span class="number">2</span>,
+            <span class="ident">p</span>::<span class="ident">LineStrip</span> <span class="op">=&gt;</span> (<span class="ident">nv</span><span class="op">-</span><span class="number">1</span>),
+            <span class="ident">p</span>::<span class="ident">TriangleList</span> <span class="op">=&gt;</span> <span class="ident">nv</span> <span class="op">/</span> <span class="number">3</span>,
+            <span class="ident">p</span>::<span class="ident">TriangleStrip</span> <span class="op">=&gt;</span> (<span class="ident">nv</span><span class="op">-</span><span class="number">2</span>) <span class="op">/</span> <span class="number">3</span>,
+            <span class="ident">p</span>::<span class="ident">LineListAdjacency</span> <span class="op">=&gt;</span> <span class="ident">nv</span> <span class="op">/</span> <span class="number">4</span>,
+            <span class="ident">p</span>::<span class="ident">LineStripAdjacency</span> <span class="op">=&gt;</span> (<span class="ident">nv</span><span class="op">-</span><span class="number">3</span>),
+            <span class="ident">p</span>::<span class="ident">TriangleListAdjacency</span> <span class="op">=&gt;</span> <span class="ident">nv</span> <span class="op">/</span> <span class="number">6</span>,
+            <span class="ident">p</span>::<span class="ident">TriangleStripAdjacency</span> <span class="op">=&gt;</span> (<span class="ident">nv</span><span class="op">-</span><span class="number">4</span>) <span class="op">/</span> <span class="number">2</span>,
+            <span class="ident">p</span>::<span class="ident">PatchList</span>(<span class="ident">num</span>) <span class="op">=&gt;</span> <span class="ident">nv</span> <span class="op">/</span> (<span class="ident">num</span> <span class="kw">as</span> <span class="ident">u32</span>),
         }
     }
 
-    <span class='doccomment'>/// Divides one slice into two at an index.</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// The first will contain the range in the index-buffer [self.start, mid) (excluding the index mid itself) and the</span>
-    <span class='doccomment'>/// second will contain the range [mid, self.end).</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>split_at</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>mid</span>: <span class='ident'>VertexCount</span>) <span class='op'>-&gt;</span> (<span class='self'>Self</span>, <span class='self'>Self</span>) {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>first</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>clone</span>();
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>second</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>clone</span>();
-        <span class='ident'>first</span>.<span class='ident'>end</span> <span class='op'>=</span> <span class='ident'>mid</span>;
-        <span class='ident'>second</span>.<span class='ident'>start</span> <span class='op'>=</span> <span class='ident'>mid</span>;
+    <span class="doccomment">/// Divides one slice into two at an index.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The first will contain the range in the index-buffer [self.start, mid) (excluding the index mid itself) and the</span>
+    <span class="doccomment">/// second will contain the range [mid, self.end).</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">split_at</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">mid</span>: <span class="ident">VertexCount</span>) <span class="op">-&gt;</span> (<span class="self">Self</span>, <span class="self">Self</span>) {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">first</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">clone</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">second</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">clone</span>();
+        <span class="ident">first</span>.<span class="ident">end</span> <span class="op">=</span> <span class="ident">mid</span>;
+        <span class="ident">second</span>.<span class="ident">start</span> <span class="op">=</span> <span class="ident">mid</span>;
 
-        (<span class='ident'>first</span>, <span class='ident'>second</span>)
+        (<span class="ident">first</span>, <span class="ident">second</span>)
     }
 }
 
-<span class='doccomment'>/// Type of index-buffer used in a Slice.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The `Auto` variant represents a hypothetical index-buffer from 0 to infinity. In other words,</span>
-<span class='doccomment'>/// all vertices get processed in order. Do note that the `Slice`&#39; `start` and `end` restrictions</span>
-<span class='doccomment'>/// still apply for this variant. To render every vertex in the `VertexBuffer`, you would set</span>
-<span class='doccomment'>/// `start` to 0, and `end` to the `VertexBuffer`&#39;s length.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// The `Index*` variants represent an actual `Buffer` with a list of vertex-indices. The numeric </span>
-<span class='doccomment'>/// suffix specifies the amount of bits to use per index. Each of these also contains a</span>
-<span class='doccomment'>/// base-vertex. This is the index of the first vertex in the `VertexBuffer`. This value will be</span>
-<span class='doccomment'>/// added to every index in the index-buffer, effectively moving the start of the `VertexBuffer` to</span>
-<span class='doccomment'>/// this base-vertex.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// # Construction &amp; Handling</span>
-<span class='doccomment'>/// A `IndexBuffer` can be constructed using the `IntoIndexBuffer` trait, from either a slice or a</span>
-<span class='doccomment'>/// `Buffer` of integers, using a factory.</span>
-<span class='doccomment'>///</span>
-<span class='doccomment'>/// An `IndexBuffer` is exclusively used to create `Slice`s.</span>
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Clone</span>, <span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>enum</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Represents a hypothetical index-buffer from 0 to infinity. In other words, all vertices</span>
-    <span class='doccomment'>/// get processed in order.</span>
-    <span class='ident'>Auto</span>,
-    <span class='doccomment'>/// An index-buffer with unsigned 16 bit indices.</span>
-    <span class='ident'>Index16</span>(<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u16</span><span class='op'>&gt;</span>),
-    <span class='doccomment'>/// An index-buffer with unsigned 32 bit indices.</span>
-    <span class='ident'>Index32</span>(<span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='ident'>u32</span><span class='op'>&gt;</span>),
+<span class="doccomment">/// Type of index-buffer used in a Slice.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The `Auto` variant represents a hypothetical index-buffer from 0 to infinity. In other words,</span>
+<span class="doccomment">/// all vertices get processed in order. Do note that the `Slice`&#39; `start` and `end` restrictions</span>
+<span class="doccomment">/// still apply for this variant. To render every vertex in the `VertexBuffer`, you would set</span>
+<span class="doccomment">/// `start` to 0, and `end` to the `VertexBuffer`&#39;s length.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The `Index*` variants represent an actual `Buffer` with a list of vertex-indices. The numeric </span>
+<span class="doccomment">/// suffix specifies the amount of bits to use per index. Each of these also contains a</span>
+<span class="doccomment">/// base-vertex. This is the index of the first vertex in the `VertexBuffer`. This value will be</span>
+<span class="doccomment">/// added to every index in the index-buffer, effectively moving the start of the `VertexBuffer` to</span>
+<span class="doccomment">/// this base-vertex.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Construction &amp; Handling</span>
+<span class="doccomment">/// A `IndexBuffer` can be constructed using the `IntoIndexBuffer` trait, from either a slice or a</span>
+<span class="doccomment">/// `Buffer` of integers, using a factory.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// An `IndexBuffer` is exclusively used to create `Slice`s.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Eq</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Represents a hypothetical index-buffer from 0 to infinity. In other words, all vertices</span>
+    <span class="doccomment">/// get processed in order.</span>
+    <span class="ident">Auto</span>,
+    <span class="doccomment">/// An index-buffer with unsigned 16 bit indices.</span>
+    <span class="ident">Index16</span>(<span class="ident">handle</span>::<span class="ident">Buffer</span><span class="op">&lt;</span><span class="ident">R</span>, <span class="ident">u16</span><span class="op">&gt;</span>),
+    <span class="doccomment">/// An index-buffer with unsigned 32 bit indices.</span>
+    <span class="ident">Index32</span>(<span class="ident">handle</span>::<span class="ident">Buffer</span><span class="op">&lt;</span><span class="ident">R</span>, <span class="ident">u32</span><span class="op">&gt;</span>),
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>Default</span> <span class='kw'>for</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>default</span>() <span class='op'>-&gt;</span> <span class='self'>Self</span> {
-        <span class='ident'>IndexBuffer</span>::<span class='ident'>Auto</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">IndexBuffer</span>::<span class="ident">Auto</span>
     }
 }
-<span class='doccomment'>/// A helper trait to create `IndexBuffers` from different kinds of data.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>IntoIndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Turns self into an `IndexBuffer`.</span>
-    <span class='kw'>fn</span> <span class='ident'>into_index_buffer</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>;
+<span class="doccomment">/// A helper trait to create `IndexBuffers` from different kinds of data.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">IntoIndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Turns self into an `IndexBuffer`.</span>
+    <span class="kw">fn</span> <span class="ident">into_index_buffer</span><span class="op">&lt;</span><span class="ident">F</span>: <span class="ident">Factory</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">factory</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>;
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>IntoIndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>into_index_buffer</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>IntoIndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> () {
-    <span class='kw'>fn</span> <span class='ident'>into_index_buffer</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-        <span class='ident'>IndexBuffer</span>::<span class='ident'>Auto</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> <span class="ident">IntoIndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">into_index_buffer</span><span class="op">&lt;</span><span class="ident">F</span>: <span class="ident">Factory</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="self">self</span>, _: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+        <span class="self">self</span>
     }
 }
 
-<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>impl_index_buffer</span> {
-    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>prim_ty</span>:<span class='ident'>ty</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>buf_ty</span>:<span class='ident'>ident</span>) <span class='op'>=&gt;</span> (
-        <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>IntoIndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>handle</span>::<span class='ident'>Buffer</span><span class='op'>&lt;</span><span class='ident'>R</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>prim_ty</span><span class='op'>&gt;</span> {
-            <span class='kw'>fn</span> <span class='ident'>into_index_buffer</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='self'>self</span>, _: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-                <span class='ident'>IndexBuffer</span>::<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>buf_ty</span>(<span class='self'>self</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> <span class="ident">IntoIndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="kw">for</span> () {
+    <span class="kw">fn</span> <span class="ident">into_index_buffer</span><span class="op">&lt;</span><span class="ident">F</span>: <span class="ident">Factory</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="self">self</span>, _: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+        <span class="ident">IndexBuffer</span>::<span class="ident">Auto</span>
+    }
+}
+
+<span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">impl_index_buffer</span> {
+    (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">prim_ty</span>:<span class="ident">ty</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf_ty</span>:<span class="ident">ident</span>) <span class="op">=&gt;</span> (
+        <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> <span class="ident">IntoIndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">handle</span>::<span class="ident">Buffer</span><span class="op">&lt;</span><span class="ident">R</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">prim_ty</span><span class="op">&gt;</span> {
+            <span class="kw">fn</span> <span class="ident">into_index_buffer</span><span class="op">&lt;</span><span class="ident">F</span>: <span class="ident">Factory</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="self">self</span>, _: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+                <span class="ident">IndexBuffer</span>::<span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf_ty</span>(<span class="self">self</span>)
             }
         }
         
-        <span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;s</span>, <span class='ident'>R</span>: <span class='ident'>Resources</span><span class='op'>&gt;</span> <span class='ident'>IntoIndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;s</span> [<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>prim_ty</span>] {
-            <span class='kw'>fn</span> <span class='ident'>into_index_buffer</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Factory</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> <span class='op'>+</span> <span class='question-mark'>?</span><span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>factory</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>IndexBuffer</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
-                <span class='ident'>factory</span>.<span class='ident'>create_buffer_immutable</span>(<span class='self'>self</span>, <span class='ident'>buffer</span>::<span class='ident'>Role</span>::<span class='ident'>Index</span>, <span class='ident'>Bind</span>::<span class='ident'>empty</span>())
-                       .<span class='ident'>unwrap</span>()
-                       .<span class='ident'>into_index_buffer</span>(<span class='ident'>factory</span>)
+        <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span>, <span class="ident">R</span>: <span class="ident">Resources</span><span class="op">&gt;</span> <span class="ident">IntoIndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> [<span class="macro-nonterminal">$</span><span class="macro-nonterminal">prim_ty</span>] {
+            <span class="kw">fn</span> <span class="ident">into_index_buffer</span><span class="op">&lt;</span><span class="ident">F</span>: <span class="ident">Factory</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">factory</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">IndexBuffer</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
+                <span class="ident">factory</span>.<span class="ident">create_buffer_immutable</span>(<span class="self">self</span>, <span class="ident">buffer</span>::<span class="ident">Role</span>::<span class="ident">Index</span>, <span class="ident">Bind</span>::<span class="ident">empty</span>())
+                       .<span class="ident">unwrap</span>()
+                       .<span class="ident">into_index_buffer</span>(<span class="ident">factory</span>)
             }
         }
     )
 }
 
-<span class='macro'>impl_index_buffer</span><span class='macro'>!</span>(<span class='ident'>u16</span>, <span class='ident'>Index16</span>);
-<span class='macro'>impl_index_buffer</span><span class='macro'>!</span>(<span class='ident'>u32</span>, <span class='ident'>Index32</span>);
+<span class="macro">impl_index_buffer</span><span class="macro">!</span>(<span class="ident">u16</span>, <span class="ident">Index16</span>);
+<span class="macro">impl_index_buffer</span><span class="macro">!</span>(<span class="ident">u32</span>, <span class="ident">Index32</span>);
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
