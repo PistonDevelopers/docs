@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.9/src/compress.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.11/src/compress.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>compress.rs.html -- source</title>
@@ -383,9 +383,6 @@
 <span id="338">338</span>
 <span id="339">339</span>
 <span id="340">340</span>
-<span id="341">341</span>
-<span id="342">342</span>
-<span id="343">343</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
@@ -393,9 +390,10 @@
 <span class="kw">use</span> <span class="ident">deflate_state</span>::<span class="ident">DeflateState</span>;
 <span class="kw">use</span> <span class="ident">encoder_state</span>::<span class="ident">EncoderState</span>;
 <span class="kw">use</span> <span class="ident">lzvalue</span>::<span class="ident">LZValue</span>;
-<span class="kw">use</span> <span class="ident">lz77</span>::{<span class="ident">lz77_compress_block</span>, <span class="ident">LZ77Status</span>, <span class="ident">decompress_lz77_with_backbuffer</span>};
+<span class="kw">use</span> <span class="ident">lz77</span>::{<span class="ident">lz77_compress_block</span>, <span class="ident">LZ77Status</span>};
 <span class="kw">use</span> <span class="ident">huffman_lengths</span>::{<span class="ident">gen_huffman_lengths</span>, <span class="ident">write_huffman_lengths</span>, <span class="ident">BlockType</span>};
 <span class="kw">use</span> <span class="ident">output_writer</span>::<span class="ident">OutputWriter</span>;
+<span class="kw">use</span> <span class="ident">bitstream</span>::<span class="ident">LsbWriter</span>;
 <span class="kw">use</span> <span class="ident">stored_block</span>::{<span class="ident">compress_block_stored</span>, <span class="ident">write_stored_header</span>, <span class="ident">MAX_STORED_BLOCK_LENGTH</span>};
 
 <span class="kw">const</span> <span class="ident">LARGEST_OUTPUT_BUF_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">1024</span> <span class="op">*</span> <span class="number">32</span>;
@@ -455,10 +453,10 @@
     <span class="ident">writer</span>
 }
 
-<span class="kw">fn</span> <span class="ident">write_stored_block</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-                                <span class="ident">deflate_state</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">DeflateState</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
-                                <span class="ident">final_block</span>: <span class="ident">bool</span>)
-                                <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+<span class="kw">fn</span> <span class="ident">write_stored_block</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+                      <span class="kw-2">mut</span> <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">LsbWriter</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;&gt;</span>,
+                      <span class="ident">final_block</span>: <span class="ident">bool</span>)
+                      <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
 
     <span class="comment">// If the input is not zero, we write stored blocks for the input data.</span>
     <span class="kw">if</span> <span class="op">!</span><span class="ident">input</span>.<span class="ident">is_empty</span>() {
@@ -468,18 +466,17 @@
         <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">chunk</span>) <span class="op">=</span> <span class="ident">i</span>.<span class="ident">next</span>() {
             <span class="kw">let</span> <span class="ident">last_chunk</span> <span class="op">=</span> <span class="ident">i</span>.<span class="ident">peek</span>().<span class="ident">is_none</span>();
             <span class="comment">// Write the block header</span>
-            <span class="ident">write_stored_header</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">writer</span>,
-                                <span class="ident">final_block</span> <span class="op">&amp;&amp;</span> <span class="ident">last_chunk</span>)<span class="question-mark">?</span>;
+            <span class="ident">write_stored_header</span>(<span class="ident">writer</span>, <span class="ident">final_block</span> <span class="op">&amp;&amp;</span> <span class="ident">last_chunk</span>)<span class="question-mark">?</span>;
 
             <span class="comment">// Write the actual data.</span>
-            <span class="ident">written</span> <span class="op">+=</span> <span class="ident">compress_block_stored</span>(<span class="ident">chunk</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">writer</span>)<span class="question-mark">?</span>;
+            <span class="ident">written</span> <span class="op">+=</span> <span class="ident">compress_block_stored</span>(<span class="ident">chunk</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>)<span class="question-mark">?</span>;
 
         }
         <span class="prelude-val">Ok</span>(<span class="ident">written</span>)
     } <span class="kw">else</span> {
         <span class="comment">// If the input length is zero, we output an empty block. This is used for syncing.</span>
-        <span class="ident">write_stored_header</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">writer</span>, <span class="ident">final_block</span>)<span class="question-mark">?</span>;
-        <span class="ident">compress_block_stored</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">writer</span>)
+        <span class="ident">write_stored_header</span>(<span class="ident">writer</span>, <span class="ident">final_block</span>)<span class="question-mark">?</span>;
+        <span class="ident">compress_block_stored</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>)
     }
 }
 
@@ -500,6 +497,8 @@
         <span class="kw">if</span> <span class="ident">output_buf_len</span> <span class="op">&gt;</span> <span class="ident">LARGEST_OUTPUT_BUF_SIZE</span> {
             <span class="kw">let</span> <span class="ident">written</span> <span class="op">=</span> <span class="ident">deflate_state</span>
                 .<span class="ident">inner</span>
+                .<span class="ident">as_mut</span>()
+                .<span class="ident">expect</span>(<span class="string">&quot;Missing writer!&quot;</span>)
                 .<span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">inner_vec</span>()[<span class="ident">output_buf_pos</span>..])<span class="question-mark">?</span>;
 
             <span class="kw">if</span> <span class="ident">written</span> <span class="op">&lt;</span> <span class="ident">output_buf_len</span>.<span class="ident">checked_sub</span>(<span class="ident">output_buf_pos</span>).<span class="ident">unwrap</span>() {
@@ -602,47 +601,40 @@
                                    <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>)<span class="question-mark">?</span>;
             }
             <span class="ident">BlockType</span>::<span class="ident">Stored</span> <span class="op">=&gt;</span> {
-                <span class="comment">// Decompress the current lz77 encoded data to get back the</span>
-                <span class="comment">// uncompressd bytes.</span>
-                <span class="comment">// TODO: Avoid the temporary buffer here.</span>
-                <span class="comment">// TODO: Currently this may end up writing 3 stored blocks where the last one</span>
-                <span class="comment">// is very short. When that occurs, we should avoid the last one and merge it</span>
-                <span class="comment">// with the next block instead.</span>
-                <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">decompress_lz77_with_backbuffer</span>(<span class="ident">deflate_state</span>.<span class="ident">lz77_writer</span>.<span class="ident">get_buffer</span>(),
-                                                           <span class="ident">deflate_state</span>.<span class="ident">back_buffer</span>.<span class="ident">get_buffer</span>());
+                <span class="comment">// If compression fails, output a stored block instead.</span>
 
-                <span class="ident">write_stored_block</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>, <span class="ident">deflate_state</span>, <span class="ident">flush</span> <span class="op">==</span> <span class="ident">Flush</span>::<span class="ident">Finish</span> <span class="op">&amp;&amp;</span> <span class="ident">last_block</span>)<span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">start_pos</span> <span class="op">=</span> <span class="ident">position</span>.<span class="ident">saturating_sub</span>(<span class="ident">current_block_input_bytes</span> <span class="kw">as</span> <span class="ident">usize</span>);
+
+                <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">position</span> <span class="op">&gt;=</span> <span class="ident">current_block_input_bytes</span> <span class="kw">as</span> <span class="ident">usize</span>,
+                        <span class="string">&quot;Error! Trying to output a stored block with forgotten data!\
+                         if you encounter this error, please file an issue!&quot;</span>);
+
+                <span class="ident">write_stored_block</span>(<span class="kw-2">&amp;</span><span class="ident">deflate_state</span>.<span class="ident">input_buffer</span>.<span class="ident">get_buffer</span>()[<span class="ident">start_pos</span>..<span class="ident">position</span>],
+                                   <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">writer</span>,
+                                   <span class="ident">flush</span> <span class="op">==</span> <span class="ident">Flush</span>::<span class="ident">Finish</span> <span class="op">&amp;&amp;</span> <span class="ident">last_block</span>)<span class="question-mark">?</span>;
             }
         };
 
-        <span class="comment">// If we are not done (or we are done but syncing), prepare for the next</span>
-        <span class="comment">// block.</span>
-        <span class="kw">if</span> <span class="op">!</span>(<span class="ident">flush</span> <span class="op">==</span> <span class="ident">Flush</span>::<span class="ident">Finish</span> <span class="op">&amp;&amp;</span> <span class="ident">status</span> <span class="op">==</span> <span class="ident">LZ77Status</span>::<span class="ident">Finished</span>) {
+        <span class="comment">// Clear the current lz77 data in the writer for the next call.</span>
+        <span class="ident">deflate_state</span>.<span class="ident">lz77_writer</span>.<span class="ident">clear</span>();
+        <span class="comment">// We are done with the block, so we reset the number of bytes taken</span>
+        <span class="comment">// for the next one.</span>
+        <span class="ident">deflate_state</span>.<span class="ident">lz77_state</span>.<span class="ident">reset_input_bytes</span>();
 
-            <span class="comment">// Clear the current lz77 data in the writer for the next call.</span>
-            <span class="ident">deflate_state</span>.<span class="ident">lz77_writer</span>.<span class="ident">clear</span>();
-            <span class="comment">// We are done with the block, so we reset the number of bytes taken</span>
-            <span class="comment">// for the next one.</span>
-            <span class="ident">deflate_state</span>.<span class="ident">lz77_state</span>.<span class="ident">reset_input_bytes</span>();
-
-            <span class="comment">// The byte at position may not have been output yet.</span>
-            <span class="kw">let</span> <span class="ident">end_pos</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">deflate_state</span>.<span class="ident">lz77_state</span>.<span class="ident">pending_byte</span>() {
-                <span class="ident">position</span>.<span class="ident">saturating_sub</span>(<span class="number">1</span>)
-            } <span class="kw">else</span> {
-                <span class="ident">position</span>
-            };
-
-            <span class="comment">// Fill the back buffer.</span>
-            <span class="ident">deflate_state</span>
-                .<span class="ident">back_buffer</span>
-                .<span class="ident">fill_buffer</span>(<span class="kw-2">&amp;</span><span class="ident">deflate_state</span>.<span class="ident">input_buffer</span>.<span class="ident">get_buffer</span>()[..<span class="ident">end_pos</span>]);
-
-        }
         <span class="comment">// We are done for now.</span>
         <span class="kw">if</span> <span class="ident">status</span> <span class="op">==</span> <span class="ident">LZ77Status</span>::<span class="ident">Finished</span> {
             <span class="comment">// This flush mode means that there should be an empty stored block at the end.</span>
             <span class="kw">if</span> <span class="ident">flush</span> <span class="op">==</span> <span class="ident">Flush</span>::<span class="ident">Sync</span> {
-                <span class="ident">write_stored_block</span>(<span class="kw-2">&amp;</span>[], <span class="ident">deflate_state</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+                <span class="ident">write_stored_block</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">writer</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="op">!</span><span class="ident">deflate_state</span>.<span class="ident">lz77_state</span>.<span class="ident">is_last_block</span>() {
+                <span class="comment">// Make sure a block with the last block header has been output.</span>
+                <span class="comment">// Not sure this can actually happen, but we make sure to finish properly</span>
+                <span class="comment">// if it somehow does.</span>
+                <span class="comment">// An empty fixed block is the shortest.</span>
+                <span class="kw">let</span> <span class="ident">es</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>;
+                <span class="ident">es</span>.<span class="ident">set_huffman_to_fixed</span>()<span class="question-mark">?</span>;
+                <span class="ident">es</span>.<span class="ident">write_start_of_block</span>(<span class="bool-val">true</span>, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
+                <span class="ident">es</span>.<span class="ident">write_end_of_block</span>()<span class="question-mark">?</span>;
             }
             <span class="kw">break</span>;
         }
@@ -655,6 +647,8 @@
     <span class="kw">let</span> <span class="ident">output_buf_pos</span> <span class="op">=</span> <span class="ident">deflate_state</span>.<span class="ident">output_buf_pos</span>;
     <span class="kw">let</span> <span class="ident">written_to_writer</span> <span class="op">=</span> <span class="ident">deflate_state</span>
         .<span class="ident">inner</span>
+        .<span class="ident">as_mut</span>()
+        .<span class="ident">expect</span>(<span class="string">&quot;Missing writer!&quot;</span>)
         .<span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="ident">deflate_state</span>.<span class="ident">encoder_state</span>.<span class="ident">inner_vec</span>()[<span class="ident">output_buf_pos</span>..])<span class="question-mark">?</span>;
     <span class="kw">if</span> <span class="ident">written_to_writer</span> <span class="op">&lt;</span>
        <span class="ident">deflate_state</span>
@@ -788,7 +782,6 @@
         window.rootPath = "../../";
         window.currentCrate = "deflate";
     </script>
-    <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>

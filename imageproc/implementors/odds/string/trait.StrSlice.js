@@ -1,6 +1,5 @@
 (function() {var implementors = {};
 implementors["arrayvec"] = [];
-implementors["imageproc"] = [];
 implementors["odds"] = [];
 
             if (window.register_implementors) {

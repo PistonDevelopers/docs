@@ -518,12 +518,23 @@
 <span id="473">473</span>
 <span id="474">474</span>
 <span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Functions for affine transformations of images.</span>
 
 <span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">Pixel</span>, <span class="ident">GenericImage</span>, <span class="ident">ImageBuffer</span>};
 <span class="kw">use</span> <span class="ident">definitions</span>::{<span class="ident">Clamp</span>, <span class="ident">HasBlack</span>, <span class="ident">Image</span>};
-<span class="kw">use</span> <span class="ident">math</span>::{<span class="ident">Affine2</span>, <span class="ident">cast</span>, <span class="ident">Vec2</span>};
+<span class="kw">use</span> <span class="ident">math</span>::<span class="ident">cast</span>;
+<span class="kw">use</span> <span class="ident">nalgebra</span>::{<span class="ident">Affine2</span>,<span class="ident">Point2</span>};
 <span class="kw">use</span> <span class="ident">conv</span>::<span class="ident">ValueInto</span>;
 
 <span class="doccomment">/// How to handle pixels whose pre-image lies between input pixels.</span>
@@ -542,7 +553,7 @@
 <span class="doccomment">/// The output image has the same dimensions as the input. Output pixels</span>
 <span class="doccomment">/// whose pre-image lies outside the input image are set to black.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">affine</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">Image</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>,
-                 <span class="ident">affine</span>: <span class="ident">Affine2</span>,
+                 <span class="ident">affine</span>: <span class="ident">Affine2</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
                  <span class="ident">interpolation</span>: <span class="ident">Interpolation</span>)
                  <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Image</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;&gt;</span>
     <span class="kw">where</span> <span class="ident">P</span>: <span class="ident">Pixel</span> <span class="op">+</span> <span class="ident">HasBlack</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
@@ -556,15 +567,15 @@
 <span class="doccomment">/// The output image has the same dimensions as the input. Output pixels</span>
 <span class="doccomment">/// whose pre-image lies outside the input image are set to default.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">affine_with_default</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">Image</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>,
-                              <span class="ident">affine</span>: <span class="ident">Affine2</span>,
+                              <span class="ident">affine</span>: <span class="ident">Affine2</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
                               <span class="ident">default</span>: <span class="ident">P</span>,
                               <span class="ident">interpolation</span>: <span class="ident">Interpolation</span>)
                               <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Image</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;&gt;</span>
     <span class="kw">where</span> <span class="ident">P</span>: <span class="ident">Pixel</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
           <span class="op">&lt;</span><span class="ident">P</span> <span class="kw">as</span> <span class="ident">Pixel</span><span class="op">&gt;</span>::<span class="ident">Subpixel</span>: <span class="ident">ValueInto</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Clamp</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>
 {
-    <span class="kw">let</span> <span class="ident">inverse</span>: <span class="ident">Affine2</span>;
-    <span class="kw">match</span> <span class="ident">affine</span>.<span class="ident">inverse</span>() {
+    <span class="kw">let</span> <span class="ident">inverse</span>: <span class="ident">Affine2</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>;
+    <span class="kw">match</span> <span class="ident">affine</span>.<span class="ident">try_inverse</span>() {
         <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">None</span>,
         <span class="prelude-val">Some</span>(<span class="ident">inv</span>) <span class="op">=&gt;</span> <span class="ident">inverse</span> <span class="op">=</span> <span class="ident">inv</span>,
     }
@@ -575,7 +586,7 @@
     <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">height</span> {
         <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">width</span> {
 
-            <span class="kw">let</span> <span class="ident">preimage</span> <span class="op">=</span> <span class="ident">inverse</span>.<span class="ident">apply</span>(<span class="ident">Vec2</span>::<span class="ident">new</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>));
+            <span class="kw">let</span> <span class="ident">preimage</span> <span class="op">=</span> <span class="ident">inverse</span><span class="kw-2">*</span><span class="ident">Point2</span>::<span class="ident">new</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>);
             <span class="kw">let</span> <span class="ident">px</span> <span class="op">=</span> <span class="ident">preimage</span>[<span class="number">0</span>];
             <span class="kw">let</span> <span class="ident">py</span> <span class="op">=</span> <span class="ident">preimage</span>[<span class="number">1</span>];
 
@@ -813,7 +824,7 @@
     <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">affine</span>, <span class="ident">rotate_bilinear</span>, <span class="ident">rotate_nearest</span>, <span class="ident">translate</span>, <span class="ident">Interpolation</span>};
     <span class="kw">use</span> <span class="ident">utils</span>::<span class="ident">gray_bench_image</span>;
     <span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GrayImage</span>, <span class="ident">ImageBuffer</span>, <span class="ident">Luma</span>};
-    <span class="kw">use</span> <span class="ident">math</span>::{<span class="ident">Affine2</span>, <span class="ident">Mat2</span>, <span class="ident">Vec2</span>};
+    <span class="kw">use</span> <span class="ident">nalgebra</span>::{<span class="ident">Affine2</span>,<span class="ident">Matrix3</span>};
     <span class="kw">use</span> <span class="ident">test</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -956,9 +967,12 @@
             <span class="number">00</span>, <span class="number">00</span>, <span class="number">01</span>,
             <span class="number">00</span>, <span class="number">10</span>, <span class="number">11</span>,]).<span class="ident">unwrap</span>();
 
-        <span class="kw">let</span> <span class="ident">aff</span> <span class="op">=</span> <span class="ident">Affine2</span>::<span class="ident">new</span>(
-            <span class="ident">Mat2</span>::<span class="ident">new</span>(<span class="number">1f32</span>, <span class="number">0f32</span>, <span class="number">0f32</span>, <span class="number">1f32</span>),
-            <span class="ident">Vec2</span>::<span class="ident">new</span>(<span class="number">1f32</span>, <span class="number">1f32</span>));
+        <span class="kw">let</span> <span class="ident">aff</span> <span class="op">=</span> <span class="ident">Affine2</span>::<span class="ident">from_matrix_unchecked</span>(<span class="ident">Matrix3</span>::<span class="ident">new</span>(
+            <span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>,
+            <span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>,
+            <span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>,
+        ));
+
 
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">translated</span>) <span class="op">=</span> <span class="ident">affine</span>(<span class="kw-2">&amp;</span><span class="ident">image</span>, <span class="ident">aff</span>, <span class="ident">Interpolation</span>::<span class="ident">Nearest</span>) {
             <span class="macro">assert_pixels_eq</span><span class="macro">!</span>(<span class="ident">translated</span>, <span class="ident">expected</span>);
@@ -971,9 +985,12 @@
     <span class="attribute">#[<span class="ident">bench</span>]</span>
     <span class="kw">fn</span> <span class="ident">bench_affine_nearest</span>(<span class="ident">b</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">test</span>::<span class="ident">Bencher</span>) {
         <span class="kw">let</span> <span class="ident">image</span> <span class="op">=</span> <span class="ident">GrayImage</span>::<span class="ident">from_pixel</span>(<span class="number">200</span>, <span class="number">200</span>, <span class="ident">Luma</span>([<span class="number">15u8</span>]));
-        <span class="kw">let</span> <span class="ident">aff</span> <span class="op">=</span> <span class="ident">Affine2</span>::<span class="ident">new</span>(
-            <span class="ident">Mat2</span>::<span class="ident">new</span>(<span class="number">1f32</span>, <span class="number">0f32</span>, <span class="number">0f32</span>, <span class="number">1f32</span>),
-            <span class="ident">Vec2</span>::<span class="ident">new</span>(<span class="number">1f32</span>, <span class="number">1f32</span>));
+
+        <span class="kw">let</span> <span class="ident">aff</span> <span class="op">=</span> <span class="ident">Affine2</span>::<span class="ident">from_matrix_unchecked</span>(<span class="ident">Matrix3</span>::<span class="ident">new</span>(
+            <span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>,
+            <span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>,
+            <span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>,
+        ));
 
         <span class="ident">b</span>.<span class="ident">iter</span>(<span class="op">||</span> {
             <span class="kw">let</span> <span class="ident">transformed</span> <span class="op">=</span> <span class="ident">affine</span>(<span class="kw-2">&amp;</span><span class="ident">image</span>, <span class="ident">aff</span>, <span class="ident">Interpolation</span>::<span class="ident">Nearest</span>);
@@ -984,9 +1001,12 @@
     <span class="attribute">#[<span class="ident">bench</span>]</span>
     <span class="kw">fn</span> <span class="ident">bench_affine_bilinear</span>(<span class="ident">b</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">test</span>::<span class="ident">Bencher</span>) {
         <span class="kw">let</span> <span class="ident">image</span> <span class="op">=</span> <span class="ident">GrayImage</span>::<span class="ident">from_pixel</span>(<span class="number">200</span>, <span class="number">200</span>, <span class="ident">Luma</span>([<span class="number">15u8</span>]));
-        <span class="kw">let</span> <span class="ident">aff</span> <span class="op">=</span> <span class="ident">Affine2</span>::<span class="ident">new</span>(
-            <span class="ident">Mat2</span>::<span class="ident">new</span>(<span class="number">1f32</span>, <span class="number">0f32</span>, <span class="number">0f32</span>, <span class="number">1f32</span>),
-            <span class="ident">Vec2</span>::<span class="ident">new</span>(<span class="number">1f32</span>, <span class="number">1f32</span>));
+
+        <span class="kw">let</span> <span class="ident">aff</span> <span class="op">=</span> <span class="ident">Affine2</span>::<span class="ident">from_matrix_unchecked</span>(<span class="ident">Matrix3</span>::<span class="ident">new</span>(
+            <span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>,
+            <span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>,
+            <span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>,
+        ));
 
         <span class="ident">b</span>.<span class="ident">iter</span>(<span class="op">||</span> {
             <span class="kw">let</span> <span class="ident">transformed</span> <span class="op">=</span> <span class="ident">affine</span>(<span class="kw-2">&amp;</span><span class="ident">image</span>, <span class="ident">aff</span>, <span class="ident">Interpolation</span>::<span class="ident">Bilinear</span>);
@@ -1052,7 +1072,6 @@
         window.rootPath = "../../";
         window.currentCrate = "imageproc";
     </script>
-    <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>

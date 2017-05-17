@@ -1,9 +1,10 @@
 (function() {var implementors = {};
+implementors["alga"] = [];
 implementors["arrayvec"] = [];
 implementors["enum_primitive"] = [];
 implementors["image"] = [];
-implementors["imageproc"] = [];
 implementors["libc"] = [];
+implementors["nalgebra"] = [];
 implementors["num"] = [];
 implementors["quickcheck"] = [];
 implementors["rayon"] = [];

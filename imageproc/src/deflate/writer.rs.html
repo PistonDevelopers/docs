@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.9/src/writer.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.11/src/writer.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>writer.rs.html -- source</title>
@@ -654,19 +654,6 @@
 <span id="609">609</span>
 <span id="610">610</span>
 <span id="611">611</span>
-<span id="612">612</span>
-<span id="613">613</span>
-<span id="614">614</span>
-<span id="615">615</span>
-<span id="616">616</span>
-<span id="617">617</span>
-<span id="618">618</span>
-<span id="619">619</span>
-<span id="620">620</span>
-<span id="621">621</span>
-<span id="622">622</span>
-<span id="623">623</span>
-<span id="624">624</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">thread</span>, <span class="ident">io</span>};
@@ -679,6 +666,9 @@
 <span class="kw">use</span> <span class="ident">deflate_state</span>::<span class="ident">DeflateState</span>;
 <span class="kw">use</span> <span class="ident">compression_options</span>::<span class="ident">CompressionOptions</span>;
 <span class="kw">use</span> <span class="ident">zlib</span>::{<span class="ident">write_zlib_header</span>, <span class="ident">CompressionLevel</span>};
+
+<span class="kw">const</span> <span class="ident">ERR_STR</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;Error! The wrapped writer is missing.\
+                               This is a bug, please file an issue.&quot;</span>;
 
 <span class="doccomment">/// Keep compressing until all the input has been compressed and output or the writer returns `Err`.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">compress_until_done</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
@@ -744,46 +734,41 @@
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeflateEncoder</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span> {
-    <span class="comment">// We use a box here to avoid putting the buffers on the stack</span>
-    <span class="comment">// It&#39;s done here rather than in the structs themselves for now to</span>
-    <span class="comment">// keep the data close in memory.</span>
-    <span class="comment">// Option is used to allow us to implement `Drop` and `finish()` at the same time.</span>
-    <span class="ident">deflate_state</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="ident">DeflateState</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">deflate_state</span>: <span class="ident">DeflateState</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span> <span class="ident">DeflateEncoder</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Creates a new encoder using the provided compression options.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">O</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CompressionOptions</span><span class="op">&gt;&gt;</span>(<span class="ident">writer</span>: <span class="ident">W</span>, <span class="ident">options</span>: <span class="ident">O</span>) <span class="op">-&gt;</span> <span class="ident">DeflateEncoder</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
-        <span class="ident">DeflateEncoder</span> { <span class="ident">deflate_state</span>: <span class="prelude-val">Some</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">DeflateState</span>::<span class="ident">new</span>(<span class="ident">options</span>.<span class="ident">into</span>(), <span class="ident">writer</span>))) }
+        <span class="ident">DeflateEncoder</span> { <span class="ident">deflate_state</span>: <span class="ident">DeflateState</span>::<span class="ident">new</span>(<span class="ident">options</span>.<span class="ident">into</span>(), <span class="ident">writer</span>) }
     }
 
     <span class="doccomment">/// Encode all pending data to the contained writer, consume this `DeflateEncoder`,</span>
     <span class="doccomment">/// and return the contained writer if writing succeeds.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">finish</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">output_all</span>()<span class="question-mark">?</span>;
-        <span class="comment">// We have to move the inner state out of the encoder, and replace it with `None`</span>
+        <span class="comment">// We have to move the inner writer out of the encoder, and replace it with `None`</span>
         <span class="comment">// to let the `DeflateEncoder` drop safely.</span>
-        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">take</span>();
-        <span class="prelude-val">Ok</span>(<span class="ident">state</span>.<span class="ident">unwrap</span>().<span class="ident">inner</span>)
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">take</span>().<span class="ident">expect</span>(<span class="ident">ERR_STR</span>))
     }
 
     <span class="doccomment">/// Resets the encoder (except the compression options), replacing the current writer</span>
     <span class="doccomment">/// with a new one, returning the old one.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">reset</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">w</span>: <span class="ident">W</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">output_all</span>()<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>().<span class="ident">reset</span>(<span class="ident">w</span>)
+        <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">reset</span>(<span class="ident">w</span>)
     }
 
     <span class="doccomment">/// Output all pending data as if encoding is done, but without resetting anything</span>
     <span class="kw">fn</span> <span class="ident">output_all</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>(), <span class="ident">Flush</span>::<span class="ident">Finish</span>)
+        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>, <span class="ident">Flush</span>::<span class="ident">Finish</span>)
     }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="ident">Write</span> <span class="kw">for</span> <span class="ident">DeflateEncoder</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buf</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">flush_mode</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_ref</span>().<span class="ident">unwrap</span>().<span class="ident">flush_mode</span>;
-        <span class="ident">compress_data_dynamic_n</span>(<span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>(), <span class="ident">flush_mode</span>)
+        <span class="kw">let</span> <span class="ident">flush_mode</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">flush_mode</span>;
+        <span class="ident">compress_data_dynamic_n</span>(<span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>, <span class="ident">flush_mode</span>)
     }
 
     <span class="doccomment">/// Flush the encoder.</span>
@@ -792,7 +777,7 @@
     <span class="doccomment">/// This essentially finishes the current block, and sends an additional empty stored block to</span>
     <span class="doccomment">/// the writer.</span>
     <span class="kw">fn</span> <span class="ident">flush</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>(), <span class="ident">Flush</span>::<span class="ident">Sync</span>)
+        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>, <span class="ident">Flush</span>::<span class="ident">Sync</span>)
     }
 }
 
@@ -805,7 +790,7 @@
     <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="comment">// Not sure if implementing drop is a good idea or not, but we follow flate2 for now.</span>
         <span class="comment">// We only do this if we are not panicking, to avoid a double panic.</span>
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">thread</span>::<span class="ident">panicking</span>() {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">thread</span>::<span class="ident">panicking</span>() {
             <span class="kw">let</span> _ <span class="op">=</span> <span class="self">self</span>.<span class="ident">output_all</span>();
         }
     }
@@ -833,11 +818,7 @@
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ZlibEncoder</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span> {
-    <span class="comment">// We use a box here to avoid putting the buffers on the stack</span>
-    <span class="comment">// It&#39;s done here rather than in the structs themselves for now to</span>
-    <span class="comment">// keep the data close in memory.</span>
-    <span class="comment">// Option is used to allow us to implement `Drop` and `finish()` at the same time.</span>
-    <span class="ident">deflate_state</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="ident">DeflateState</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">deflate_state</span>: <span class="ident">DeflateState</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
     <span class="ident">checksum</span>: <span class="ident">Adler32Checksum</span>,
     <span class="ident">header_written</span>: <span class="ident">bool</span>,
 }
@@ -846,7 +827,7 @@
     <span class="doccomment">/// Create a new `ZlibEncoder` using the provided compression options.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">O</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CompressionOptions</span><span class="op">&gt;&gt;</span>(<span class="ident">writer</span>: <span class="ident">W</span>, <span class="ident">options</span>: <span class="ident">O</span>) <span class="op">-&gt;</span> <span class="ident">ZlibEncoder</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
         <span class="ident">ZlibEncoder</span> {
-            <span class="ident">deflate_state</span>: <span class="prelude-val">Some</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">DeflateState</span>::<span class="ident">new</span>(<span class="ident">options</span>.<span class="ident">into</span>(), <span class="ident">writer</span>))),
+            <span class="ident">deflate_state</span>: <span class="ident">DeflateState</span>::<span class="ident">new</span>(<span class="ident">options</span>.<span class="ident">into</span>(), <span class="ident">writer</span>),
             <span class="ident">checksum</span>: <span class="ident">Adler32Checksum</span>::<span class="ident">new</span>(),
             <span class="ident">header_written</span>: <span class="bool-val">false</span>,
         }
@@ -856,7 +837,7 @@
     <span class="doccomment">/// but without resetting anything.</span>
     <span class="kw">fn</span> <span class="ident">output_all</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">check_write_header</span>()<span class="question-mark">?</span>;
-        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>(), <span class="ident">Flush</span>::<span class="ident">Finish</span>)<span class="question-mark">?</span>;
+        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>, <span class="ident">Flush</span>::<span class="ident">Finish</span>)<span class="question-mark">?</span>;
         <span class="self">self</span>.<span class="ident">write_trailer</span>()
     }
 
@@ -864,10 +845,9 @@
     <span class="doccomment">/// and return the contained writer if writing succeeds.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">finish</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">output_all</span>()<span class="question-mark">?</span>;
-        <span class="comment">// We have to move the inner state out of the encoder, and replace it with `None`</span>
+        <span class="comment">// We have to move the inner writer out of the encoder, and replace it with `None`</span>
         <span class="comment">// to let the `DeflateEncoder` drop safely.</span>
-        <span class="kw">let</span> <span class="ident">inner</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">take</span>();
-        <span class="prelude-val">Ok</span>(<span class="ident">inner</span>.<span class="ident">unwrap</span>().<span class="ident">inner</span>)
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">take</span>().<span class="ident">expect</span>(<span class="ident">ERR_STR</span>))
     }
 
     <span class="doccomment">/// Resets the encoder (except the compression options), replacing the current writer</span>
@@ -876,14 +856,13 @@
         <span class="self">self</span>.<span class="ident">output_all</span>()<span class="question-mark">?</span>;
         <span class="self">self</span>.<span class="ident">header_written</span> <span class="op">=</span> <span class="bool-val">false</span>;
         <span class="self">self</span>.<span class="ident">checksum</span> <span class="op">=</span> <span class="ident">Adler32Checksum</span>::<span class="ident">new</span>();
-        <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>().<span class="ident">reset</span>(<span class="ident">writer</span>)
+        <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">reset</span>(<span class="ident">writer</span>)
     }
 
     <span class="doccomment">/// Check if a zlib header should be written.</span>
     <span class="kw">fn</span> <span class="ident">check_write_header</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">header_written</span> {
-            <span class="ident">write_zlib_header</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>().<span class="ident">output_buf</span>(),
-                              <span class="ident">CompressionLevel</span>::<span class="ident">Default</span>)<span class="question-mark">?</span>;
+            <span class="ident">write_zlib_header</span>(<span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">output_buf</span>(), <span class="ident">CompressionLevel</span>::<span class="ident">Default</span>)<span class="question-mark">?</span>;
             <span class="self">self</span>.<span class="ident">header_written</span> <span class="op">=</span> <span class="bool-val">true</span>;
         }
         <span class="prelude-val">Ok</span>(())
@@ -894,9 +873,9 @@
         <span class="kw">let</span> <span class="ident">hash</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">checksum</span>.<span class="ident">current_hash</span>();
 
         <span class="self">self</span>.<span class="ident">deflate_state</span>
-            .<span class="ident">as_mut</span>()
-            .<span class="ident">unwrap</span>()
             .<span class="ident">inner</span>
+            .<span class="ident">as_mut</span>()
+            .<span class="ident">expect</span>(<span class="ident">ERR_STR</span>)
             .<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">BigEndian</span><span class="op">&gt;</span>(<span class="ident">hash</span>)
     }
 
@@ -909,11 +888,13 @@
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="ident">Write</span> <span class="kw">for</span> <span class="ident">ZlibEncoder</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">buf</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">check_write_header</span>()<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">flush_mode</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_ref</span>().<span class="ident">unwrap</span>().<span class="ident">flush_mode</span>;
-        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span>
-            <span class="ident">compress_data_dynamic_n</span>(<span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>(), <span class="ident">flush_mode</span>);
+        <span class="kw">let</span> <span class="ident">flush_mode</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">flush_mode</span>;
+        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="ident">compress_data_dynamic_n</span>(<span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>, <span class="ident">flush_mode</span>);
         <span class="kw">match</span> <span class="ident">res</span> {
+            <span class="doccomment">/// If this is returned, the whole buffer was consumed</span>
             <span class="prelude-val">Ok</span>(<span class="number">0</span>) <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">checksum</span>.<span class="ident">update_from_slice</span>(<span class="ident">buf</span>),
+            <span class="doccomment">/// Otherwise, only part of it was consumed, so only that part</span>
+            <span class="doccomment">/// added to the checksum.</span>
             <span class="prelude-val">Ok</span>(<span class="ident">n</span>) <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">checksum</span>.<span class="ident">update_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>[<span class="number">0</span>..<span class="ident">n</span>]),
             _ <span class="op">=&gt;</span> (),
         };
@@ -926,7 +907,7 @@
     <span class="doccomment">/// This essentially finishes the current block, and sends an additional empty stored block to</span>
     <span class="doccomment">/// the writer.</span>
     <span class="kw">fn</span> <span class="ident">flush</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>(), <span class="ident">Flush</span>::<span class="ident">Sync</span>)
+        <span class="ident">compress_until_done</span>(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">deflate_state</span>, <span class="ident">Flush</span>::<span class="ident">Sync</span>)
     }
 }
 
@@ -937,7 +918,7 @@
     <span class="doccomment">/// for writers where writing might fail is not recommended, for that call</span>
     <span class="doccomment">/// [`finish()`](#method.finish) instead.</span>
     <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">thread</span>::<span class="ident">panicking</span>() {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">thread</span>::<span class="ident">panicking</span>() {
             <span class="kw">let</span> _ <span class="op">=</span> <span class="self">self</span>.<span class="ident">output_all</span>();
         }
     }
@@ -1005,8 +986,6 @@
             <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">header</span>.<span class="ident">is_empty</span>() {
                 <span class="self">self</span>.<span class="ident">inner</span>
                     .<span class="ident">deflate_state</span>
-                    .<span class="ident">as_mut</span>()
-                    .<span class="ident">unwrap</span>()
                     .<span class="ident">output_buf</span>()
                     .<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">header</span>);
                 <span class="self">self</span>.<span class="ident">header</span>.<span class="ident">clear</span>();
@@ -1025,20 +1004,15 @@
         <span class="doccomment">/// and return the contained writer if writing succeeds.</span>
         <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">finish</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
             <span class="self">self</span>.<span class="ident">output_all</span>()<span class="question-mark">?</span>;
-            <span class="comment">// We have to move the inner state out of the encoder, and replace it with `None`</span>
+            <span class="comment">// We have to move the inner writer out of the encoder, and replace it with `None`</span>
             <span class="comment">// to let the `DeflateEncoder` drop safely.</span>
-            <span class="kw">let</span> <span class="ident">inner</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">deflate_state</span>.<span class="ident">take</span>();
-            <span class="prelude-val">Ok</span>(<span class="ident">inner</span>.<span class="ident">unwrap</span>().<span class="ident">inner</span>)
+            <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">take</span>().<span class="ident">expect</span>(<span class="ident">ERR_STR</span>))
         }
 
         <span class="kw">fn</span> <span class="ident">reset_no_header</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">writer</span>: <span class="ident">W</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
             <span class="self">self</span>.<span class="ident">output_all</span>()<span class="question-mark">?</span>;
             <span class="self">self</span>.<span class="ident">checksum</span> <span class="op">=</span> <span class="ident">Crc</span>::<span class="ident">new</span>();
-            <span class="self">self</span>.<span class="ident">inner</span>
-                .<span class="ident">deflate_state</span>
-                .<span class="ident">as_mut</span>()
-                .<span class="ident">unwrap</span>()
-                .<span class="ident">reset</span>(<span class="ident">writer</span>)
+            <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">deflate_state</span>.<span class="ident">reset</span>(<span class="ident">writer</span>)
         }
 
         <span class="doccomment">/// Resets the encoder (except the compression options), replacing the current writer</span>
@@ -1071,10 +1045,10 @@
             <span class="ident">temp</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="ident">amount</span>).<span class="ident">unwrap</span>();
             <span class="self">self</span>.<span class="ident">inner</span>
                 .<span class="ident">deflate_state</span>
-                .<span class="ident">as_mut</span>()
-                .<span class="ident">unwrap</span>()
                 .<span class="ident">inner</span>
-                .<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">temp</span>.<span class="ident">into_inner</span>())
+                .<span class="ident">as_mut</span>()
+                .<span class="ident">expect</span>(<span class="ident">ERR_STR</span>)
+                .<span class="ident">write_all</span>(<span class="ident">temp</span>.<span class="ident">into_inner</span>())
         }
 
         <span class="doccomment">/// Get the crc32 checksum of the data comsumed so far.</span>
@@ -1112,7 +1086,7 @@
         <span class="doccomment">/// for writers where writing might fail is not recommended, for that call</span>
         <span class="doccomment">/// [`finish()`](#method.finish) instead.</span>
         <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">deflate_state</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">thread</span>::<span class="ident">panicking</span>() {
+            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">thread</span>::<span class="ident">panicking</span>() {
                 <span class="kw">let</span> _ <span class="op">=</span> <span class="self">self</span>.<span class="ident">output_all</span>();
             }
         }
@@ -1216,7 +1190,7 @@
             <span class="ident">compressor</span>.<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>[..<span class="ident">split</span>]).<span class="ident">unwrap</span>();
             <span class="ident">compressor</span>.<span class="ident">flush</span>().<span class="ident">unwrap</span>();
             {
-                <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressor</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>().<span class="ident">inner</span>;
+                <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressor</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>();
                 <span class="kw">let</span> <span class="ident">buf_len</span> <span class="op">=</span> <span class="ident">buf</span>.<span class="ident">len</span>();
                 <span class="comment">// Check for the sync marker. (excluding the header as it might not line</span>
                 <span class="comment">// up with the byte boundary.)</span>
@@ -1257,7 +1231,7 @@
             <span class="ident">compressor</span>.<span class="ident">flush</span>().<span class="ident">unwrap</span>();
             <span class="ident">compressor</span>.<span class="ident">flush</span>().<span class="ident">unwrap</span>();
             {
-                <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressor</span>.<span class="ident">deflate_state</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>().<span class="ident">inner</span>;
+                <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressor</span>.<span class="ident">deflate_state</span>.<span class="ident">inner</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>();
                 <span class="kw">let</span> <span class="ident">buf_len</span> <span class="op">=</span> <span class="ident">buf</span>.<span class="ident">len</span>();
                 <span class="comment">// Check for the sync marker. (excluding the header as it might not line</span>
                 <span class="comment">// up with the byte boundary.)</span>
@@ -1350,7 +1324,6 @@
         window.rootPath = "../../";
         window.currentCrate = "deflate";
     </script>
-    <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>

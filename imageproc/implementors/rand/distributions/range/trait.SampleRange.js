@@ -1,6 +1,6 @@
 (function() {var implementors = {};
 implementors["image"] = [];
-implementors["imageproc"] = [];
+implementors["nalgebra"] = [];
 implementors["num"] = [];
 implementors["quickcheck"] = [];
 implementors["rand"] = [];

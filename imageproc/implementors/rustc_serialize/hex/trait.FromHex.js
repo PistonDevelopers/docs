@@ -1,6 +1,7 @@
 (function() {var implementors = {};
+implementors["alga"] = [];
 implementors["image"] = [];
-implementors["imageproc"] = [];
+implementors["nalgebra"] = [];
 implementors["num"] = [];
 implementors["rustc_serialize"] = [];
 

@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["imageproc"] = [];
 implementors["quickcheck"] = [];
 
             if (window.register_implementors) {

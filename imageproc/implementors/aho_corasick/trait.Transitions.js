@@ -1,6 +1,5 @@
 (function() {var implementors = {};
 implementors["aho_corasick"] = [];
-implementors["imageproc"] = [];
 implementors["quickcheck"] = [];
 
             if (window.register_implementors) {

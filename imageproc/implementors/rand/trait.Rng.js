@@ -1,9 +1,10 @@
 (function() {var implementors = {};
+implementors["alga"] = [];
 implementors["arrayvec"] = [];
 implementors["enum_primitive"] = [];
 implementors["image"] = [];
-implementors["imageproc"] = ["impl&lt;R&gt; <a class=\"trait\" href=\"rand/trait.Rng.html\" title=\"trait rand::Rng\">Rng</a> for <a class=\"struct\" href=\"quickcheck/arbitrary/struct.StdGen.html\" title=\"struct quickcheck::arbitrary::StdGen\">StdGen</a>&lt;R&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;R: <a class=\"trait\" href=\"rand/trait.Rng.html\" title=\"trait rand::Rng\">Rng</a>,&nbsp;</span>",];
 implementors["libc"] = [];
+implementors["nalgebra"] = [];
 implementors["num"] = [];
 implementors["quickcheck"] = [];
 implementors["rand"] = [];
