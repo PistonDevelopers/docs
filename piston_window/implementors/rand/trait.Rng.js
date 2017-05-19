@@ -10,6 +10,7 @@ implementors["glutin"] = [];
 implementors["glutin_window"] = [];
 implementors["graphics"] = [];
 implementors["image"] = [];
+implementors["itertools"] = [];
 implementors["libc"] = [];
 implementors["libloading"] = [];
 implementors["piston_window"] = [];

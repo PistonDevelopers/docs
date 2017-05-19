@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.7.4/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.8.0/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
@@ -527,6 +527,47 @@
 <span id="482">482</span>
 <span id="483">483</span>
 <span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! The purpose of this library is to provide an OpenGL context on as many</span>
 <span class="doccomment">//!  platforms as possible.</span>
@@ -594,8 +635,7 @@
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">events</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">headless</span>::{<span class="ident">HeadlessRendererBuilder</span>, <span class="ident">HeadlessContext</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">window</span>::{<span class="ident">WindowProxy</span>, <span class="ident">PollEventsIterator</span>, <span class="ident">WaitEventsIterator</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">window</span>::{<span class="ident">AvailableMonitorsIter</span>, <span class="ident">MonitorId</span>, <span class="ident">get_available_monitors</span>, <span class="ident">get_primary_monitor</span>};
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">window</span>::{<span class="ident">AvailableMonitorsIter</span>, <span class="ident">MonitorId</span>, <span class="ident">WindowId</span>, <span class="ident">get_available_monitors</span>, <span class="ident">get_primary_monitor</span>};
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">winit</span>::<span class="ident">NativeMonitorId</span>;
 
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
@@ -613,22 +653,22 @@
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```ignore</span>
-<span class="doccomment">/// let window = Window::new().unwrap();</span>
+<span class="doccomment">/// let window = Window::new(&amp;events_loop).unwrap();</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// unsafe { window.make_current() };</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// loop {</span>
-<span class="doccomment">///     for event in window.poll_events() {</span>
+<span class="doccomment">///     events_loop.poll_events(|event| {</span>
 <span class="doccomment">///         match(event) {</span>
 <span class="doccomment">///             // process events here</span>
 <span class="doccomment">///             _ =&gt; ()</span>
 <span class="doccomment">///         }</span>
-<span class="doccomment">///     }</span>
+<span class="doccomment">///     });</span>
 <span class="doccomment">///</span>
 <span class="doccomment">///     // draw everything here</span>
 <span class="doccomment">///</span>
 <span class="doccomment">///     window.swap_buffers();</span>
-<span class="doccomment">///     std::old_io::timer::sleep(17);</span>
+<span class="doccomment">///     std::thread::sleep(std::time::Duration::from_millis(17));</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">/// ```</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Window</span> {
@@ -645,6 +685,44 @@
 
     <span class="comment">// Should be made public once it&#39;s stabilized.</span>
     <span class="ident">pf_reqs</span>: <span class="ident">PixelFormatRequirements</span>,
+}
+
+<span class="doccomment">/// Provides a way to retreive events from the windows that are registered to it.</span>
+<span class="comment">// TODO: document usage in multiple threads</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventsLoop</span> {
+    <span class="ident">events_loop</span>: <span class="ident">platform</span>::<span class="ident">EventsLoop</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">EventsLoop</span> {
+    <span class="doccomment">/// Builds a new events loop.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">EventsLoop</span> {
+        <span class="ident">EventsLoop</span> {
+            <span class="ident">events_loop</span>: <span class="ident">platform</span>::<span class="ident">EventsLoop</span>::<span class="ident">new</span>(),
+        }
+    }
+
+    <span class="doccomment">/// Fetches all the events that are pending, calls the callback function for each of them,</span>
+    <span class="doccomment">/// and returns.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">poll_events</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">callback</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="ident">Event</span>)
+    {
+        <span class="self">self</span>.<span class="ident">events_loop</span>.<span class="ident">poll_events</span>(<span class="ident">callback</span>)
+    }
+
+    <span class="doccomment">/// Runs forever until `interrupt()` is called. Whenever an event happens, calls the callback.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run_forever</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">callback</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="ident">Event</span>)
+    {
+        <span class="self">self</span>.<span class="ident">events_loop</span>.<span class="ident">run_forever</span>(<span class="ident">callback</span>)
+    }
+
+    <span class="doccomment">/// If we called `run_forever()`, stops the process of waiting for events.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">interrupt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="self">self</span>.<span class="ident">events_loop</span>.<span class="ident">interrupt</span>()
+    }
 }
 
 <span class="doccomment">/// Trait that describes objects that have access to an OpenGL context.</span>
@@ -705,7 +783,11 @@
 
 <span class="kw">impl</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">CreationError</span> {
     <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">formatter</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="ident">formatter</span>.<span class="ident">write_str</span>(<span class="self">self</span>.<span class="ident">to_string</span>())
+        <span class="ident">formatter</span>.<span class="ident">write_str</span>(<span class="self">self</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span>;
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">err</span>) <span class="op">=</span> <span class="ident">std</span>::<span class="ident">error</span>::<span class="ident">Error</span>::<span class="ident">cause</span>(<span class="self">self</span>) {
+            <span class="macro">write</span><span class="macro">!</span>(<span class="ident">formatter</span>, <span class="string">&quot;: {}&quot;</span>, <span class="ident">err</span>)<span class="question-mark">?</span>;
+        }
+        <span class="prelude-val">Ok</span>(())
     }
 }
 
@@ -1070,7 +1152,6 @@
         window.rootPath = "../../";
         window.currentCrate = "glutin";
     </script>
-    <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>

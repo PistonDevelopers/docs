@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.7.4/src/platform/linux/wayland.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.8.0/src/platform/linux/wayland.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>wayland.rs.html -- source</title>
@@ -182,7 +182,28 @@
 <span id="137">137</span>
 <span id="138">138</span>
 <span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
 </pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Mutex</span>, <span class="ident">Weak</span>, <span class="ident">Arc</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ffi</span>::<span class="ident">CString</span>;
 <span class="kw">use</span> <span class="ident">winit</span>;
 <span class="kw">use</span> <span class="ident">winit</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">WindowExt</span>;
@@ -191,56 +212,87 @@
 <span class="kw">use</span> <span class="ident">api</span>::<span class="ident">egl</span>;
 <span class="kw">use</span> <span class="ident">api</span>::<span class="ident">egl</span>::<span class="ident">Context</span> <span class="kw">as</span> <span class="ident">EglContext</span>;
 <span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">egl</span> <span class="kw">as</span> <span class="ident">wegl</span>;
-<span class="kw">use</span> <span class="ident">Event</span>;
+<span class="kw">use</span> {<span class="ident">Event</span>, <span class="ident">WindowEvent</span>};
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Window</span> {
-    <span class="ident">egl_surface</span>: <span class="ident">wegl</span>::<span class="ident">WlEglSurface</span>,
+    <span class="ident">egl_surface</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wegl</span>::<span class="ident">WlEglSurface</span><span class="op">&gt;</span>,
     <span class="ident">context</span>: <span class="ident">EglContext</span>,
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WaitEventsIterator</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">window</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Window</span>,
-    <span class="ident">winit_iterator</span>: <span class="ident">winit</span>::<span class="ident">WaitEventsIterator</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
+
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventsLoop</span> {
+    <span class="ident">winit_events_loop</span>: <span class="ident">winit</span>::<span class="ident">EventsLoop</span>,
+    <span class="ident">egl_surfaces</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">winit</span>::<span class="ident">WindowId</span>, <span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">wegl</span>::<span class="ident">WlEglSurface</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">WaitEventsIterator</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">Event</span>;
-
-    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Event</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">event</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">winit_iterator</span>.<span class="ident">next</span>();
-        <span class="kw">match</span> <span class="ident">event</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">Event</span>::<span class="ident">Resized</span>(<span class="ident">x</span>, <span class="ident">y</span>)) <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">window</span>.<span class="ident">egl_surface</span>.<span class="ident">resize</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="number">0</span>, <span class="number">0</span>),
-            _ <span class="op">=&gt;</span> {},
+<span class="kw">impl</span> <span class="ident">EventsLoop</span> {
+    <span class="doccomment">/// Builds a new events loop.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">events_loop</span>: <span class="ident">winit</span>::<span class="ident">EventsLoop</span>) <span class="op">-&gt;</span> <span class="ident">EventsLoop</span> {
+        <span class="ident">EventsLoop</span> {
+            <span class="ident">winit_events_loop</span>: <span class="ident">events_loop</span>,
+            <span class="ident">egl_surfaces</span>: <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">HashMap</span>::<span class="ident">new</span>()),
         }
-        <span class="ident">event</span>
     }
-}
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PollEventsIterator</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">window</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Window</span>,
-    <span class="ident">winit_iterator</span>: <span class="ident">winit</span>::<span class="ident">PollEventsIterator</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
-}
-
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">PollEventsIterator</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">Event</span>;
-
-    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Event</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">event</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">winit_iterator</span>.<span class="ident">next</span>();
-        <span class="kw">match</span> <span class="ident">event</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">Event</span>::<span class="ident">Resized</span>(<span class="ident">x</span>, <span class="ident">y</span>)) <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">window</span>.<span class="ident">egl_surface</span>.<span class="ident">resize</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="number">0</span>, <span class="number">0</span>),
-            _ <span class="op">=&gt;</span> {},
+    <span class="kw">fn</span> <span class="ident">resize_surface</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">window_id</span>: <span class="ident">winit</span>::<span class="ident">WindowId</span>, <span class="ident">x</span>: <span class="ident">u32</span>, <span class="ident">y</span>: <span class="ident">u32</span>) {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">egl_surfaces</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">egl_surfaces</span>.<span class="ident">lock</span>() {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">surface</span>) <span class="op">=</span> <span class="ident">egl_surfaces</span>[<span class="kw-2">&amp;</span><span class="ident">window_id</span>].<span class="ident">upgrade</span>() {
+                <span class="ident">surface</span>.<span class="ident">resize</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="number">0</span>, <span class="number">0</span>)
+            }
         }
-        <span class="ident">event</span>
+    }
+
+    <span class="kw">fn</span> <span class="ident">insert_window</span>(<span class="kw-2">&amp;</span><span class="self">self</span>,
+                     <span class="ident">window_id</span>: <span class="ident">winit</span>::<span class="ident">WindowId</span>,
+                     <span class="ident">egl_surface</span>: <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wegl</span>::<span class="ident">WlEglSurface</span><span class="op">&gt;</span>)
+    {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="kw-2">mut</span> <span class="ident">my_surfaces</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">egl_surfaces</span>.<span class="ident">lock</span>() {
+            <span class="ident">my_surfaces</span>.<span class="ident">insert</span>(<span class="ident">window_id</span>, <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="ident">egl_surface</span>));
+        }
+    }
+
+    <span class="doccomment">/// Fetches all the events that are pending, calls the callback function for each of them,</span>
+    <span class="doccomment">/// and returns.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">poll_events</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">callback</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="ident">Event</span>)
+    {
+        <span class="self">self</span>.<span class="ident">winit_events_loop</span>.<span class="ident">poll_events</span>(<span class="op">|</span><span class="ident">event</span><span class="op">|</span> {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">Event</span>::<span class="ident">WindowEvent</span> { <span class="ident">window_id</span>, <span class="ident">event</span>: <span class="ident">WindowEvent</span>::<span class="ident">Resized</span>(<span class="ident">x</span>, <span class="ident">y</span>) } <span class="op">=</span> <span class="ident">event</span> {
+                <span class="self">self</span>.<span class="ident">resize_surface</span>(<span class="ident">window_id</span>, <span class="ident">x</span>, <span class="ident">y</span>)
+            }
+            <span class="ident">callback</span>(<span class="ident">event</span>);
+        })
+    }
+
+    <span class="doccomment">/// Runs forever until `interrupt()` is called. Whenever an event happens, calls the callback.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run_forever</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">callback</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="ident">Event</span>)
+    {
+        <span class="self">self</span>.<span class="ident">winit_events_loop</span>.<span class="ident">run_forever</span>(<span class="op">|</span><span class="ident">event</span><span class="op">|</span> {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">Event</span>::<span class="ident">WindowEvent</span> { <span class="ident">window_id</span>, <span class="ident">event</span>: <span class="ident">WindowEvent</span>::<span class="ident">Resized</span>(<span class="ident">x</span>, <span class="ident">y</span>) } <span class="op">=</span> <span class="ident">event</span> {
+                <span class="self">self</span>.<span class="ident">resize_surface</span>(<span class="ident">window_id</span>, <span class="ident">x</span>, <span class="ident">y</span>)
+            }
+            <span class="ident">callback</span>(<span class="ident">event</span>);
+        })
+    }
+
+    <span class="doccomment">/// If we called `run_forever()`, stops the process of waiting for events.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">interrupt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="self">self</span>.<span class="ident">winit_events_loop</span>.<span class="ident">interrupt</span>()
     }
 }
 
 <span class="kw">impl</span> <span class="ident">Window</span> {
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
+        <span class="ident">events_loop</span>: <span class="kw-2">&amp;</span><span class="ident">EventsLoop</span>,
         <span class="ident">pf_reqs</span>: <span class="kw-2">&amp;</span><span class="ident">PixelFormatRequirements</span>,
         <span class="ident">opengl</span>: <span class="kw-2">&amp;</span><span class="ident">GlAttributes</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Window</span><span class="op">&gt;</span>,
         <span class="ident">winit_builder</span>: <span class="ident">winit</span>::<span class="ident">WindowBuilder</span>,
     ) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">Window</span>, <span class="ident">winit</span>::<span class="ident">Window</span>), <span class="ident">CreationError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">winit_window</span> <span class="op">=</span> <span class="ident">winit_builder</span>.<span class="ident">build</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">winit_window</span> <span class="op">=</span> <span class="ident">winit_builder</span>.<span class="ident">build</span>(<span class="kw-2">&amp;</span><span class="ident">events_loop</span>.<span class="ident">winit_events_loop</span>).<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">wayland_window</span> <span class="op">=</span> {
             <span class="kw">let</span> (<span class="ident">w</span>, <span class="ident">h</span>) <span class="op">=</span> <span class="ident">winit_window</span>.<span class="ident">get_inner_size</span>().<span class="ident">unwrap</span>();
             <span class="kw">let</span> <span class="ident">surface</span> <span class="op">=</span> <span class="ident">winit_window</span>.<span class="ident">get_wayland_client_surface</span>().<span class="ident">unwrap</span>();
@@ -262,32 +314,18 @@
                 )
             };
             <span class="ident">Window</span> {
-                <span class="ident">egl_surface</span>: <span class="ident">egl_surface</span>,
+                <span class="ident">egl_surface</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">egl_surface</span>),
                 <span class="ident">context</span>: <span class="ident">context</span>,
             }
         };
+        <span class="comment">// Store a copy of the `context`&#39;s `IdRef` so that we can `update` it on `Resized` events.</span>
+        <span class="ident">events_loop</span>.<span class="ident">insert_window</span>(<span class="ident">winit_window</span>.<span class="ident">id</span>(), <span class="kw-2">&amp;</span><span class="ident">wayland_window</span>.<span class="ident">egl_surface</span>);
         <span class="prelude-val">Ok</span>((<span class="ident">wayland_window</span>, <span class="ident">winit_window</span>))
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_inner_size</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">x</span>: <span class="ident">u32</span>, <span class="ident">y</span>: <span class="ident">u32</span>, <span class="ident">winit_window</span>: <span class="kw-2">&amp;</span><span class="ident">winit</span>::<span class="ident">Window</span>) {
         <span class="ident">winit_window</span>.<span class="ident">set_inner_size</span>(<span class="ident">x</span>, <span class="ident">y</span>);
         <span class="self">self</span>.<span class="ident">egl_surface</span>.<span class="ident">resize</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="number">0</span>, <span class="number">0</span>);
-    }
-
-    <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wait_events</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">winit_window</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">winit</span>::<span class="ident">Window</span>) <span class="op">-&gt;</span> <span class="ident">WaitEventsIterator</span> {
-        <span class="ident">WaitEventsIterator</span> {
-            <span class="ident">window</span>: <span class="self">self</span>,
-            <span class="ident">winit_iterator</span>: <span class="ident">winit_window</span>.<span class="ident">wait_events</span>()
-        }
-    }
-
-    <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">poll_events</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>, <span class="ident">winit_window</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">winit</span>::<span class="ident">Window</span>) <span class="op">-&gt;</span> <span class="ident">PollEventsIterator</span> {
-        <span class="ident">PollEventsIterator</span> {
-            <span class="ident">window</span>: <span class="self">self</span>,
-            <span class="ident">winit_iterator</span>: <span class="ident">winit_window</span>.<span class="ident">poll_events</span>()
-        }
     }
 }
 
@@ -380,7 +418,6 @@
         window.rootPath = "../../../../";
         window.currentCrate = "glutin";
     </script>
-    <script src="../../../../jquery.js"></script>
     <script src="../../../../main.js"></script>
     <script defer src="../../../../search-index.js"></script>
 </body>

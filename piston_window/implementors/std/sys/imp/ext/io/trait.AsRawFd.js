@@ -10,6 +10,7 @@ implementors["glutin"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.
 implementors["glutin_window"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/sys/imp/ext/io/trait.AsRawFd.html\" title=\"trait std::sys::imp::ext::io::AsRawFd\">AsRawFd</a> for <a class=\"struct\" href=\"tempfile/named/struct.NamedTempFile.html\" title=\"struct tempfile::named::NamedTempFile\">NamedTempFile</a>",];
 implementors["graphics"] = [];
 implementors["image"] = [];
+implementors["itertools"] = [];
 implementors["libc"] = [];
 implementors["libloading"] = [];
 implementors["piston_window"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/sys/imp/ext/io/trait.AsRawFd.html\" title=\"trait std::sys::imp::ext::io::AsRawFd\">AsRawFd</a> for <a class=\"struct\" href=\"tempfile/named/struct.NamedTempFile.html\" title=\"struct tempfile::named::NamedTempFile\">NamedTempFile</a>",];

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.8/src/deflate_state.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.11/src/deflate_state.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>deflate_state.rs.html -- source</title>
@@ -117,27 +117,51 @@
 <span id="72">72</span>
 <span id="73">73</span>
 <span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
+<span id="87">87</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
 <span class="kw">use</span> <span class="ident">lz77</span>::<span class="ident">LZ77State</span>;
 <span class="kw">use</span> <span class="ident">output_writer</span>::<span class="ident">DynamicWriter</span>;
 <span class="kw">use</span> <span class="ident">encoder_state</span>::<span class="ident">EncoderState</span>;
-<span class="kw">use</span> <span class="ident">input_buffer</span>::{<span class="ident">InputBuffer</span>, <span class="ident">BackBuffer</span>};
+<span class="kw">use</span> <span class="ident">input_buffer</span>::<span class="ident">InputBuffer</span>;
 <span class="kw">use</span> <span class="ident">compression_options</span>::<span class="ident">CompressionOptions</span>;
 <span class="kw">use</span> <span class="ident">huffman_table</span>::<span class="ident">HuffmanTable</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">io</span>, <span class="ident">mem</span>};
 <span class="kw">use</span> <span class="ident">compress</span>::<span class="ident">Flush</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">huffman_table</span>::<span class="ident">MAX_MATCH</span>;
 
+
+<span class="doccomment">/// A struct containing all the stored state used for the encoder.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeflateState</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// State of lz77 compression.</span>
     <span class="kw">pub</span> <span class="ident">lz77_state</span>: <span class="ident">LZ77State</span>,
     <span class="kw">pub</span> <span class="ident">input_buffer</span>: <span class="ident">InputBuffer</span>,
     <span class="kw">pub</span> <span class="ident">compression_options</span>: <span class="ident">CompressionOptions</span>,
+    <span class="doccomment">/// State the huffman part of the compression and the output buffer.</span>
     <span class="kw">pub</span> <span class="ident">encoder_state</span>: <span class="ident">EncoderState</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;&gt;</span>,
+    <span class="doccomment">/// The buffer containing the raw output of the lz77-encoding.</span>
     <span class="kw">pub</span> <span class="ident">lz77_writer</span>: <span class="ident">DynamicWriter</span>,
+    <span class="doccomment">/// Total number of bytes consumed/written to the input buffer.</span>
     <span class="kw">pub</span> <span class="ident">bytes_written</span>: <span class="ident">u64</span>,
-    <span class="kw">pub</span> <span class="ident">back_buffer</span>: <span class="ident">BackBuffer</span>,
-    <span class="kw">pub</span> <span class="ident">inner</span>: <span class="ident">W</span>,
+    <span class="doccomment">/// Wrapped writer.</span>
+    <span class="doccomment">/// Option is used to allow us to implement `Drop` and `finish()` at the same time for the</span>
+    <span class="doccomment">/// writer structs.</span>
+    <span class="kw">pub</span> <span class="ident">inner</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// The position in the output buffer where data should be flushed from, to keep track of</span>
+    <span class="doccomment">/// what data has been output in case not all data is output when writing to the wrapped</span>
+    <span class="doccomment">/// writer.</span>
     <span class="kw">pub</span> <span class="ident">output_buf_pos</span>: <span class="ident">usize</span>,
     <span class="kw">pub</span> <span class="ident">flush_mode</span>: <span class="ident">Flush</span>,
     <span class="doccomment">/// Number of bytes written as calculated by sum of block input lengths.</span>
@@ -156,8 +180,7 @@
             <span class="ident">lz77_writer</span>: <span class="ident">DynamicWriter</span>::<span class="ident">new</span>(),
             <span class="ident">compression_options</span>: <span class="ident">compression_options</span>,
             <span class="ident">bytes_written</span>: <span class="number">0</span>,
-            <span class="ident">back_buffer</span>: <span class="ident">BackBuffer</span>::<span class="ident">new</span>(),
-            <span class="ident">inner</span>: <span class="ident">writer</span>,
+            <span class="ident">inner</span>: <span class="prelude-val">Some</span>(<span class="ident">writer</span>),
             <span class="ident">output_buf_pos</span>: <span class="number">0</span>,
             <span class="ident">flush_mode</span>: <span class="ident">Flush</span>::<span class="prelude-val">None</span>,
             <span class="ident">bytes_written_control</span>: <span class="number">0</span>,
@@ -177,19 +200,22 @@
     <span class="doccomment">/// If flushing fails, the rest of the writer is not cleared.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">reset</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">writer</span>: <span class="ident">W</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">encoder_state</span>.<span class="ident">flush</span>()<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">write_all</span>(<span class="self">self</span>.<span class="ident">encoder_state</span>.<span class="ident">inner_vec</span>())<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">inner</span>
+            .<span class="ident">as_mut</span>()
+            .<span class="ident">expect</span>(<span class="string">&quot;Missing writer!&quot;</span>)
+            .<span class="ident">write_all</span>(<span class="self">self</span>.<span class="ident">encoder_state</span>.<span class="ident">inner_vec</span>())<span class="question-mark">?</span>;
         <span class="self">self</span>.<span class="ident">encoder_state</span>.<span class="ident">inner_vec</span>().<span class="ident">clear</span>();
         <span class="self">self</span>.<span class="ident">input_buffer</span> <span class="op">=</span> <span class="ident">InputBuffer</span>::<span class="ident">empty</span>();
         <span class="self">self</span>.<span class="ident">lz77_writer</span>.<span class="ident">clear</span>();
         <span class="self">self</span>.<span class="ident">lz77_state</span>.<span class="ident">reset</span>();
         <span class="self">self</span>.<span class="ident">bytes_written</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="self">self</span>.<span class="ident">back_buffer</span>.<span class="ident">clear</span>();
         <span class="self">self</span>.<span class="ident">output_buf_pos</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="self">self</span>.<span class="ident">flush_mode</span> <span class="op">=</span> <span class="ident">Flush</span>::<span class="prelude-val">None</span>;
         <span class="kw">if</span> <span class="macro">cfg</span><span class="macro">!</span>(<span class="ident">debug_assertions</span>) {
             <span class="self">self</span>.<span class="ident">bytes_written_control</span> <span class="op">=</span> <span class="number">0</span>;
         }
-        <span class="prelude-val">Ok</span>(<span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">inner</span>, <span class="ident">writer</span>))
+        <span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">inner</span>, <span class="prelude-val">Some</span>(<span class="ident">writer</span>))
+            .<span class="ident">ok_or_else</span>(<span class="op">||</span> <span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>, <span class="string">&quot;Missing writer&quot;</span>))
     }
 }
 </pre>
@@ -250,7 +276,6 @@
         window.rootPath = "../../";
         window.currentCrate = "deflate";
     </script>
-    <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     <script defer src="../../search-index.js"></script>
 </body>
