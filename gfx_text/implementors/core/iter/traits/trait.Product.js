@@ -2,6 +2,7 @@
 implementors["freetype"] = [];
 implementors["gfx"] = [];
 implementors["gfx_core"] = [];
+implementors["itertools"] = [];
 implementors["libc"] = [];
 
             if (window.register_implementors) {
