@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Library",""]]});
+initSidebarItems({"enum":[["LcdFilter",""]],"struct":[["Library",""]]});
