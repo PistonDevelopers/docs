@@ -3,6 +3,7 @@ implementors["alga"] = [];
 implementors["arrayvec"] = [];
 implementors["enum_primitive"] = [];
 implementors["image"] = [];
+implementors["itertools"] = [];
 implementors["libc"] = [];
 implementors["nalgebra"] = [];
 implementors["num"] = [];

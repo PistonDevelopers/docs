@@ -3,6 +3,7 @@ implementors["alga"] = [];
 implementors["arrayvec"] = [];
 implementors["enum_primitive"] = [];
 implementors["image"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/trait.BitXorAssign.html\" title=\"trait core::ops::BitXorAssign\">BitXorAssign</a>&lt;<a class=\"struct\" href=\"png/common/struct.Transformations.html\" title=\"struct png::common::Transformations\">Transformations</a>&gt; for <a class=\"struct\" href=\"png/common/struct.Transformations.html\" title=\"struct png::common::Transformations\">Transformations</a>",];
+implementors["itertools"] = [];
 implementors["libc"] = [];
 implementors["nalgebra"] = [];
 implementors["num"] = [];
