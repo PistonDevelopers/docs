@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["canny","Runs the canny edge detection algorithm on the provided `ImageBuffer`."]]});
+initSidebarItems({"fn":[["canny","Runs the canny edge detection algorithm."]]});
