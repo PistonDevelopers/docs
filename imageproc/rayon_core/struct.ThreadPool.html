@@ -48,8 +48,28 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../src/rayon_core/thread_pool/mod.rs.html#16-18' title='goto source code'>[src]</a></span></h1>
-<pre class='rust struct'>pub struct ThreadPool { /* fields omitted */ }</pre><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../rayon_core/struct.ThreadPool.html" title="struct rayon_core::ThreadPool">ThreadPool</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/rayon_core/thread_pool/mod.rs.html#20-119' title='goto source code'>[src]</a></span></h3>
+               </span><a class='srclink' href='../src/rayon_core/thread_pool/mod.rs.html#48-50' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct ThreadPool { /* fields omitted */ }</pre><div class='docblock'>
+<h1 id='threadpool' class='section-header'><a href='#threadpool'>ThreadPool</a></h1>
+<p>The <a href="struct.ThreadPool.html"><code>ThreadPool</code></a> struct represents a user created <a href="https://en.wikipedia.org/wiki/Thread_pool">thread-pool</a>. <a href="struct.ThreadPool.html#method.new"><code>ThreadPool::new()</code></a>
+takes a <a href="struct.Configuration.html"><code>Configuration</code></a> struct that you can use to specify the number and/or
+names of threads in the pool. You can then execute functions explicitly within
+this <a href="struct.ThreadPool.html"><code>ThreadPool</code></a> using <a href="struct.ThreadPool.html#method.install"><code>ThreadPool::install()</code></a>. By contrast, top level
+rayon functions (like <code>join()</code>)  will execute implicitly within the current thread-pool.</p>
+
+<h2 id='creating-a-threadpool' class='section-header'><a href='#creating-a-threadpool'>Creating a ThreadPool</a></h2>
+<pre class="rust rust-example-rendered">
+
+   <span class="kw">let</span> <span class="ident">pool</span> <span class="op">=</span> <span class="ident">rayon</span>::<span class="ident">ThreadPool</span>::<span class="ident">new</span>(<span class="ident">rayon</span>::<span class="ident">Configuration</span>::<span class="ident">new</span>().<span class="ident">num_threads</span>(<span class="number">8</span>)).<span class="ident">unwrap</span>();</pre>
+
+<p>[<code>install()</code>] executes a closure in one of the <code>ThreadPool</code>&#39;s threads. In addition, 
+any other rayon operations called inside of <code>install()</code> will also execute in the
+context of the <code>ThreadPool</code>.</p>
+
+<p>When the <code>ThreadPool</code> is dropped, that&#39;s a signal for the threads it manages to terminate,
+they will complete executing any remaining work that you have spawned, and automatically
+terminate.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../rayon_core/struct.ThreadPool.html" title="struct rayon_core::ThreadPool">ThreadPool</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/rayon_core/thread_pool/mod.rs.html#52-288' title='goto source code'>[src]</a></span></h3>
 <div class='impl-items'><h4 id='method.new' class="method"><span id='new.v' class='invisible'><code>fn <a href='#method.new' class='fnname'>new</a>(configuration: <a class="struct" href="../rayon_core/struct.Configuration.html" title="struct rayon_core::Configuration">Configuration</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../rayon_core/struct.ThreadPool.html" title="struct rayon_core::ThreadPool">ThreadPool</a>, <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="trait" href="https://doc.rust-lang.org/nightly/std/error/trait.Error.html" title="trait std::error::Error">Error</a>&gt;&gt;</code></span></h4>
 <div class='docblock'><p>Constructs a new thread pool with the given configuration. If
 the configuration is not valid, returns a suitable <code>Err</code>
@@ -66,6 +86,22 @@ accessible.</p>
 
 <h1 id='panics' class='section-header'><a href='#panics'>Panics</a></h1>
 <p>If <code>op</code> should panic, that panic will be propagated.</p>
+
+<h2 id='using-install' class='section-header'><a href='#using-install'>Using <code>install()</code></a></h2>
+<pre class="rust rust-example-rendered">
+   <span class="kw">fn</span> <span class="ident">main</span>() {
+        <span class="kw">let</span> <span class="ident">pool</span> <span class="op">=</span> <span class="ident">rayon</span>::<span class="ident">ThreadPool</span>::<span class="ident">new</span>(<span class="ident">rayon</span>::<span class="ident">Configuration</span>::<span class="ident">new</span>().<span class="ident">num_threads</span>(<span class="number">8</span>)).<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">n</span> <span class="op">=</span> <span class="ident">pool</span>.<span class="ident">install</span>(<span class="op">||</span> <span class="ident">fib</span>(<span class="number">20</span>)); 
+        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">n</span>);
+   }
+
+   <span class="kw">fn</span> <span class="ident">fib</span>(<span class="ident">n</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="kw">if</span> <span class="ident">n</span> <span class="op">==</span> <span class="number">0</span> <span class="op">||</span> <span class="ident">n</span> <span class="op">==</span> <span class="number">1</span> {
+            <span class="kw">return</span> <span class="ident">n</span>;
+        }
+        <span class="kw">let</span> (<span class="ident">a</span>, <span class="ident">b</span>) <span class="op">=</span> <span class="ident">rayon</span>::<span class="ident">join</span>(<span class="op">||</span> <span class="ident">fib</span>(<span class="ident">n</span> <span class="op">-</span> <span class="number">1</span>), <span class="op">||</span> <span class="ident">fib</span>(<span class="ident">n</span> <span class="op">-</span> <span class="number">2</span>)); <span class="comment">// runs inside of `pool`</span>
+        <span class="kw">return</span> <span class="ident">a</span> <span class="op">+</span> <span class="ident">b</span>;
+    }</pre>
 </div><h4 id='method.current_num_threads' class="method"><span id='current_num_threads.v' class='invisible'><code>fn <a href='#method.current_num_threads' class='fnname'>current_num_threads</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a></code></span></h4>
 <div class='docblock'><p>Returns the (current) number of threads in the thread pool.</p>
 
@@ -92,7 +128,26 @@ for details</a>). In that case, the index for a
 thread would not change during its lifetime, but thread
 indices may wind up being reused if threads are terminated and
 restarted.</p>
-</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html" title="trait core::ops::Drop">Drop</a> for <a class="struct" href="../rayon_core/struct.ThreadPool.html" title="struct rayon_core::ThreadPool">ThreadPool</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/rayon_core/thread_pool/mod.rs.html#121-125' title='goto source code'>[src]</a></span></h3>
+</div><h4 id='method.current_thread_has_pending_tasks' class="method"><span id='current_thread_has_pending_tasks.v' class='invisible'><code>fn <a href='#method.current_thread_has_pending_tasks' class='fnname'>current_thread_has_pending_tasks</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a>&gt;</code></span></h4>
+<div class='docblock'><p>Returns true if the current worker thread currently has &quot;local
+tasks&quot; pending. This can be useful as part of a heuristic for
+deciding whether to spawn a new task or execute code on the
+current thread, particularly in breadth-first
+schedulers. However, keep in mind that this is an inherently
+racy check, as other worker threads may be actively &quot;stealing&quot;
+tasks from our local deque.</p>
+
+<p><strong>Background:</strong> Rayon&#39;s uses a <a href="https://en.wikipedia.org/wiki/Work_stealing">work-stealing</a> scheduler. The
+key idea is that each thread has its own <a href="https://en.wikipedia.org/wiki/Double-ended_queue">deque</a> of
+tasks. Whenever a new task is spawned -- whether through
+<code>join()</code>, <code>Scope::spawn()</code>, or some other means -- that new
+task is pushed onto the thread&#39;s <em>local</em> deque. Worker threads
+have a preference for executing their own tasks; if however
+they run out of tasks, they will go try to &quot;steal&quot; tasks from
+other threads. This function therefore has an inherent race
+with other active worker threads, which may be removing items
+from the local deque.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html" title="trait core::ops::Drop">Drop</a> for <a class="struct" href="../rayon_core/struct.ThreadPool.html" title="struct rayon_core::ThreadPool">ThreadPool</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/rayon_core/thread_pool/mod.rs.html#290-294' title='goto source code'>[src]</a></span></h3>
 <div class='impl-items'><h4 id='method.drop' class="method"><span id='drop.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html#tymethod.drop' class='fnname'>drop</a>(&amp;mut self)</code></span></h4>
 <div class='docblock'><p>A method called when the value goes out of scope. <a href="https://doc.rust-lang.org/nightly/core/ops/trait.Drop.html#tymethod.drop">Read more</a></p>
 </div></div></section>

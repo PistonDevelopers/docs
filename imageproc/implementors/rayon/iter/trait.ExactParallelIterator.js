@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["image"] = [];
 implementors["rayon"] = [];
 
             if (window.register_implementors) {
