@@ -1,12 +1,14 @@
-// Copyright 2014 The Rust Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
-// http://rust-lang.org/COPYRIGHT.
-//
-// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
-// except according to those terms.
+/*!
+ * Copyright 2014 The Rust Project Developers. See the COPYRIGHT
+ * file at the top-level directory of this distribution and at
+ * http://rust-lang.org/COPYRIGHT.
+ *
+ * Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+ * http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+ * <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+ * option. This file may not be copied, modified, or distributed
+ * except according to those terms.
+ */
 
 /*jslint browser: true, es5: true */
 /*globals $: true, rootPath: true */
@@ -215,14 +217,14 @@
         } else if (ev.target.tagName === 'SPAN' && hasClass(ev.target.parentNode, 'line-numbers')) {
             var prev_id = 0;
 
-            function set_fragment(name) {
+            var set_fragment = function (name) {
                 if (browserSupportsHistoryApi()) {
                     history.replaceState(null, null, '#' + name);
                     window.hashchange();
                 } else {
                     location.replace('#' + name);
                 }
-            }
+            };
 
             var cur_id = parseInt(ev.target.id, 10);
 
@@ -685,7 +687,7 @@
         }
 
         function escape(content) {
-            let h1 = document.createElement('h1');
+            var h1 = document.createElement('h1');
             h1.textContent = content;
             return h1.innerHTML;
         }
@@ -1083,10 +1085,10 @@
                 code.innerHTML = structs[j];
 
                 var x = code.getElementsByTagName('a');
-                for (var i = 0; i < x.length; i++) {
-                    var href = x[i].href;
+                for (var k = 0; k < x.length; k++) {
+                    var href = x[k].getAttribute('href');
                     if (href && href.indexOf('http') !== 0) {
-                        x[i].href = rootPath + href;
+                        x[k].setAttribute('href', rootPath + href);
                     }
                 }
                 var li = document.createElement('li');

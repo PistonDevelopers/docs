@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.7.0/src/iter/from_par_iter.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.8.1/src/iter/from_par_iter.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>from_par_iter.rs.html -- source</title>
@@ -215,59 +215,37 @@
 <span id="170">170</span>
 <span id="171">171</span>
 <span id="172">172</span>
-<span id="173">173</span>
-<span id="174">174</span>
-<span id="175">175</span>
-<span id="176">176</span>
-<span id="177">177</span>
-<span id="178">178</span>
-<span id="179">179</span>
-<span id="180">180</span>
-<span id="181">181</span>
-<span id="182">182</span>
-<span id="183">183</span>
-<span id="184">184</span>
-<span id="185">185</span>
-<span id="186">186</span>
-<span id="187">187</span>
-<span id="188">188</span>
-<span id="189">189</span>
-<span id="190">190</span>
-<span id="191">191</span>
-<span id="192">192</span>
 </pre><pre class="rust ">
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">FromParallelIterator</span>, <span class="ident">IntoParallelIterator</span>, <span class="ident">ParallelIterator</span>};
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">FromParallelIterator</span>, <span class="ident">IntoParallelIterator</span>, <span class="ident">ParallelExtend</span>};
 
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Cow</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">BTreeMap</span>, <span class="ident">BTreeSet</span>, <span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">hash</span>::{<span class="ident">BuildHasher</span>, <span class="ident">Hash</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">LinkedList</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">BinaryHeap</span>, <span class="ident">VecDeque</span>};
 
-<span class="kw">fn</span> <span class="ident">combine</span><span class="op">&lt;</span><span class="ident">I</span>, <span class="ident">START</span>, <span class="ident">COLL</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>, <span class="ident">make_start</span>: <span class="ident">START</span>) <span class="op">-&gt;</span> <span class="ident">COLL</span>
+
+<span class="doccomment">/// Create an empty default collection and extend it.</span>
+<span class="kw">fn</span> <span class="ident">collect_extended</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="ident">C</span>
     <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span>,
-          <span class="ident">START</span>: <span class="ident">FnOnce</span>(<span class="kw-2">&amp;</span><span class="ident">LinkedList</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">I</span>::<span class="ident">Item</span><span class="op">&gt;&gt;</span>) <span class="op">-&gt;</span> <span class="ident">COLL</span>,
-          <span class="ident">COLL</span>: <span class="ident">Extend</span><span class="op">&lt;</span><span class="ident">I</span>::<span class="ident">Item</span><span class="op">&gt;</span>
+          <span class="ident">C</span>: <span class="ident">ParallelExtend</span><span class="op">&lt;</span><span class="ident">I</span>::<span class="ident">Item</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Default</span>
 {
-    <span class="kw">let</span> <span class="ident">list</span> <span class="op">=</span> <span class="ident">par_iter</span>.<span class="ident">into_par_iter</span>()
-        .<span class="ident">fold</span>(<span class="ident">Vec</span>::<span class="ident">new</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">vec</span>, <span class="ident">elem</span><span class="op">|</span> {
-            <span class="ident">vec</span>.<span class="ident">push</span>(<span class="ident">elem</span>);
-            <span class="ident">vec</span>
-        })
-        .<span class="ident">collect</span>();
-
-    <span class="kw">let</span> <span class="ident">start</span> <span class="op">=</span> <span class="ident">make_start</span>(<span class="kw-2">&amp;</span><span class="ident">list</span>);
-    <span class="ident">list</span>.<span class="ident">into_iter</span>().<span class="ident">fold</span>(<span class="ident">start</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">coll</span>, <span class="ident">vec</span><span class="op">|</span> {
-        <span class="ident">coll</span>.<span class="ident">extend</span>(<span class="ident">vec</span>);
-        <span class="ident">coll</span>
-    })
-}
-
-<span class="kw">fn</span> <span class="ident">combined_len</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">list</span>: <span class="kw-2">&amp;</span><span class="ident">LinkedList</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
-    <span class="ident">list</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">Vec</span>::<span class="ident">len</span>).<span class="ident">sum</span>()
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">collection</span> <span class="op">=</span> <span class="ident">C</span>::<span class="ident">default</span>();
+    <span class="ident">collection</span>.<span class="ident">par_extend</span>(<span class="ident">par_iter</span>);
+    <span class="ident">collection</span>
 }
 
 
-<span class="comment">// See the `collect` module for the `Vec&lt;T&gt;` implementation.</span>
+<span class="doccomment">/// Collect items from a parallel iterator into a vector.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Send</span>
+{
+    <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
+        <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span><span class="op">&gt;</span>
+    {
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
+    }
+}
 
 <span class="doccomment">/// Collect items from a parallel iterator into a vecdeque.</span>
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">VecDeque</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>
@@ -300,17 +278,7 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span><span class="op">&gt;</span>
     {
-        <span class="ident">par_iter</span>.<span class="ident">into_par_iter</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">elem</span><span class="op">|</span> {
-                     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">list</span> <span class="op">=</span> <span class="ident">LinkedList</span>::<span class="ident">new</span>();
-                     <span class="ident">list</span>.<span class="ident">push_back</span>(<span class="ident">elem</span>);
-                     <span class="ident">list</span>
-                 })
-            .<span class="ident">reduce_with</span>(<span class="op">|</span><span class="kw-2">mut</span> <span class="ident">list1</span>, <span class="kw-2">mut</span> <span class="ident">list2</span><span class="op">|</span> {
-                             <span class="ident">list1</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">list2</span>);
-                             <span class="ident">list1</span>
-                         })
-            .<span class="ident">unwrap_or_else</span>(<span class="ident">LinkedList</span>::<span class="ident">new</span>)
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -326,11 +294,7 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> (<span class="ident">K</span>, <span class="ident">V</span>)<span class="op">&gt;</span>
     {
-        <span class="comment">// See the map_collect benchmarks in rayon-demo for different strategies.</span>
-        <span class="ident">combine</span>(<span class="ident">par_iter</span>, <span class="op">|</span><span class="ident">list</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">combined_len</span>(<span class="ident">list</span>);
-            <span class="ident">HashMap</span>::<span class="ident">with_capacity_and_hasher</span>(<span class="ident">len</span>, <span class="ident">Default</span>::<span class="ident">default</span>())
-        })
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -345,7 +309,7 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> (<span class="ident">K</span>, <span class="ident">V</span>)<span class="op">&gt;</span>
     {
-        <span class="ident">combine</span>(<span class="ident">par_iter</span>, <span class="op">|</span>_<span class="op">|</span> <span class="ident">BTreeMap</span>::<span class="ident">new</span>())
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -357,10 +321,7 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">V</span><span class="op">&gt;</span>
     {
-        <span class="ident">combine</span>(<span class="ident">par_iter</span>, <span class="op">|</span><span class="ident">list</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">combined_len</span>(<span class="ident">list</span>);
-            <span class="ident">HashSet</span>::<span class="ident">with_capacity_and_hasher</span>(<span class="ident">len</span>, <span class="ident">Default</span>::<span class="ident">default</span>())
-        })
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -371,7 +332,7 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">V</span><span class="op">&gt;</span>
     {
-        <span class="ident">combine</span>(<span class="ident">par_iter</span>, <span class="op">|</span>_<span class="op">|</span> <span class="ident">BTreeSet</span>::<span class="ident">new</span>())
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -380,21 +341,16 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">char</span><span class="op">&gt;</span>
     {
-        <span class="comment">// This is like `combine`, but `Vec&lt;char&gt;` is less efficient to deal</span>
-        <span class="comment">// with than `String`, so instead collect to `LinkedList&lt;String&gt;`.</span>
-        <span class="kw">let</span> <span class="ident">list</span>: <span class="ident">LinkedList</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="ident">par_iter</span>.<span class="ident">into_par_iter</span>()
-            .<span class="ident">fold</span>(<span class="ident">String</span>::<span class="ident">new</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">string</span>, <span class="ident">ch</span><span class="op">|</span> {
-                <span class="ident">string</span>.<span class="ident">push</span>(<span class="ident">ch</span>);
-                <span class="ident">string</span>
-            })
-            .<span class="ident">collect</span>();
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
+    }
+}
 
-        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">list</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">String</span>::<span class="ident">len</span>).<span class="ident">sum</span>();
-        <span class="kw">let</span> <span class="ident">start</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">with_capacity</span>(<span class="ident">len</span>);
-        <span class="ident">list</span>.<span class="ident">into_iter</span>().<span class="ident">fold</span>(<span class="ident">start</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">string</span>, <span class="ident">sub</span><span class="op">|</span> {
-            <span class="ident">string</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="ident">sub</span>);
-            <span class="ident">string</span>
-        })
+<span class="doccomment">/// Collect characters from a parallel iterator into a string.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">char</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">String</span> {
+    <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
+        <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">char</span><span class="op">&gt;</span>
+    {
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -403,17 +359,7 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span><span class="op">&gt;</span>
     {
-        <span class="ident">combine</span>(<span class="ident">par_iter</span>, <span class="op">|</span><span class="ident">list</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">list</span>.<span class="ident">iter</span>()
-                .<span class="ident">map</span>(<span class="op">|</span><span class="ident">vec</span><span class="op">|</span> <span class="op">-&gt;</span> <span class="ident">usize</span> {
-                         <span class="ident">vec</span>.<span class="ident">iter</span>()
-                             .<span class="ident">cloned</span>()
-                             .<span class="ident">map</span>(<span class="ident">str</span>::<span class="ident">len</span>)
-                             .<span class="ident">sum</span>()
-                     })
-                .<span class="ident">sum</span>();
-            <span class="ident">String</span>::<span class="ident">with_capacity</span>(<span class="ident">len</span>)
-        })
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
     }
 }
 
@@ -422,10 +368,24 @@
     <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
         <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">String</span><span class="op">&gt;</span>
     {
-        <span class="ident">combine</span>(<span class="ident">par_iter</span>, <span class="op">|</span><span class="ident">list</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">list</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">vec</span><span class="op">|</span> <span class="op">-&gt;</span> <span class="ident">usize</span> { <span class="ident">vec</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">String</span>::<span class="ident">len</span>).<span class="ident">sum</span>() }).<span class="ident">sum</span>();
-            <span class="ident">String</span>::<span class="ident">with_capacity</span>(<span class="ident">len</span>)
-        })
+        <span class="ident">collect_extended</span>(<span class="ident">par_iter</span>)
+    }
+}
+
+<span class="doccomment">/// Collect an arbitrary `Cow` collection.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Note, the standard library only has `FromIterator` for `Cow&lt;&#39;a, str&gt;` and</span>
+<span class="doccomment">/// `Cow&lt;&#39;a, [T]&gt;`, because no one thought to add a blanket implementation</span>
+<span class="doccomment">/// before it was stabilized.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">C</span>: <span class="question-mark">?</span><span class="ident">Sized</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">C</span>: <span class="ident">ToOwned</span>,
+          <span class="ident">C</span>::<span class="ident">Owned</span>: <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
+          <span class="ident">T</span>: <span class="ident">Send</span>
+{
+    <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
+        <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span><span class="op">&gt;</span>
+    {
+        <span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="ident">C</span>::<span class="ident">Owned</span>::<span class="ident">from_par_iter</span>(<span class="ident">par_iter</span>))
     }
 }
 </pre>
