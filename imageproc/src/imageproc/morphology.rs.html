@@ -528,6 +528,8 @@
 <span id="483">483</span>
 <span id="484">484</span>
 <span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Functions for computing [morphological operators].</span>
 <span class="doccomment">//!</span>
@@ -546,7 +548,7 @@
     <span class="ident">L1</span>,
     <span class="doccomment">/// Defines d((x1, y1), (x2, y2)) to be max(abs(x1 - x2), abs(y1 - y2)).</span>
     <span class="doccomment">/// Also known as the chessboard norm.</span>
-    <span class="ident">LInf</span>
+    <span class="ident">LInf</span>,
 }
 
 <span class="doccomment">/// Sets all pixels within distance `k` of a foreground pixel to white.</span>
@@ -750,7 +752,10 @@
 }
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">enum</span> <span class="ident">DistanceFrom</span> { <span class="ident">Foreground</span>, <span class="ident">Background</span> }
+<span class="kw">enum</span> <span class="ident">DistanceFrom</span> {
+    <span class="ident">Foreground</span>,
+    <span class="ident">Background</span>,
+}
 
 <span class="kw">fn</span> <span class="ident">distance_transform_impl</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">GrayImage</span>, <span class="ident">norm</span>: <span class="ident">Norm</span>, <span class="ident">from</span>: <span class="ident">DistanceFrom</span>) {
     <span class="kw">let</span> <span class="ident">max_distance</span> <span class="op">=</span> <span class="ident">Luma</span>([<span class="ident">min</span>(<span class="ident">image</span>.<span class="ident">width</span>() <span class="op">+</span> <span class="ident">image</span>.<span class="ident">height</span>(), <span class="number">255u32</span>) <span class="kw">as</span> <span class="ident">u8</span>]);
@@ -764,8 +769,7 @@
                         <span class="ident">image</span>.<span class="ident">unsafe_put_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">Luma</span>([<span class="number">0u8</span>]));
                         <span class="kw">continue</span>;
                     }
-                }
-                <span class="kw">else</span> {
+                } <span class="kw">else</span> {
                     <span class="kw">if</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>)[<span class="number">0</span>] <span class="op">==</span> <span class="number">0u8</span> {
                         <span class="ident">image</span>.<span class="ident">unsafe_put_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">Luma</span>([<span class="number">0u8</span>]));
                         <span class="kw">continue</span>;
@@ -820,7 +824,13 @@
 <span class="comment">// Sets image[current_x, current_y] to min(image[current_x, current_y], image[candidate_x, candidate_y] + 1).</span>
 <span class="comment">// We avoid overflow by performing the arithmetic at type u16. We could use u8::saturating_add instead, but</span>
 <span class="comment">// (based on the benchmarks tests) this appears to be considerably slower.</span>
-<span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">check</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">GrayImage</span>, <span class="ident">current_x</span>: <span class="ident">u32</span>, <span class="ident">current_y</span>: <span class="ident">u32</span>, <span class="ident">candidate_x</span>: <span class="ident">u32</span>, <span class="ident">candidate_y</span>: <span class="ident">u32</span>) {
+<span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">check</span>(
+    <span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">GrayImage</span>,
+    <span class="ident">current_x</span>: <span class="ident">u32</span>,
+    <span class="ident">current_y</span>: <span class="ident">u32</span>,
+    <span class="ident">candidate_x</span>: <span class="ident">u32</span>,
+    <span class="ident">candidate_y</span>: <span class="ident">u32</span>,
+) {
     <span class="kw">let</span> <span class="ident">current</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">current_x</span>, <span class="ident">current_y</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u16</span>;
     <span class="kw">let</span> <span class="ident">candidate_incr</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">candidate_x</span>, <span class="ident">candidate_y</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u16</span> <span class="op">+</span> <span class="number">1</span>;
     <span class="kw">if</span> <span class="ident">candidate_incr</span> <span class="op">&lt;</span> <span class="ident">current</span> {
@@ -838,17 +848,13 @@
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_distance_transform_saturation</span>() {
         <span class="comment">// A single foreground pixel in the top-right</span>
-        <span class="kw">let</span> <span class="ident">image</span> <span class="op">=</span> <span class="ident">GrayImage</span>::<span class="ident">from_fn</span>(<span class="number">5</span>, <span class="number">5</span>, <span class="op">|</span><span class="ident">x</span>, <span class="ident">y</span><span class="op">|</span> {
-            <span class="kw">match</span> (<span class="ident">x</span>, <span class="ident">y</span>) {
-                (<span class="number">0</span>, <span class="number">0</span>) <span class="op">=&gt;</span> <span class="ident">Luma</span>([<span class="number">255u8</span>]),
-                _ <span class="op">=&gt;</span> <span class="ident">Luma</span>([<span class="number">0u8</span>])
-            }
+        <span class="kw">let</span> <span class="ident">image</span> <span class="op">=</span> <span class="ident">GrayImage</span>::<span class="ident">from_fn</span>(<span class="number">5</span>, <span class="number">5</span>, <span class="op">|</span><span class="ident">x</span>, <span class="ident">y</span><span class="op">|</span> <span class="kw">match</span> (<span class="ident">x</span>, <span class="ident">y</span>) {
+            (<span class="number">0</span>, <span class="number">0</span>) <span class="op">=&gt;</span> <span class="ident">Luma</span>([<span class="number">255u8</span>]),
+            _ <span class="op">=&gt;</span> <span class="ident">Luma</span>([<span class="number">0u8</span>]),
         });
 
         <span class="comment">// Distances should not overflow</span>
-        <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="ident">GrayImage</span>::<span class="ident">from_fn</span>(<span class="number">5</span>, <span class="number">5</span>, <span class="op">|</span><span class="ident">x</span>, <span class="ident">y</span><span class="op">|</span> {
-            <span class="ident">Luma</span>([<span class="ident">min</span>(<span class="number">255</span>, <span class="ident">max</span>(<span class="ident">x</span>, <span class="ident">y</span>)) <span class="kw">as</span> <span class="ident">u8</span>])
-        });
+        <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="ident">GrayImage</span>::<span class="ident">from_fn</span>(<span class="number">5</span>, <span class="number">5</span>, <span class="op">|</span><span class="ident">x</span>, <span class="ident">y</span><span class="op">|</span> <span class="ident">Luma</span>([<span class="ident">min</span>(<span class="number">255</span>, <span class="ident">max</span>(<span class="ident">x</span>, <span class="ident">y</span>)) <span class="kw">as</span> <span class="ident">u8</span>]));
 
         <span class="kw">let</span> <span class="ident">distances</span> <span class="op">=</span> <span class="ident">distance_transform</span>(<span class="kw-2">&amp;</span><span class="ident">image</span>, <span class="ident">Norm</span>::<span class="ident">LInf</span>);
         <span class="macro">assert_pixels_eq</span><span class="macro">!</span>(<span class="ident">distances</span>, <span class="ident">expected</span>);
@@ -941,7 +947,7 @@
 
         <span class="macro">assert_pixels_eq</span><span class="macro">!</span>(<span class="ident">dilated</span>, <span class="ident">expected</span>);
     }
-    
+
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_erode_point_l1_1</span>() {
         <span class="kw">let</span> <span class="ident">image</span> <span class="op">=</span> <span class="macro">gray_image</span><span class="macro">!</span>(
@@ -987,12 +993,10 @@
     }
 
     <span class="kw">fn</span> <span class="ident">square</span>() <span class="op">-&gt;</span> <span class="ident">GrayImage</span> {
-        <span class="ident">GrayImage</span>::<span class="ident">from_fn</span>(<span class="number">500</span>, <span class="number">500</span>, <span class="op">|</span><span class="ident">x</span>, <span class="ident">y</span><span class="op">|</span>{
-            <span class="kw">if</span> <span class="ident">min</span>(<span class="ident">x</span>, <span class="ident">y</span>) <span class="op">&gt;</span> <span class="number">100</span> <span class="op">&amp;&amp;</span> <span class="ident">max</span>(<span class="ident">x</span>, <span class="ident">y</span>) <span class="op">&lt;</span> <span class="number">300</span>  {
-                <span class="ident">Luma</span>([<span class="number">255u8</span>])
-            } <span class="kw">else</span> {
-                <span class="ident">Luma</span>([<span class="number">0u8</span>])
-            }
+        <span class="ident">GrayImage</span>::<span class="ident">from_fn</span>(<span class="number">500</span>, <span class="number">500</span>, <span class="op">|</span><span class="ident">x</span>, <span class="ident">y</span><span class="op">|</span> <span class="kw">if</span> <span class="ident">min</span>(<span class="ident">x</span>, <span class="ident">y</span>) <span class="op">&gt;</span> <span class="number">100</span> <span class="op">&amp;&amp;</span> <span class="ident">max</span>(<span class="ident">x</span>, <span class="ident">y</span>) <span class="op">&lt;</span> <span class="number">300</span> {
+            <span class="ident">Luma</span>([<span class="number">255u8</span>])
+        } <span class="kw">else</span> {
+            <span class="ident">Luma</span>([<span class="number">0u8</span>])
         })
     }
 
