@@ -48,13 +48,11 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../../src/conrod/widget/mod.rs.html#445-787' title='goto source code'>[src]</a></span></h1>
-<pre class='rust trait'>pub trait Widget: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a> {
+               </span><a class='srclink' href='../../src/conrod/widget/mod.rs.html#470-813' title='goto source code'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait Widget: <a class="trait" href="../../conrod/widget/trait.Common.html" title="trait conrod::widget::Common">Common</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a> {
     type <a href='#associatedtype.State' class="type">State</a>: <a class="trait" href="https://doc.rust-lang.org/nightly/core/any/trait.Any.html" title="trait core::any::Any">Any</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>;
     type <a href='#associatedtype.Style' class="type">Style</a>: <a class="trait" href="../../conrod/widget/trait.Style.html" title="trait conrod::widget::Style">Style</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>;
     type <a href='#associatedtype.Event' class="type">Event</a>;
-    fn <a href='#tymethod.common' class='fnname'>common</a>(&amp;self) -&gt; &amp;<a class="struct" href="../../conrod/widget/struct.CommonBuilder.html" title="struct conrod::widget::CommonBuilder">CommonBuilder</a>;
-    fn <a href='#tymethod.common_mut' class='fnname'>common_mut</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../../conrod/widget/struct.CommonBuilder.html" title="struct conrod::widget::CommonBuilder">CommonBuilder</a>;
     fn <a href='#tymethod.init_state' class='fnname'>init_state</a>(&amp;self, _: <a class="struct" href="../../conrod/widget/id/struct.Generator.html" title="struct conrod::widget::id::Generator">Generator</a>) -&gt; Self::<a class="type" href="../../conrod/widget/trait.Widget.html#associatedtype.State" title="type conrod::widget::Widget::State">State</a>;
     fn <a href='#tymethod.style' class='fnname'>style</a>(&amp;self) -&gt; Self::<a class="type" href="../../conrod/widget/trait.Widget.html#associatedtype.Style" title="type conrod::widget::Widget::Style">Style</a>;
     fn <a href='#tymethod.update' class='fnname'>update</a>(self, args: <a class="struct" href="../../conrod/widget/struct.UpdateArgs.html" title="struct conrod::widget::UpdateArgs">UpdateArgs</a>&lt;Self&gt;) -&gt; Self::<a class="type" href="../../conrod/widget/trait.Widget.html#associatedtype.Event" title="type conrod::widget::Widget::Event">Event</a>;
@@ -92,8 +90,6 @@ rather is used to update an instance of the <strong>Widget</strong>&#39;s <stron
 <p>Methods that <em>must</em> be overridden:</p>
 
 <ul>
-<li>common</li>
-<li>common_mut</li>
 <li>init_state</li>
 <li>style</li>
 <li>update</li>
@@ -148,38 +144,55 @@ upon style retrieval.</p>
 
 <p>The reason this data is required to be in its own <code>Style</code> type (rather than in the widget
 type itself) is so that conrod can distinguish between default style data that may be
-stored within the <code>Theme</code>&#39;s <code>widget_styling</code>, and other data that is necessary for the
-widget&#39;s behaviour logic. Having <code>Style</code> be an associated type makes it trivial to retrieve
-unique, widget-specific styling data for each widget from a single method (see
+stored within the <code>Theme</code>&#39;s <code>widget_styling</code> field, and other data that is necessary for
+the widget&#39;s behaviour logic. Having <code>Style</code> be an associated type makes it trivial to
+retrieve unique, widget-specific styling data for each widget from a single method (see
 <a href="./theme/struct.Theme.html#method.widget_style"><code>Theme::widget_style</code></a>).</p>
 
-<p>These types are often quite similar and can involve a lot of boilerplate when written by
-hand due to rust&#39;s lack of field inheritance. To get around this, conrod provides
-<a href="./macro.widget_style!.html"><code>widget_style!</code></a> - a macro that vastly simplifies the definition and implementation of
-widget <code>Style</code> types.</p>
+<h2 id='derivewidgetstyle' class='section-header'><a href='#derivewidgetstyle'><code>#[derive(WidgetStyle)]</code></a></h2>
+<p>These <code>Style</code> types are often quite similar and their implementations can involve a lot of
+boilerplate when written by hand. To get around this, conrod provides
+<code>#[derive(WidgetStyle)]</code>.</p>
 
-<p>Conrod doesn&#39;t yet support serializing widget styling with the <code>Theme</code> type, but we hope to
-soon.</p>
+<p>This procedural macro generates a &quot;getter&quot;-style method for each struct field that is
+decorated with a <code>#[conrod(default = &quot;expr&quot;)]</code> attribute. The generated methods have the
+same name as their respective fields and behave as follows:</p>
+
+<ol>
+<li>First, the method will attempt to return the value directly if the field is <code>Some</code>.</li>
+<li>If the field is <code>None</code>, the method will fall back to the <code>Widget::Style</code> stored within
+the <code>Theme</code>&#39;s <code>widget_styling</code> map.</li>
+<li>If there are no style defaults for the widget in the <code>Theme</code>, or if there is but the
+default field is also <code>None</code>, the method will fall back to the expression specified
+within the field&#39;s <code>#[conrod(default = &quot;expr&quot;)]</code> attribute.</li>
+</ol>
+
+<p>The given &quot;expr&quot; can be a string containing any expression that returns the type specified
+within the field&#39;s <code>Option</code> type parameter. The expression may also utilise the <code>theme</code> and
+<code>self</code> bindings, where <code>theme</code> is a binding to the borrowed <code>Theme</code> and <code>self</code> is a binding
+to the borrowed instance of this <code>Style</code> type.</p>
 
 <h1 id='examples' class='section-header'><a href='#examples'>Examples</a></h1>
 <pre class="rust rust-example-rendered">
 <span class="doccomment">/// Unique styling for a Button widget.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">PartialEq</span>, <span class="ident">WidgetStyle</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Style</span> {
     <span class="doccomment">/// Color of the Button&#39;s pressable area.</span>
+    <span class="attribute">#[<span class="ident">conrod</span>(<span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;theme.shape_color&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">color</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Color</span><span class="op">&gt;</span>,
     <span class="doccomment">/// Width of the border surrounding the button.</span>
+    <span class="attribute">#[<span class="ident">conrod</span>(<span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;1.0&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">border</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Scalar</span><span class="op">&gt;</span>,
     <span class="doccomment">/// The color of the Button&#39;s rectangular border.</span>
+    <span class="attribute">#[<span class="ident">conrod</span>(<span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;conrod::color::BLACK&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">border_color</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Color</span><span class="op">&gt;</span>,
     <span class="doccomment">/// The color of the Button&#39;s label.</span>
+    <span class="attribute">#[<span class="ident">conrod</span>(<span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;theme.label_color&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">label_color</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Color</span><span class="op">&gt;</span>,
     <span class="doccomment">/// The font size for the Button&#39;s label.</span>
+    <span class="attribute">#[<span class="ident">conrod</span>(<span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;12&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">label_font_size</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">FontSize</span><span class="op">&gt;</span>,
 }</pre>
-
-<p>Note: It is recommended that you don&#39;t write these types yourself as it can get tedious.
-Instead, we suggest using the <a href="./macro.widget_style!.html"><code>widget_style!</code></a> macro which also provides all necessary
-style retrieval method implementations.</p>
 </div><h3 id='associatedtype.Event' class='method'><span id='Event.t' class='invisible'><code>type <a href='#associatedtype.Event' class="type">Event</a></code></span></h3><div class='docblock'><p>The type of event yielded by the widget, returned via the <code>Widget::set</code> function.</p>
 
 <p>For a <code>Toggle</code> widget, this might be a <code>bool</code>.</p>
@@ -188,17 +201,7 @@ style retrieval method implementations.</p>
 </div></div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.common' class='method'><span id='common.v' class='invisible'><code>fn <a href='#tymethod.common' class='fnname'>common</a>(&amp;self) -&gt; &amp;<a class="struct" href="../../conrod/widget/struct.CommonBuilder.html" title="struct conrod::widget::CommonBuilder">CommonBuilder</a></code></span></h3><div class='docblock'><p>Return a reference to a <strong>CommonBuilder</strong> struct owned by the Widget.
-This method allows us to do a blanket impl of Positionable and Sizeable for T: Widget.</p>
-
-<p>Note: When rust introduces field inheritance, we will move the <strong>CommonBuilder</strong>
-accordingly (perhaps under a different name).</p>
-</div><h3 id='tymethod.common_mut' class='method'><span id='common_mut.v' class='invisible'><code>fn <a href='#tymethod.common_mut' class='fnname'>common_mut</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../../conrod/widget/struct.CommonBuilder.html" title="struct conrod::widget::CommonBuilder">CommonBuilder</a></code></span></h3><div class='docblock'><p>Return a mutable reference to a CommonBuilder struct owned by the Widget.
-This method allows us to do a blanket impl of Positionable and Sizeable for T: Widget.</p>
-
-<p>Note: When rust introduces field inheritance, we will move the <strong>CommonBuilder</strong>
-accordingly (perhaps under a different name).</p>
-</div><h3 id='tymethod.init_state' class='method'><span id='init_state.v' class='invisible'><code>fn <a href='#tymethod.init_state' class='fnname'>init_state</a>(&amp;self, _: <a class="struct" href="../../conrod/widget/id/struct.Generator.html" title="struct conrod::widget::id::Generator">Generator</a>) -&gt; Self::<a class="type" href="../../conrod/widget/trait.Widget.html#associatedtype.State" title="type conrod::widget::Widget::State">State</a></code></span></h3><div class='docblock'><p>Return the initial <strong>State</strong> of the Widget.</p>
+        <h3 id='tymethod.init_state' class='method'><span id='init_state.v' class='invisible'><code>fn <a href='#tymethod.init_state' class='fnname'>init_state</a>(&amp;self, _: <a class="struct" href="../../conrod/widget/id/struct.Generator.html" title="struct conrod::widget::id::Generator">Generator</a>) -&gt; Self::<a class="type" href="../../conrod/widget/trait.Widget.html#associatedtype.State" title="type conrod::widget::Widget::State">State</a></code></span></h3><div class='docblock'><p>Return the initial <strong>State</strong> of the Widget.</p>
 
 <p>The <code>Ui</code> will only call this once, immediately prior to the first time that
 <strong>Widget::update</strong> is first called.</p>

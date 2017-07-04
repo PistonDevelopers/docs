@@ -4,6 +4,7 @@ implementors["conrod"] = ["impl&lt;A&gt; <a class=\"trait\" href=\"https://doc.r
 implementors["daggy"] = [];
 implementors["libc"] = [];
 implementors["num"] = [];
+implementors["syn"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

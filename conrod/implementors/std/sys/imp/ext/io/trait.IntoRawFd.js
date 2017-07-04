@@ -4,6 +4,7 @@ implementors["conrod"] = [];
 implementors["daggy"] = [];
 implementors["libc"] = [];
 implementors["num"] = [];
+implementors["syn"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);

@@ -5,6 +5,7 @@ implementors["daggy"] = [];
 implementors["input"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/bit/trait.Not.html\" title=\"trait core::ops::bit::Not\">Not</a> for <a class=\"struct\" href=\"input/keyboard/struct.ModifierKey.html\" title=\"struct input::keyboard::ModifierKey\">ModifierKey</a>",];
 implementors["libc"] = [];
 implementors["num"] = [];
+implementors["syn"] = [];
 
             if (window.register_implementors) {
                 window.register_implementors(implementors);
