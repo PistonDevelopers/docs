@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.11/src/output_writer.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.13/src/output_writer.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>output_writer.rs.html -- source</title>
@@ -220,6 +220,16 @@
 <span id="175">175</span>
 <span id="176">176</span>
 <span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">u16</span>;
 
@@ -343,11 +353,10 @@
 
     <span class="kw">fn</span> <span class="ident">write_length_distance</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">length</span>: <span class="ident">u16</span>, <span class="ident">distance</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="ident">BufferStatus</span> {
         <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">fixed_writer</span>.<span class="ident">write_length_distance</span>(<span class="ident">length</span>, <span class="ident">distance</span>);
-        <span class="kw">let</span> <span class="ident">l_code_num</span> <span class="op">=</span> <span class="ident">get_length_code</span>(<span class="ident">length</span>).<span class="ident">expect</span>(<span class="string">&quot;Invalid length!&quot;</span>);
+        <span class="kw">let</span> <span class="ident">l_code_num</span> <span class="op">=</span> <span class="ident">get_length_code</span>(<span class="ident">length</span>);
         <span class="comment">// As we limit the buffer to 2^16 values, this should be safe from overflowing.</span>
         <span class="self">self</span>.<span class="ident">frequencies</span>[<span class="ident">l_code_num</span>] <span class="op">+=</span> <span class="number">1</span>;
-        <span class="kw">let</span> <span class="ident">d_code_num</span> <span class="op">=</span> <span class="ident">get_distance_code</span>(<span class="ident">distance</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;Tried to get a distance code which was out of range!&quot;</span>);
+        <span class="kw">let</span> <span class="ident">d_code_num</span> <span class="op">=</span> <span class="ident">get_distance_code</span>(<span class="ident">distance</span>);
         <span class="self">self</span>.<span class="ident">distance_frequencies</span>[<span class="ident">usize</span>::<span class="ident">from</span>(<span class="ident">d_code_num</span>)] <span class="op">+=</span> <span class="number">1</span>;
         <span class="ident">ret</span>
     }
@@ -377,6 +386,17 @@
         <span class="comment">// since there will always only be one end of block marker in each block</span>
         <span class="ident">w</span>.<span class="ident">frequencies</span>[<span class="ident">END_OF_BLOCK_POSITION</span>] <span class="op">=</span> <span class="number">1</span>;
         <span class="ident">w</span>
+    }
+
+    <span class="doccomment">/// Special output function used with RLE compression</span>
+    <span class="doccomment">/// that avoids bothering to lookup a distance code.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">write_length_rle</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">length</span>: <span class="ident">u16</span>) <span class="op">-&gt;</span> <span class="ident">BufferStatus</span> {
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">fixed_writer</span>.<span class="ident">write_length_distance</span>(<span class="ident">length</span>, <span class="number">1</span>);
+        <span class="kw">let</span> <span class="ident">l_code_num</span> <span class="op">=</span> <span class="ident">get_length_code</span>(<span class="ident">length</span>);
+        <span class="comment">// As we limit the buffer to 2^16 values, this should be safe from overflowing.</span>
+        <span class="self">self</span>.<span class="ident">frequencies</span>[<span class="ident">l_code_num</span>] <span class="op">+=</span> <span class="number">1</span>;
+        <span class="self">self</span>.<span class="ident">distance_frequencies</span>[<span class="number">0</span>] <span class="op">+=</span> <span class="number">1</span>;
+        <span class="ident">ret</span>
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_frequencies</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="kw-2">&amp;</span>[<span class="ident">u16</span>], <span class="kw-2">&amp;</span>[<span class="ident">u16</span>]) {

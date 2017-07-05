@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.11/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.13/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
@@ -487,6 +487,62 @@
 <span id="442">442</span>
 <span id="443">443</span>
 <span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! An implementation an encoder using [DEFLATE](http://www.gzip.org/zlib/rfc-deflate.html)</span>
 <span class="doccomment">//! compression algorightm in pure rust.</span>
@@ -497,8 +553,17 @@
 <span class="doccomment">//! The current implementation is still a bit lacking speed-wise compared to C-libraries</span>
 <span class="doccomment">//! like zlib and miniz.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! Support for the gzip wrapper is disabled by default, but can be enabled with the `gzip`</span>
-<span class="doccomment">//! feature.</span>
+<span class="doccomment">//! The deflate algorithm is an older compression algorithm that is still widely used today,</span>
+<span class="doccomment">//! by e.g html headers, the `.png` inage format, the unix `gzip` program and commonly in `.zip`</span>
+<span class="doccomment">//! files. The `zlib` and `gzip` formats are wrappers around DEFLATE-compressed data, containing</span>
+<span class="doccomment">//! some extra metadata and a checksum to validate the integrity of the raw data.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! The deflate algorithm does not perform as well as newer algorhitms used in file formats such as</span>
+<span class="doccomment">//! `.7z`, `.rar`, `.xz` and `.bz2`, and is thus not the ideal choice for applications where</span>
+<span class="doccomment">//! the `DEFLATE` format (with or without wrappers) is not required.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Support for the gzip wrapper (the wrapper that is used in `.gz` files) is disabled by default,</span>
+<span class="doccomment">//! but can be enabled with the `gzip` feature.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! As this library is still in development, the compression output may change slightly</span>
 <span class="doccomment">//! between versions.</span>
@@ -523,8 +588,8 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! let data = b&quot;This is some test data&quot;;</span>
 <span class="doccomment">//! let mut encoder = ZlibEncoder::new(Vec::new(), Compression::Default);</span>
-<span class="doccomment">//! encoder.write_all(data).unwrap();</span>
-<span class="doccomment">//! let compressed_data = encoder.finish().unwrap();</span>
+<span class="doccomment">//! encoder.write_all(data).expect(&quot;Write error!&quot;);</span>
+<span class="doccomment">//! let compressed_data = encoder.finish().expect(&quot;Failed to finish compression!&quot;);</span>
 <span class="doccomment">//! # let _ = compressed_data;</span>
 <span class="doccomment">//! ```</span>
 
@@ -561,6 +626,7 @@
 <span class="kw">mod</span> <span class="ident">input_buffer</span>;
 <span class="kw">mod</span> <span class="ident">deflate_state</span>;
 <span class="kw">mod</span> <span class="ident">compress</span>;
+<span class="kw">mod</span> <span class="ident">rle</span>;
 <span class="kw">mod</span> <span class="ident">writer</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test_utils</span>;
@@ -593,11 +659,12 @@
 }
 
 
-<span class="kw">fn</span> <span class="ident">compress_data_dynamic</span><span class="op">&lt;</span><span class="ident">RC</span>: <span class="ident">RollingChecksum</span>, <span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-                                                        <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">W</span>,
-                                                        <span class="kw-2">mut</span> <span class="ident">checksum</span>: <span class="ident">RC</span>,
-                                                        <span class="ident">compression_options</span>: <span class="ident">CompressionOptions</span>)
-                                                        <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+<span class="kw">fn</span> <span class="ident">compress_data_dynamic</span><span class="op">&lt;</span><span class="ident">RC</span>: <span class="ident">RollingChecksum</span>, <span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
+    <span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+    <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">W</span>,
+    <span class="kw-2">mut</span> <span class="ident">checksum</span>: <span class="ident">RC</span>,
+    <span class="ident">compression_options</span>: <span class="ident">CompressionOptions</span>,
+) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
     <span class="ident">checksum</span>.<span class="ident">update_from_slice</span>(<span class="ident">input</span>);
     <span class="comment">// We use a box here to avoid putting the buffers on the stack</span>
     <span class="comment">// It&#39;s done here rather than in the structs themselves for now to</span>
@@ -621,11 +688,12 @@
 <span class="doccomment">/// ```</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">deflate_bytes_conf</span><span class="op">&lt;</span><span class="ident">O</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CompressionOptions</span><span class="op">&gt;&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">options</span>: <span class="ident">O</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">input</span>.<span class="ident">len</span>() <span class="op">/</span> <span class="number">3</span>);
-    <span class="ident">compress_data_dynamic</span>(<span class="ident">input</span>,
-                          <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
-                          <span class="ident">checksum</span>::<span class="ident">NoChecksum</span>::<span class="ident">new</span>(),
-                          <span class="ident">options</span>.<span class="ident">into</span>())
-            .<span class="ident">expect</span>(<span class="string">&quot;Write error!&quot;</span>);
+    <span class="ident">compress_data_dynamic</span>(
+        <span class="ident">input</span>,
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
+        <span class="ident">checksum</span>::<span class="ident">NoChecksum</span>::<span class="ident">new</span>(),
+        <span class="ident">options</span>.<span class="ident">into</span>(),
+    ).<span class="ident">expect</span>(<span class="string">&quot;Write error!&quot;</span>);
     <span class="ident">writer</span>
 }
 
@@ -675,9 +743,9 @@
 
     <span class="kw">let</span> <span class="ident">hash</span> <span class="op">=</span> <span class="ident">checksum</span>.<span class="ident">current_hash</span>();
 
-    <span class="ident">writer</span>
-        .<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">BigEndian</span><span class="op">&gt;</span>(<span class="ident">hash</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;Write error when writing checksum!&quot;</span>);
+    <span class="ident">writer</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">BigEndian</span><span class="op">&gt;</span>(<span class="ident">hash</span>).<span class="ident">expect</span>(
+        <span class="string">&quot;Write error when writing checksum!&quot;</span>,
+    );
     <span class="ident">writer</span>
 }
 
@@ -723,17 +791,18 @@
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;gzip&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">deflate_bytes_gzip_conf</span><span class="op">&lt;</span><span class="ident">O</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CompressionOptions</span><span class="op">&gt;&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-                                                            <span class="ident">options</span>: <span class="ident">O</span>,
-                                                            <span class="ident">gzip_header</span>: <span class="ident">GzBuilder</span>)
-                                                            <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">deflate_bytes_gzip_conf</span><span class="op">&lt;</span><span class="ident">O</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CompressionOptions</span><span class="op">&gt;&gt;</span>(
+    <span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+    <span class="ident">options</span>: <span class="ident">O</span>,
+    <span class="ident">gzip_header</span>: <span class="ident">GzBuilder</span>,
+) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
     <span class="kw">use</span> <span class="ident">byteorder</span>::<span class="ident">WriteBytesExt</span>;
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">input</span>.<span class="ident">len</span>() <span class="op">/</span> <span class="number">3</span>);
 
     <span class="comment">// Write header</span>
-    <span class="ident">writer</span>
-        .<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">gzip_header</span>.<span class="ident">into_header</span>())
-        .<span class="ident">expect</span>(<span class="string">&quot;Write error when writing header!&quot;</span>);
+    <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">gzip_header</span>.<span class="ident">into_header</span>()).<span class="ident">expect</span>(
+        <span class="string">&quot;Write error when writing header!&quot;</span>,
+    );
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">checksum</span> <span class="op">=</span> <span class="ident">checksum</span>::<span class="ident">NoChecksum</span>::<span class="ident">new</span>();
     <span class="ident">compress_data_dynamic</span>(<span class="ident">input</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">checksum</span>, <span class="ident">options</span>.<span class="ident">into</span>())
         .<span class="ident">expect</span>(<span class="string">&quot;Write error when writing compressed data!&quot;</span>);
@@ -741,12 +810,12 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">crc</span> <span class="op">=</span> <span class="ident">Crc</span>::<span class="ident">new</span>();
     <span class="ident">crc</span>.<span class="ident">update</span>(<span class="ident">input</span>);
 
-    <span class="ident">writer</span>
-        .<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="ident">crc</span>.<span class="ident">sum</span>())
-        .<span class="ident">expect</span>(<span class="string">&quot;Write error when writing checksum!&quot;</span>);
-    <span class="ident">writer</span>
-        .<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="ident">crc</span>.<span class="ident">amt_as_u32</span>())
-        .<span class="ident">expect</span>(<span class="string">&quot;Write error when writing amt!&quot;</span>);
+    <span class="ident">writer</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="ident">crc</span>.<span class="ident">sum</span>()).<span class="ident">expect</span>(
+        <span class="string">&quot;Write error when writing checksum!&quot;</span>,
+    );
+    <span class="ident">writer</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="ident">crc</span>.<span class="ident">amt_as_u32</span>()).<span class="ident">expect</span>(
+        <span class="string">&quot;Write error when writing amt!&quot;</span>,
+    );
     <span class="ident">writer</span>
 }
 
@@ -775,14 +844,15 @@
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
 
     <span class="kw">use</span> <span class="ident">test_utils</span>::{<span class="ident">get_test_data</span>, <span class="ident">decompress_to_end</span>, <span class="ident">decompress_zlib</span>};
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span><span class="op">=</span> <span class="string">&quot;gzip&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;gzip&quot;</span>)]</span>
     <span class="kw">use</span> <span class="ident">test_utils</span>::<span class="ident">decompress_gzip</span>;
+
+    <span class="kw">type</span> <span class="ident">CO</span> <span class="op">=</span> <span class="ident">CompressionOptions</span>;
 
     <span class="doccomment">/// Write data to the writer in chunks of chunk_size.</span>
     <span class="kw">fn</span> <span class="ident">chunked_write</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="ident">writer</span>: <span class="ident">W</span>, <span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">chunk_size</span>: <span class="ident">usize</span>) {
         <span class="kw">for</span> <span class="ident">chunk</span> <span class="kw">in</span> <span class="ident">data</span>.<span class="ident">chunks</span>(<span class="ident">chunk_size</span>) {
-            <span class="kw">let</span> <span class="ident">bytes_written</span> <span class="op">=</span> <span class="ident">writer</span>.<span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="ident">chunk</span>).<span class="ident">unwrap</span>();
-            <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">bytes_written</span>, <span class="ident">chunk</span>.<span class="ident">len</span>());
+            <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">chunk</span>).<span class="ident">unwrap</span>();
         }
     }
 
@@ -809,9 +879,11 @@
         <span class="kw">for</span> (<span class="ident">n</span>, (<span class="kw-2">&amp;</span><span class="ident">a</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>)) <span class="kw">in</span> <span class="ident">input</span>.<span class="ident">iter</span>().<span class="ident">zip</span>(<span class="ident">result</span>.<span class="ident">iter</span>()).<span class="ident">enumerate</span>() {
             <span class="kw">if</span> <span class="ident">a</span> <span class="op">!=</span> <span class="ident">b</span> {
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;First difference at {}, input: {}, output: {}&quot;</span>, <span class="ident">n</span>, <span class="ident">a</span>, <span class="ident">b</span>);
-                <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;input: {:?}, output: {:?}&quot;</span>,
-                         <span class="kw-2">&amp;</span><span class="ident">input</span>[<span class="ident">n</span> <span class="op">-</span> <span class="number">3</span>..<span class="ident">n</span> <span class="op">+</span> <span class="number">3</span>],
-                         <span class="kw-2">&amp;</span><span class="ident">result</span>[<span class="ident">n</span> <span class="op">-</span> <span class="number">3</span>..<span class="ident">n</span> <span class="op">+</span> <span class="number">3</span>]);
+                <span class="macro">println</span><span class="macro">!</span>(
+                    <span class="string">&quot;input: {:?}, output: {:?}&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="ident">input</span>[<span class="ident">n</span> <span class="op">-</span> <span class="number">3</span>..<span class="ident">n</span> <span class="op">+</span> <span class="number">3</span>],
+                    <span class="kw-2">&amp;</span><span class="ident">result</span>[<span class="ident">n</span> <span class="op">-</span> <span class="number">3</span>..<span class="ident">n</span> <span class="op">+</span> <span class="number">3</span>]
+                );
                 <span class="kw">break</span>;
             }
         }
@@ -819,6 +891,14 @@
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">input</span> <span class="op">==</span> <span class="ident">result</span>);
         <span class="comment">// Check that we actually managed to compress the input</span>
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">compressed</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="ident">input</span>.<span class="ident">len</span>());
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">file_rle</span>() {
+        <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">get_test_data</span>();
+        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_conf</span>(<span class="kw-2">&amp;</span><span class="ident">input</span>, <span class="ident">CO</span>::<span class="ident">rle</span>());
+        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">decompress_to_end</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">input</span> <span class="op">==</span> <span class="ident">result</span>);
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -844,26 +924,14 @@
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">zlib_short</span>() {
         <span class="kw">let</span> <span class="ident">test_data</span> <span class="op">=</span> [<span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">55</span>];
-        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">test_data</span>);
-
-        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">decompress_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="ident">test_data</span>, <span class="ident">result</span>.<span class="ident">as_slice</span>());
+        <span class="ident">roundtrip_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">test_data</span>, <span class="ident">CO</span>::<span class="ident">default</span>());
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">zlib_last_block</span>() {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">test_data</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">22</span>; <span class="number">32768</span>];
         <span class="ident">test_data</span>.<span class="ident">extend</span>(<span class="kw-2">&amp;</span>[<span class="number">5</span>, <span class="number">2</span>, <span class="number">55</span>, <span class="number">11</span>, <span class="number">12</span>]);
-        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">test_data</span>);
-        <span class="comment">// {</span>
-        <span class="comment">// use std::fs::File;</span>
-        <span class="comment">// use std::io::Write;</span>
-        <span class="comment">// let mut f = File::create(&quot;out_block.zlib&quot;).unwrap();</span>
-        <span class="comment">// f.write_all(&amp;compressed).unwrap();</span>
-        <span class="comment">// }</span>
-
-        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">decompress_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">test_data</span> <span class="op">==</span> <span class="ident">result</span>);
+        <span class="ident">roundtrip_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">test_data</span>, <span class="ident">CO</span>::<span class="ident">default</span>());
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -881,56 +949,100 @@
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">gzip</span>() {
         <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">get_test_data</span>();
-        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_gzip_conf</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>,
-                                                 <span class="ident">Compression</span>::<span class="ident">Default</span>,
-                                                 <span class="ident">GzBuilder</span>::<span class="ident">new</span>().<span class="ident">comment</span>(<span class="string">&quot;Test&quot;</span>));
-        <span class="kw">let</span> <span class="ident">decompressed</span> <span class="op">=</span> <span class="ident">decompress_gzip</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
+        <span class="kw">let</span> <span class="ident">comment</span> <span class="op">=</span> <span class="string">b&quot;Test&quot;</span>;
+        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_gzip_conf</span>(
+            <span class="kw-2">&amp;</span><span class="ident">data</span>,
+            <span class="ident">Compression</span>::<span class="ident">Default</span>,
+            <span class="ident">GzBuilder</span>::<span class="ident">new</span>().<span class="ident">comment</span>(<span class="kw-2">&amp;</span><span class="ident">comment</span>[..]),
+        );
+        <span class="kw">let</span> (<span class="ident">dec</span>, <span class="ident">decompressed</span>) <span class="op">=</span> <span class="ident">decompress_gzip</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">dec</span>.<span class="ident">header</span>().<span class="ident">comment</span>().<span class="ident">unwrap</span>(), <span class="ident">comment</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">data</span> <span class="op">==</span> <span class="ident">decompressed</span>);
     }
 
-    <span class="kw">fn</span> <span class="ident">chunk_test</span>(<span class="ident">chunk_size</span>: <span class="ident">usize</span>) {
+    <span class="kw">fn</span> <span class="ident">chunk_test</span>(<span class="ident">chunk_size</span>: <span class="ident">usize</span>, <span class="ident">level</span>: <span class="ident">CompressionOptions</span>) {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="number">32000</span>);
         <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">get_test_data</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">compressor</span> <span class="op">=</span> <span class="ident">write</span>::<span class="ident">ZlibEncoder</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressed</span>,
-                                                         <span class="ident">CompressionOptions</span>::<span class="ident">high</span>());
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">compressor</span> <span class="op">=</span>
+                <span class="ident">write</span>::<span class="ident">ZlibEncoder</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressed</span>, <span class="ident">level</span>);
             <span class="ident">chunked_write</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">compressor</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>, <span class="ident">chunk_size</span>);
             <span class="ident">compressor</span>.<span class="ident">finish</span>().<span class="ident">unwrap</span>();
         }
-        <span class="kw">let</span> <span class="ident">compressed2</span> <span class="op">=</span> <span class="ident">deflate_bytes_zlib_conf</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>, <span class="ident">CompressionOptions</span>::<span class="ident">high</span>());
+        <span class="kw">let</span> <span class="ident">compressed2</span> <span class="op">=</span> <span class="ident">deflate_bytes_zlib_conf</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>, <span class="ident">level</span>);
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="ident">decompress_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">res</span> <span class="op">==</span> <span class="ident">data</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">compressed</span>.<span class="ident">len</span>(), <span class="ident">compressed2</span>.<span class="ident">len</span>());
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">compressed</span> <span class="op">==</span> <span class="ident">compressed2</span>);
     }
 
+    <span class="kw">fn</span> <span class="ident">writer_chunks_level</span>(<span class="ident">level</span>: <span class="ident">CompressionOptions</span>) {
+        <span class="kw">use</span> <span class="ident">input_buffer</span>::<span class="ident">BUFFER_SIZE</span>;
+        <span class="kw">let</span> <span class="ident">ct</span> <span class="op">=</span> <span class="op">|</span><span class="ident">n</span><span class="op">|</span> {
+            <span class="ident">chunk_test</span>(<span class="ident">n</span>, <span class="ident">level</span>)
+        };
+        <span class="ident">ct</span>(<span class="number">1</span>);
+        <span class="ident">ct</span>(<span class="number">50</span>);
+        <span class="ident">ct</span>(<span class="number">400</span>);
+        <span class="ident">ct</span>(<span class="number">32768</span>);
+        <span class="ident">ct</span>(<span class="ident">BUFFER_SIZE</span>);
+        <span class="ident">ct</span>(<span class="number">50000</span>);
+        <span class="ident">ct</span>((<span class="number">32768</span> <span class="op">*</span> <span class="number">2</span>) <span class="op">+</span> <span class="number">258</span>);
+    }
+
     <span class="attribute">#[<span class="ident">ignore</span>]</span>
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="doccomment">/// Test the writer by inputing data in one chunk at the time.</span>
     <span class="kw">fn</span> <span class="ident">zlib_writer_chunks</span>() {
-        <span class="kw">use</span> <span class="ident">input_buffer</span>::<span class="ident">BUFFER_SIZE</span>;
-        <span class="ident">chunk_test</span>(<span class="number">1</span>);
-        <span class="ident">chunk_test</span>(<span class="number">50</span>);
-        <span class="ident">chunk_test</span>(<span class="number">400</span>);
-        <span class="ident">chunk_test</span>(<span class="number">32768</span>);
-        <span class="ident">chunk_test</span>(<span class="ident">BUFFER_SIZE</span>);
-        <span class="ident">chunk_test</span>(<span class="number">50000</span>);
-        <span class="ident">chunk_test</span>((<span class="number">32768</span> <span class="op">*</span> <span class="number">2</span>) <span class="op">+</span> <span class="number">258</span>);
+        <span class="ident">writer_chunks_level</span>(<span class="ident">CompressionOptions</span>::<span class="ident">default</span>());
+        <span class="ident">writer_chunks_level</span>(<span class="ident">CompressionOptions</span>::<span class="ident">fast</span>());
+        <span class="ident">writer_chunks_level</span>(<span class="ident">CompressionOptions</span>::<span class="ident">rle</span>());
     }
 
     <span class="doccomment">/// Check that the frequency values don&#39;t overflow.</span>
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">frequency_overflow</span>() {
-        <span class="kw">let</span> _ <span class="op">=</span> <span class="ident">deflate_bytes_conf</span>(<span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="number">5</span>; <span class="number">100000</span>], <span class="ident">compression_options</span>::<span class="ident">HUFFMAN_ONLY</span>);
+        <span class="kw">let</span> _ <span class="op">=</span> <span class="ident">deflate_bytes_conf</span>(
+            <span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="number">5</span>; <span class="number">100000</span>],
+            <span class="ident">compression_options</span>::<span class="ident">CompressionOptions</span>::<span class="ident">default</span>(),
+        );
+    }
+
+    <span class="kw">fn</span> <span class="ident">roundtrip_zlib</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">level</span>: <span class="ident">CompressionOptions</span>) {
+        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_zlib_conf</span>(<span class="ident">data</span>, <span class="ident">level</span>);
+        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="ident">decompress_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
+        <span class="kw">if</span> <span class="ident">data</span>.<span class="ident">len</span>() <span class="op">&lt;=</span> <span class="number">32</span>  {
+            <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">res</span>, <span class="ident">data</span>, <span class="string">&quot;Failed with level: {:?}&quot;</span>, <span class="ident">level</span>);
+        } <span class="kw">else</span> {
+            <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">res</span> <span class="op">==</span> <span class="ident">data</span>, <span class="string">&quot;Failed with level: {:?}&quot;</span>, <span class="ident">level</span>);
+        }
+    }
+
+    <span class="kw">fn</span> <span class="ident">check_zero</span>(<span class="ident">level</span>: <span class="ident">CompressionOptions</span>) {
+        <span class="ident">roundtrip_zlib</span>(<span class="kw-2">&amp;</span>[], <span class="ident">level</span>);
     }
 
     <span class="doccomment">/// Compress with an empty slice.</span>
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">empty</span>() {
-        <span class="kw">let</span> <span class="ident">compressed</span> <span class="op">=</span> <span class="ident">deflate_bytes_zlib</span>(<span class="kw-2">&amp;</span>[]);
-        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="ident">decompress_zlib</span>(<span class="kw-2">&amp;</span><span class="ident">compressed</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">res</span>.<span class="ident">len</span>(), <span class="number">0</span>);
+    <span class="kw">fn</span> <span class="ident">empty_input</span>() {
+        <span class="ident">check_zero</span>(<span class="ident">CompressionOptions</span>::<span class="ident">default</span>());
+        <span class="ident">check_zero</span>(<span class="ident">CompressionOptions</span>::<span class="ident">fast</span>());
+        <span class="ident">check_zero</span>(<span class="ident">CompressionOptions</span>::<span class="ident">rle</span>());
     }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">one_and_two_values</span>() {
+        <span class="kw">let</span> <span class="ident">one</span> <span class="op">=</span> <span class="kw-2">&amp;</span>[<span class="number">1</span>][..];
+        <span class="ident">roundtrip_zlib</span>(<span class="ident">one</span>, <span class="ident">CO</span>::<span class="ident">rle</span>());
+        <span class="ident">roundtrip_zlib</span>(<span class="ident">one</span>, <span class="ident">CO</span>::<span class="ident">fast</span>());
+        <span class="ident">roundtrip_zlib</span>(<span class="ident">one</span>, <span class="ident">CO</span>::<span class="ident">default</span>());
+        <span class="kw">let</span> <span class="ident">two</span> <span class="op">=</span> <span class="kw-2">&amp;</span>[<span class="number">5</span>,<span class="number">6</span>,<span class="number">7</span>, <span class="number">8</span>][..];
+        <span class="ident">roundtrip_zlib</span>(<span class="ident">two</span>, <span class="ident">CO</span>::<span class="ident">rle</span>());
+        <span class="ident">roundtrip_zlib</span>(<span class="ident">two</span>, <span class="ident">CO</span>::<span class="ident">fast</span>());
+        <span class="ident">roundtrip_zlib</span>(<span class="ident">two</span>, <span class="ident">CO</span>::<span class="ident">default</span>());
+    }
+
+
 }
 </pre>
 </section>
