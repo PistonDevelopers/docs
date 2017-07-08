@@ -239,12 +239,104 @@
 <span id="194">194</span>
 <span id="195">195</span>
 <span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Functions for computing gradients of image intensities.</span>
 
-<span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GenericImage</span>, <span class="ident">GrayImage</span>, <span class="ident">ImageBuffer</span>, <span class="ident">Luma</span>};
-<span class="kw">use</span> <span class="ident">definitions</span>::<span class="ident">Image</span>;
+<span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GenericImage</span>, <span class="ident">GrayImage</span>, <span class="ident">Luma</span>, <span class="ident">Pixel</span>};
+<span class="kw">use</span> <span class="ident">definitions</span>::{<span class="ident">HasBlack</span>, <span class="ident">Image</span>};
 <span class="kw">use</span> <span class="ident">filter</span>::<span class="ident">filter3x3</span>;
+<span class="kw">use</span> <span class="ident">itertools</span>::<span class="ident">multizip</span>;
+<span class="kw">use</span> <span class="ident">map</span>::{<span class="ident">WithChannel</span>, <span class="ident">ChannelMap</span>};
 
 <span class="doccomment">/// Sobel filter for detecting vertical gradients.</span>
 <span class="doccomment">///</span>
@@ -304,37 +396,125 @@
 
 <span class="doccomment">/// Returns the magnitudes of gradients in an image using Sobel filters.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sobel_gradients</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">GrayImage</span>) <span class="op">-&gt;</span> <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Luma</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;&gt;</span> {
-    <span class="ident">gradients</span>(<span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">HORIZONTAL_SOBEL</span>, <span class="kw-2">&amp;</span><span class="ident">VERTICAL_SOBEL</span>)
+    <span class="ident">gradients</span>(<span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">HORIZONTAL_SOBEL</span>, <span class="kw-2">&amp;</span><span class="ident">VERTICAL_SOBEL</span>, <span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="ident">p</span>)
+}
+
+<span class="doccomment">/// Computes per-channel gradients using Sobel filters and calls `f`</span>
+<span class="doccomment">/// to compute each output pixel.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Examples</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// # extern crate image;</span>
+<span class="doccomment">/// # #[macro_use]</span>
+<span class="doccomment">/// # extern crate imageproc;</span>
+<span class="doccomment">/// # fn main() {</span>
+<span class="doccomment">/// use imageproc::gradients::{sobel_gradient_map};</span>
+<span class="doccomment">/// use image::Luma;</span>
+<span class="doccomment">/// use std::cmp;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// // A shallow horizontal gradient in the red</span>
+<span class="doccomment">/// // channel, a steeper vertical gradient in the</span>
+<span class="doccomment">/// // blue channel, constant in the green channel.</span>
+<span class="doccomment">/// let input = rgb_image!(</span>
+<span class="doccomment">///     [0, 5, 0], [1, 5, 0], [2, 5, 0];</span>
+<span class="doccomment">///     [0, 5, 2], [1, 5, 2], [2, 5, 2];</span>
+<span class="doccomment">///     [0, 5, 4], [1, 5, 4], [2, 5, 4]</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// // Computing independent per-channel gradients.</span>
+<span class="doccomment">/// let channel_gradient = rgb_image_u16!(</span>
+<span class="doccomment">///     [ 4,  0,  8], [ 8,  0,  8], [ 4,  0,  8];</span>
+<span class="doccomment">///     [ 4,  0, 16], [ 8,  0, 16], [ 4,  0, 16];</span>
+<span class="doccomment">///     [ 4,  0,  8], [ 8,  0,  8], [ 4,  0,  8]</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// assert_pixels_eq!(</span>
+<span class="doccomment">///     sobel_gradient_map(&amp;input, |p| p),</span>
+<span class="doccomment">///     channel_gradient</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// // Defining the gradient of an RGB image to be the</span>
+<span class="doccomment">/// // mean of its per-channel gradients.</span>
+<span class="doccomment">/// let mean_gradient = gray_image_u16!(</span>
+<span class="doccomment">///     4, 5, 4;</span>
+<span class="doccomment">///     6, 8, 6;</span>
+<span class="doccomment">///     4, 5, 4</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// assert_pixels_eq!(</span>
+<span class="doccomment">///     sobel_gradient_map(&amp;input, |p| {</span>
+<span class="doccomment">///         let mean = (p[0] + p[1] + p[2]) / 3;</span>
+<span class="doccomment">///         Luma([mean])</span>
+<span class="doccomment">///     }),</span>
+<span class="doccomment">///     mean_gradient</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// // Defining the gradient of an RGB image to be the pixelwise</span>
+<span class="doccomment">/// // maximum of its per-channel gradients.</span>
+<span class="doccomment">/// let max_gradient = gray_image_u16!(</span>
+<span class="doccomment">///      8,  8,  8;</span>
+<span class="doccomment">///     16, 16, 16;</span>
+<span class="doccomment">///      8,  8,  8</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// assert_pixels_eq!(</span>
+<span class="doccomment">///     sobel_gradient_map(&amp;input, |p| {</span>
+<span class="doccomment">///         let max = cmp::max(cmp::max(p[0], p[1]), p[2]);</span>
+<span class="doccomment">///         Luma([max])</span>
+<span class="doccomment">///     }),</span>
+<span class="doccomment">///     max_gradient</span>
+<span class="doccomment">/// );</span>
+<span class="doccomment">/// # }</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sobel_gradient_map</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">F</span>, <span class="ident">Q</span><span class="op">&gt;</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">Image</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>, <span class="ident">f</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">P</span>: <span class="ident">Pixel</span><span class="op">&lt;</span><span class="ident">Subpixel</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">WithChannel</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">WithChannel</span><span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
+    <span class="ident">Q</span>: <span class="ident">Pixel</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
+    <span class="ident">ChannelMap</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>: <span class="ident">HasBlack</span>,
+    <span class="ident">F</span>: <span class="ident">Fn</span>(<span class="ident">ChannelMap</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Q</span>
+{
+    <span class="ident">gradients</span>(<span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">HORIZONTAL_SOBEL</span>, <span class="kw-2">&amp;</span><span class="ident">VERTICAL_SOBEL</span>, <span class="ident">f</span>)
 }
 
 <span class="doccomment">/// Returns the magnitudes of gradients in an image using Prewitt filters.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">prewitt_gradients</span>(<span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">GrayImage</span>) <span class="op">-&gt;</span> <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Luma</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;&gt;</span> {
-    <span class="ident">gradients</span>(<span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">HORIZONTAL_PREWITT</span>, <span class="kw-2">&amp;</span><span class="ident">VERTICAL_PREWITT</span>)
+    <span class="ident">gradients</span>(<span class="ident">image</span>, <span class="kw-2">&amp;</span><span class="ident">HORIZONTAL_PREWITT</span>, <span class="kw-2">&amp;</span><span class="ident">VERTICAL_PREWITT</span>, <span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="ident">p</span>)
 }
 
 <span class="comment">// TODO: Returns directions as well as magnitudes.</span>
 <span class="comment">// TODO: Support filtering without allocating a fresh image - filtering functions could</span>
 <span class="comment">// TODO: take some kind of pixel-sink. This would allow us to compute gradient magnitudes</span>
 <span class="comment">// TODO: and directions without allocating intermediates for vertical and horizontal gradients.</span>
-<span class="kw">fn</span> <span class="ident">gradients</span>(
-    <span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">GrayImage</span>,
+<span class="kw">fn</span> <span class="ident">gradients</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">F</span>, <span class="ident">Q</span><span class="op">&gt;</span>(
+    <span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">Image</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>,
     <span class="ident">horizontal_kernel</span>: <span class="kw-2">&amp;</span>[<span class="ident">i32</span>; <span class="number">9</span>],
     <span class="ident">vertical_kernel</span>: <span class="kw-2">&amp;</span>[<span class="ident">i32</span>; <span class="number">9</span>],
-) <span class="op">-&gt;</span> <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Luma</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;&gt;</span> {
-    <span class="kw">let</span> <span class="ident">horizontal</span>: <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Luma</span><span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;&gt;</span> <span class="op">=</span> <span class="ident">filter3x3</span>(<span class="ident">image</span>, <span class="ident">horizontal_kernel</span>);
-    <span class="kw">let</span> <span class="ident">vertical</span>: <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Luma</span><span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;&gt;</span> <span class="op">=</span> <span class="ident">filter3x3</span>(<span class="ident">image</span>, <span class="ident">vertical_kernel</span>);
+    <span class="ident">f</span>: <span class="ident">F</span>,
+) <span class="op">-&gt;</span> <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">P</span>: <span class="ident">Pixel</span><span class="op">&lt;</span><span class="ident">Subpixel</span><span class="op">=</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">WithChannel</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">WithChannel</span><span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
+    <span class="ident">Q</span>: <span class="ident">Pixel</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
+    <span class="ident">ChannelMap</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>: <span class="ident">HasBlack</span>,
+    <span class="ident">F</span>: <span class="ident">Fn</span>(<span class="ident">ChannelMap</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Q</span>
+{
+    <span class="kw">let</span> <span class="ident">horizontal</span>: <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">ChannelMap</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">i16</span><span class="op">&gt;&gt;</span> <span class="op">=</span> <span class="ident">filter3x3</span>::<span class="op">&lt;</span>_, _, <span class="ident">i16</span><span class="op">&gt;</span>(<span class="ident">image</span>, <span class="ident">horizontal_kernel</span>);
+    <span class="kw">let</span> <span class="ident">vertical</span>: <span class="ident">Image</span><span class="op">&lt;</span><span class="ident">ChannelMap</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">i16</span><span class="op">&gt;&gt;</span> <span class="op">=</span> <span class="ident">filter3x3</span>::<span class="op">&lt;</span>_, _, <span class="ident">i16</span><span class="op">&gt;</span>(<span class="ident">image</span>, <span class="ident">vertical_kernel</span>);
 
     <span class="kw">let</span> (<span class="ident">width</span>, <span class="ident">height</span>) <span class="op">=</span> <span class="ident">image</span>.<span class="ident">dimensions</span>();
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">out</span> <span class="op">=</span> <span class="ident">ImageBuffer</span>::<span class="ident">new</span>(<span class="ident">width</span>, <span class="ident">height</span>);
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">out</span> <span class="op">=</span> <span class="ident">Image</span>::<span class="op">&lt;</span><span class="ident">Q</span><span class="op">&gt;</span>::<span class="ident">new</span>(<span class="ident">width</span>, <span class="ident">height</span>);
 
-    <span class="comment">// This would be more concise using itertools::multizip, but that increased runtime by around 20%</span>
+    <span class="comment">// This would be more concise using itertools::multizip over image pixels, but that increased runtime by around 20%</span>
     <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">height</span> {
         <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">width</span> {
             <span class="kw">unsafe</span> {
-                <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="ident">horizontal</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>)[<span class="number">0</span>];
-                <span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">vertical</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>)[<span class="number">0</span>];
-                <span class="kw">let</span> <span class="ident">m</span> <span class="op">=</span> <span class="ident">gradient_magnitude</span>(<span class="ident">h</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">v</span> <span class="kw">as</span> <span class="ident">f32</span>);
-                <span class="ident">out</span>.<span class="ident">unsafe_put_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">Luma</span>([<span class="ident">m</span>]));
+                <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="ident">horizontal</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>);
+                <span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">vertical</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>);
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">ChannelMap</span>::<span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>::<span class="ident">black</span>();
+
+                <span class="kw">for</span> (<span class="ident">h</span>, <span class="ident">v</span>, <span class="ident">p</span>) <span class="kw">in</span> <span class="ident">multizip</span>((<span class="ident">h</span>.<span class="ident">channels</span>(), <span class="ident">v</span>.<span class="ident">channels</span>(), <span class="ident">p</span>.<span class="ident">channels_mut</span>())) {
+                    <span class="kw-2">*</span><span class="ident">p</span> <span class="op">=</span> <span class="ident">gradient_magnitude</span>(<span class="kw-2">*</span><span class="ident">h</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="kw-2">*</span><span class="ident">v</span> <span class="kw">as</span> <span class="ident">f32</span>);
+                }
+
+                <span class="ident">out</span>.<span class="ident">unsafe_put_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">f</span>(<span class="ident">p</span>));
             }
         }
     }
