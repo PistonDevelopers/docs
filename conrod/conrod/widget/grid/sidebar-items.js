@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Axis","A series of lines distributed over an axis."]],"struct":[["Grid","A widget for displaying a grid of lines across two axes."],["Lines","A series of lines distributed across an axis."],["State","Unique state for the `Grid` retained between updates."],["Style","Unique styling parameters for the `Grid` widget."]]});
