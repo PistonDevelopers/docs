@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-sys-0.8.7/src/cursor.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-sys-0.9.9/src/cursor.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>cursor.rs.html -- source</title>
@@ -97,13 +97,23 @@
 <span id="52">52</span>
 <span id="53">53</span>
 <span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Bindings to the `wayland-cursor.so` library</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! The created handle is named `WAYLAND_CURSOR_HANDLE`.</span>
 
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::{<span class="ident">c_uint</span>, <span class="ident">c_char</span>, <span class="ident">c_int</span>};
 <span class="kw">use</span> <span class="ident">client</span>::<span class="ident">wl_proxy</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::{<span class="ident">c_char</span>, <span class="ident">c_int</span>, <span class="ident">c_uint</span>};
 
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">wl_cursor_theme</span> { }
 
@@ -118,14 +128,14 @@
     <span class="doccomment">/// hot spot y (must be inside image)</span>
     <span class="kw">pub</span> <span class="ident">hotspot_y</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// animation delay to next frame</span>
-    <span class="kw">pub</span> <span class="ident">delay</span>: <span class="ident">u32</span>
+    <span class="kw">pub</span> <span class="ident">delay</span>: <span class="ident">u32</span>,
 }
 
 <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">wl_cursor</span> {
     <span class="kw">pub</span> <span class="ident">image_count</span>: <span class="ident">c_uint</span>,
     <span class="kw">pub</span> <span class="ident">images</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_cursor_image</span>,
-    <span class="kw">pub</span> <span class="ident">name</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_char</span>
+    <span class="kw">pub</span> <span class="ident">name</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_char</span>,
 }
 
 <span class="macro">external_library</span><span class="macro">!</span>(<span class="ident">WaylandCursor</span>, <span class="string">&quot;wayland-cursor&quot;</span>,
@@ -141,7 +151,13 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;dlopen&quot;</span>)]</span>
 <span class="macro">lazy_static</span><span class="macro">!</span>(
     <span class="kw">pub</span> <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">WAYLAND_CURSOR_OPTION</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">WaylandCursor</span><span class="op">&gt;</span> <span class="op">=</span> {
-        <span class="ident">WaylandCursor</span>::<span class="ident">open</span>(<span class="string">&quot;libwayland-cursor.so&quot;</span>).<span class="ident">ok</span>()
+        <span class="kw">match</span> <span class="ident">WaylandCursor</span>::<span class="ident">open</span>(<span class="string">&quot;libwayland-cursor.so&quot;</span>) {
+            <span class="prelude-val">Ok</span>(<span class="ident">h</span>) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">h</span>),
+            <span class="prelude-val">Err</span>(::<span class="ident">dlib</span>::<span class="ident">DlError</span>::<span class="ident">NotFound</span>) <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
+            <span class="prelude-val">Err</span>(::<span class="ident">dlib</span>::<span class="ident">DlError</span>::<span class="ident">MissingSymbol</span>(<span class="ident">s</span>)) <span class="op">=&gt;</span> {
+                <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Found library libwayland-cursor.so but symbol {} is missing.&quot;</span>, <span class="ident">s</span>);
+            }
+        }
     };
     <span class="kw">pub</span> <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">WAYLAND_CURSOR_HANDLE</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">WaylandCursor</span> <span class="op">=</span> {
         <span class="ident">WAYLAND_CURSOR_OPTION</span>.<span class="ident">as_ref</span>().<span class="ident">expect</span>(<span class="string">&quot;Library libwayland-cursor.so could not be loaded.&quot;</span>)
@@ -149,9 +165,13 @@
 );
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;dlopen&quot;</span>))]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="bool-val">true</span> }
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="bool-val">true</span>
+}
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;dlopen&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="ident">WAYLAND_CURSOR_OPTION</span>.<span class="ident">is_some</span>() }
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">WAYLAND_CURSOR_OPTION</span>.<span class="ident">is_some</span>()
+}
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

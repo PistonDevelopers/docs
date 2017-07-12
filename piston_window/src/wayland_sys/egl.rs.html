@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-sys-0.8.7/src/egl.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-sys-0.9.9/src/egl.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>egl.rs.html -- source</title>
@@ -76,6 +76,16 @@
 <span id="31">31</span>
 <span id="32">32</span>
 <span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Bindings to the EGL library `libwayland-egl.so`</span>
 <span class="doccomment">//!</span>
@@ -83,8 +93,8 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! The created handle is named `WAYLAND_EGl_HANDLE`.</span>
 
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::<span class="ident">c_int</span>;
 <span class="kw">use</span> <span class="ident">client</span>::<span class="ident">wl_proxy</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::<span class="ident">c_int</span>;
 
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">wl_egl_window</span> { }
 
@@ -98,8 +108,14 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;dlopen&quot;</span>)]</span>
 <span class="macro">lazy_static</span><span class="macro">!</span>(
-    <span class="kw">pub</span> <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">WAYLAND_EGL_OPTION</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">WaylandEgl</span><span class="op">&gt;</span> <span class="op">=</span> { 
-        <span class="ident">WaylandEgl</span>::<span class="ident">open</span>(<span class="string">&quot;libwayland-egl.so&quot;</span>).<span class="ident">ok</span>()
+    <span class="kw">pub</span> <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">WAYLAND_EGL_OPTION</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">WaylandEgl</span><span class="op">&gt;</span> <span class="op">=</span> {
+        <span class="kw">match</span> <span class="ident">WaylandEgl</span>::<span class="ident">open</span>(<span class="string">&quot;libwayland-egl.so&quot;</span>) {
+            <span class="prelude-val">Ok</span>(<span class="ident">h</span>) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">h</span>),
+            <span class="prelude-val">Err</span>(::<span class="ident">dlib</span>::<span class="ident">DlError</span>::<span class="ident">NotFound</span>) <span class="op">=&gt;</span> <span class="prelude-val">None</span>,
+            <span class="prelude-val">Err</span>(::<span class="ident">dlib</span>::<span class="ident">DlError</span>::<span class="ident">MissingSymbol</span>(<span class="ident">s</span>)) <span class="op">=&gt;</span> {
+                <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Found library libwayland-egl.so but symbol {} is missing.&quot;</span>, <span class="ident">s</span>);
+            }
+        }
     };
     <span class="kw">pub</span> <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">WAYLAND_EGL_HANDLE</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">WaylandEgl</span> <span class="op">=</span> {
         <span class="ident">WAYLAND_EGL_OPTION</span>.<span class="ident">as_ref</span>().<span class="ident">expect</span>(<span class="string">&quot;Library libwayland-egl.so could not be loaded.&quot;</span>)
@@ -107,9 +123,13 @@
 );
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;dlopen&quot;</span>))]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="bool-val">true</span> }
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="bool-val">true</span>
+}
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;dlopen&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="ident">WAYLAND_EGL_OPTION</span>.<span class="ident">is_some</span>() }
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_lib_available</span>() <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="ident">WAYLAND_EGL_OPTION</span>.<span class="ident">is_some</span>()
+}
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

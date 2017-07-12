@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["glutin"] = [];
 implementors["glutin_window"] = [];
 implementors["piston_window"] = [];
 implementors["winit"] = [];

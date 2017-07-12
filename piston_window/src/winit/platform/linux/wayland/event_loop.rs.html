@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.6.4/src/platform/linux/wayland/event_loop.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.7.3/src/platform/linux/wayland/event_loop.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>event_loop.rs.html -- source</title>
@@ -635,16 +635,93 @@
 <span id="590">590</span>
 <span id="591">591</span>
 <span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
+<span id="623">623</span>
+<span id="624">624</span>
+<span id="625">625</span>
+<span id="626">626</span>
+<span id="627">627</span>
+<span id="628">628</span>
+<span id="629">629</span>
+<span id="630">630</span>
+<span id="631">631</span>
+<span id="632">632</span>
+<span id="633">633</span>
+<span id="634">634</span>
+<span id="635">635</span>
+<span id="636">636</span>
+<span id="637">637</span>
+<span id="638">638</span>
+<span id="639">639</span>
+<span id="640">640</span>
+<span id="641">641</span>
+<span id="642">642</span>
+<span id="643">643</span>
+<span id="644">644</span>
+<span id="645">645</span>
+<span id="646">646</span>
+<span id="647">647</span>
+<span id="648">648</span>
+<span id="649">649</span>
+<span id="650">650</span>
+<span id="651">651</span>
+<span id="652">652</span>
+<span id="653">653</span>
+<span id="654">654</span>
+<span id="655">655</span>
+<span id="656">656</span>
+<span id="657">657</span>
+<span id="658">658</span>
+<span id="659">659</span>
+<span id="660">660</span>
+<span id="661">661</span>
+<span id="662">662</span>
+<span id="663">663</span>
+<span id="664">664</span>
+<span id="665">665</span>
+<span id="666">666</span>
+<span id="667">667</span>
+<span id="668">668</span>
 </pre><pre class="rust ">
-<span class="kw">use</span> {<span class="ident">WindowEvent</span> <span class="kw">as</span> <span class="ident">Event</span>, <span class="ident">ElementState</span>, <span class="ident">MouseButton</span>, <span class="ident">MouseScrollDelta</span>, <span class="ident">TouchPhase</span>, <span class="ident">ModifiersState</span>};
+<span class="kw">use</span> {<span class="ident">WindowEvent</span> <span class="kw">as</span> <span class="ident">Event</span>, <span class="ident">ElementState</span>, <span class="ident">MouseButton</span>, <span class="ident">MouseScrollDelta</span>, <span class="ident">TouchPhase</span>, <span class="ident">ModifiersState</span>,
+     <span class="ident">KeyboardInput</span>, <span class="ident">EventsLoopClosed</span>, <span class="ident">ControlFlow</span>};
 
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">AtomicBool</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>, <span class="ident">Weak</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="self">self</span>, <span class="ident">AtomicBool</span>};
 
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">DecoratedHandler</span>, <span class="ident">WindowId</span>, <span class="ident">WaylandContext</span>};
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">DecoratedHandler</span>, <span class="ident">WindowId</span>, <span class="ident">DeviceId</span>, <span class="ident">WaylandContext</span>};
 
 
-<span class="kw">use</span> <span class="ident">wayland_client</span>::{<span class="ident">EventQueue</span>, <span class="ident">EventQueueHandle</span>, <span class="ident">Init</span>, <span class="ident">Proxy</span>};
+<span class="kw">use</span> <span class="ident">wayland_client</span>::{<span class="ident">EventQueue</span>, <span class="ident">EventQueueHandle</span>, <span class="ident">Init</span>, <span class="ident">Proxy</span>, <span class="ident">Liveness</span>};
 <span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">protocol</span>::{<span class="ident">wl_seat</span>, <span class="ident">wl_surface</span>, <span class="ident">wl_pointer</span>, <span class="ident">wl_keyboard</span>};
 
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">make_wid</span>;
@@ -691,7 +768,9 @@
         ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">callback</span>, <span class="ident">cb</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">with_callback</span><span class="op">&lt;</span><span class="ident">F</span>: <span class="ident">FnOnce</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">FnMut</span>(::<span class="ident">Event</span>))<span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">f</span>: <span class="ident">F</span>) {
+    <span class="kw">fn</span> <span class="ident">with_callback</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">f</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">FnMut</span>(::<span class="ident">Event</span>)),
+    {
         <span class="ident">f</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">callback</span>)
     }
 }
@@ -705,11 +784,40 @@
     <span class="ident">decorated_ids</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;</span>)<span class="op">&gt;&gt;</span>,
     <span class="comment">// our sink, receiver of callbacks, shared with some handlers</span>
     <span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>,
-    <span class="comment">// trigger interruption of the run</span>
-    <span class="ident">interrupted</span>: <span class="ident">AtomicBool</span>,
     <span class="comment">// trigger cleanup of the dead surfaces</span>
     <span class="ident">cleanup_needed</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
-    <span class="ident">hid</span>: <span class="ident">usize</span>
+    <span class="comment">// Whether or not there is a pending `Awakened` event to be emitted.</span>
+    <span class="ident">pending_wakeup</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
+    <span class="ident">hid</span>: <span class="ident">usize</span>,
+}
+
+<span class="comment">// A handle that can be sent across threads and used to wake up the `EventsLoop`.</span>
+<span class="comment">//</span>
+<span class="comment">// We should only try and wake up the `EventsLoop` if it still exists, so we hold Weak ptrs.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventsLoopProxy</span> {
+    <span class="ident">ctxt</span>: <span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">WaylandContext</span><span class="op">&gt;</span>,
+    <span class="ident">pending_wakeup</span>: <span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">EventsLoopProxy</span> {
+    <span class="comment">// Causes the `EventsLoop` to stop blocking on `run_forever` and emit an `Awakened` event.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Returns `Err` if the associated `EventsLoop` no longer exists.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wakeup</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">EventsLoopClosed</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">upgrade</span>();
+        <span class="kw">let</span> <span class="ident">wakeup</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">upgrade</span>();
+        <span class="kw">match</span> (<span class="ident">ctxt</span>, <span class="ident">wakeup</span>) {
+            (<span class="prelude-val">Some</span>(<span class="ident">ctxt</span>), <span class="prelude-val">Some</span>(<span class="ident">wakeup</span>)) <span class="op">=&gt;</span> {
+                <span class="comment">// Update the `EventsLoop`&#39;s `pending_wakeup` flag.</span>
+                <span class="ident">wakeup</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+                <span class="comment">// Cause the `EventsLoop` to break from `dispatch` if it is currently blocked.</span>
+                <span class="ident">ctxt</span>.<span class="ident">display</span>.<span class="ident">sync</span>();
+                <span class="ident">ctxt</span>.<span class="ident">display</span>.<span class="ident">flush</span>().<span class="ident">ok</span>();
+                <span class="prelude-val">Ok</span>(())
+            },
+            _ <span class="op">=&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">EventsLoopClosed</span>),
+        }
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">EventsLoop</span> {
@@ -722,9 +830,16 @@
             <span class="ident">evq</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">evq</span>)),
             <span class="ident">decorated_ids</span>: <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()),
             <span class="ident">sink</span>: <span class="ident">sink</span>,
-            <span class="ident">interrupted</span>: <span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>),
+            <span class="ident">pending_wakeup</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>)),
             <span class="ident">cleanup_needed</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>)),
             <span class="ident">hid</span>: <span class="ident">hid</span>
+        }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_proxy</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">EventsLoopProxy</span> {
+        <span class="ident">EventsLoopProxy</span> {
+            <span class="ident">ctxt</span>: <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt</span>),
+            <span class="ident">pending_wakeup</span>: <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">pending_wakeup</span>),
         }
     }
 
@@ -757,24 +872,20 @@
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">interrupt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="self">self</span>.<span class="ident">interrupted</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, ::<span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
-    }
-
     <span class="kw">fn</span> <span class="ident">prune_dead_windows</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">retain</span>(<span class="op">|</span><span class="kw-2">&amp;</span>(_, <span class="kw-2">ref</span> <span class="ident">w</span>)<span class="op">|</span> <span class="ident">w</span>.<span class="ident">is_alive</span>());
+        <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">retain</span>(<span class="op">|</span><span class="kw-2">&amp;</span>(_, <span class="kw-2">ref</span> <span class="ident">w</span>)<span class="op">|</span> <span class="ident">w</span>.<span class="ident">status</span>() <span class="op">==</span> <span class="ident">Liveness</span>::<span class="ident">Alive</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evq_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">evq_guard</span>.<span class="ident">state</span>();
         <span class="kw">let</span> <span class="ident">handler</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">InputHandler</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">hid</span>);
-        <span class="ident">handler</span>.<span class="ident">windows</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="ident">w</span><span class="op">|</span> <span class="ident">w</span>.<span class="ident">is_alive</span>());
+        <span class="ident">handler</span>.<span class="ident">windows</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="ident">w</span><span class="op">|</span> <span class="ident">w</span>.<span class="ident">status</span>() <span class="op">==</span> <span class="ident">Liveness</span>::<span class="ident">Alive</span>);
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">w</span>) <span class="op">=</span> <span class="ident">handler</span>.<span class="ident">mouse_focus</span>.<span class="ident">take</span>() {
-            <span class="kw">if</span> <span class="ident">w</span>.<span class="ident">is_alive</span>() {
+            <span class="kw">if</span> <span class="ident">w</span>.<span class="ident">status</span>() <span class="op">==</span> <span class="ident">Liveness</span>::<span class="ident">Alive</span> {
                 <span class="ident">handler</span>.<span class="ident">mouse_focus</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">w</span>)
             }
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">poll_events</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">callback</span>: <span class="ident">F</span>)
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">poll_events</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">callback</span>: <span class="ident">F</span>)
         <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(::<span class="ident">Event</span>)
     {
         <span class="comment">// send pending requests to the server...</span>
@@ -798,24 +909,28 @@
         <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">dispatch_pending</span>();
         <span class="ident">evq_guard</span>.<span class="ident">dispatch_pending</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection unexpectedly lost&quot;</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sink_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+        <span class="self">self</span>.<span class="ident">emit_pending_wakeup</span>();
 
-        <span class="comment">// events where probably dispatched, process resize</span>
-        <span class="kw">let</span> <span class="ident">ids_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-        <span class="ident">sink_guard</span>.<span class="ident">with_callback</span>(
-            <span class="op">|</span><span class="ident">cb</span><span class="op">|</span> <span class="self">Self</span>::<span class="ident">process_resize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">evq_guard</span>, <span class="kw-2">&amp;</span><span class="ident">ids_guard</span>, <span class="ident">cb</span>)
-        );
+        {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sink_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
 
-        <span class="comment">// replace the old noop callback</span>
-        <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">set_callback</span>(<span class="ident">old_cb</span>) };
+            <span class="comment">// events where probably dispatched, process resize</span>
+            <span class="kw">let</span> <span class="ident">ids_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+            <span class="ident">sink_guard</span>.<span class="ident">with_callback</span>(
+                <span class="op">|</span><span class="ident">cb</span><span class="op">|</span> <span class="self">Self</span>::<span class="ident">process_resize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">evq_guard</span>, <span class="kw-2">&amp;</span><span class="ident">ids_guard</span>, <span class="ident">cb</span>)
+            );
 
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">swap</span>(<span class="bool-val">false</span>, ::<span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
+            <span class="comment">// replace the old noop callback</span>
+            <span class="kw">unsafe</span> { <span class="ident">sink_guard</span>.<span class="ident">set_callback</span>(<span class="ident">old_cb</span>) };
+        }
+
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">swap</span>(<span class="bool-val">false</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
             <span class="self">self</span>.<span class="ident">prune_dead_windows</span>()
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run_forever</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">callback</span>: <span class="ident">F</span>)
-        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(::<span class="ident">Event</span>)
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run_forever</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">callback</span>: <span class="ident">F</span>)
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(::<span class="ident">Event</span>) <span class="op">-&gt;</span> <span class="ident">ControlFlow</span>,
     {
         <span class="comment">// send pending requests to the server...</span>
         <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">flush</span>();
@@ -823,28 +938,48 @@
         <span class="comment">// first of all, get exclusive access to this event queue</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evq_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
 
+        <span class="comment">// Check for control flow by wrapping the callback.</span>
+        <span class="kw">let</span> <span class="ident">control_flow</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">cell</span>::<span class="ident">Cell</span>::<span class="ident">new</span>(<span class="ident">ControlFlow</span>::<span class="ident">Continue</span>);
+        <span class="kw">let</span> <span class="ident">callback</span> <span class="op">=</span> <span class="op">|</span><span class="ident">event</span><span class="op">|</span> <span class="kw">if</span> <span class="kw">let</span> <span class="ident">ControlFlow</span>::<span class="ident">Break</span> <span class="op">=</span> <span class="ident">callback</span>(<span class="ident">event</span>) {
+            <span class="ident">control_flow</span>.<span class="ident">set</span>(<span class="ident">ControlFlow</span>::<span class="ident">Break</span>);
+        };
+
         <span class="comment">// set the callback into the sink</span>
         <span class="comment">// we extend the lifetime of the closure to &#39;static to be able to put it in</span>
         <span class="comment">// the sink, but we&#39;ll explicitly drop it at the end of this function, so it&#39;s fine</span>
         <span class="kw">let</span> <span class="ident">static_cb</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">callback</span>) <span class="kw">as</span> <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">FnMut</span>(_)<span class="op">&gt;</span>) };
         <span class="kw">let</span> <span class="ident">old_cb</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">set_callback</span>(<span class="ident">static_cb</span>) };
 
-        <span class="kw">while</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">interrupted</span>.<span class="ident">load</span>(::<span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
+        <span class="kw">loop</span> {
             <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">dispatch</span>();
             <span class="ident">evq_guard</span>.<span class="ident">dispatch_pending</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection unexpectedly lost&quot;</span>);
+
+            <span class="self">self</span>.<span class="ident">emit_pending_wakeup</span>();
+
             <span class="kw">let</span> <span class="ident">ids_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-            <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">with_callback</span>(
-                <span class="op">|</span><span class="ident">cb</span><span class="op">|</span> <span class="self">Self</span>::<span class="ident">process_resize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">evq_guard</span>, <span class="kw-2">&amp;</span><span class="ident">ids_guard</span>, <span class="ident">cb</span>)
-            );
+            <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>()
+                .<span class="ident">with_callback</span>(<span class="op">|</span><span class="ident">cb</span><span class="op">|</span> <span class="self">Self</span>::<span class="ident">process_resize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">evq_guard</span>, <span class="kw-2">&amp;</span><span class="ident">ids_guard</span>, <span class="ident">cb</span>));
             <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">flush</span>();
 
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">swap</span>(<span class="bool-val">false</span>, ::<span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
+            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">swap</span>(<span class="bool-val">false</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
                 <span class="self">self</span>.<span class="ident">prune_dead_windows</span>()
+            }
+
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">ControlFlow</span>::<span class="ident">Break</span> <span class="op">=</span> <span class="ident">control_flow</span>.<span class="ident">get</span>() {
+                <span class="kw">break</span>;
             }
         }
 
         <span class="comment">// replace the old noop callback</span>
         <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">set_callback</span>(<span class="ident">old_cb</span>) };
+    }
+
+    <span class="comment">// If an `EventsLoopProxy` has signalled a wakeup, emit an event and reset the flag.</span>
+    <span class="kw">fn</span> <span class="ident">emit_pending_wakeup</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">load</span>(<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
+            <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">with_callback</span>(<span class="op">|</span><span class="ident">cb</span><span class="op">|</span> <span class="ident">cb</span>(::<span class="ident">Event</span>::<span class="ident">Awakened</span>));
+            <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">store</span>(<span class="bool-val">false</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+        }
     }
 }
 
@@ -859,7 +994,7 @@
     <span class="ident">seat</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_seat</span>::<span class="ident">WlSeat</span><span class="op">&gt;</span>,
     <span class="ident">mouse</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span><span class="op">&gt;</span>,
     <span class="ident">mouse_focus</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;&gt;</span>,
-    <span class="ident">mouse_location</span>: (<span class="ident">i32</span>, <span class="ident">i32</span>),
+    <span class="ident">mouse_location</span>: (<span class="ident">f64</span>, <span class="ident">f64</span>),
     <span class="ident">axis_buffer</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">f32</span>, <span class="ident">f32</span>)<span class="op">&gt;</span>,
     <span class="ident">axis_discrete_buffer</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">i32</span>, <span class="ident">i32</span>)<span class="op">&gt;</span>,
     <span class="ident">axis_state</span>: <span class="ident">TouchPhase</span>,
@@ -880,7 +1015,7 @@
             <span class="ident">seat</span>: <span class="ident">ctxt</span>.<span class="ident">get_seat</span>(),
             <span class="ident">mouse</span>: <span class="prelude-val">None</span>,
             <span class="ident">mouse_focus</span>: <span class="prelude-val">None</span>,
-            <span class="ident">mouse_location</span>: (<span class="number">0</span>,<span class="number">0</span>),
+            <span class="ident">mouse_location</span>: (<span class="number">0.0</span>,<span class="number">0.0</span>),
             <span class="ident">axis_buffer</span>: <span class="prelude-val">None</span>,
             <span class="ident">axis_discrete_buffer</span>: <span class="prelude-val">None</span>,
             <span class="ident">axis_state</span>: <span class="ident">TouchPhase</span>::<span class="ident">Started</span>,
@@ -948,14 +1083,17 @@
              <span class="ident">surface_x</span>: <span class="ident">f64</span>,
              <span class="ident">surface_y</span>: <span class="ident">f64</span>)
     {
-        <span class="self">self</span>.<span class="ident">mouse_location</span> <span class="op">=</span> (<span class="ident">surface_x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">surface_y</span> <span class="kw">as</span> <span class="ident">i32</span>);
+        <span class="self">self</span>.<span class="ident">mouse_location</span> <span class="op">=</span> (<span class="ident">surface_x</span>, <span class="ident">surface_y</span>);
         <span class="kw">for</span> <span class="ident">window</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">windows</span> {
             <span class="kw">if</span> <span class="ident">window</span>.<span class="ident">equals</span>(<span class="ident">surface</span>) {
                 <span class="self">self</span>.<span class="ident">mouse_focus</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">window</span>.<span class="ident">clone</span>());
                 <span class="kw">let</span> (<span class="ident">w</span>, <span class="ident">h</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_location</span>;
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-                <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseEntered</span>, <span class="ident">make_wid</span>(<span class="ident">window</span>));
-                <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseMoved</span>(<span class="ident">w</span>, <span class="ident">h</span>), <span class="ident">make_wid</span>(<span class="ident">window</span>));
+                <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseEntered</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)) },
+                                 <span class="ident">make_wid</span>(<span class="ident">window</span>));
+                <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseMoved</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                                                     <span class="ident">position</span>: (<span class="ident">w</span>, <span class="ident">h</span>) },
+                                 <span class="ident">make_wid</span>(<span class="ident">window</span>));
                 <span class="kw">break</span>;
             }
         }
@@ -970,7 +1108,8 @@
         <span class="self">self</span>.<span class="ident">mouse_focus</span> <span class="op">=</span> <span class="prelude-val">None</span>;
         <span class="kw">for</span> <span class="ident">window</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">windows</span> {
             <span class="kw">if</span> <span class="ident">window</span>.<span class="ident">equals</span>(<span class="ident">surface</span>) {
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseLeft</span>, <span class="ident">make_wid</span>(<span class="ident">window</span>));
+                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseLeft</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)) },
+                                                         <span class="ident">make_wid</span>(<span class="ident">window</span>));
             }
         }
     }
@@ -982,10 +1121,11 @@
               <span class="ident">surface_x</span>: <span class="ident">f64</span>,
               <span class="ident">surface_y</span>: <span class="ident">f64</span>)
     {
-        <span class="self">self</span>.<span class="ident">mouse_location</span> <span class="op">=</span> (<span class="ident">surface_x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">surface_y</span> <span class="kw">as</span> <span class="ident">i32</span>);
+        <span class="self">self</span>.<span class="ident">mouse_location</span> <span class="op">=</span> (<span class="ident">surface_x</span>, <span class="ident">surface_y</span>);
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">window</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_focus</span> {
             <span class="kw">let</span> (<span class="ident">w</span>,<span class="ident">h</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_location</span>;
-            <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseMoved</span>(<span class="ident">w</span>, <span class="ident">h</span>), <span class="ident">make_wid</span>(<span class="ident">window</span>));
+            <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseMoved</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                                                                         <span class="ident">position</span>: (<span class="ident">w</span>, <span class="ident">h</span>) }, <span class="ident">make_wid</span>(<span class="ident">window</span>));
         }
     }
 
@@ -1009,7 +1149,14 @@
                 <span class="comment">// TODO figure out the translation ?</span>
                 _ <span class="op">=&gt;</span> <span class="kw">return</span>
             };
-            <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseInput</span>(<span class="ident">state</span>, <span class="ident">button</span>), <span class="ident">make_wid</span>(<span class="ident">window</span>));
+            <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
+                <span class="ident">Event</span>::<span class="ident">MouseInput</span> {
+                    <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                    <span class="ident">state</span>: <span class="ident">state</span>,
+                    <span class="ident">button</span>: <span class="ident">button</span>,
+                },
+                <span class="ident">make_wid</span>(<span class="ident">window</span>)
+            );
         }
     }
 
@@ -1041,18 +1188,20 @@
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">window</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_focus</span> {
             <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">x</span>, <span class="ident">y</span>)) <span class="op">=</span> <span class="ident">axis_discrete_buffer</span> {
                 <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                    <span class="ident">Event</span>::<span class="ident">MouseWheel</span>(
-                        <span class="ident">MouseScrollDelta</span>::<span class="ident">LineDelta</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>),
-                        <span class="self">self</span>.<span class="ident">axis_state</span>
-                    ),
+                    <span class="ident">Event</span>::<span class="ident">MouseWheel</span> {
+                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                        <span class="ident">delta</span>: <span class="ident">MouseScrollDelta</span>::<span class="ident">LineDelta</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>),
+                        <span class="ident">phase</span>: <span class="self">self</span>.<span class="ident">axis_state</span>,
+                    },
                     <span class="ident">make_wid</span>(<span class="ident">window</span>)
                 );
             } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">x</span>, <span class="ident">y</span>)) <span class="op">=</span> <span class="ident">axis_buffer</span> {
                 <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                    <span class="ident">Event</span>::<span class="ident">MouseWheel</span>(
-                        <span class="ident">MouseScrollDelta</span>::<span class="ident">PixelDelta</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>),
-                        <span class="self">self</span>.<span class="ident">axis_state</span>
-                    ),
+                    <span class="ident">Event</span>::<span class="ident">MouseWheel</span> {
+                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                        <span class="ident">delta</span>: <span class="ident">MouseScrollDelta</span>::<span class="ident">PixelDelta</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>),
+                        <span class="ident">phase</span>: <span class="self">self</span>.<span class="ident">axis_state</span>,
+                    },
                     <span class="ident">make_wid</span>(<span class="ident">window</span>)
                 );
             }
@@ -1185,12 +1334,15 @@
                 <span class="comment">// anyway, as we need libxkbcommon to interpret it (it is</span>
                 <span class="comment">// supposed to be serialized by the compositor using libxkbcommon)</span>
                 <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                    <span class="ident">Event</span>::<span class="ident">KeyboardInput</span>(
-                        <span class="ident">state</span>,
-                        <span class="ident">key</span> <span class="kw">as</span> <span class="ident">u8</span>,
-                        <span class="prelude-val">None</span>,
-                        <span class="ident">ModifiersState</span>::<span class="ident">default</span>()
-                    ),
+                    <span class="ident">Event</span>::<span class="ident">KeyboardInput</span> {
+                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                        <span class="ident">input</span>: <span class="ident">KeyboardInput</span> {
+                            <span class="ident">state</span>: <span class="ident">state</span>,
+                            <span class="ident">scancode</span>: <span class="ident">key</span>,
+                            <span class="ident">virtual_keycode</span>: <span class="prelude-val">None</span>,
+                            <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span>::<span class="ident">default</span>(),
+                        },
+                    },
                     <span class="ident">wid</span>
                 );
             },
