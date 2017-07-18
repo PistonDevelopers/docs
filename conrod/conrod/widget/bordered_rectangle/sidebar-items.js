@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["BorderedRectangle","A filled rectangle widget that may or may not have some border."],["State","Unique state for the `BorderedRectangle`."],["Style","Unique styling for the BorderedRectangle widget."]]});
+initSidebarItems({"fn":[["border_triangles","The eight triangles that describe a rectangular border."]],"struct":[["BorderedRectangle","A filled rectangle widget that may or may not have some border."],["State","Unique state for the `BorderedRectangle`."],["Style","Unique styling for the BorderedRectangle widget."]]});
