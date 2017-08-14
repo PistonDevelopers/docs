@@ -1,6 +1,4 @@
 (function() {var implementors = {};
-implementors["image"] = [];
-implementors["piston_window"] = [];
 implementors["rayon"] = [];
 
             if (window.register_implementors) {
