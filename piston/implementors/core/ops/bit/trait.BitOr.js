@@ -1,4 +1,5 @@
 (function() {var implementors = {};
+implementors["bitflags"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitOr.html\" title=\"trait core::ops::bit::BitOr\">BitOr</a> for <a class=\"struct\" href=\"bitflags/example_generated/struct.Flags.html\" title=\"struct bitflags::example_generated::Flags\">Flags</a>",];
 implementors["input"] = ["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/bit/trait.BitOr.html\" title=\"trait core::ops::bit::BitOr\">BitOr</a> for <a class=\"struct\" href=\"input/keyboard/struct.ModifierKey.html\" title=\"struct input::keyboard::ModifierKey\">ModifierKey</a>",];
 
             if (window.register_implementors) {
