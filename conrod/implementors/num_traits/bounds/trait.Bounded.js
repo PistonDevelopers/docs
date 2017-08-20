@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["conrod"] = [];
 implementors["num_traits"] = [];
 
             if (window.register_implementors) {

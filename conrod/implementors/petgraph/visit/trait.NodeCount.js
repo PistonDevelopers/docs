@@ -1,6 +1,4 @@
 (function() {var implementors = {};
-implementors["conrod"] = [];
-implementors["daggy"] = [];
 implementors["petgraph"] = [];
 
             if (window.register_implementors) {

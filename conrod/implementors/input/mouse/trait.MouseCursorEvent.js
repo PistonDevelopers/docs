@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["conrod"] = [];
 implementors["input"] = [];
 
             if (window.register_implementors) {

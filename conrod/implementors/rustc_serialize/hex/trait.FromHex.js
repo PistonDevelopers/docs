@@ -1,6 +1,4 @@
 (function() {var implementors = {};
-implementors["conrod"] = [];
-implementors["num"] = [];
 implementors["rustc_serialize"] = [];
 
             if (window.register_implementors) {

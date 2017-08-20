@@ -1,6 +1,4 @@
 (function() {var implementors = {};
-implementors["conrod"] = [];
-implementors["num"] = [];
 implementors["rand"] = [];
 
             if (window.register_implementors) {
