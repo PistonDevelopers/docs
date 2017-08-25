@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.14/src/stream/buffered.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.15/src/stream/buffered.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>buffered.rs.html -- source</title>
@@ -175,52 +175,11 @@
 <span id="130">130</span>
 <span id="131">131</span>
 <span id="132">132</span>
-<span id="133">133</span>
-<span id="134">134</span>
-<span id="135">135</span>
-<span id="136">136</span>
-<span id="137">137</span>
-<span id="138">138</span>
-<span id="139">139</span>
-<span id="140">140</span>
-<span id="141">141</span>
-<span id="142">142</span>
-<span id="143">143</span>
-<span id="144">144</span>
-<span id="145">145</span>
-<span id="146">146</span>
-<span id="147">147</span>
-<span id="148">148</span>
-<span id="149">149</span>
-<span id="150">150</span>
-<span id="151">151</span>
-<span id="152">152</span>
-<span id="153">153</span>
-<span id="154">154</span>
-<span id="155">155</span>
-<span id="156">156</span>
-<span id="157">157</span>
-<span id="158">158</span>
-<span id="159">159</span>
-<span id="160">160</span>
-<span id="161">161</span>
-<span id="162">162</span>
-<span id="163">163</span>
-<span id="164">164</span>
-<span id="165">165</span>
-<span id="166">166</span>
-<span id="167">167</span>
-<span id="168">168</span>
-<span id="169">169</span>
-<span id="170">170</span>
 </pre><pre class="rust ">
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">prelude</span>::<span class="ident">v1</span>::<span class="kw-2">*</span>;
-
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>;
 
-<span class="kw">use</span> {<span class="ident">Async</span>, <span class="ident">IntoFuture</span>, <span class="ident">Poll</span>, <span class="ident">Future</span>};
-<span class="kw">use</span> <span class="ident">stream</span>::{<span class="ident">Stream</span>, <span class="ident">Fuse</span>};
+<span class="kw">use</span> {<span class="ident">Async</span>, <span class="ident">IntoFuture</span>, <span class="ident">Poll</span>};
+<span class="kw">use</span> <span class="ident">stream</span>::{<span class="ident">Stream</span>, <span class="ident">Fuse</span>, <span class="ident">FuturesOrdered</span>};
 
 <span class="doccomment">/// An adaptor for a stream of futures to execute the futures concurrently, if</span>
 <span class="doccomment">/// possible.</span>
@@ -234,8 +193,8 @@
           <span class="ident">S</span>::<span class="ident">Item</span>: <span class="ident">IntoFuture</span>,
 {
     <span class="ident">stream</span>: <span class="ident">Fuse</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
-    <span class="ident">futures</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">State</span><span class="op">&lt;&lt;</span><span class="ident">S</span>::<span class="ident">Item</span> <span class="kw">as</span> <span class="ident">IntoFuture</span><span class="op">&gt;</span>::<span class="ident">Future</span><span class="op">&gt;&gt;</span>,
-    <span class="ident">cur</span>: <span class="ident">usize</span>,
+    <span class="ident">queue</span>: <span class="ident">FuturesOrdered</span><span class="op">&lt;&lt;</span><span class="ident">S</span>::<span class="ident">Item</span> <span class="kw">as</span> <span class="ident">IntoFuture</span><span class="op">&gt;</span>::<span class="ident">Future</span><span class="op">&gt;</span>,
+    <span class="ident">max</span>: <span class="ident">usize</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">Buffered</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>
@@ -246,19 +205,12 @@
           <span class="op">&lt;&lt;</span><span class="ident">S</span> <span class="kw">as</span> <span class="ident">Stream</span><span class="op">&gt;</span>::<span class="ident">Item</span> <span class="kw">as</span> <span class="ident">IntoFuture</span><span class="op">&gt;</span>::<span class="ident">Error</span>: <span class="ident">fmt</span>::<span class="ident">Debug</span>,
 {
     <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">fmt</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
-        <span class="ident">fmt</span>.<span class="ident">debug_struct</span>(<span class="string">&quot;Stream&quot;</span>)
+        <span class="ident">fmt</span>.<span class="ident">debug_struct</span>(<span class="string">&quot;Buffered&quot;</span>)
             .<span class="ident">field</span>(<span class="string">&quot;stream&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">stream</span>)
-            .<span class="ident">field</span>(<span class="string">&quot;futures&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">futures</span>)
-            .<span class="ident">field</span>(<span class="string">&quot;cur&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">cur</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;queue&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">queue</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;max&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">max</span>)
             .<span class="ident">finish</span>()
     }
-}
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">enum</span> <span class="ident">State</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">Future</span><span class="op">&gt;</span> {
-    <span class="ident">Empty</span>,
-    <span class="ident">Running</span>(<span class="ident">S</span>),
-    <span class="ident">Finished</span>(<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">S</span>::<span class="ident">Item</span>, <span class="ident">S</span>::<span class="ident">Error</span><span class="op">&gt;</span>),
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>(<span class="ident">s</span>: <span class="ident">S</span>, <span class="ident">amt</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">Buffered</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>
@@ -267,14 +219,14 @@
 {
     <span class="ident">Buffered</span> {
         <span class="ident">stream</span>: <span class="kw">super</span>::<span class="ident">fuse</span>::<span class="ident">new</span>(<span class="ident">s</span>),
-        <span class="ident">futures</span>: (<span class="number">0</span>..<span class="ident">amt</span>).<span class="ident">map</span>(<span class="op">|</span>_<span class="op">|</span> <span class="ident">State</span>::<span class="ident">Empty</span>).<span class="ident">collect</span>(),
-        <span class="ident">cur</span>: <span class="number">0</span>,
+        <span class="ident">queue</span>: <span class="ident">FuturesOrdered</span>::<span class="ident">new</span>(),
+        <span class="ident">max</span>: <span class="ident">amt</span>,
     }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> <span class="ident">Buffered</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>
     <span class="kw">where</span> <span class="ident">S</span>: <span class="ident">Stream</span>,
-          <span class="ident">S</span>::<span class="ident">Item</span>: <span class="ident">IntoFuture</span>,
+          <span class="ident">S</span>::<span class="ident">Item</span>: <span class="ident">IntoFuture</span><span class="op">&lt;</span><span class="ident">Error</span><span class="op">=</span><span class="op">&lt;</span><span class="ident">S</span> <span class="kw">as</span> <span class="ident">Stream</span><span class="op">&gt;</span>::<span class="ident">Error</span><span class="op">&gt;</span>,
 {
     <span class="doccomment">/// Acquires a reference to the underlying stream that this combinator is</span>
     <span class="doccomment">/// pulling from.</span>
@@ -329,59 +281,31 @@
     <span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="op">&lt;</span><span class="ident">S</span> <span class="kw">as</span> <span class="ident">Stream</span><span class="op">&gt;</span>::<span class="ident">Error</span>;
 
     <span class="kw">fn</span> <span class="ident">poll</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>, <span class="self">Self</span>::<span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="comment">// First, try to fill in all the futures</span>
-        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="self">self</span>.<span class="ident">futures</span>.<span class="ident">len</span>() {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">idx</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cur</span> <span class="op">+</span> <span class="ident">i</span>;
-            <span class="kw">if</span> <span class="ident">idx</span> <span class="op">&gt;=</span> <span class="self">self</span>.<span class="ident">futures</span>.<span class="ident">len</span>() {
-                <span class="ident">idx</span> <span class="op">-=</span> <span class="self">self</span>.<span class="ident">futures</span>.<span class="ident">len</span>();
-            }
-
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">State</span>::<span class="ident">Empty</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">futures</span>[<span class="ident">idx</span>] {
-                <span class="kw">match</span> <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">poll</span>()) {
-                    <span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">Some</span>(<span class="ident">future</span>)) <span class="op">=&gt;</span> {
-                        <span class="kw">let</span> <span class="ident">future</span> <span class="op">=</span> <span class="ident">future</span>.<span class="ident">into_future</span>();
-                        <span class="self">self</span>.<span class="ident">futures</span>[<span class="ident">idx</span>] <span class="op">=</span> <span class="ident">State</span>::<span class="ident">Running</span>(<span class="ident">future</span>);
-                    }
-                    <span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">None</span>) <span class="op">=&gt;</span> <span class="kw">break</span>,
-                    <span class="ident">Async</span>::<span class="ident">NotReady</span> <span class="op">=&gt;</span> <span class="kw">break</span>,
-                }
-            }
-        }
-
-        <span class="comment">// Next, try and step all the futures forward</span>
-        <span class="kw">for</span> <span class="ident">future</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">futures</span>.<span class="ident">iter_mut</span>() {
-            <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">future</span> {
-                <span class="ident">State</span>::<span class="ident">Running</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">s</span>) <span class="op">=&gt;</span> {
-                    <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">poll</span>() {
-                        <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">NotReady</span>) <span class="op">=&gt;</span> <span class="kw">continue</span>,
-                        <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="ident">e</span>)) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">e</span>),
-                        <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>),
-                    }
-                }
-                _ <span class="op">=&gt;</span> <span class="kw">continue</span>,
+        <span class="comment">// First up, try to spawn off as many futures as possible by filling up</span>
+        <span class="comment">// our slab of futures.</span>
+        <span class="kw">while</span> <span class="self">self</span>.<span class="ident">queue</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">max</span> {
+            <span class="kw">let</span> <span class="ident">future</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">poll</span>()<span class="question-mark">?</span> {
+                <span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">Some</span>(<span class="ident">s</span>)) <span class="op">=&gt;</span> <span class="ident">s</span>.<span class="ident">into_future</span>(),
+                <span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">None</span>) <span class="op">|</span>
+                <span class="ident">Async</span>::<span class="ident">NotReady</span> <span class="op">=&gt;</span> <span class="kw">break</span>,
             };
-            <span class="kw-2">*</span><span class="ident">future</span> <span class="op">=</span> <span class="ident">State</span>::<span class="ident">Finished</span>(<span class="ident">result</span>);
+
+            <span class="self">self</span>.<span class="ident">queue</span>.<span class="ident">push</span>(<span class="ident">future</span>);
         }
 
-        <span class="comment">// Check to see if our current future is done.</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="ident">State</span>::<span class="ident">Finished</span>(_) <span class="op">=</span> <span class="self">self</span>.<span class="ident">futures</span>[<span class="self">self</span>.<span class="ident">cur</span>] {
-            <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">futures</span>[<span class="self">self</span>.<span class="ident">cur</span>], <span class="ident">State</span>::<span class="ident">Empty</span>) {
-                <span class="ident">State</span>::<span class="ident">Finished</span>(<span class="ident">r</span>) <span class="op">=&gt;</span> <span class="ident">r</span>,
-                _ <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(),
-            };
-            <span class="self">self</span>.<span class="ident">cur</span> <span class="op">+=</span> <span class="number">1</span>;
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cur</span> <span class="op">&gt;=</span> <span class="self">self</span>.<span class="ident">futures</span>.<span class="ident">len</span>() {
-                <span class="self">self</span>.<span class="ident">cur</span> <span class="op">=</span> <span class="number">0</span>;
-            }
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">Some</span>(<span class="macro">try</span><span class="macro">!</span>(<span class="ident">r</span>))))
+        <span class="comment">// Try polling a new future</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=</span> <span class="macro">try_ready</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">queue</span>.<span class="ident">poll</span>()) {
+            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)));
         }
 
+        <span class="comment">// If we&#39;ve gotten this far, then there are no events for us to process</span>
+        <span class="comment">// and nothing was ready, so figure out if we&#39;re not done yet  or if</span>
+        <span class="comment">// we&#39;ve reached the end.</span>
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">is_done</span>() {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">State</span>::<span class="ident">Empty</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">futures</span>[<span class="self">self</span>.<span class="ident">cur</span>] {
-                <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">None</span>))
-            }
+            <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="prelude-val">None</span>))
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">NotReady</span>)
         }
-        <span class="prelude-val">Ok</span>(<span class="ident">Async</span>::<span class="ident">NotReady</span>)
     }
 }
 </pre>

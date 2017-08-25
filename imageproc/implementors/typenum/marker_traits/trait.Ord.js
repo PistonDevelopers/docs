@@ -1,5 +1,4 @@
 (function() {var implementors = {};
-implementors["nalgebra"] = [];
 implementors["typenum"] = [];
 
             if (window.register_implementors) {

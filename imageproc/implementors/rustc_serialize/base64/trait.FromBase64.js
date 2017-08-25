@@ -1,8 +1,4 @@
 (function() {var implementors = {};
-implementors["alga"] = [];
-implementors["image"] = [];
-implementors["nalgebra"] = [];
-implementors["num"] = [];
 implementors["rustc_serialize"] = [];
 
             if (window.register_implementors) {

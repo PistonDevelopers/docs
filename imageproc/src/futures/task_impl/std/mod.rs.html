@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.14/src/task_impl/std/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.15/src/task_impl/std/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -693,17 +693,6 @@
 <span id="648">648</span>
 <span id="649">649</span>
 <span id="650">650</span>
-<span id="651">651</span>
-<span id="652">652</span>
-<span id="653">653</span>
-<span id="654">654</span>
-<span id="655">655</span>
-<span id="656">656</span>
-<span id="657">657</span>
-<span id="658">658</span>
-<span id="659">659</span>
-<span id="660">660</span>
-<span id="661">661</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">prelude</span>::<span class="ident">v1</span>::<span class="kw-2">*</span>;
 
@@ -717,7 +706,6 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">thread</span>;
 
 <span class="kw">use</span> {<span class="ident">Future</span>, <span class="ident">Stream</span>, <span class="ident">Sink</span>, <span class="ident">Poll</span>, <span class="ident">Async</span>, <span class="ident">StartSend</span>, <span class="ident">AsyncSink</span>};
-<span class="kw">use</span> <span class="ident">future</span>::<span class="ident">BoxFuture</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">core</span>;
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">BorrowedTask</span>, <span class="ident">NotifyHandle</span>, <span class="ident">Spawn</span>, <span class="ident">spawn</span>, <span class="ident">Notify</span>, <span class="ident">UnsafeNotify</span>};
 
@@ -736,32 +724,15 @@
 
 <span class="macro">thread_local</span><span class="macro">!</span>(<span class="kw">static</span> <span class="ident">CURRENT_TASK</span>: <span class="ident">Cell</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Cell</span>::<span class="ident">new</span>(<span class="ident">ptr</span>::<span class="ident">null_mut</span>()));
 
-<span class="comment">// This function and the one below are never used, but they are used to pass in</span>
-<span class="comment">// as arguments to the task system initialization. However, thread local logic</span>
-<span class="comment">// is special cased before, and `tls_get_ptr` is used as a token to check that</span>
-<span class="comment">// TLS is being used to track the current task.</span>
-<span class="comment">//</span>
-<span class="comment">// This function should never be inlined as it is used as a token in the</span>
-<span class="comment">// conditional below.</span>
-<span class="attribute">#[<span class="ident">inline</span>(<span class="ident">never</span>)]</span>
-<span class="kw">fn</span> <span class="ident">tls_get_ptr</span>() <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span> {
-    <span class="macro">unreachable</span><span class="macro">!</span>();
-}
-
-<span class="attribute">#[<span class="ident">inline</span>(<span class="ident">never</span>)]</span>
-<span class="kw">fn</span> <span class="ident">tls_set_ptr</span>(_: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>) {
-    <span class="macro">unreachable</span><span class="macro">!</span>();
-}
-
 <span class="kw">static</span> <span class="ident">INIT</span>: <span class="ident">Once</span> <span class="op">=</span> <span class="ident">ONCE_INIT</span>;
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_ptr</span>() <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_ptr</span>() <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">&gt;</span> {
     <span class="comment">// Since this condition will always return true when TLS task storage is</span>
     <span class="comment">// used (the default), the branch predictor will be able to optimize the</span>
     <span class="comment">// branching and a dynamic dispatch will be avoided, which makes the</span>
     <span class="comment">// compiler happier.</span>
-    <span class="kw">if</span> <span class="ident">core</span>::<span class="ident">is_get_ptr</span>(<span class="ident">tls_get_ptr</span> <span class="kw">as</span> <span class="ident">usize</span>) {
-        <span class="ident">CURRENT_TASK</span>.<span class="ident">with</span>(<span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">get</span>())
+    <span class="kw">if</span> <span class="ident">core</span>::<span class="ident">is_get_ptr</span>(<span class="number">0x1</span>) {
+        <span class="prelude-val">Some</span>(<span class="ident">CURRENT_TASK</span>.<span class="ident">with</span>(<span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">get</span>()))
     } <span class="kw">else</span> {
         <span class="ident">core</span>::<span class="ident">get_ptr</span>()
     }
@@ -775,10 +746,17 @@
     <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>() <span class="op">-&gt;</span> <span class="ident">R</span>
 {
     <span class="comment">// Lazily initialze the get / set ptrs</span>
-    <span class="ident">INIT</span>.<span class="ident">call_once</span>(<span class="op">||</span> <span class="kw">unsafe</span> { <span class="ident">init</span>(<span class="ident">tls_get_ptr</span>, <span class="ident">tls_set_ptr</span>); });
+    <span class="comment">//</span>
+    <span class="comment">// Note that we won&#39;t actually use these functions ever, we&#39;ll instead be</span>
+    <span class="comment">// testing the pointer&#39;s value elsewhere and calling our own functions.</span>
+    <span class="ident">INIT</span>.<span class="ident">call_once</span>(<span class="op">||</span> <span class="kw">unsafe</span> {
+        <span class="kw">let</span> <span class="ident">get</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">transmute</span>::<span class="op">&lt;</span><span class="ident">usize</span>, _<span class="op">&gt;</span>(<span class="number">0x1</span>);
+        <span class="kw">let</span> <span class="ident">set</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">transmute</span>::<span class="op">&lt;</span><span class="ident">usize</span>, _<span class="op">&gt;</span>(<span class="number">0x2</span>);
+        <span class="ident">init</span>(<span class="ident">get</span>, <span class="ident">set</span>);
+    });
 
     <span class="comment">// Same as above.</span>
-    <span class="kw">if</span> <span class="ident">core</span>::<span class="ident">is_get_ptr</span>(<span class="ident">tls_get_ptr</span> <span class="kw">as</span> <span class="ident">usize</span>) {
+    <span class="kw">if</span> <span class="ident">core</span>::<span class="ident">is_get_ptr</span>(<span class="number">0x1</span>) {
         <span class="kw">struct</span> <span class="ident">Reset</span>(<span class="kw-2">*</span><span class="kw">const</span> <span class="ident">Cell</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">&gt;</span>, <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>);
 
         <span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">Reset</span> {
@@ -959,7 +937,7 @@
         <span class="kw">let</span> <span class="ident">unpark</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">ThreadUnpark</span>::<span class="ident">new</span>(<span class="ident">thread</span>::<span class="ident">current</span>()));
 
         <span class="kw">loop</span> {
-            <span class="kw">match</span> <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">poll_future_notify</span>(<span class="kw-2">&amp;</span><span class="ident">unpark</span>, <span class="number">0</span>)) {
+            <span class="kw">match</span> <span class="self">self</span>.<span class="ident">poll_future_notify</span>(<span class="kw-2">&amp;</span><span class="ident">unpark</span>, <span class="number">0</span>)<span class="question-mark">?</span> {
                 <span class="ident">Async</span>::<span class="ident">NotReady</span> <span class="op">=&gt;</span> <span class="ident">unpark</span>.<span class="ident">park</span>(),
                 <span class="ident">Async</span>::<span class="ident">Ready</span>(<span class="ident">e</span>) <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">e</span>),
             }
@@ -993,7 +971,7 @@
             <span class="comment">// `Spawn&lt;BoxFuture&lt;(), ()&gt;&gt;` so we wouldn&#39;t have to box here and</span>
             <span class="comment">// it&#39;d be more explicit, but unfortunately that currently has a</span>
             <span class="comment">// link error on nightly: rust-lang/rust#36155</span>
-            <span class="ident">spawn</span>: <span class="ident">spawn</span>(<span class="self">self</span>.<span class="ident">into_inner</span>().<span class="ident">boxed</span>()),
+            <span class="ident">spawn</span>: <span class="ident">spawn</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="self">self</span>.<span class="ident">into_inner</span>())),
             <span class="ident">inner</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">RunInner</span> {
                 <span class="ident">exec</span>: <span class="ident">exec</span>,
                 <span class="ident">mutex</span>: <span class="ident">UnparkMutex</span>::<span class="ident">new</span>()
@@ -1060,7 +1038,7 @@
                      <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">S</span>::<span class="ident">SinkError</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">notify</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">ThreadUnpark</span>::<span class="ident">new</span>(<span class="ident">thread</span>::<span class="ident">current</span>()));
         <span class="kw">loop</span> {
-            <span class="ident">value</span> <span class="op">=</span> <span class="kw">match</span> <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">start_send_notify</span>(<span class="ident">value</span>, <span class="kw-2">&amp;</span><span class="ident">notify</span>, <span class="number">0</span>)) {
+            <span class="ident">value</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">start_send_notify</span>(<span class="ident">value</span>, <span class="kw-2">&amp;</span><span class="ident">notify</span>, <span class="number">0</span>)<span class="question-mark">?</span> {
                 <span class="ident">AsyncSink</span>::<span class="ident">NotReady</span>(<span class="ident">v</span>) <span class="op">=&gt;</span> <span class="ident">v</span>,
                 <span class="ident">AsyncSink</span>::<span class="ident">Ready</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(()),
             };
@@ -1079,7 +1057,7 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wait_flush</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">S</span>::<span class="ident">SinkError</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">notify</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">ThreadUnpark</span>::<span class="ident">new</span>(<span class="ident">thread</span>::<span class="ident">current</span>()));
         <span class="kw">loop</span> {
-            <span class="kw">if</span> <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">poll_flush_notify</span>(<span class="kw-2">&amp;</span><span class="ident">notify</span>, <span class="number">0</span>)).<span class="ident">is_ready</span>() {
+            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">poll_flush_notify</span>(<span class="kw-2">&amp;</span><span class="ident">notify</span>, <span class="number">0</span>)<span class="question-mark">?</span>.<span class="ident">is_ready</span>() {
                 <span class="kw">return</span> <span class="prelude-val">Ok</span>(())
             }
             <span class="ident">notify</span>.<span class="ident">park</span>();
@@ -1121,7 +1099,7 @@
 <span class="doccomment">/// Units of work submitted to an `Executor`, currently only created</span>
 <span class="doccomment">/// internally.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Run</span> {
-    <span class="ident">spawn</span>: <span class="ident">Spawn</span><span class="op">&lt;</span><span class="ident">BoxFuture</span><span class="op">&lt;</span>(), ()<span class="op">&gt;&gt;</span>,
+    <span class="ident">spawn</span>: <span class="ident">Spawn</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Future</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> (), <span class="ident">Error</span> <span class="op">=</span> ()<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;&gt;</span>,
     <span class="ident">inner</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">RunInner</span><span class="op">&gt;</span>,
 }
 

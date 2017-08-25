@@ -1,8 +1,4 @@
 (function() {var implementors = {};
-implementors["alga"] = [];
-implementors["enum_primitive"] = [];
-implementors["image"] = [];
-implementors["nalgebra"] = [];
 implementors["num_traits"] = [];
 
             if (window.register_implementors) {

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.14.0/./src/imageops/sample.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.15.0/./src/imageops/sample.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>sample.rs.html -- source</title>
@@ -535,6 +535,36 @@
 <span id="490">490</span>
 <span id="491">491</span>
 <span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Functions and filters for the sampling of pixels.</span>
 
@@ -647,7 +677,7 @@
 <span class="doccomment">/// Also known as BiLinear sampling in two dimensions.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">triangle_kernel</span>(<span class="ident">x</span>: <span class="ident">f32</span>) <span class="op">-&gt;</span> <span class="ident">f32</span> {
     <span class="kw">if</span> <span class="ident">x</span>.<span class="ident">abs</span>() <span class="op">&lt;</span> <span class="number">1.0</span> {
-        <span class="number">1.0</span> <span class="op">-</span> <span class="ident">x</span>
+        <span class="number">1.0</span> <span class="op">-</span> <span class="ident">x</span>.<span class="ident">abs</span>()
     } <span class="kw">else</span> {
         <span class="number">0.0</span>
     }
@@ -685,33 +715,60 @@
 
         <span class="kw">let</span> <span class="ident">ratio</span> <span class="op">=</span> <span class="ident">width</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="ident">new_width</span> <span class="kw">as</span> <span class="ident">f32</span>;
 
-        <span class="comment">// Scale the filter when downsampling.</span>
-        <span class="kw">let</span> <span class="ident">filter_scale</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">ratio</span> <span class="op">&gt;</span> <span class="number">1.0</span> {
-            <span class="ident">ratio</span>
-        } <span class="kw">else</span> {
-            <span class="number">1.0</span>
-        };
-
-        <span class="kw">let</span> <span class="ident">filter_radius</span> <span class="op">=</span> (<span class="ident">filter</span>.<span class="ident">support</span> <span class="op">*</span> <span class="ident">filter_scale</span>).<span class="ident">ceil</span>();
-
         <span class="kw">for</span> <span class="ident">outx</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">new_width</span> {
 
-            <span class="kw">let</span> <span class="ident">inputx</span> <span class="op">=</span> (<span class="ident">outx</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">+</span> <span class="number">0.5</span>) <span class="op">*</span> <span class="ident">ratio</span>;
+            <span class="comment">// Find the point in the input image corresponding to the centre</span>
+            <span class="comment">// of the current pixel in the output image.</span>
+            <span class="comment">//</span>
+            <span class="comment">// Then go half a pixel to the left (hence the `- 0.5`).</span>
+            <span class="comment">//</span>
+            <span class="comment">// The reason for subtracting 0.5 is because the filter kernel</span>
+            <span class="comment">// treats the centre of a pixel as 0. When finding the left and</span>
+            <span class="comment">// right limits below, we&#39;re interested in the range of input</span>
+            <span class="comment">// pixels whose colour can influence the colour of the current</span>
+            <span class="comment">// output pixel. This is equivalent to the range of input</span>
+            <span class="comment">// pixels for which inputx lies within the filter.support-sized</span>
+            <span class="comment">// region centered at the centre of that pixel. Subtracting</span>
+            <span class="comment">// 0.5 here simplifies the rounding operations below.</span>
+            <span class="comment">//</span>
+            <span class="kw">let</span> <span class="ident">inputx</span> <span class="op">=</span> (<span class="ident">outx</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">+</span> <span class="number">0.5</span>) <span class="op">*</span> <span class="ident">ratio</span> <span class="op">-</span> <span class="number">0.5</span>;
 
-            <span class="kw">let</span> <span class="ident">left</span>  <span class="op">=</span> (<span class="ident">inputx</span> <span class="op">-</span> <span class="ident">filter_radius</span>).<span class="ident">ceil</span>() <span class="kw">as</span> <span class="ident">i64</span>;
+            <span class="comment">// Find the index of the left-most input pixel which can influence</span>
+            <span class="comment">// the colour of the current output pixel. A point on the right</span>
+            <span class="comment">// side of a pixel is considered to be part of that pixel.</span>
+            <span class="kw">let</span> <span class="ident">left</span>  <span class="op">=</span> (<span class="ident">inputx</span> <span class="op">-</span> <span class="ident">filter</span>.<span class="ident">support</span>).<span class="ident">ceil</span>() <span class="kw">as</span> <span class="ident">i64</span>;
             <span class="kw">let</span> <span class="ident">left</span>  <span class="op">=</span> <span class="ident">clamp</span>(<span class="ident">left</span>, <span class="number">0</span>, <span class="ident">width</span> <span class="kw">as</span> <span class="ident">i64</span> <span class="op">-</span> <span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>;
 
-            <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> (<span class="ident">inputx</span> <span class="op">+</span> <span class="ident">filter_radius</span>).<span class="ident">floor</span>() <span class="kw">as</span> <span class="ident">i64</span>;
+            <span class="comment">// Find the index of the right-most input pixel which can influence</span>
+            <span class="comment">// the colour of the current output pixel. A point on the left side</span>
+            <span class="comment">// of a pixel is NOT considered to be part of that pixel. This is</span>
+            <span class="comment">// important because:</span>
+            <span class="comment">//  - If we included the point in both neighbouring pixels it would</span>
+            <span class="comment">//    force the output pixel to be influenced be both input pixels,</span>
+            <span class="comment">//    and force filters which don&#39;t desire this (e.g. Nearest),</span>
+            <span class="comment">//    to make sure they only sample from one side in such cases.</span>
+            <span class="comment">//  - If we included the point in neither neighbouring pixel it</span>
+            <span class="comment">//    would cause output pixels corresponding to input pixel</span>
+            <span class="comment">//    boundaries to be black regardless of the input pixel colours.</span>
+            <span class="comment">//</span>
+            <span class="comment">// The choice of right vs left is arbitrary.</span>
+            <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> {
+                <span class="kw">let</span> <span class="ident">real_right</span> <span class="op">=</span> <span class="ident">inputx</span> <span class="op">+</span> <span class="ident">filter</span>.<span class="ident">support</span>;
+                <span class="kw">if</span> <span class="ident">real_right</span>.<span class="ident">fract</span>() <span class="op">==</span> <span class="number">0.0</span> {
+                    (<span class="ident">real_right</span> <span class="op">-</span> <span class="number">1.0</span>) <span class="kw">as</span> <span class="ident">i64</span>
+                } <span class="kw">else</span> {
+                    <span class="ident">real_right</span>.<span class="ident">floor</span>() <span class="kw">as</span> <span class="ident">i64</span>
+                }
+            };
             <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> <span class="ident">clamp</span>(<span class="ident">right</span>, <span class="number">0</span>, <span class="ident">width</span> <span class="kw">as</span> <span class="ident">i64</span> <span class="op">-</span> <span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>;
 
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> (<span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="number">0.</span>;
 
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">t</span> <span class="op">=</span> (<span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>);
 
             <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="ident">left</span>..<span class="ident">right</span> <span class="op">+</span> <span class="number">1</span> {
-                <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> (<span class="ident">filter</span>.<span class="ident">kernel</span>)((<span class="ident">i</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">-</span> <span class="ident">inputx</span>) <span class="op">/</span> <span class="ident">filter_scale</span>);
-                <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> (<span class="ident">w</span>, <span class="ident">w</span>, <span class="ident">w</span>, <span class="ident">w</span>);
-                <span class="ident">sum</span>.<span class="number">0</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">0</span>; <span class="ident">sum</span>.<span class="number">1</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">1</span>; <span class="ident">sum</span>.<span class="number">2</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">2</span>; <span class="ident">sum</span>.<span class="number">3</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">3</span>;
+                <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> (<span class="ident">filter</span>.<span class="ident">kernel</span>)(<span class="ident">i</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">-</span> <span class="ident">inputx</span>);
+                <span class="ident">sum</span> <span class="op">+=</span> <span class="ident">w</span>;
 
                 <span class="kw">let</span> <span class="ident">x0</span>  <span class="op">=</span> <span class="ident">clamp</span>(<span class="ident">i</span>, <span class="number">0</span>, <span class="ident">width</span> <span class="op">-</span> <span class="number">1</span>);
                 <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">get_pixel</span>(<span class="ident">x0</span>, <span class="ident">y</span>);
@@ -724,11 +781,11 @@
                     <span class="ident">NumCast</span>::<span class="ident">from</span>(<span class="ident">k4</span>).<span class="ident">unwrap</span>()
                 );
 
-                <span class="ident">t</span>.<span class="number">0</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">0</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">0</span>; <span class="ident">t</span>.<span class="number">1</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">1</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">1</span>;
-                <span class="ident">t</span>.<span class="number">2</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">2</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">2</span>; <span class="ident">t</span>.<span class="number">3</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">3</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">3</span>;
+                <span class="ident">t</span>.<span class="number">0</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">0</span> <span class="op">*</span> <span class="ident">w</span>; <span class="ident">t</span>.<span class="number">1</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">1</span> <span class="op">*</span> <span class="ident">w</span>;
+                <span class="ident">t</span>.<span class="number">2</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">2</span> <span class="op">*</span> <span class="ident">w</span>; <span class="ident">t</span>.<span class="number">3</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">3</span> <span class="op">*</span> <span class="ident">w</span>;
             }
 
-            <span class="kw">let</span> (<span class="ident">t1</span>, <span class="ident">t2</span>, <span class="ident">t3</span>, <span class="ident">t4</span>) <span class="op">=</span> (<span class="ident">t</span>.<span class="number">0</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">0</span>, <span class="ident">t</span>.<span class="number">1</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">1</span>, <span class="ident">t</span>.<span class="number">2</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">2</span>, <span class="ident">t</span>.<span class="number">3</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">3</span>);
+            <span class="kw">let</span> (<span class="ident">t1</span>, <span class="ident">t2</span>, <span class="ident">t3</span>, <span class="ident">t4</span>) <span class="op">=</span> (<span class="ident">t</span>.<span class="number">0</span> <span class="op">/</span> <span class="ident">sum</span>, <span class="ident">t</span>.<span class="number">1</span> <span class="op">/</span> <span class="ident">sum</span>, <span class="ident">t</span>.<span class="number">2</span> <span class="op">/</span> <span class="ident">sum</span>, <span class="ident">t</span>.<span class="number">3</span> <span class="op">/</span> <span class="ident">sum</span>);
             <span class="kw">let</span> <span class="ident">t</span> <span class="op">=</span> <span class="ident">Pixel</span>::<span class="ident">from_channels</span>(
                 <span class="ident">NumCast</span>::<span class="ident">from</span>(<span class="ident">clamp</span>(<span class="ident">t1</span>, <span class="number">0.0</span>, <span class="ident">max</span>)).<span class="ident">unwrap</span>(),
                 <span class="ident">NumCast</span>::<span class="ident">from</span>(<span class="ident">clamp</span>(<span class="ident">t2</span>, <span class="number">0.0</span>, <span class="ident">max</span>)).<span class="ident">unwrap</span>(),
@@ -765,32 +822,34 @@
 
         <span class="kw">let</span> <span class="ident">ratio</span> <span class="op">=</span> <span class="ident">height</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="ident">new_height</span> <span class="kw">as</span> <span class="ident">f32</span>;
 
-        <span class="comment">// Scale the filter when downsampling.</span>
-        <span class="kw">let</span> <span class="ident">filter_scale</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">ratio</span> <span class="op">&gt;</span> <span class="number">1.0</span> {
-            <span class="ident">ratio</span>
-        } <span class="kw">else</span> {
-            <span class="number">1.0</span>
-        };
-
-        <span class="kw">let</span> <span class="ident">filter_radius</span> <span class="op">=</span> (<span class="ident">filter</span>.<span class="ident">support</span> <span class="op">*</span> <span class="ident">filter_scale</span>).<span class="ident">ceil</span>();
-
         <span class="kw">for</span> <span class="ident">outy</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">new_height</span> {
-            <span class="kw">let</span> <span class="ident">inputy</span> <span class="op">=</span> (<span class="ident">outy</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">+</span> <span class="number">0.5</span>) <span class="op">*</span> <span class="ident">ratio</span>;
 
-            <span class="kw">let</span> <span class="ident">left</span>  <span class="op">=</span> (<span class="ident">inputy</span> <span class="op">-</span> <span class="ident">filter_radius</span>).<span class="ident">ceil</span>() <span class="kw">as</span> <span class="ident">i64</span>;
+            <span class="comment">// For an explanation of this algorithm, see the comments</span>
+            <span class="comment">// in horizontal_sample.</span>
+
+            <span class="kw">let</span> <span class="ident">inputy</span> <span class="op">=</span> (<span class="ident">outy</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">+</span> <span class="number">0.5</span>) <span class="op">*</span> <span class="ident">ratio</span> <span class="op">-</span> <span class="number">0.5</span>;
+
+            <span class="kw">let</span> <span class="ident">left</span>  <span class="op">=</span> (<span class="ident">inputy</span> <span class="op">-</span> <span class="ident">filter</span>.<span class="ident">support</span>).<span class="ident">ceil</span>() <span class="kw">as</span> <span class="ident">i64</span>;
             <span class="kw">let</span> <span class="ident">left</span>  <span class="op">=</span> <span class="ident">clamp</span>(<span class="ident">left</span>, <span class="number">0</span>, <span class="ident">height</span> <span class="kw">as</span> <span class="ident">i64</span> <span class="op">-</span> <span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>;
 
-            <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> (<span class="ident">inputy</span> <span class="op">+</span> <span class="ident">filter_radius</span>).<span class="ident">floor</span>() <span class="kw">as</span> <span class="ident">i64</span>;
+            <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> {
+                <span class="comment">// A point above a pixel is NOT part of that pixel.</span>
+                <span class="kw">let</span> <span class="ident">real_right</span> <span class="op">=</span> <span class="ident">inputy</span> <span class="op">+</span> <span class="ident">filter</span>.<span class="ident">support</span>;
+                <span class="kw">if</span> <span class="ident">real_right</span>.<span class="ident">fract</span>() <span class="op">==</span> <span class="number">0.0</span> {
+                    (<span class="ident">real_right</span> <span class="op">-</span> <span class="number">1.0</span>) <span class="kw">as</span> <span class="ident">i64</span>
+                } <span class="kw">else</span> {
+                    <span class="ident">real_right</span>.<span class="ident">floor</span>() <span class="kw">as</span> <span class="ident">i64</span>
+                }
+            };
             <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> <span class="ident">clamp</span>(<span class="ident">right</span>, <span class="number">0</span>, <span class="ident">height</span> <span class="kw">as</span> <span class="ident">i64</span> <span class="op">-</span> <span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>;
 
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> (<span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="number">0.</span>;
 
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">t</span> <span class="op">=</span> (<span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>);
 
             <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="ident">left</span>..<span class="ident">right</span> <span class="op">+</span> <span class="number">1</span> {
-                <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> (<span class="ident">filter</span>.<span class="ident">kernel</span>)((<span class="ident">i</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">-</span> <span class="ident">inputy</span>) <span class="op">/</span> <span class="ident">filter_scale</span>);
-                <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> (<span class="ident">w</span>, <span class="ident">w</span>, <span class="ident">w</span>, <span class="ident">w</span>);
-                <span class="ident">sum</span>.<span class="number">0</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">0</span>; <span class="ident">sum</span>.<span class="number">1</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">1</span>; <span class="ident">sum</span>.<span class="number">2</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">2</span>; <span class="ident">sum</span>.<span class="number">3</span> <span class="op">+=</span> <span class="ident">w</span>.<span class="number">3</span>;
+                <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> (<span class="ident">filter</span>.<span class="ident">kernel</span>)(<span class="ident">i</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">-</span> <span class="ident">inputy</span>);
+                <span class="ident">sum</span> <span class="op">+=</span> <span class="ident">w</span>;
 
                 <span class="kw">let</span> <span class="ident">y0</span>  <span class="op">=</span> <span class="ident">clamp</span>(<span class="ident">i</span>, <span class="number">0</span>, <span class="ident">height</span> <span class="op">-</span> <span class="number">1</span>);
                 <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">get_pixel</span>(<span class="ident">x</span>, <span class="ident">y0</span>);
@@ -803,11 +862,11 @@
                     <span class="ident">NumCast</span>::<span class="ident">from</span>(<span class="ident">k4</span>).<span class="ident">unwrap</span>()
                 );
 
-                <span class="ident">t</span>.<span class="number">0</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">0</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">0</span>; <span class="ident">t</span>.<span class="number">1</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">1</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">1</span>;
-                <span class="ident">t</span>.<span class="number">2</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">2</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">2</span>; <span class="ident">t</span>.<span class="number">3</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">3</span> <span class="op">*</span> <span class="ident">w</span>.<span class="number">3</span>;
+                <span class="ident">t</span>.<span class="number">0</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">0</span> <span class="op">*</span> <span class="ident">w</span>; <span class="ident">t</span>.<span class="number">1</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">1</span> <span class="op">*</span> <span class="ident">w</span>;
+                <span class="ident">t</span>.<span class="number">2</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">2</span> <span class="op">*</span> <span class="ident">w</span>; <span class="ident">t</span>.<span class="number">3</span> <span class="op">+=</span> <span class="ident">vec</span>.<span class="number">3</span> <span class="op">*</span> <span class="ident">w</span>;
             }
 
-            <span class="kw">let</span> (<span class="ident">t1</span>, <span class="ident">t2</span>, <span class="ident">t3</span>, <span class="ident">t4</span>) <span class="op">=</span> (<span class="ident">t</span>.<span class="number">0</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">0</span>, <span class="ident">t</span>.<span class="number">1</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">1</span>, <span class="ident">t</span>.<span class="number">2</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">2</span>, <span class="ident">t</span>.<span class="number">3</span> <span class="op">/</span> <span class="ident">sum</span>.<span class="number">3</span>);
+            <span class="kw">let</span> (<span class="ident">t1</span>, <span class="ident">t2</span>, <span class="ident">t3</span>, <span class="ident">t4</span>) <span class="op">=</span> (<span class="ident">t</span>.<span class="number">0</span> <span class="op">/</span> <span class="ident">sum</span>, <span class="ident">t</span>.<span class="number">1</span> <span class="op">/</span> <span class="ident">sum</span>, <span class="ident">t</span>.<span class="number">2</span> <span class="op">/</span> <span class="ident">sum</span>, <span class="ident">t</span>.<span class="number">3</span> <span class="op">/</span> <span class="ident">sum</span>);
             <span class="kw">let</span> <span class="ident">t</span> <span class="op">=</span> <span class="ident">Pixel</span>::<span class="ident">from_channels</span>(
                 <span class="ident">NumCast</span>::<span class="ident">from</span>(<span class="ident">clamp</span>(<span class="ident">t1</span>, <span class="number">0.0</span>, <span class="ident">max</span>)).<span class="ident">unwrap</span>(),
                 <span class="ident">NumCast</span>::<span class="ident">from</span>(<span class="ident">clamp</span>(<span class="ident">t2</span>, <span class="number">0.0</span>, <span class="ident">max</span>)).<span class="ident">unwrap</span>(),
@@ -1014,6 +1073,7 @@
     <span class="attribute">#[<span class="ident">bench</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;benchmarks&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;png_codec&quot;</span>))]</span>
     <span class="kw">fn</span> <span class="ident">bench_resize</span>(<span class="ident">b</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">test</span>::<span class="ident">Bencher</span>) {
+        <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">Path</span>;
         <span class="kw">let</span> <span class="ident">img</span> <span class="op">=</span> ::<span class="ident">open</span>(<span class="kw-2">&amp;</span><span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;./examples/fractal.png&quot;</span>)).<span class="ident">unwrap</span>();
         <span class="ident">b</span>.<span class="ident">iter</span>(<span class="op">||</span> {
             <span class="ident">test</span>::<span class="ident">black_box</span>(<span class="ident">resize</span>(<span class="kw-2">&amp;</span><span class="ident">img</span>, <span class="number">200</span>, <span class="number">200</span>, ::<span class="ident">Nearest</span> ));

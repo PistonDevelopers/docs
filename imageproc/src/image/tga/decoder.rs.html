@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.14.0/./src/tga/decoder.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.15.0/./src/tga/decoder.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>decoder.rs.html -- source</title>
@@ -445,6 +445,36 @@
 <span id="400">400</span>
 <span id="401">401</span>
 <span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="ident">Read</span>, <span class="ident">Seek</span>};
@@ -679,6 +709,11 @@
         <span class="kw">let</span> <span class="ident">other_channel_bits</span> <span class="op">=</span> <span class="kw">if</span> <span class="self">self</span>.<span class="ident">header</span>.<span class="ident">map_type</span> <span class="op">!=</span> <span class="number">0</span> {
             <span class="self">self</span>.<span class="ident">header</span>.<span class="ident">map_entry_size</span>
         } <span class="kw">else</span> {
+            <span class="kw">if</span> <span class="ident">num_alpha_bits</span> <span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">header</span>.<span class="ident">pixel_depth</span> {
+                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ImageError</span>::<span class="ident">UnsupportedError</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\
+                    Color format not supported. Alpha bits: {}&quot;</span>, <span class="ident">num_alpha_bits</span>).<span class="ident">to_string</span>()))
+            }
+
             <span class="self">self</span>.<span class="ident">header</span>.<span class="ident">pixel_depth</span> <span class="op">-</span> <span class="ident">num_alpha_bits</span>
         };
         <span class="kw">let</span> <span class="ident">color</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">image_type</span>.<span class="ident">is_color</span>();
@@ -739,7 +774,7 @@
 
         <span class="kw">for</span> <span class="ident">chunk</span> <span class="kw">in</span> <span class="ident">pixel_data</span>.<span class="ident">chunks</span>(<span class="self">self</span>.<span class="ident">bytes_per_pixel</span>) {
             <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="ident">bytes_to_index</span>(<span class="ident">chunk</span>);
-            <span class="ident">result</span>.<span class="ident">extend</span>(<span class="ident">color_map</span>.<span class="ident">get</span>(<span class="ident">index</span>).<span class="ident">iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>));
+            <span class="ident">result</span>.<span class="ident">extend</span>(<span class="ident">color_map</span>.<span class="ident">get</span>(<span class="ident">index</span>).<span class="ident">iter</span>().<span class="ident">cloned</span>());
         }
 
         <span class="ident">result</span>
@@ -762,6 +797,9 @@
         }
 
         <span class="self">self</span>.<span class="ident">reverse_encoding</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">pixel_data</span>);
+
+        <span class="self">self</span>.<span class="ident">flip_vertically</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">pixel_data</span>);
+        
         <span class="prelude-val">Ok</span>(<span class="ident">pixel_data</span>)
     }
 
@@ -782,7 +820,7 @@
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="self">self</span>.<span class="ident">bytes_per_pixel</span>);
                 <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">r</span>.<span class="ident">by_ref</span>().<span class="ident">take</span>(<span class="self">self</span>.<span class="ident">bytes_per_pixel</span> <span class="kw">as</span> <span class="ident">u64</span>).<span class="ident">read_to_end</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">data</span>));
                 <span class="kw">for</span> _ <span class="kw">in</span> <span class="number">0usize</span>..<span class="ident">repeat_count</span> {
-                    <span class="ident">pixel_data</span>.<span class="ident">extend</span>(<span class="ident">data</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>));
+                    <span class="ident">pixel_data</span>.<span class="ident">extend</span>(<span class="ident">data</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>());
                 }
             } <span class="kw">else</span> {
                 <span class="comment">// not set, so `run_packet+1` is the number of non-encoded pixels</span>
@@ -801,21 +839,43 @@
     <span class="kw">fn</span> <span class="ident">reverse_encoding</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">pixels</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>]) {
         <span class="comment">// We only need to reverse the encoding of color images</span>
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">color_type</span> {
-            <span class="ident">ColorType</span>::<span class="ident">RGB</span>(<span class="number">8</span>) <span class="op">=&gt;</span> {
+            <span class="ident">ColorType</span>::<span class="ident">RGB</span>(<span class="number">8</span>) <span class="op">|</span> <span class="ident">ColorType</span>::<span class="ident">RGBA</span>(<span class="number">8</span>) <span class="op">=&gt;</span> {
                 <span class="kw">for</span> <span class="ident">chunk</span> <span class="kw">in</span> <span class="ident">pixels</span>.<span class="ident">chunks_mut</span>(<span class="self">self</span>.<span class="ident">bytes_per_pixel</span>) {
-                    <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="ident">chunk</span>[<span class="number">0</span>];
-                    <span class="ident">chunk</span>[<span class="number">0</span>] <span class="op">=</span> <span class="ident">chunk</span>[<span class="number">2</span>];
-                    <span class="ident">chunk</span>[<span class="number">2</span>] <span class="op">=</span> <span class="ident">r</span>;
-                }
-            }
-            <span class="ident">ColorType</span>::<span class="ident">RGBA</span>(<span class="number">8</span>) <span class="op">=&gt;</span> {
-                <span class="kw">for</span> <span class="ident">chunk</span> <span class="kw">in</span> <span class="ident">pixels</span>.<span class="ident">chunks_mut</span>(<span class="self">self</span>.<span class="ident">bytes_per_pixel</span>) {
-                    <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="ident">chunk</span>[<span class="number">0</span>];
-                    <span class="ident">chunk</span>[<span class="number">0</span>] <span class="op">=</span> <span class="ident">chunk</span>[<span class="number">2</span>];
-                    <span class="ident">chunk</span>[<span class="number">2</span>] <span class="op">=</span> <span class="ident">r</span>;
+                    <span class="ident">chunk</span>.<span class="ident">swap</span>(<span class="number">0</span>, <span class="number">2</span>);
                 }
             }
             _ <span class="op">=&gt;</span> { }
+        }
+    }
+
+    <span class="doccomment">/// Flip the image vertically depending on the screen origin bit</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The bit in position 5 of the image descriptor byte is the screen origin bit.</span>
+    <span class="doccomment">/// If it&#39;s 1, the origin is in the top left corner.</span>
+    <span class="doccomment">/// If it&#39;s 0, the origin is in the bottom left corner.</span>
+    <span class="doccomment">/// This function checks the bit, and if it&#39;s 0, flips the image vertically.</span>
+    <span class="kw">fn</span> <span class="ident">flip_vertically</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">pixels</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>]) {
+        <span class="kw">let</span> <span class="ident">screen_origin_bit</span> <span class="op">=</span> <span class="number">0b100000</span> <span class="op">&amp;</span> <span class="self">self</span>.<span class="ident">header</span>.<span class="ident">image_desc</span> <span class="op">!=</span> <span class="number">0</span>;
+
+
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">screen_origin_bit</span> {
+            <span class="kw">let</span> <span class="ident">num_bytes</span> <span class="op">=</span> <span class="ident">pixels</span>.<span class="ident">len</span>();
+
+            <span class="kw">let</span> <span class="ident">width_bytes</span> <span class="op">=</span> <span class="ident">num_bytes</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">height</span>;
+
+            <span class="comment">// Flip the image vertically.</span>
+            <span class="kw">for</span> <span class="ident">vertical_index</span> <span class="kw">in</span> <span class="number">0</span>..(<span class="self">self</span>.<span class="ident">height</span> <span class="op">/</span> <span class="number">2</span>) {
+                <span class="kw">let</span> <span class="ident">vertical_target</span> <span class="op">=</span> (<span class="self">self</span>.<span class="ident">height</span> <span class="op">-</span> <span class="ident">vertical_index</span>) <span class="op">*</span> <span class="ident">width_bytes</span> <span class="op">-</span> <span class="ident">width_bytes</span>;
+
+                <span class="kw">for</span> <span class="ident">horizontal_index</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">width_bytes</span> {
+                    <span class="kw">let</span> <span class="ident">source</span> <span class="op">=</span> <span class="ident">vertical_index</span> <span class="op">*</span> <span class="ident">width_bytes</span> <span class="op">+</span> <span class="ident">horizontal_index</span>;
+                    <span class="kw">let</span> <span class="ident">target</span> <span class="op">=</span> <span class="ident">vertical_target</span> <span class="op">+</span> <span class="ident">horizontal_index</span>;
+
+                    <span class="kw">let</span> <span class="ident">stash</span> <span class="op">=</span> <span class="ident">pixels</span>[<span class="ident">target</span>];
+                    <span class="ident">pixels</span>[<span class="ident">target</span>] <span class="op">=</span> <span class="ident">pixels</span>[<span class="ident">source</span>];
+                    <span class="ident">pixels</span>[<span class="ident">source</span>] <span class="op">=</span> <span class="ident">stash</span>;
+                }
+            }
         }
     }
 }
@@ -845,7 +905,7 @@
 
     <span class="kw">fn</span> <span class="ident">read_image</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">ImageResult</span><span class="op">&lt;</span><span class="ident">DecodingResult</span><span class="op">&gt;</span> {
         <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">read_metadata</span>());
-        <span class="self">self</span>.<span class="ident">read_image_data</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="ident">DecodingResult</span>::<span class="ident">U8</span>(<span class="ident">v</span>) )
+        <span class="self">self</span>.<span class="ident">read_image_data</span>().<span class="ident">map</span>(<span class="ident">DecodingResult</span>::<span class="ident">U8</span>)
     }
 }
 </pre>
