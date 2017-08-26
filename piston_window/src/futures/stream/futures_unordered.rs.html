@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.14/src/stream/futures_unordered.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.15/src/stream/futures_unordered.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>futures_unordered.rs.html -- source</title>
@@ -683,9 +683,6 @@
 <span id="638">638</span>
 <span id="639">639</span>
 <span id="640">640</span>
-<span id="641">641</span>
-<span id="642">642</span>
-<span id="643">643</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cell</span>::<span class="ident">UnsafeCell</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>};
@@ -701,13 +698,13 @@
 <span class="kw">use</span> <span class="ident">executor</span>::{<span class="ident">Notify</span>, <span class="ident">UnsafeNotify</span>, <span class="ident">NotifyHandle</span>};
 <span class="kw">use</span> <span class="ident">task_impl</span>::{<span class="self">self</span>, <span class="ident">AtomicTask</span>};
 
-<span class="doccomment">/// An unbounded queue of futures.</span>
+<span class="doccomment">/// An unbounded set of futures.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// This &quot;combinator&quot; also serves a special function in this library, providing</span>
-<span class="doccomment">/// the ability to maintain a queue of futures that and manage driving them all</span>
+<span class="doccomment">/// the ability to maintain a set of futures that and manage driving them all</span>
 <span class="doccomment">/// to completion.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// Futures are pushed into this queue and their realized values are yielded as</span>
+<span class="doccomment">/// Futures are pushed into this set and their realized values are yielded as</span>
 <span class="doccomment">/// they are ready. This structure is optimized to manage a large number of</span>
 <span class="doccomment">/// futures. Futures managed by `FuturesUnordered` will only be polled when they</span>
 <span class="doccomment">/// generate notifications. This reduces the required amount of work needed to</span>
@@ -715,20 +712,20 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// When a `FuturesUnordered` is first created, it does not contain any futures.</span>
 <span class="doccomment">/// Calling `poll` in this state will result in `Ok(Async::Ready(None))` to be</span>
-<span class="doccomment">/// returned. Futures are submitted to the queue using `push`; however, the</span>
+<span class="doccomment">/// returned. Futures are submitted to the set using `push`; however, the</span>
 <span class="doccomment">/// future will **not** be polled at this point. `FuturesUnordered` will only</span>
 <span class="doccomment">/// poll managged futures when `FuturesUnordered::poll` is called. As such, it</span>
 <span class="doccomment">/// is important to call `poll` after pushing new futures.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// If `FuturesUnordered::poll` returns `Ok(Async::Ready(None))` this means that</span>
-<span class="doccomment">/// the queue is currently not managing any futures. A future may be submitted</span>
-<span class="doccomment">/// to the queue at a later time. At that point, a call to</span>
+<span class="doccomment">/// the set is currently not managing any futures. A future may be submitted</span>
+<span class="doccomment">/// to the set at a later time. At that point, a call to</span>
 <span class="doccomment">/// `FuturesUnordered::poll` will either return the future&#39;s resolved value</span>
 <span class="doccomment">/// **or** `Ok(Async::NotReady)` if the future has not yet completed.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Note that you can create a ready-made `FuturesUnordered` via the</span>
-<span class="doccomment">/// `futures_unordered` function in the `stream` module, or you can start with a</span>
-<span class="doccomment">/// blank queue with the `FuturesUnordered::new` constructor.</span>
+<span class="doccomment">/// `futures_unordered` function in the `stream` module, or you can start with an</span>
+<span class="doccomment">/// empty set with the `FuturesUnordered::new` constructor.</span>
 <span class="attribute">#[<span class="ident">must_use</span> <span class="op">=</span> <span class="string">&quot;streams do nothing unless polled&quot;</span>]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">FuturesUnordered</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span> {
     <span class="ident">inner</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Inner</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;&gt;</span>,
@@ -747,19 +744,19 @@
 <span class="doccomment">/// available. This function is similar to `buffer_unordered` in that it may</span>
 <span class="doccomment">/// return items in a different order than in the list specified.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// Note that the returned queue can also be used to dynamically push more</span>
-<span class="doccomment">/// futures onto the queue as they become available.</span>
+<span class="doccomment">/// Note that the returned set can also be used to dynamically push more</span>
+<span class="doccomment">/// futures into the set as they become available.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">futures_unordered</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">futures</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="ident">FuturesUnordered</span><span class="op">&lt;&lt;</span><span class="ident">I</span>::<span class="ident">Item</span> <span class="kw">as</span> <span class="ident">IntoFuture</span><span class="op">&gt;</span>::<span class="ident">Future</span><span class="op">&gt;</span>
     <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoIterator</span>,
           <span class="ident">I</span>::<span class="ident">Item</span>: <span class="ident">IntoFuture</span>
 {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">queue</span> <span class="op">=</span> <span class="ident">FuturesUnordered</span>::<span class="ident">new</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">set</span> <span class="op">=</span> <span class="ident">FuturesUnordered</span>::<span class="ident">new</span>();
 
     <span class="kw">for</span> <span class="ident">future</span> <span class="kw">in</span> <span class="ident">futures</span> {
-        <span class="ident">queue</span>.<span class="ident">push</span>(<span class="ident">future</span>.<span class="ident">into_future</span>());
+        <span class="ident">set</span>.<span class="ident">push</span>(<span class="ident">future</span>.<span class="ident">into_future</span>());
     }
 
-    <span class="kw">return</span> <span class="ident">queue</span>
+    <span class="kw">return</span> <span class="ident">set</span>
 }
 
 <span class="comment">// FuturesUnordered is implemented using two linked lists. One which links all</span>
@@ -769,7 +766,7 @@
 <span class="comment">// second linked list is an implementation of the intrusive MPSC queue algorithm</span>
 <span class="comment">// described by 1024cores.net.</span>
 <span class="comment">//</span>
-<span class="comment">// When a future is submitted to the queue a node is allocated and inserted in</span>
+<span class="comment">// When a future is submitted to the set a node is allocated and inserted in</span>
 <span class="comment">// both linked lists. The next call to `poll` will (eventually) see this node</span>
 <span class="comment">// and call `poll` on the future.</span>
 <span class="comment">//</span>
@@ -855,21 +852,21 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">FuturesUnordered</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Returns the number of futures contained by the queue.</span>
+    <span class="doccomment">/// Returns the number of futures contained in the set.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// This represents the total number of in-flight futures.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">len</span>
     }
 
-    <span class="doccomment">/// Returns `true` if the queue contains no futures</span>
+    <span class="doccomment">/// Returns `true` if the set contains no futures</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_empty</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
         <span class="self">self</span>.<span class="ident">len</span> <span class="op">==</span> <span class="number">0</span>
     }
 
-    <span class="doccomment">/// Push a future into the queue.</span>
+    <span class="doccomment">/// Push a future into the set.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// This function submits the given future to the queue for managing. This</span>
+    <span class="doccomment">/// This function submits the given future to the set for managing. This</span>
     <span class="doccomment">/// function will not call `poll` on the submitted future. The caller must</span>
     <span class="doccomment">/// ensure that `FuturesUnordered::poll` is called in order to receive task</span>
     <span class="doccomment">/// notifications.</span>
@@ -968,11 +965,8 @@
     <span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">T</span>::<span class="ident">Error</span>;
 
     <span class="kw">fn</span> <span class="ident">poll</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span>::<span class="ident">Item</span><span class="op">&gt;</span>, <span class="ident">T</span>::<span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="comment">// Ensure `parent` is correctly set. Note that the `unsafe` here is</span>
-        <span class="comment">// because the `park` method underneath needs mutual exclusion from</span>
-        <span class="comment">// other calls to `park`, which we guarantee with `&amp;mut self` above and</span>
-        <span class="comment">// this is the only method which calls park.</span>
-        <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">parent</span>.<span class="ident">park</span>() };
+        <span class="comment">// Ensure `parent` is correctly set.</span>
+        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">parent</span>.<span class="ident">register</span>();
 
         <span class="kw">loop</span> {
             <span class="kw">let</span> <span class="ident">node</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">dequeue</span>() } {

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.15/src/bitstream.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.16/src/bitstream.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>bitstream.rs.html -- source</title>
@@ -292,6 +292,22 @@
 <span id="247">247</span>
 <span id="248">248</span>
 <span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
 </pre><pre class="rust ">
 <span class="comment">// This was originally based on code from: https://github.com/nwin/lzw</span>
 <span class="comment">// Copyright (c) 2015 nwin</span>
@@ -310,18 +326,32 @@
     <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">AccType</span> <span class="op">=</span> <span class="ident">u64</span>;
     <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">FLUSH_AT</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">48</span>;
     <span class="doccomment">/// Push pending bits to vector.</span>
-    <span class="doccomment">/// Using a macro here since an inline functio</span>
+    <span class="doccomment">/// Using a macro here since an inline function.</span>
     <span class="doccomment">/// didn&#39;t optimise properly.</span>
     <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">push</span>{
         (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>:<span class="ident">ident</span>) <span class="op">=&gt;</span> {
-            <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">extend_from_slice</span>(
-                <span class="kw-2">&amp;</span>[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="kw">as</span> <span class="ident">u8</span>,
-                  (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">8</span>) <span class="kw">as</span> <span class="ident">u8</span>,
-                  (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">16</span>) <span class="kw">as</span> <span class="ident">u8</span>,
-                  (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">24</span>) <span class="kw">as</span> <span class="ident">u8</span>,
-                  (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">32</span>) <span class="kw">as</span> <span class="ident">u8</span>,
-                  (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">40</span>) <span class="kw">as</span> <span class="ident">u8</span>
+            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">len</span>();
+            <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">reserve</span>(<span class="number">6</span>);
+            <span class="comment">// Optimization:</span>
+            <span class="comment">//</span>
+            <span class="comment">// This is basically what `Vec::extend_from_slice` does, but it didn&#39;t inline</span>
+            <span class="comment">// properly, so we do it manually for now.</span>
+            <span class="comment">//</span>
+            <span class="comment">// # Unsafe</span>
+            <span class="comment">// We reserve enough space right before this, so setting the len manually and doing</span>
+            <span class="comment">// unchecked indexing is safe here since we only, and always write to all of the the</span>
+            <span class="comment">// uninitialized bytes of the vector.</span>
+            <span class="kw">unsafe</span> {
+                <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">set_len</span>(<span class="ident">len</span> <span class="op">+</span> <span class="number">6</span>);
+                <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">len</span>..).<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="kw">as</span> <span class="ident">u8</span>,
+                                                                (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">8</span>) <span class="kw">as</span> <span class="ident">u8</span>,
+                                                                (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">16</span>) <span class="kw">as</span> <span class="ident">u8</span>,
+                                                                (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">24</span>) <span class="kw">as</span> <span class="ident">u8</span>,
+                                                                (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">32</span>) <span class="kw">as</span> <span class="ident">u8</span>,
+                                                                (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">40</span>) <span class="kw">as</span> <span class="ident">u8</span>
                 ][..]);
+            }
+
         };
     }
 }
@@ -332,6 +362,8 @@
     <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">FLUSH_AT</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">16</span>;
     <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">push</span>{
         (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>:<span class="ident">ident</span>) <span class="op">=&gt;</span> {
+            <span class="comment">// Unlike the 64-bit case, using copy_from_slice seemed to worsen performance here.</span>
+            <span class="comment">// TODO: Needs benching on a 32-bit system to see what works best.</span>
             <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">push</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="kw">as</span> <span class="ident">u8</span>);
             <span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">w</span>.<span class="ident">push</span>((<span class="macro-nonterminal">$</span><span class="macro-nonterminal">s</span>.<span class="ident">acc</span> <span class="op">&gt;&gt;</span> <span class="number">8</span>) <span class="kw">as</span> <span class="ident">u8</span>);
         };
@@ -340,9 +372,9 @@
 
 <span class="kw">use</span> <span class="self">self</span>::<span class="ident">arch_dep</span>::<span class="kw-2">*</span>;
 
-<span class="doccomment">///Writes bits to a byte stream, LSB first.</span>
+<span class="doccomment">/// Writes bits to a byte stream, LSB first.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LsbWriter</span> {
-    <span class="comment">// NOTE(oyvindln) Made this public for now so it can be replaced after initialization.</span>
+    <span class="comment">// Public for now so it can be replaced after initialization.</span>
     <span class="kw">pub</span> <span class="ident">w</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
     <span class="ident">bits</span>: <span class="ident">u8</span>,
     <span class="ident">acc</span>: <span class="ident">AccType</span>,

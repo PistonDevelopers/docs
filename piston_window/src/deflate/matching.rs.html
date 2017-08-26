@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.15/src/matching.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/deflate-0.7.16/src/matching.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>matching.rs.html -- source</title>
@@ -270,6 +270,52 @@
 <span id="225">225</span>
 <span id="226">226</span>
 <span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
 
@@ -277,42 +323,68 @@
 <span class="kw">use</span> <span class="ident">huffman_table</span>;
 
 <span class="kw">const</span> <span class="ident">MAX_MATCH</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">huffman_table</span>::<span class="ident">MAX_MATCH</span> <span class="kw">as</span> <span class="ident">usize</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">const</span> <span class="ident">MIN_MATCH</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">huffman_table</span>::<span class="ident">MIN_MATCH</span> <span class="kw">as</span> <span class="ident">usize</span>;
+
 
 <span class="doccomment">/// Get the length of the checked match</span>
 <span class="doccomment">/// The function returns number of bytes at and including `current_pos` that are the same as the</span>
 <span class="doccomment">/// ones at `pos_to_check`</span>
+<span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_match_length</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">current_pos</span>: <span class="ident">usize</span>, <span class="ident">pos_to_check</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
-    <span class="comment">// Unsafe version for comparison</span>
-    <span class="comment">// This doesn&#39;t actually make it much faster</span>
+    <span class="comment">// Unsafe version using unaligned loads for comparison.</span>
+    <span class="comment">// Faster when benching the matching function alone,</span>
+    <span class="comment">// but not as significant when running the full thing.</span>
+<span class="comment">/*
+    type Comp = u64;
 
-    <span class="comment">// use std::mem::transmute_copy;</span>
+    use std::mem::size_of;
 
-    <span class="comment">// let mut counter = 0;</span>
-    <span class="comment">// let max = cmp::min(data.len() - current_pos, MAX_MATCH);</span>
+    let max = cmp::min(data.len() - current_pos, MAX_MATCH);
+    let mut left = max;
+    let s = size_of::&lt;Comp&gt;();
 
-    <span class="comment">// unsafe {</span>
-    <span class="comment">//     let mut cur = data.as_ptr().offset(current_pos as isize);</span>
-    <span class="comment">//     let mut tc = data.as_ptr().offset(pos_to_check as isize);</span>
-    <span class="comment">//     while (counter &lt; max) &amp;&amp;</span>
-    <span class="comment">//           (transmute_copy::&lt;u8, u32&gt;(&amp;*cur) == transmute_copy::&lt;u8, u32&gt;(&amp;*tc)) {</span>
-    <span class="comment">//         counter += 4;</span>
-    <span class="comment">//         cur = cur.offset(4);</span>
-    <span class="comment">//         tc = tc.offset(4);</span>
+    unsafe {
+        let mut cur = data.as_ptr().offset(current_pos as isize);
+        let mut tc = data.as_ptr().offset(pos_to_check as isize);
+        while left &gt;= s &amp;&amp;
+              (*(cur as *const Comp) == *(tc as *const Comp)) {
+                  left -= s;
+                  cur = cur.offset(s as isize);
+                  tc = tc.offset(s as isize);
+              }
+        while left &gt; 0 &amp;&amp; *cur == *tc {
+            left -= 1;
+            cur = cur.offset(1);
+            tc = tc.offset(1);
+        }
+    }
+
+    max - left
+*/</span>
+
+    <span class="comment">// Slightly faster than naive in single bench.</span>
+    <span class="comment">// Does not use unaligned loads.</span>
+    <span class="comment">// let l = cmp::min(MAX_MATCH, data.len() - current_pos);</span>
+
+    <span class="comment">// let a = unsafe{&amp;data.get_unchecked(current_pos..current_pos + l)};</span>
+    <span class="comment">// let b = unsafe{&amp;data.get_unchecked(pos_to_check..)};</span>
+
+    <span class="comment">// let mut len = 0;</span>
+
+    <span class="comment">// for (l, r) in a</span>
+    <span class="comment">//     .iter()</span>
+    <span class="comment">//     .zip(b.iter()) {</span>
+    <span class="comment">//         if *l == *r {</span>
+    <span class="comment">//             len += 1;</span>
+    <span class="comment">//             continue;</span>
+    <span class="comment">//         } else {</span>
+    <span class="comment">//             break;</span>
+    <span class="comment">//         }</span>
     <span class="comment">//     }</span>
-    <span class="comment">//     if counter &gt; 3 {</span>
-    <span class="comment">//         cur = cur.offset(-4);</span>
-    <span class="comment">//         tc = tc.offset(-4);</span>
-    <span class="comment">//         counter -= 4;</span>
-    <span class="comment">//     }</span>
-    <span class="comment">//     while counter &lt; max &amp;&amp; *cur == *tc {</span>
-    <span class="comment">//         counter += 1;</span>
-    <span class="comment">//         cur = cur.offset(1);</span>
-    <span class="comment">//         tc = tc.offset(1);</span>
-    <span class="comment">//     }</span>
-    <span class="comment">// }</span>
+    <span class="comment">// len as usize</span>
 
-    <span class="comment">//    counter</span>
+    <span class="comment">// Naive version</span>
     <span class="ident">data</span>[<span class="ident">current_pos</span>..]
         .<span class="ident">iter</span>()
         .<span class="ident">zip</span>(<span class="ident">data</span>[<span class="ident">pos_to_check</span>..].<span class="ident">iter</span>())
@@ -357,7 +429,7 @@
 
     <span class="comment">// Make sure the length is at least one to simplify the matching code, as</span>
     <span class="comment">// otherwise the matching code might underflow.</span>
-    <span class="kw">let</span> <span class="ident">prev_length</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">prev_length</span>, <span class="ident">MIN_MATCH</span> <span class="op">-</span> <span class="number">1</span>);
+    <span class="kw">let</span> <span class="ident">prev_length</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">prev_length</span>, <span class="number">1</span>);
 
     <span class="kw">let</span> <span class="ident">max_length</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">min</span>((<span class="ident">data</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">position</span>), <span class="ident">MAX_MATCH</span>);
 
@@ -492,10 +564,30 @@
             <span class="ident">hash_table</span>.<span class="ident">add_hash_value</span>(<span class="ident">n</span>, <span class="ident">b</span>);
         }
 
-        <span class="kw">let</span> (<span class="ident">match_length</span>, <span class="ident">match_dist</span>) <span class="op">=</span> <span class="ident">longest_match</span>(<span class="ident">test_data</span>, <span class="kw-2">&amp;</span><span class="ident">hash_table</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">4096</span>);
+        <span class="kw">let</span> (<span class="ident">match_length</span>, <span class="ident">match_dist</span>) <span class="op">=</span> <span class="ident">longest_match</span>(<span class="ident">test_data</span>, <span class="kw-2">&amp;</span><span class="ident">hash_table</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">4096</span>);
 
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">match_dist</span>, <span class="number">1</span>);
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">match_length</span> <span class="op">&gt;</span> <span class="number">2</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">match_length</span> <span class="op">==</span> <span class="number">6</span>);
+    }
+}
+
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">test</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;benchmarks&quot;</span>))]</span>
+<span class="kw">mod</span> <span class="ident">bench</span> {
+    <span class="kw">use</span> <span class="ident">test_std</span>::<span class="ident">Bencher</span>;
+    <span class="kw">use</span> <span class="ident">test_utils</span>::<span class="ident">get_test_data</span>;
+    <span class="kw">use</span> <span class="ident">chained_hash_table</span>::<span class="ident">filled_hash_table</span>;
+    <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">longest_match</span>;
+    <span class="attribute">#[<span class="ident">bench</span>]</span>
+    <span class="kw">fn</span> <span class="ident">matching</span>(<span class="ident">b</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Bencher</span>) {
+        <span class="kw">const</span> <span class="ident">POS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">20011</span>;
+        <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">get_test_data</span>();
+        <span class="kw">let</span> <span class="ident">hash_table</span> <span class="op">=</span> <span class="ident">filled_hash_table</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>[..<span class="ident">POS</span> <span class="op">+</span> <span class="number">1</span>]);
+        <span class="kw">let</span> <span class="ident">pos</span> <span class="op">=</span> <span class="ident">hash_table</span>.<span class="ident">current_head</span>() <span class="kw">as</span> <span class="ident">usize</span>;
+        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;M: {:?}&quot;</span>, <span class="ident">longest_match</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>[..], <span class="kw-2">&amp;</span><span class="ident">hash_table</span>, <span class="ident">pos</span>, <span class="number">0</span>, <span class="number">4096</span>));
+        <span class="ident">b</span>.<span class="ident">iter</span>( <span class="op">||</span>
+          <span class="ident">longest_match</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>[..], <span class="kw-2">&amp;</span><span class="ident">hash_table</span>, <span class="ident">pos</span>, <span class="number">0</span>, <span class="number">4096</span>)
+        );
     }
 }
 </pre>

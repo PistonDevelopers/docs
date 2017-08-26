@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.14/src/sink/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-0.1.15/src/sink/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -478,6 +478,46 @@
 <span id="433">433</span>
 <span id="434">434</span>
 <span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Asynchronous sinks</span>
 <span class="doccomment">//!</span>
@@ -493,6 +533,7 @@
 <span class="kw">use</span> <span class="ident">stream</span>::<span class="ident">Stream</span>;
 
 <span class="kw">mod</span> <span class="ident">with</span>;
+<span class="kw">mod</span> <span class="ident">with_flat_map</span>;
 <span class="comment">// mod with_map;</span>
 <span class="comment">// mod with_filter;</span>
 <span class="comment">// mod with_filter_map;</span>
@@ -554,6 +595,7 @@
 }
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="self">self</span>::<span class="ident">with</span>::<span class="ident">With</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="self">self</span>::<span class="ident">with_flat_map</span>::<span class="ident">WithFlatMap</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="self">self</span>::<span class="ident">flush</span>::<span class="ident">Flush</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="self">self</span>::<span class="ident">send</span>::<span class="ident">Send</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="self">self</span>::<span class="ident">send_all</span>::<span class="ident">SendAll</span>;
@@ -795,6 +837,44 @@
     {
         <span class="ident">with</span>::<span class="ident">new</span>(<span class="self">self</span>, <span class="ident">f</span>)
     }
+
+    <span class="doccomment">/// Composes a function *in front of* the sink.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This adapter produces a new sink that passes each value through the</span>
+    <span class="doccomment">/// given function `f` before sending it to `self`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// To process each value, `f` produces a *stream*, of which each value</span>
+    <span class="doccomment">/// is passed to the underlying sink. A new value will not be accepted until</span>
+    <span class="doccomment">/// the stream has been drained</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note that this function consumes the given sink, returning a wrapped</span>
+    <span class="doccomment">/// version, much like `Iterator::flat_map`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Examples</span>
+    <span class="doccomment">/// ---</span>
+    <span class="doccomment">/// Using this function with an iterator through use of the `stream::iter()`</span>
+    <span class="doccomment">/// function</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// use futures::{Sink,Future,Stream};</span>
+    <span class="doccomment">/// use futures::stream;</span>
+    <span class="doccomment">/// use futures::sync::mpsc;</span>
+    <span class="doccomment">/// </span>
+    <span class="doccomment">/// let (tx, rx) = mpsc::channel::&lt;i32&gt;(5);</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// let tx = tx.with_flat_map(|x| {</span>
+    <span class="doccomment">///     stream::iter(vec![42; x].into_iter().map(|y|Ok(y)))</span>
+    <span class="doccomment">/// });</span>
+    <span class="doccomment">/// tx.send(5).wait().unwrap();</span>
+    <span class="doccomment">/// assert_eq!(rx.collect().wait(), Ok(vec![42, 42, 42, 42, 42]))</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">fn</span> <span class="ident">with_flat_map</span><span class="op">&lt;</span><span class="ident">U</span>, <span class="ident">F</span>, <span class="ident">St</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">f</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">WithFlatMap</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">U</span>, <span class="ident">F</span>, <span class="ident">St</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="ident">U</span>) <span class="op">-&gt;</span> <span class="ident">St</span>,
+              <span class="ident">St</span>: <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">SinkItem</span>, <span class="ident">Error</span><span class="op">=</span><span class="self">Self</span>::<span class="ident">SinkError</span><span class="op">&gt;</span>,
+              <span class="self">Self</span>: <span class="ident">Sized</span>
+        {
+            <span class="ident">with_flat_map</span>::<span class="ident">new</span>(<span class="self">self</span>, <span class="ident">f</span>)
+        }
 
     <span class="comment">/*
     fn with_map&lt;U, F&gt;(self, f: F) -&gt; WithMap&lt;Self, U, F&gt;
