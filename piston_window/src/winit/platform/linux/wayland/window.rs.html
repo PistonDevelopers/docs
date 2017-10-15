@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.7.6/src/platform/linux/wayland/window.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.8.3/src/platform/linux/wayland/window.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>window.rs.html -- source</title>
@@ -260,15 +260,85 @@
 <span id="215">215</span>
 <span id="216">216</span>
 <span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">AtomicBool</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">Ordering</span>, <span class="ident">AtomicBool</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
 
-<span class="kw">use</span> <span class="ident">wayland_client</span>::{<span class="ident">EventQueue</span>, <span class="ident">EventQueueHandle</span>, <span class="ident">Proxy</span>};
+<span class="kw">use</span> <span class="ident">wayland_client</span>::{<span class="ident">EventQueueHandle</span>, <span class="ident">Proxy</span>};
 <span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">protocol</span>::{<span class="ident">wl_display</span>,<span class="ident">wl_surface</span>};
 
 <span class="kw">use</span> {<span class="ident">CreationError</span>, <span class="ident">MouseCursor</span>, <span class="ident">CursorState</span>, <span class="ident">WindowAttributes</span>};
 <span class="kw">use</span> <span class="ident">platform</span>::<span class="ident">MonitorId</span> <span class="kw">as</span> <span class="ident">PlatformMonitorId</span>;
+<span class="kw">use</span> <span class="ident">window</span>::<span class="ident">MonitorId</span> <span class="kw">as</span> <span class="ident">RootMonitorId</span>;
+<span class="kw">use</span> <span class="ident">platform</span>::<span class="ident">wayland</span>::<span class="ident">MonitorId</span> <span class="kw">as</span> <span class="ident">WaylandMonitorId</span>;
+<span class="kw">use</span> <span class="ident">platform</span>::<span class="ident">wayland</span>::<span class="ident">context</span>::<span class="ident">get_available_monitors</span>;
 
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">WaylandContext</span>, <span class="ident">EventsLoop</span>};
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">wayland_window</span>;
@@ -277,8 +347,6 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Window</span> {
     <span class="comment">// the global wayland context</span>
     <span class="ident">ctxt</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">WaylandContext</span><span class="op">&gt;</span>,
-    <span class="comment">// the EventQueue of our EventsLoop</span>
-    <span class="ident">evq</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventQueue</span><span class="op">&gt;&gt;</span>,
     <span class="comment">// signal to advertize the EventsLoop when we are destroyed</span>
     <span class="ident">cleanup_signal</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
     <span class="comment">// our wayland surface</span>
@@ -298,40 +366,51 @@
 }
 
 <span class="kw">impl</span> <span class="ident">Window</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">evlp</span>: <span class="kw-2">&amp;</span><span class="ident">EventsLoop</span>, <span class="ident">ctxt</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">WaylandContext</span><span class="op">&gt;</span>, <span class="ident">attributes</span>: <span class="kw-2">&amp;</span><span class="ident">WindowAttributes</span>)  <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Window</span>, <span class="ident">CreationError</span><span class="op">&gt;</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">evlp</span>: <span class="kw-2">&amp;</span><span class="ident">EventsLoop</span>, <span class="ident">attributes</span>: <span class="kw-2">&amp;</span><span class="ident">WindowAttributes</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Window</span>, <span class="ident">CreationError</span><span class="op">&gt;</span>
     {
+        <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="ident">evlp</span>.<span class="ident">context</span>().<span class="ident">clone</span>();
         <span class="kw">let</span> (<span class="ident">width</span>, <span class="ident">height</span>) <span class="op">=</span> <span class="ident">attributes</span>.<span class="ident">dimensions</span>.<span class="ident">unwrap_or</span>((<span class="number">800</span>,<span class="number">600</span>));
 
-        <span class="kw">let</span> (<span class="ident">surface</span>, <span class="ident">decorated</span>) <span class="op">=</span> <span class="ident">ctxt</span>.<span class="ident">create_window</span>::<span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;</span>(<span class="ident">width</span>, <span class="ident">height</span>);
+        <span class="kw">let</span> (<span class="ident">surface</span>, <span class="ident">decorated</span>, <span class="ident">xdg</span>) <span class="op">=</span> <span class="ident">ctxt</span>.<span class="ident">create_window</span>::<span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;</span>(<span class="ident">width</span>, <span class="ident">height</span>, <span class="ident">attributes</span>.<span class="ident">decorations</span>);
 
         <span class="comment">// init DecoratedSurface</span>
-        <span class="kw">let</span> (<span class="ident">evq</span>, <span class="ident">cleanup_signal</span>) <span class="op">=</span> <span class="ident">evlp</span>.<span class="ident">get_window_init</span>();
+        <span class="kw">let</span> <span class="ident">cleanup_signal</span> <span class="op">=</span> <span class="ident">evlp</span>.<span class="ident">get_window_init</span>();
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fullscreen_monitor</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">RootMonitorId</span> { <span class="ident">inner</span>: <span class="ident">PlatformMonitorId</span>::<span class="ident">Wayland</span>(<span class="kw-2">ref</span> <span class="ident">monitor_id</span>) }) <span class="op">=</span> <span class="ident">attributes</span>.<span class="ident">fullscreen</span> {
+            <span class="ident">ctxt</span>.<span class="ident">with_output</span>(<span class="ident">monitor_id</span>.<span class="ident">clone</span>(), <span class="op">|</span><span class="ident">output</span><span class="op">|</span> {
+                <span class="ident">fullscreen_monitor</span> <span class="op">=</span> <span class="ident">output</span>.<span class="ident">clone</span>();
+            });
+        }
+
         <span class="kw">let</span> <span class="ident">decorated_id</span> <span class="op">=</span> {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evq_guard</span> <span class="op">=</span> <span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evq_guard</span> <span class="op">=</span> <span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
             <span class="comment">// store the DecoratedSurface handler</span>
             <span class="kw">let</span> <span class="ident">decorated_id</span> <span class="op">=</span> <span class="ident">evq_guard</span>.<span class="ident">add_handler_with_init</span>(<span class="ident">decorated</span>);
             {
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">evq_guard</span>.<span class="ident">state</span>();
                 <span class="comment">// initialize the DecoratedHandler</span>
                 <span class="kw">let</span> <span class="ident">decorated</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">DecoratedSurface</span><span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;&gt;</span>(<span class="ident">decorated_id</span>);
-                <span class="kw-2">*</span>(<span class="ident">decorated</span>.<span class="ident">handler</span>()) <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">DecoratedHandler</span>::<span class="ident">new</span>());
+                <span class="kw-2">*</span>(<span class="ident">decorated</span>.<span class="ident">handler</span>()) <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">DecoratedHandler</span>::<span class="ident">new</span>(<span class="op">!</span><span class="ident">xdg</span>));
 
                 <span class="comment">// set fullscreen if necessary</span>
-                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">PlatformMonitorId</span>::<span class="ident">Wayland</span>(<span class="kw-2">ref</span> <span class="ident">monitor_id</span>)) <span class="op">=</span> <span class="ident">attributes</span>.<span class="ident">monitor</span> {
-                    <span class="ident">ctxt</span>.<span class="ident">with_output</span>(<span class="ident">monitor_id</span>.<span class="ident">clone</span>(), <span class="op">|</span><span class="ident">output</span><span class="op">|</span> {
-                        <span class="ident">decorated</span>.<span class="ident">set_fullscreen</span>(<span class="prelude-val">Some</span>(<span class="ident">output</span>))
-                    });
-                } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">attributes</span>.<span class="ident">decorations</span> {
-                    <span class="ident">decorated</span>.<span class="ident">set_decorate</span>(<span class="bool-val">true</span>);
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">output</span>) <span class="op">=</span> <span class="ident">fullscreen_monitor</span> {
+                    <span class="ident">decorated</span>.<span class="ident">set_fullscreen</span>(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="ident">output</span>));
                 }
                 <span class="comment">// Finally, set the decorations size</span>
                 <span class="ident">decorated</span>.<span class="ident">resize</span>(<span class="ident">width</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">height</span> <span class="kw">as</span> <span class="ident">i32</span>);
             }
+
+            <span class="ident">evq_guard</span>.<span class="ident">sync_roundtrip</span>().<span class="ident">unwrap</span>();
+
             <span class="ident">decorated_id</span>
         };
+        <span class="comment">// send our configuration to the compositor</span>
+        <span class="comment">// if we&#39;re in xdg mode, no buffer is attached yet, so this</span>
+        <span class="comment">// is fine (and more or less required actually)</span>
+        <span class="ident">surface</span>.<span class="ident">commit</span>();
         <span class="kw">let</span> <span class="ident">me</span> <span class="op">=</span> <span class="ident">Window</span> {
             <span class="ident">ctxt</span>: <span class="ident">ctxt</span>,
-            <span class="ident">evq</span>: <span class="ident">evq</span>,
             <span class="ident">cleanup_signal</span>: <span class="ident">cleanup_signal</span>,
             <span class="ident">surface</span>: <span class="ident">surface</span>,
             <span class="ident">size</span>: <span class="ident">Mutex</span>::<span class="ident">new</span>((<span class="ident">width</span>, <span class="ident">height</span>)),
@@ -350,7 +429,7 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_title</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">title</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>();
         <span class="kw">let</span> <span class="ident">decorated</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">DecoratedSurface</span><span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;&gt;</span>(<span class="self">self</span>.<span class="ident">decorated_id</span>);
         <span class="ident">decorated</span>.<span class="ident">set_title</span>(<span class="ident">title</span>.<span class="ident">into</span>())
@@ -391,7 +470,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="comment">// NOTE: This will only resize the borders, the contents must be updated by the user</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_inner_size</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">x</span>: <span class="ident">u32</span>, <span class="ident">y</span>: <span class="ident">u32</span>) {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">decorated</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">DecoratedSurface</span><span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;&gt;</span>(<span class="self">self</span>.<span class="ident">decorated_id</span>);
         <span class="ident">decorated</span>.<span class="ident">resize</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>);
@@ -433,30 +512,82 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_surface</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span> {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">surface</span>
     }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_current_monitor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">WaylandMonitorId</span> {
+        <span class="kw">let</span> <span class="ident">monitors</span> <span class="op">=</span> <span class="ident">get_available_monitors</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt</span>);
+        <span class="kw">let</span> <span class="ident">default</span> <span class="op">=</span> <span class="ident">monitors</span>[<span class="number">0</span>].<span class="ident">clone</span>();
+
+        <span class="kw">let</span> (<span class="ident">wx</span>,<span class="ident">wy</span>) <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_position</span>() {
+            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=&gt;</span> (<span class="ident">cmp</span>::<span class="ident">max</span>(<span class="number">0</span>,<span class="ident">val</span>.<span class="number">0</span>) <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="number">0</span>,<span class="ident">val</span>.<span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>),
+            <span class="prelude-val">None</span><span class="op">=&gt;</span> <span class="kw">return</span> <span class="ident">default</span>,
+        };
+        <span class="kw">let</span> (<span class="ident">ww</span>,<span class="ident">wh</span>) <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_outer_size</span>() {
+            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=&gt;</span> <span class="ident">val</span>,
+            <span class="prelude-val">None</span><span class="op">=&gt;</span> <span class="kw">return</span> <span class="ident">default</span>,
+        };
+        <span class="comment">// Opposite corner coordinates</span>
+        <span class="kw">let</span> (<span class="ident">wxo</span>, <span class="ident">wyo</span>) <span class="op">=</span> (<span class="ident">wx</span><span class="op">+</span><span class="ident">ww</span><span class="op">-</span><span class="number">1</span>, <span class="ident">wy</span><span class="op">+</span><span class="ident">wh</span><span class="op">-</span><span class="number">1</span>);
+
+        <span class="comment">// Find the monitor with the biggest overlap with the window</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">overlap</span> <span class="op">=</span> <span class="number">0</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">find</span> <span class="op">=</span> <span class="ident">default</span>;
+        <span class="kw">for</span> <span class="ident">monitor</span> <span class="kw">in</span> <span class="ident">monitors</span> {
+            <span class="kw">let</span> (<span class="ident">mx</span>, <span class="ident">my</span>) <span class="op">=</span> <span class="ident">monitor</span>.<span class="ident">get_position</span>();
+            <span class="kw">let</span> (<span class="ident">mw</span>, <span class="ident">mh</span>) <span class="op">=</span> <span class="ident">monitor</span>.<span class="ident">get_dimensions</span>();
+            <span class="kw">let</span> (<span class="ident">mxo</span>, <span class="ident">myo</span>) <span class="op">=</span> (<span class="ident">mx</span><span class="op">+</span><span class="ident">mw</span><span class="op">-</span><span class="number">1</span>, <span class="ident">my</span><span class="op">+</span><span class="ident">mh</span><span class="op">-</span><span class="number">1</span>);
+            <span class="kw">let</span> (<span class="ident">ox</span>, <span class="ident">oy</span>) <span class="op">=</span> (<span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">wx</span>, <span class="ident">mx</span>), <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">wy</span>, <span class="ident">my</span>));
+            <span class="kw">let</span> (<span class="ident">oxo</span>, <span class="ident">oyo</span>) <span class="op">=</span> (<span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">wxo</span>, <span class="ident">mxo</span>), <span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">wyo</span>, <span class="ident">myo</span>));
+            <span class="kw">let</span> <span class="ident">osize</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">ox</span> <span class="op">&lt;=</span> <span class="ident">oxo</span> <span class="op">||</span> <span class="ident">oy</span> <span class="op">&lt;=</span> <span class="ident">oyo</span> { <span class="number">0</span> } <span class="kw">else</span> { (<span class="ident">oxo</span><span class="op">-</span><span class="ident">ox</span>)<span class="kw-2">*</span>(<span class="ident">oyo</span><span class="op">-</span><span class="ident">oy</span>) };
+
+            <span class="kw">if</span> <span class="ident">osize</span> <span class="op">&gt;</span> <span class="ident">overlap</span> {
+                <span class="ident">overlap</span> <span class="op">=</span> <span class="ident">osize</span>;
+                <span class="ident">find</span> <span class="op">=</span> <span class="ident">monitor</span>;
+            }
+        }
+
+        <span class="ident">find</span>
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_ready</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">decorated</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">DecoratedSurface</span><span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;&gt;</span>(<span class="self">self</span>.<span class="ident">decorated_id</span>);
+        <span class="ident">decorated</span>.<span class="ident">handler</span>().<span class="ident">as_ref</span>().<span class="ident">unwrap</span>().<span class="ident">configured</span>
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">Window</span> {
     <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="self">self</span>.<span class="ident">surface</span>.<span class="ident">destroy</span>();
-        <span class="self">self</span>.<span class="ident">cleanup_signal</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, ::<span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+        <span class="self">self</span>.<span class="ident">cleanup_signal</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
     }
 }
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DecoratedHandler</span> {
     <span class="ident">newsize</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">u32</span>, <span class="ident">u32</span>)<span class="op">&gt;</span>,
+    <span class="ident">refresh</span>: <span class="ident">bool</span>,
     <span class="ident">closed</span>: <span class="ident">bool</span>,
+    <span class="ident">configured</span>: <span class="ident">bool</span>
 }
 
 <span class="kw">impl</span> <span class="ident">DecoratedHandler</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">DecoratedHandler</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">configured</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="ident">DecoratedHandler</span> {
         <span class="ident">DecoratedHandler</span> {
             <span class="ident">newsize</span>: <span class="prelude-val">None</span>,
+            <span class="ident">refresh</span>: <span class="bool-val">false</span>,
             <span class="ident">closed</span>: <span class="bool-val">false</span>,
+            <span class="ident">configured</span>: <span class="ident">configured</span>
         }
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">take_newsize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">u32</span>, <span class="ident">u32</span>)<span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">newsize</span>.<span class="ident">take</span>()
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">take_refresh</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">let</span> <span class="ident">refresh</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">refresh</span>;
+        <span class="self">self</span>.<span class="ident">refresh</span> <span class="op">=</span> <span class="bool-val">false</span>;
+        <span class="ident">refresh</span>
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_closed</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="self">self</span>.<span class="ident">closed</span> }
@@ -465,11 +596,12 @@
 <span class="kw">impl</span> <span class="ident">wayland_window</span>::<span class="ident">Handler</span> <span class="kw">for</span> <span class="ident">DecoratedHandler</span> {
     <span class="kw">fn</span> <span class="ident">configure</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
                  _: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                 _: <span class="ident">wayland_window</span>::<span class="ident">Configure</span>,
-                 <span class="ident">width</span>: <span class="ident">i32</span>, <span class="ident">height</span>: <span class="ident">i32</span>)
+                 <span class="ident">_cfg</span>: <span class="ident">wayland_window</span>::<span class="ident">Configure</span>,
+                 <span class="ident">newsize</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">i32</span>, <span class="ident">i32</span>)<span class="op">&gt;</span>)
     {
-        <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">max</span>;
-        <span class="self">self</span>.<span class="ident">newsize</span> <span class="op">=</span> <span class="prelude-val">Some</span>((<span class="ident">max</span>(<span class="ident">width</span>,<span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">max</span>(<span class="ident">height</span>,<span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>));
+        <span class="self">self</span>.<span class="ident">newsize</span> <span class="op">=</span> <span class="ident">newsize</span>.<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">w</span>, <span class="ident">h</span>)<span class="op">|</span> (<span class="ident">w</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">h</span> <span class="kw">as</span> <span class="ident">u32</span>));
+        <span class="self">self</span>.<span class="ident">refresh</span> <span class="op">=</span> <span class="bool-val">true</span>;
+        <span class="self">self</span>.<span class="ident">configured</span> <span class="op">=</span> <span class="bool-val">true</span>;
     }
 
     <span class="kw">fn</span> <span class="ident">close</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, _: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>) {
