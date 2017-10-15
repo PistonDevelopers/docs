@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.7.1/src/option.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.8.2/src/option.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>option.rs.html -- source</title>
@@ -164,6 +164,28 @@
 <span id="119">119</span>
 <span id="120">120</span>
 <span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! This module contains the parallel iterator types for options</span>
 <span class="doccomment">//! (`Option&lt;T&gt;`). You will rarely need to interact with it directly</span>
@@ -172,6 +194,7 @@
 <span class="kw">use</span> <span class="ident">iter</span>::<span class="kw-2">*</span>;
 <span class="kw">use</span> <span class="ident">iter</span>::<span class="ident">internal</span>::<span class="kw-2">*</span>;
 <span class="kw">use</span> <span class="ident">std</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>};
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">IntoParallelIterator</span> <span class="kw">for</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">T</span>;
@@ -220,28 +243,20 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">BoundedParallelIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">upper_bound</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
-        <span class="ident">ExactParallelIterator</span>::<span class="ident">len</span>(<span class="self">self</span>)
-    }
-
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">IndexedParallelIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">drive</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">consumer</span>: <span class="ident">C</span>) <span class="op">-&gt;</span> <span class="ident">C</span>::<span class="prelude-ty">Result</span>
         <span class="kw">where</span> <span class="ident">C</span>: <span class="ident">Consumer</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>
     {
         <span class="ident">bridge</span>(<span class="self">self</span>, <span class="ident">consumer</span>)
     }
-}
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">ExactParallelIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">opt</span> {
             <span class="prelude-val">Some</span>(_) <span class="op">=&gt;</span> <span class="number">1</span>,
             <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="number">0</span>,
         }
     }
-}
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">IndexedParallelIterator</span> <span class="kw">for</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">with_producer</span><span class="op">&lt;</span><span class="ident">CB</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">callback</span>: <span class="ident">CB</span>) <span class="op">-&gt;</span> <span class="ident">CB</span>::<span class="ident">Output</span>
         <span class="kw">where</span> <span class="ident">CB</span>: <span class="ident">ProducerCallback</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>
     {
@@ -283,6 +298,35 @@
             (<span class="ident">none</span>, <span class="self">self</span>)
         } <span class="kw">else</span> {
             (<span class="self">self</span>, <span class="ident">none</span>)
+        }
+    }
+}
+
+
+<span class="doccomment">/// Collect an arbitrary `Option`-wrapped collection.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// If any item is `None`, then all previous items collected are discarded,</span>
+<span class="doccomment">/// and it returns only `None`.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">C</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">C</span>: <span class="ident">FromParallelIterator</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
+          <span class="ident">T</span>: <span class="ident">Send</span>
+{
+    <span class="kw">fn</span> <span class="ident">from_par_iter</span><span class="op">&lt;</span><span class="ident">I</span><span class="op">&gt;</span>(<span class="ident">par_iter</span>: <span class="ident">I</span>) <span class="op">-&gt;</span> <span class="self">Self</span>
+        <span class="kw">where</span> <span class="ident">I</span>: <span class="ident">IntoParallelIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span>
+    {
+        <span class="kw">let</span> <span class="ident">found_none</span> <span class="op">=</span> <span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>);
+        <span class="kw">let</span> <span class="ident">collection</span> <span class="op">=</span> <span class="ident">par_iter</span>
+            .<span class="ident">into_par_iter</span>()
+            .<span class="ident">inspect</span>(<span class="op">|</span><span class="ident">item</span><span class="op">|</span> <span class="kw">if</span> <span class="ident">item</span>.<span class="ident">is_none</span>() {
+                         <span class="ident">found_none</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+                     })
+            .<span class="ident">while_some</span>()
+            .<span class="ident">collect</span>();
+
+        <span class="kw">if</span> <span class="ident">found_none</span>.<span class="ident">load</span>(<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
+            <span class="prelude-val">None</span>
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">collection</span>)
         }
     }
 }
