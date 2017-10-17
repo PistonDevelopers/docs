@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/petgraph-0.4.9/src/visit/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/petgraph-0.4.10/src/visit/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -731,6 +731,32 @@
 <span id="686">686</span>
 <span id="687">687</span>
 <span id="688">688</span>
+<span id="689">689</span>
+<span id="690">690</span>
+<span id="691">691</span>
+<span id="692">692</span>
+<span id="693">693</span>
+<span id="694">694</span>
+<span id="695">695</span>
+<span id="696">696</span>
+<span id="697">697</span>
+<span id="698">698</span>
+<span id="699">699</span>
+<span id="700">700</span>
+<span id="701">701</span>
+<span id="702">702</span>
+<span id="703">703</span>
+<span id="704">704</span>
+<span id="705">705</span>
+<span id="706">706</span>
+<span id="707">707</span>
+<span id="708">708</span>
+<span id="709">709</span>
+<span id="710">710</span>
+<span id="711">711</span>
+<span id="712">712</span>
+<span id="713">713</span>
+<span id="714">714</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Graph traits and graph traversals.</span>
 <span class="doccomment">//!</span>
@@ -817,9 +843,10 @@
 <span class="doccomment">/// Base graph trait: defines the associated node identifier and</span>
 <span class="doccomment">/// edge identifier types.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">GraphBase</span> {
+    <span class="comment">// FIXME: We can drop this escape/nodelegate stuff in Rust 1.18</span>
     @<span class="ident">escape</span> [<span class="kw">type</span> <span class="ident">NodeId</span>]
     @<span class="ident">escape</span> [<span class="kw">type</span> <span class="ident">EdgeId</span>]
-    @<span class="ident">section</span> <span class="ident">ignore</span>
+    @<span class="ident">section</span> <span class="ident">nodelegate</span>
     <span class="doccomment">/// edge identifier</span>
     <span class="kw">type</span> <span class="ident">EdgeId</span>: <span class="ident">Copy</span> <span class="op">+</span> <span class="ident">PartialEq</span>;
     <span class="doccomment">/// node identifier</span>
@@ -876,7 +903,7 @@
     <span class="kw">type</span> <span class="ident">Neighbors</span>: <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="self">Self</span>::<span class="ident">NodeId</span><span class="op">&gt;</span>;
     @<span class="ident">section</span> <span class="self">self</span>
     <span class="doccomment">/// Return an iterator of the neighbors of node `a`.</span>
-    <span class="kw">fn</span> <span class="ident">neighbors</span>(<span class="self">self</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">Neighbors</span>;
+    <span class="kw">fn</span> <span class="ident">neighbors</span>(<span class="self">self</span>: <span class="self">Self</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">Neighbors</span>;
 }
 }
 
@@ -972,6 +999,31 @@
 }
 
 <span class="macro">IntoEdges</span><span class="macro">!</span>{<span class="ident">delegate_impl</span> []}
+
+<span class="macro">trait_template</span><span class="macro">!</span> {
+<span class="doccomment">/// Access to all edges of each node, in the specified direction.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The edges are, depending on the direction and the graph’s edge type:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// - `Directed`, `Outgoing`: All edges from `a`.</span>
+<span class="doccomment">/// - `Directed`, `Incoming`: All edges to `a`.</span>
+<span class="doccomment">/// - `Undirected`: All edges connected to `a`.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This is an extended version of the trait `IntoNeighborsDirected`; the former</span>
+<span class="doccomment">/// only iterates over the target node identifiers, while this trait</span>
+<span class="doccomment">/// yields edge references (trait [`EdgeRef`][er]).</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [er]: trait.EdgeRef.html</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">IntoEdgesDirected</span> : <span class="ident">IntoEdges</span> <span class="op">+</span> <span class="ident">IntoNeighborsDirected</span> {
+    @<span class="ident">section</span> <span class="kw">type</span>
+    <span class="kw">type</span> <span class="ident">EdgesDirected</span>: <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span><span class="op">=</span><span class="self">Self</span>::<span class="ident">EdgeRef</span><span class="op">&gt;</span>;
+    @<span class="ident">section</span> <span class="self">self</span>
+    <span class="kw">fn</span> <span class="ident">edges_directed</span>(<span class="self">self</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>, <span class="ident">dir</span>: <span class="ident">Direction</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">EdgesDirected</span>;
+}
+}
+
+<span class="macro">IntoEdgesDirected</span><span class="macro">!</span>{<span class="ident">delegate_impl</span> []}
 
 <span class="macro">trait_template</span><span class="macro">!</span> {
 <span class="doccomment">/// Access to the sequence of the graph’s `NodeId`s.</span>
@@ -1142,7 +1194,7 @@
     <span class="doccomment">/// The kind edges in the graph.</span>
     <span class="kw">type</span> <span class="ident">EdgeType</span>: <span class="ident">EdgeType</span>;
 
-    @<span class="ident">section</span> <span class="ident">ignore</span>
+    @<span class="ident">section</span> <span class="ident">nodelegate</span>
     <span class="kw">fn</span> <span class="ident">is_directed</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
         <span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">EdgeType</span><span class="op">&gt;</span>::<span class="ident">is_directed</span>()
     }
@@ -1190,14 +1242,14 @@
 <span class="macro">trait_template</span><span class="macro">!</span>{
     <span class="doccomment">/// The graph’s `NodeId`s map to indices</span>
     <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">NodeIndexable</span> : <span class="ident">GraphBase</span> {
-        @<span class="ident">section</span> <span class="ident">self_ref</span>
+        @<span class="ident">section</span> <span class="self">self</span>
         <span class="doccomment">/// Return an upper bound of the node indices in the graph</span>
         <span class="doccomment">/// (suitable for the size of a bitmap).</span>
-        <span class="kw">fn</span> <span class="ident">node_bound</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+        <span class="kw">fn</span> <span class="ident">node_bound</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
         <span class="doccomment">/// Convert `a` to an integer index.</span>
-        <span class="kw">fn</span> <span class="ident">to_index</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+        <span class="kw">fn</span> <span class="ident">to_index</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
         <span class="doccomment">/// Convert `i` to a node index</span>
-        <span class="kw">fn</span> <span class="ident">from_index</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">i</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">NodeId</span>;
+        <span class="kw">fn</span> <span class="ident">from_index</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>, <span class="ident">i</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">NodeId</span>;
     }
 }
 
@@ -1206,8 +1258,8 @@
 <span class="macro">trait_template</span><span class="macro">!</span> {
 <span class="doccomment">/// A graph with a known node count.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">NodeCount</span> : <span class="ident">GraphBase</span> {
-    @<span class="ident">section</span> <span class="ident">self_ref</span>
-    <span class="kw">fn</span> <span class="ident">node_count</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
+    @<span class="ident">section</span> <span class="self">self</span>
+    <span class="kw">fn</span> <span class="ident">node_count</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span>;
 }
 }
 
@@ -1299,11 +1351,11 @@
     @<span class="ident">section</span> <span class="kw">type</span>
     <span class="doccomment">/// The associated map type</span>
     <span class="kw">type</span> <span class="ident">Map</span>: <span class="ident">VisitMap</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">NodeId</span><span class="op">&gt;</span>;
-    @<span class="ident">section</span> <span class="ident">self_ref</span>
+    @<span class="ident">section</span> <span class="self">self</span>
     <span class="doccomment">/// Create a new visitor map</span>
-    <span class="kw">fn</span> <span class="ident">visit_map</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">Map</span>;
+    <span class="kw">fn</span> <span class="ident">visit_map</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">Map</span>;
     <span class="doccomment">/// Reset the visitor map (and resize to new size of graph if needed)</span>
-    <span class="kw">fn</span> <span class="ident">reset_map</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">map</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span>::<span class="ident">Map</span>) <span class="op">-&gt;</span> ();
+    <span class="kw">fn</span> <span class="ident">reset_map</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>, <span class="ident">map</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span>::<span class="ident">Map</span>) <span class="op">-&gt;</span> ();
 }
 }
 <span class="macro">Visitable</span><span class="macro">!</span>{<span class="ident">delegate_impl</span> []}
@@ -1390,13 +1442,13 @@
     @<span class="ident">section</span> <span class="kw">type</span>
     <span class="doccomment">/// The associated adjacency matrix type</span>
     <span class="kw">type</span> <span class="ident">AdjMatrix</span>;
-    @<span class="ident">section</span> <span class="ident">self_ref</span>
+    @<span class="ident">section</span> <span class="self">self</span>
     <span class="doccomment">/// Create the adjacency matrix</span>
-    <span class="kw">fn</span> <span class="ident">adjacency_matrix</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">AdjMatrix</span>;
+    <span class="kw">fn</span> <span class="ident">adjacency_matrix</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="self">Self</span>::<span class="ident">AdjMatrix</span>;
     <span class="doccomment">/// Return true if there is an edge from `a` to `b`, false otherwise.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Computes in O(1) time.</span>
-    <span class="kw">fn</span> <span class="ident">is_adjacent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">matrix</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>::<span class="ident">AdjMatrix</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>, <span class="ident">b</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>;
+    <span class="kw">fn</span> <span class="ident">is_adjacent</span>(<span class="self">self</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>, <span class="ident">matrix</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>::<span class="ident">AdjMatrix</span>, <span class="ident">a</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>, <span class="ident">b</span>: <span class="self">Self</span>::<span class="ident">NodeId</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>;
 }
 }
 
@@ -1438,9 +1490,9 @@
                     <dd>Show this help dialog</dd>
                     <dt>S</dt>
                     <dd>Focus the search field</dd>
-                    <dt>&larrb;</dt>
+                    <dt>↑</dt>
                     <dd>Move up in search results</dd>
-                    <dt>&rarrb;</dt>
+                    <dt>↓</dt>
                     <dd>Move down in search results</dd>
                     <dt>&#9166;</dt>
                     <dd>Go to active search result</dd>
