@@ -39,6 +39,13 @@
                      "associatedconstant",
                      "union"];
 
+    // On the search screen, so you remain on the last tab you opened.
+    //
+    // 0 for "Types/modules"
+    // 1 for "As parameters"
+    // 2 for "As return value"
+    var currentTab = 0;
+
     function hasClass(elem, className) {
         if (elem && className && elem.className) {
             var elemClass = elem.className;
@@ -163,6 +170,20 @@
         return String.fromCharCode(c);
     }
 
+    function displayHelp(display, ev) {
+        if (display === true) {
+            if (hasClass(help, "hidden")) {
+                ev.preventDefault();
+                removeClass(help, "hidden");
+                addClass(document.body, "blur");
+            }
+        } else if (!hasClass(help, "hidden")) {
+            ev.preventDefault();
+            addClass(help, "hidden");
+            removeClass(document.body, "blur");
+        }
+    }
+
     function handleShortcut(ev) {
         if (document.activeElement.tagName === "INPUT")
             return;
@@ -176,9 +197,7 @@
         case "Escape":
             var search = document.getElementById("search");
             if (!hasClass(help, "hidden")) {
-                ev.preventDefault();
-                addClass(help, "hidden");
-                removeClass(document.body, "blur");
+                displayHelp(false, ev);
             } else if (!hasClass(search, "hidden")) {
                 ev.preventDefault();
                 addClass(search, "hidden");
@@ -188,6 +207,7 @@
 
         case "s":
         case "S":
+            displayHelp(false, ev);
             ev.preventDefault();
             focusSearchBar();
             break;
@@ -198,10 +218,8 @@
             break;
 
         case "?":
-            if (ev.shiftKey && hasClass(help, "hidden")) {
-                ev.preventDefault();
-                removeClass(help, "hidden");
-                addClass(document.body, "blur");
+            if (ev.shiftKey) {
+                displayHelp(true, ev);
             }
             break;
         }
@@ -694,41 +712,56 @@
             });
 
             var search_input = document.getElementsByClassName('search-input')[0];
-            search_input.onkeydown = null;
             search_input.onkeydown = function(e) {
-                var actives = [];
+                // "actives" references the currently highlighted item in each search tab.
+                // Each array in "actives" represents a tab.
+                var actives = [[], [], []];
+                // "current" is used to know which tab we're looking into.
+                var current = 0;
                 onEach(document.getElementsByClassName('search-results'), function(e) {
-                    onEach(document.getElementsByClassName('highlighted'), function(e) {
-                        actives.push(e);
+                    onEach(e.getElementsByClassName('highlighted'), function(e) {
+                        actives[current].push(e);
                     });
+                    current += 1;
                 });
 
                 if (e.which === 38) { // up
-                    if (!actives.length || !actives[0].previousElementSibling) {
+                    if (!actives[currentTab].length ||
+                        !actives[currentTab][0].previousElementSibling) {
                         return;
                     }
 
-                    addClass(actives[0].previousElementSibling, 'highlighted');
-                    removeClass(actives[0], 'highlighted');
+                    addClass(actives[currentTab][0].previousElementSibling, 'highlighted');
+                    removeClass(actives[currentTab][0], 'highlighted');
                 } else if (e.which === 40) { // down
-                    if (!actives.length) {
+                    if (!actives[currentTab].length) {
                         var results = document.getElementsByClassName('search-results');
                         if (results.length > 0) {
-                            var res = results[0].getElementsByClassName('result');
+                            var res = results[currentTab].getElementsByClassName('result');
                             if (res.length > 0) {
                                 addClass(res[0], 'highlighted');
                             }
                         }
-                    } else if (actives[0].nextElementSibling) {
-                        addClass(actives[0].nextElementSibling, 'highlighted');
-                        removeClass(actives[0], 'highlighted');
+                    } else if (actives[currentTab][0].nextElementSibling) {
+                        addClass(actives[currentTab][0].nextElementSibling, 'highlighted');
+                        removeClass(actives[currentTab][0], 'highlighted');
                     }
                 } else if (e.which === 13) { // return
-                    if (actives.length) {
-                        document.location.href = actives[0].getElementsByTagName('a')[0].href;
+                    if (actives[currentTab].length) {
+                        document.location.href =
+                            actives[currentTab][0].getElementsByTagName('a')[0].href;
                     }
-                } else if (actives.length > 0) {
-                    removeClass(actives[0], 'highlighted');
+                } else if (e.which === 9) { // tab
+                    if (e.shiftKey) {
+                        printTab(currentTab > 0 ? currentTab - 1 : 2);
+                    } else {
+                        printTab(currentTab > 1 ? 0 : currentTab + 1);
+                    }
+                    e.preventDefault();
+                } else if (e.which === 16) { // shift
+                    // Does nothing, it's just to avoid losing "focus" on the highlighted element.
+                } else if (actives[currentTab].length > 0) {
+                    removeClass(actives[currentTab][0], 'highlighted');
                 }
             };
         }
@@ -747,7 +780,7 @@
 
             var output = '';
             if (array.length > 0) {
-                output = `<table class="search-results"${extraStyle}>`;
+                output = '<table class="search-results"' + extraStyle + '>';
                 var shown = [];
 
                 array.forEach(function(item) {
@@ -801,12 +834,19 @@
                 });
                 output += '</table>';
             } else {
-                output = `<div class="search-failed"${extraStyle}>No results :(<br/>` +
+                output = '<div class="search-failed"' + extraStyle + '>No results :(<br/>' +
                     'Try on <a href="https://duckduckgo.com/?q=' +
                     encodeURIComponent('rust ' + query.query) +
                     '">DuckDuckGo</a>?</div>';
             }
             return output;
+        }
+
+        function makeTabHeader(tabNb, text) {
+            if (currentTab === tabNb) {
+                return '<div class="selected">' + text + '</div>';
+            }
+            return '<div>' + text + '</div>';
         }
 
         function showResults(results) {
@@ -816,9 +856,10 @@
             output = '<h1>Results for ' + escape(query.query) +
                 (query.type ? ' (type: ' + escape(query.type) + ')' : '') + '</h1>' +
                 '<div id="titles">' +
-                '<div class="selected">Types/modules</div>' +
-                '<div>As parameters</div>' +
-                '<div>As return value</div></div><div id="results">';
+                makeTabHeader(0, "Types/modules") +
+                makeTabHeader(1, "As parameters") +
+                makeTabHeader(2, "As return value") +
+                '</div><div id="results">';
 
             output += addTab(results['others'], query);
             output += addTab(results['in_args'], query, false);
@@ -1394,6 +1435,9 @@
 
     // In the search display, allows to switch between tabs.
     function printTab(nb) {
+        if (nb === 0 || nb === 1 || nb === 2) {
+            currentTab = nb;
+        }
         var nb_copy = nb;
         onEach(document.getElementById('titles').childNodes, function(elem) {
             if (nb_copy === 0) {
