@@ -37,7 +37,8 @@
                      "associatedtype",
                      "constant",
                      "associatedconstant",
-                     "union"];
+                     "union",
+                     "foreigntype"];
 
     // On the search screen, so you remain on the last tab you opened.
     //
@@ -50,20 +51,28 @@
         if (elem && className && elem.className) {
             var elemClass = elem.className;
             var start = elemClass.indexOf(className);
-            if (start == -1) {
+            if (start === -1) {
                 return false;
-            } else if (elemClass.length == className.length) {
+            } else if (elemClass.length === className.length) {
                 return true;
             } else {
-                if (start > 0 && elemClass[start - 1] != ' ') {
+                if (start > 0 && elemClass[start - 1] !== ' ') {
                     return false;
                 }
                 var end = start + className.length;
-                if (end < elemClass.length && elemClass[end] != ' ') {
+                if (end < elemClass.length && elemClass[end] !== ' ') {
                     return false;
                 }
                 return true;
             }
+            if (start > 0 && elemClass[start - 1] !== ' ') {
+                return false;
+            }
+            var end = start + className.length;
+            if (end < elemClass.length && elemClass[end] !== ' ') {
+                return false;
+            }
+            return true;
         }
         return false;
     }
@@ -122,6 +131,7 @@
     }
 
     function highlightSourceLines(ev) {
+        var search = document.getElementById("search");
         var i, from, to, match = window.location.hash.match(/^#?(\d+)(?:-(\d+))?$/);
         if (match) {
             from = parseInt(match[1], 10);
@@ -136,7 +146,7 @@
                 if (x) {
                     x.scrollIntoView();
                 }
-            };
+            }
             onEach(document.getElementsByClassName('line-numbers'), function(e) {
                 onEach(e.getElementsByTagName('span'), function(i_e) {
                     removeClass(i_e, 'line-highlighted');
@@ -144,6 +154,17 @@
             })
             for (i = from; i <= to; ++i) {
                 addClass(document.getElementById(i), 'line-highlighted');
+            }
+        } else if (ev !== null && search && !hasClass(search, "hidden") && ev.newURL) {
+            addClass(search, "hidden");
+            removeClass(document.getElementById("main"), "hidden");
+            var hash = ev.newURL.slice(ev.newURL.indexOf('#') + 1);
+            if (browserSupportsHistoryApi()) {
+                history.replaceState(hash, "", "?search=#" + hash);
+            }
+            var elem = document.getElementById(hash);
+            if (elem) {
+                elem.scrollIntoView();
             }
         }
     }
@@ -213,6 +234,7 @@
             break;
 
         case "+":
+        case "-":
             ev.preventDefault();
             toggleAllDocs();
             break;
@@ -349,7 +371,7 @@
             var valLower = query.query.toLowerCase(),
                 val = valLower,
                 typeFilter = itemTypeFromName(query.type),
-                results = [],
+                results = {},
                 split = valLower.split("::");
 
             // remove empty keywords
@@ -360,15 +382,151 @@
                 }
             }
 
-            function findArg(obj, val) {
+            function extractGenerics(val) {
+                val = val.toLowerCase();
+                if (val.indexOf('<') !== -1) {
+                    var values = val.substring(val.indexOf('<') + 1, val.lastIndexOf('>'));
+                    return {
+                        name: val.substring(0, val.indexOf('<')),
+                        generics: values.split(/\s*,\s*/),
+                    };
+                }
+                return {
+                    name: val,
+                    generics: [],
+                };
+            }
+
+            function checkGenerics(obj, val) {
+                // The names match, but we need to be sure that all generics kinda
+                // match as well.
+                var lev_distance = MAX_LEV_DISTANCE + 1;
+                if (val.generics.length > 0) {
+                    if (obj.generics &&
+                        obj.generics.length >= val.generics.length) {
+                        var elems = obj.generics.slice(0);
+                        for (var y = 0;
+                             y < val.generics.length;
+                             ++y) {
+                            // The point here is to find the type that matches the most.
+                            var lev = { pos: -1, lev: MAX_LEV_DISTANCE + 1};
+                            for (var x = 0; x < elems.length; ++x) {
+                                var tmp_lev = levenshtein(elems[x], val.generics[y]);
+                                if (tmp_lev < lev.lev) {
+                                    lev.lev = tmp_lev;
+                                    lev.pos = x;
+                                }
+                            }
+                            if (lev.pos !== -1) {
+                                elems.splice(lev.pos, 1);
+                                lev_distance = Math.min(lev.lev, lev_distance);
+                            } else {
+                                return MAX_LEV_DISTANCE + 1;
+                            }
+                        }
+                        return lev_distance;
+                    }
+                } else {
+                    return 0;
+                }
+                return MAX_LEV_DISTANCE + 1;
+            }
+
+            // Check for type name and type generics (if any).
+            function checkType(obj, val, literalSearch) {
+                var lev_distance = MAX_LEV_DISTANCE + 1;
+                if (obj.name === val.name) {
+                    if (literalSearch === true) {
+                        if (val.generics.length !== 0) {
+                            if (obj.generics && obj.length >= val.generics.length) {
+                                var elems = obj.generics.slice(0);
+                                var allFound = true;
+                                var x;
+
+                                for (var y = 0; allFound === true && y < val.generics.length; ++y) {
+                                    allFound = false;
+                                    for (x = 0; allFound === false && x < elems.length; ++x) {
+                                        allFound = elems[x] === val.generics[y];
+                                    }
+                                    if (allFound === true) {
+                                        elems.splice(x - 1, 1);
+                                    }
+                                }
+                                if (allFound === true) {
+                                    return true;
+                                }
+                            } else {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                    // If the type has generics but don't match, then it won't return at this point.
+                    // Otherwise, `checkGenerics` will return 0 and it'll return.
+                    var tmp_lev = checkGenerics(obj, val);
+                    if (tmp_lev <= MAX_LEV_DISTANCE) {
+                        return tmp_lev;
+                    }
+                }
+                // Names didn't match so let's check if one of the generic types could.
+                if (literalSearch === true) {
+                     if (obj.generics.length > 0) {
+                        for (var x = 0; x < obj.generics.length; ++x) {
+                            if (obj.generics[x] === val.name) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+                var new_lev = levenshtein(obj.name, val.name);
+                if (new_lev < lev_distance) {
+                    if ((lev = checkGenerics(obj, val)) <= MAX_LEV_DISTANCE) {
+                        lev_distance = Math.min(Math.min(new_lev, lev), lev_distance);
+                    }
+                } else if (obj.generics && obj.generics.length > 0) {
+                    for (var x = 0; x < obj.generics.length; ++x) {
+                        lev_distance = Math.min(levenshtein(obj.generics[x], val.name),
+                                                lev_distance);
+                    }
+                }
+                // Now whatever happens, the returned distance is "less good" so we should mark it
+                // as such, and so we add 1 to the distance to make it "less good".
+                return lev_distance + 1;
+            }
+
+            function findArg(obj, val, literalSearch) {
+                var lev_distance = MAX_LEV_DISTANCE + 1;
+
                 if (obj && obj.type && obj.type.inputs.length > 0) {
                     for (var i = 0; i < obj.type.inputs.length; i++) {
-                        if (obj.type.inputs[i].name === val) {
+                        var tmp = checkType(obj.type.inputs[i], val, literalSearch);
+                        if (literalSearch === true && tmp === true) {
                             return true;
+                        }
+                        lev_distance = Math.min(tmp, lev_distance);
+                        if (lev_distance === 0) {
+                            return 0;
                         }
                     }
                 }
-                return false;
+                return literalSearch === true ? false : lev_distance;
+            }
+
+            function checkReturned(obj, val, literalSearch) {
+                var lev_distance = MAX_LEV_DISTANCE + 1;
+
+                if (obj && obj.type && obj.type.output) {
+                    var tmp = checkType(obj.type.output, val, literalSearch);
+                    if (literalSearch === true && tmp === true) {
+                        return true;
+                    }
+                    lev_distance = Math.min(tmp, lev_distance);
+                    if (lev_distance === 0) {
+                        return 0;
+                    }
+                }
+                return literalSearch === true ? false : lev_distance;
             }
 
             function typePassesFilter(filter, type) {
@@ -398,22 +556,43 @@
             if ((val.charAt(0) === "\"" || val.charAt(0) === "'") &&
                 val.charAt(val.length - 1) === val.charAt(0))
             {
-                val = val.substr(1, val.length - 2);
+                var results_length = 0;
+                val = extractGenerics(val.substr(1, val.length - 2));
                 for (var i = 0; i < nSearchWords; ++i) {
-                    if (searchWords[i] === val) {
+                    var in_args = findArg(searchIndex[i], val, true);
+                    var returned = checkReturned(searchIndex[i], val, true);
+                    var ty = searchIndex[i];
+                    var fullId = itemTypes[ty.ty] + ty.path + ty.name;
+
+                    if (searchWords[i] === val.name) {
                         // filter type: ... queries
-                        if (typePassesFilter(typeFilter, searchIndex[i].ty)) {
-                            results.push({id: i, index: -1});
+                        if (typePassesFilter(typeFilter, searchIndex[i].ty) &&
+                            results[fullId] === undefined)
+                        {
+                            results[fullId] = {id: i, index: -1};
+                            results_length += 1;
                         }
-                    } else if (findArg(searchIndex[i], val.toLowerCase()) ||
-                               (searchIndex[i].type &&
-                                searchIndex[i].type.output &&
-                                searchIndex[i].type.output.name === val.toLowerCase())) {
-                        if (typePassesFilter(typeFilter, searchIndex[i].ty)) {
-                            results.push({id: i, index: -1, dontValidate: true});
+                    } else if ((in_args === true || returned === true) &&
+                               typePassesFilter(typeFilter, searchIndex[i].ty)) {
+                        if (results[fullId] === undefined) {
+                            results[fullId] = {
+                                id: i,
+                                index: -1,
+                                dontValidate: true,
+                                in_args: in_args,
+                                returned: returned,
+                            };
+                            results_length += 1;
+                        } else {
+                            if (in_args === true) {
+                                results[fullId].in_args = true;
+                            }
+                            if (returned === true) {
+                                results[fullId].returned = true;
+                            }
                         }
                     }
-                    if (results.length === max) {
+                    if (results_length === max) {
                         break;
                     }
                 }
@@ -427,90 +606,155 @@
                 var input = parts[0];
                 // sort inputs so that order does not matter
                 var inputs = input.split(",").map(trimmer).sort();
-                var output = parts[1];
+                for (var i = 0; i < inputs.length; ++i) {
+                    inputs[i] = extractGenerics(inputs[i]);
+                }
+                var output = extractGenerics(parts[1]);
 
                 for (var i = 0; i < nSearchWords; ++i) {
                     var type = searchIndex[i].type;
+                    var ty = searchIndex[i];
                     if (!type) {
                         continue;
                     }
-
-                    // sort index inputs so that order does not matter
-                    var typeInputs = type.inputs.map(function (input) {
-                        return input.name;
-                    }).sort();
+                    var fullId = itemTypes[ty.ty] + ty.path + ty.name;
 
                     // allow searching for void (no output) functions as well
                     var typeOutput = type.output ? type.output.name : "";
-                    if (output === "*" || output == typeOutput) {
+                    var returned = checkReturned(ty, output, true);
+                    if (output.name === "*" || returned === true) {
+                        var in_args = false;
+                        var module = false;
+
                         if (input === "*") {
-                            results.push({id: i, index: -1, dontValidate: true});
+                            module = true;
                         } else {
                             var allFound = true;
                             for (var it = 0; allFound === true && it < inputs.length; it++) {
-                                var found = false;
-                                for (var y = 0; found === false && y < typeInputs.length; y++) {
-                                    found = typeInputs[y] === inputs[it];
-                                }
-                                allFound = found;
+                                allFound = checkType(type, inputs[it], true);
                             }
-                            if (allFound === true) {
-                                results.push({id: i, index: -1, dontValidate: true});
+                            in_args = allFound;
+                        }
+                        if (in_args === true || returned === true || module === true) {
+                            if (results[fullId] !== undefined) {
+                                if (returned === true) {
+                                    results[fullId].returned = true;
+                                }
+                                if (in_args === true) {
+                                    results[fullId].in_args = true;
+                                }
+                            } else {
+                                results[fullId] = {
+                                    id: i,
+                                    index: -1,
+                                    dontValidate: true,
+                                    returned: returned,
+                                    in_args: in_args,
+                                };
                             }
                         }
                     }
                 }
-                query.inputs = inputs;
-                query.output = output;
+                query.inputs = inputs.map(function(input) {
+                    return input.name;
+                });
+                query.output = output.name;
             } else {
                 query.inputs = [val];
                 query.output = val;
                 query.search = val;
                 // gather matching search results up to a certain maximum
                 val = val.replace(/\_/g, "");
+                var valGenerics = extractGenerics(val);
+                var results_length = 0;
                 for (var i = 0; i < split.length; ++i) {
                     for (var j = 0; j < nSearchWords; ++j) {
                         var lev_distance;
+                        var ty = searchIndex[j];
+                        if (!ty) {
+                            continue;
+                        }
+                        var returned = false;
+                        var in_args = false;
+                        var index = -1;
+                        // we want lev results to go lower than others
+                        var lev = MAX_LEV_DISTANCE;
+                        var fullId = itemTypes[ty.ty] + ty.path + ty.name;
+
                         if (searchWords[j].indexOf(split[i]) > -1 ||
                             searchWords[j].indexOf(val) > -1 ||
                             searchWords[j].replace(/_/g, "").indexOf(val) > -1)
                         {
                             // filter type: ... queries
-                            if (typePassesFilter(typeFilter, searchIndex[j].ty)) {
-                                results.push({
-                                    id: j,
-                                    index: searchWords[j].replace(/_/g, "").indexOf(val),
-                                    lev: 0,
-                                });
-                            }
-                        } else if (
-                            (lev_distance = levenshtein(searchWords[j], val)) <=
-                                MAX_LEV_DISTANCE) {
-                            if (typePassesFilter(typeFilter, searchIndex[j].ty)) {
-                                results.push({
-                                    id: j,
-                                    index: 0,
-                                    // we want lev results to go lower than others
-                                    lev: lev_distance,
-                                });
-                            }
-                        } else if (findArg(searchIndex[j], val)) {
-                            if (typePassesFilter(typeFilter, searchIndex[j].ty)) {
-                                results.push({
-                                    id: j,
-                                    index: 0,
-                                    // we want lev results to go lower than others
-                                    lev: lev_distance,
-                                });
+                            if (typePassesFilter(typeFilter, ty) &&
+                                results[fullId] === undefined) {
+                                index = searchWords[j].replace(/_/g, "").indexOf(val);
                             }
                         }
-                        if (results.length === max) {
+                        if ((lev_distance = levenshtein(searchWords[j], val)) <= MAX_LEV_DISTANCE) {
+                            if (typePassesFilter(typeFilter, ty) &&
+                                (results[fullId] === undefined ||
+                                 results[fullId].lev > lev_distance)) {
+                                lev = Math.min(lev, lev_distance);
+                                index = Math.max(0, index);
+                            }
+                        }
+                        if ((lev_distance = findArg(searchIndex[j], valGenerics))
+                            <= MAX_LEV_DISTANCE) {
+                            if (typePassesFilter(typeFilter, ty) &&
+                                (results[fullId] === undefined ||
+                                 results[fullId].lev > lev_distance)) {
+                                in_args = true;
+                                lev = Math.min(lev_distance, lev);
+                                index = Math.max(0, index);
+                            }
+                        }
+                        if ((lev_distance = checkReturned(searchIndex[j], valGenerics)) <=
+                            MAX_LEV_DISTANCE) {
+                            if (typePassesFilter(typeFilter, ty) &&
+                                (results[fullId] === undefined ||
+                                 results[fullId].lev > lev_distance)) {
+                                returned = true;
+                                lev = Math.min(lev_distance, lev);
+                                index = Math.max(0, index);
+                            }
+                        }
+                        if (index !== -1) {
+                            if (results[fullId] === undefined) {
+                                results[fullId] = {
+                                    id: j,
+                                    index: index,
+                                    lev: lev,
+                                    in_args: in_args,
+                                    returned: returned,
+                                };
+                                results_length += 1;
+                            } else {
+                                if (results[fullId].lev > lev) {
+                                    results[fullId].lev = lev;
+                                }
+                                if (in_args === true) {
+                                    results[fullId].in_args = true;
+                                }
+                                if (returned === true) {
+                                    results[fullId].returned = true;
+                                }
+                            }
+                        }
+                        if (results_length === max) {
                             break;
                         }
                     }
                 }
             }
 
+            var ar = [];
+            for (var entry in results) {
+                if (results.hasOwnProperty(entry)) {
+                    ar.push(results[entry]);
+                }
+            }
+            results = ar;
             var nresults = results.length;
             for (var i = 0; i < nresults; ++i) {
                 results[i].word = searchWords[results[i].id];
@@ -586,29 +830,20 @@
                 return 0;
             });
 
-            // remove duplicates, according to the data provided
-            for (var i = results.length - 1; i > 0; i -= 1) {
-                if (results[i].word === results[i - 1].word &&
-                    results[i].item.ty === results[i - 1].item.ty &&
-                    results[i].item.path === results[i - 1].item.path &&
-                    (results[i].item.parent || {}).name === (results[i - 1].item.parent || {}).name)
-                {
-                    results[i].id = -1;
-                }
-            }
             for (var i = 0; i < results.length; ++i) {
-                var result = results[i],
-                    name = result.item.name.toLowerCase(),
-                    path = result.item.path.toLowerCase(),
-                    parent = result.item.parent;
+                var result = results[i];
 
                 // this validation does not make sense when searching by types
                 if (result.dontValidate) {
                     continue;
                 }
+                var name = result.item.name.toLowerCase(),
+                    path = result.item.path.toLowerCase(),
+                    parent = result.item.parent;
 
-                var valid = validateResult(name, path, split, parent);
-                if (!valid) {
+                if (result.returned === false && result.param === false &&
+                    validateResult(name, path, split, parent) === false)
+                {
                     result.id = -1;
                 }
             }
@@ -635,14 +870,14 @@
                 // each check is for validation so we negate the conditions and invalidate
                 if (!(
                     // check for an exact name match
-                    name.toLowerCase().indexOf(keys[i]) > -1 ||
+                    name.indexOf(keys[i]) > -1 ||
                     // then an exact path match
-                    path.toLowerCase().indexOf(keys[i]) > -1 ||
+                    path.indexOf(keys[i]) > -1 ||
                     // next if there is a parent, check for exact parent match
                     (parent !== undefined &&
                         parent.name.toLowerCase().indexOf(keys[i]) > -1) ||
                     // lastly check to see if the name was a levenshtein match
-                    levenshtein(name.toLowerCase(), keys[i]) <= MAX_LEV_DISTANCE)) {
+                    levenshtein(name, keys[i]) <= MAX_LEV_DISTANCE)) {
                     return false;
                 }
             }
@@ -842,11 +1077,12 @@
             return output;
         }
 
-        function makeTabHeader(tabNb, text) {
+        function makeTabHeader(tabNb, text, nbElems) {
             if (currentTab === tabNb) {
-                return '<div class="selected">' + text + '</div>';
+                return '<div class="selected">' + text +
+                       ' <div class="count">(' + nbElems + ')</div></div>';
             }
-            return '<div>' + text + '</div>';
+            return '<div>' + text + ' <div class="count">(' + nbElems + ')</div></div>';
         }
 
         function showResults(results) {
@@ -856,9 +1092,9 @@
             output = '<h1>Results for ' + escape(query.query) +
                 (query.type ? ' (type: ' + escape(query.type) + ')' : '') + '</h1>' +
                 '<div id="titles">' +
-                makeTabHeader(0, "Types/modules") +
-                makeTabHeader(1, "As parameters") +
-                makeTabHeader(2, "As return value") +
+                makeTabHeader(0, "Types/modules", results['others'].length) +
+                makeTabHeader(1, "As parameters", results['in_args'].length) +
+                makeTabHeader(2, "As return value", results['returned'].length) +
                 '</div><div id="results">';
 
             output += addTab(results['others'], query);
@@ -884,6 +1120,7 @@
             elems[0].onclick = function() { printTab(0); };
             elems[1].onclick = function() { printTab(1); };
             elems[2].onclick = function() { printTab(2); };
+            printTab(currentTab);
         }
 
         function search(e) {
@@ -926,32 +1163,21 @@
                     filterdata.push([obj.name, obj.ty, obj.path, obj.desc]);
                     if (obj.type) {
                         if (results['returned'].length < maxResults &&
-                            obj.type.output &&
-                            obj.type.output.name.toLowerCase() === query.output) {
+                            resultIndex[i].returned === true)
+                        {
                             results['returned'].push(obj);
                             added = true;
                         }
-                        if (results['in_args'].length < maxResults && obj.type.inputs.length > 0) {
-                            var all_founds = true;
-                            for (var it = 0;
-                                 all_founds === true && it < query.inputs.length;
-                                 it++) {
-                                var found = false;
-                                for (var y = 0;
-                                     found === false && y < obj.type.inputs.length;
-                                     y++) {
-                                    found = query.inputs[it] === obj.type.inputs[y].name;
-                                }
-                                all_founds = found;
-                            }
-                            if (all_founds === true) {
-                                results['in_args'].push(obj);
-                                added = true;
-                            }
+                        if (results['in_args'].length < maxResults &&
+                            resultIndex[i].in_args === true)
+                        {
+                            results['in_args'].push(obj);
+                            added = true;
                         }
                     }
                     if (results['others'].length < maxResults &&
-                        ((query.search && obj.name.indexOf(query.search)) || added === false)) {
+                        (added === false ||
+                         (query.search && obj.name.indexOf(query.search) !== -1))) {
                         results['others'].push(obj);
                     }
                 }
@@ -967,7 +1193,9 @@
 
         function itemTypeFromName(typename) {
             for (var i = 0; i < itemTypes.length; ++i) {
-                if (itemTypes[i] === typename) { return i; }
+                if (itemTypes[i] === typename) {
+                    return i;
+                }
             }
             return -1;
         }
@@ -1058,7 +1286,7 @@
             var search_input = document.getElementsByClassName("search-input")[0];
             search_input.onkeyup = callback;
             search_input.oninput = callback;
-            document.getElementsByClassName("search-form")[0].onsubmit = function(e){
+            document.getElementsByClassName("search-form")[0].onsubmit = function(e) {
                 e.preventDefault();
                 clearTimeout(searchTimeout);
                 search();
@@ -1134,7 +1362,9 @@
 
             var crates = [];
             for (var crate in rawSearchIndex) {
-                if (!rawSearchIndex.hasOwnProperty(crate)) { continue; }
+                if (!rawSearchIndex.hasOwnProperty(crate)) {
+                    continue;
+                }
                 crates.push(crate);
             }
             crates.sort();
@@ -1214,6 +1444,7 @@
         block("trait", "Traits");
         block("fn", "Functions");
         block("type", "Type Definitions");
+        block("foreigntype", "Foreign Types");
     }
 
     window.initSidebarItems = initSidebarItems;
@@ -1481,6 +1712,22 @@
             });
         }
     });
+
+    var search_input = document.getElementsByClassName("search-input")[0];
+
+    if (search_input) {
+        search_input.onfocus = function() {
+            if (search_input.value !== "") {
+                addClass(document.getElementById("main"), "hidden");
+                removeClass(document.getElementById("search"), "hidden");
+                if (browserSupportsHistoryApi()) {
+                    history.replaceState(search_input.value,
+                                         "",
+                                         "?search=" + encodeURIComponent(search_input.value));
+                }
+            }
+        };
+    }
 }());
 
 // Sets the focus on the search bar at the top of the page
