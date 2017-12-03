@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["PPMDecoder","PPM decoder"],["PPMEncoder","A representation of a PPM encoder."]]});
+initSidebarItems({"struct":[["PPMDecoder","PPM decoder, restriction pnm type to ppm"],["PPMEncoder","A representation of a PPM encoder."]]});

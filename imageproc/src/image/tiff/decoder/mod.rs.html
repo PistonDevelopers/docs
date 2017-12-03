@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.17.0/./src/tiff/decoder/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/image-0.18.0/./src/tiff/decoder/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
@@ -580,6 +580,12 @@
 <span id="535">535</span>
 <span id="536">536</span>
 <span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="self">self</span>, <span class="ident">Read</span>, <span class="ident">Seek</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>;
@@ -603,7 +609,8 @@
     <span class="ident">ByteOrder</span>,
     <span class="ident">EndianReader</span>,
     <span class="ident">SmartReader</span>,
-    <span class="ident">LZWReader</span>
+    <span class="ident">LZWReader</span>,
+    <span class="ident">PackBitsReader</span>
 };
 
 <span class="kw">mod</span> <span class="ident">ifd</span>;
@@ -632,7 +639,7 @@
     <span class="ident">Fax4</span> <span class="op">=</span> <span class="number">4</span>,
     <span class="ident">LZW</span> <span class="op">=</span> <span class="number">5</span>,
     <span class="ident">JPEG</span> <span class="op">=</span> <span class="number">6</span>,
-    <span class="ident">PackBits</span> <span class="op">=</span> <span class="number">32773</span>
+    <span class="ident">PackBits</span> <span class="op">=</span> <span class="number">0x8005</span>
 }
 }
 
@@ -851,7 +858,7 @@
     <span class="doccomment">/// Moves the cursor to the specified offset</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">goto_offset</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">offset</span>: <span class="ident">u32</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">reader</span>.<span class="ident">seek</span>(<span class="ident">io</span>::<span class="ident">SeekFrom</span>::<span class="ident">Start</span>(<span class="ident">offset</span> <span class="kw">as</span> <span class="ident">u64</span>)).<span class="ident">map</span>(<span class="op">|</span>_<span class="op">|</span> ())
+        <span class="self">self</span>.<span class="ident">reader</span>.<span class="ident">seek</span>(<span class="ident">io</span>::<span class="ident">SeekFrom</span>::<span class="ident">Start</span>(<span class="ident">u64</span>::<span class="ident">from</span>(<span class="ident">offset</span>))).<span class="ident">map</span>(<span class="op">|</span>_<span class="op">|</span> ())
     }
 
     <span class="doccomment">/// Reads a IFD entry.</span>
@@ -921,16 +928,16 @@
 
     <span class="doccomment">/// Tries to retrieve a tag and convert it to the desired type.</span>
     <span class="kw">fn</span> <span class="ident">find_tag_u32</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">tag</span>: <span class="ident">ifd</span>::<span class="ident">Tag</span>) <span class="op">-&gt;</span> <span class="ident">ImageResult</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;&gt;</span> {
-        <span class="kw">match</span> <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">find_tag</span>(<span class="ident">tag</span>)) {
-            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="macro">try</span><span class="macro">!</span>(<span class="ident">val</span>.<span class="ident">as_u32</span>()))),
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">find_tag</span>(<span class="ident">tag</span>)<span class="question-mark">?</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=&gt;</span> <span class="ident">val</span>.<span class="ident">into_u32</span>().<span class="ident">map</span>(<span class="prelude-val">Some</span>),
             <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
         }
     }
 
     <span class="doccomment">/// Tries to retrieve a tag and convert it to the desired type.</span>
     <span class="kw">fn</span> <span class="ident">find_tag_u32_vec</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">tag</span>: <span class="ident">ifd</span>::<span class="ident">Tag</span>) <span class="op">-&gt;</span> <span class="ident">ImageResult</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">find_tag</span>(<span class="ident">tag</span>)) {
-            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="macro">try</span><span class="macro">!</span>(<span class="ident">val</span>.<span class="ident">as_u32_vec</span>()))),
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">find_tag</span>(<span class="ident">tag</span>)<span class="question-mark">?</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=&gt;</span> <span class="ident">val</span>.<span class="ident">into_u32_vec</span>().<span class="ident">map</span>(<span class="prelude-val">Some</span>),
             <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
         }
     }
@@ -948,12 +955,12 @@
 
     <span class="doccomment">/// Tries to retrieve a tag and convert it to the desired type.</span>
     <span class="kw">fn</span> <span class="ident">get_tag_u32</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">tag</span>: <span class="ident">ifd</span>::<span class="ident">Tag</span>) <span class="op">-&gt;</span> <span class="ident">ImageResult</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> {
-        (<span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">get_tag</span>(<span class="ident">tag</span>))).<span class="ident">as_u32</span>()
+        <span class="self">self</span>.<span class="ident">get_tag</span>(<span class="ident">tag</span>)<span class="question-mark">?</span>.<span class="ident">into_u32</span>()
     }
 
     <span class="doccomment">/// Tries to retrieve a tag and convert it to the desired type.</span>
     <span class="kw">fn</span> <span class="ident">get_tag_u32_vec</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">tag</span>: <span class="ident">ifd</span>::<span class="ident">Tag</span>) <span class="op">-&gt;</span> <span class="ident">ImageResult</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;&gt;</span> {
-        (<span class="macro">try</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">get_tag</span>(<span class="ident">tag</span>))).<span class="ident">as_u32_vec</span>()
+        <span class="self">self</span>.<span class="ident">get_tag</span>(<span class="ident">tag</span>)<span class="question-mark">?</span>.<span class="ident">into_u32_vec</span>()
     }
 
     <span class="doccomment">/// Decompresses the strip into the supplied buffer.</span>
@@ -969,7 +976,12 @@
             <span class="ident">CompressionMethod</span>::<span class="ident">LZW</span> <span class="op">=&gt;</span> {
                 <span class="kw">let</span> (<span class="ident">bytes</span>, <span class="ident">reader</span>) <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">LZWReader</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">reader</span>));
                 (<span class="ident">bytes</span>, <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">reader</span>))
-            }
+            },
+            <span class="ident">CompressionMethod</span>::<span class="ident">PackBits</span> <span class="op">=&gt;</span> {
+                <span class="kw">let</span> <span class="ident">order</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">reader</span>.<span class="ident">byte_order</span>;
+                <span class="kw">let</span> (<span class="ident">bytes</span>, <span class="ident">reader</span>) <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">PackBitsReader</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">reader</span>, <span class="ident">order</span>, <span class="ident">length</span> <span class="kw">as</span> <span class="ident">usize</span>));
+                (<span class="ident">bytes</span>, <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">reader</span>))
+            },
             <span class="ident">method</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(::<span class="ident">image</span>::<span class="ident">ImageError</span>::<span class="ident">UnsupportedError</span>(<span class="macro">format</span><span class="macro">!</span>(
                 <span class="string">&quot;Compression method {:?} is unsupported&quot;</span>, <span class="ident">method</span>
             )))
@@ -1063,7 +1075,7 @@
                 ))
             }
         }
-        <span class="comment">// Safe since the uninizialized values are never read.</span>
+        <span class="comment">// Safe since the uninitialized values are never read.</span>
         <span class="kw">match</span> <span class="ident">result</span> {
             <span class="ident">DecodingResult</span>::<span class="ident">U8</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">buffer</span>) <span class="op">=&gt;</span>
                 <span class="kw">unsafe</span> { <span class="ident">buffer</span>.<span class="ident">set_len</span>(<span class="ident">buffer_size</span>) },
@@ -1111,7 +1123,7 @@
                     ))
                 },
                 <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ImageError</span>::<span class="ident">FormatError</span>(
-                    <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Unkown predictor “{}” encountered&quot;</span>, <span class="ident">predictor</span>)
+                    <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Unknown predictor “{}” encountered&quot;</span>, <span class="ident">predictor</span>)
                 ))
             }
         }
@@ -1144,7 +1156,7 @@
                     <dd>Switch tab</dd>
                     <dt>&#9166;</dt>
                     <dd>Go to active search result</dd>
-                    <dt>+</dt>
+                    <dt style="width:31px;">+ / -</dt>
                     <dd>Collapse/expand all sections</dd>
                 </dl>
             </div>
