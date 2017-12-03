@@ -48,7 +48,7 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../src/rayon_core/join/mod.rs.html#40-92' title='goto source code'>[src]</a></span></h1>
+               </span><a class='srclink' href='../src/rayon_core/join/mod.rs.html#52-59' title='goto source code'>[src]</a></span></h1>
 <pre class='rust fn'>pub fn join&lt;A, B, RA, RB&gt;(oper_a: A, oper_b: B) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">(</a>RA, RB<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">)</a> <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;A: <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; RA + <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>,<br>&nbsp;&nbsp;&nbsp;&nbsp;B: <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; RB + <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>,<br>&nbsp;&nbsp;&nbsp;&nbsp;RA: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>,<br>&nbsp;&nbsp;&nbsp;&nbsp;RB: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>,&nbsp;</span></pre><div class='docblock'><p>The <code>join</code> function takes two closures and <em>potentially</em> runs them
 in parallel. It returns a pair of the results from those closures.</p>
 
@@ -59,6 +59,17 @@ overhead. The underlying technique is called &quot;work stealing&quot;: the
 Rayon runtime uses a fixed pool of worker threads and attempts to
 only execute code in parallel when there are idle CPUs to handle
 it.</p>
+
+<p>When <code>join</code> is called from outside the thread pool, the calling
+thread will block while the closures execute in the pool.  When
+<code>join</code> is called within the pool, the calling thread still actively
+participates in the thread pool. It will begin by executing closure
+A (on the current thread). While it is doing that, it will advertise
+closure B as being available for other threads to execute. Once closure A
+has completed, the current thread will try to execute closure B;
+if however closure B has been stolen, then it will look for other work
+while waiting for the thief to fully execute closure B. (This is the
+typical work-stealing strategy).</p>
 
 <h3 id='warning-about-blocking-io' class='section-header'><a href='#warning-about-blocking-io'>Warning about blocking I/O</a></h3>
 <p>The assumption is that the closures given to <code>join()</code> are
@@ -92,13 +103,15 @@ will panic with the panic value from the first closure.</p>
                     <dd>Show this help dialog</dd>
                     <dt>S</dt>
                     <dd>Focus the search field</dd>
-                    <dt>&larrb;</dt>
+                    <dt>↑</dt>
                     <dd>Move up in search results</dd>
-                    <dt>&rarrb;</dt>
+                    <dt>↓</dt>
                     <dd>Move down in search results</dd>
+                    <dt>↹</dt>
+                    <dd>Switch tab</dd>
                     <dt>&#9166;</dt>
                     <dd>Go to active search result</dd>
-                    <dt>+</dt>
+                    <dt style="width:31px;">+ / -</dt>
                     <dd>Collapse/expand all sections</dd>
                 </dl>
             </div>
