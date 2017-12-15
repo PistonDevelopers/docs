@@ -28,6 +28,7 @@
     
 
     <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
         
         
     </nav>
@@ -270,6 +271,12 @@
 <span id="225">225</span>
 <span id="226">226</span>
 <span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! The `BorderedRectangle` widget and related items.</span>
 
@@ -452,6 +459,8 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">RoundedBorderTriangles</span> {
     <span class="ident">outer</span>: <span class="ident">widget</span>::<span class="ident">rounded_rectangle</span>::<span class="ident">Points</span>,
     <span class="ident">inner</span>: <span class="ident">widget</span>::<span class="ident">rounded_rectangle</span>::<span class="ident">Points</span>,
+    <span class="ident">outer_end</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Point</span><span class="op">&gt;</span>,
+    <span class="ident">inner_end</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Point</span><span class="op">&gt;</span>,
     <span class="ident">last_points</span>: [<span class="ident">Point</span>; <span class="number">2</span>],
     <span class="ident">is_next_outer</span>: <span class="ident">bool</span>,
 }
@@ -475,9 +484,13 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">outer</span> <span class="op">=</span> <span class="ident">widget</span>::<span class="ident">rounded_rectangle</span>::<span class="ident">points</span>(<span class="ident">rect</span>, <span class="ident">radius</span>, <span class="ident">corner_resolution</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">inner</span> <span class="op">=</span> <span class="ident">widget</span>::<span class="ident">rounded_rectangle</span>::<span class="ident">points</span>(<span class="ident">inner_rect</span>, <span class="ident">radius</span>, <span class="ident">corner_resolution</span>);
         <span class="comment">// A rounded_rectangle should always yield at least four points.</span>
-        <span class="kw">let</span> <span class="ident">last_points</span> <span class="op">=</span> [<span class="ident">outer</span>.<span class="ident">next</span>().<span class="ident">unwrap</span>(), <span class="ident">inner</span>.<span class="ident">next</span>().<span class="ident">unwrap</span>()];
+        <span class="kw">let</span> <span class="ident">last_outer</span> <span class="op">=</span> <span class="ident">outer</span>.<span class="ident">next</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">last_inner</span> <span class="op">=</span> <span class="ident">inner</span>.<span class="ident">next</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">outer_end</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">last_outer</span>);
+        <span class="kw">let</span> <span class="ident">inner_end</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">last_inner</span>);
+        <span class="kw">let</span> <span class="ident">last_points</span> <span class="op">=</span> [<span class="ident">last_outer</span>, <span class="ident">last_inner</span>];
         <span class="kw">let</span> <span class="ident">is_next_outer</span> <span class="op">=</span> <span class="bool-val">true</span>;
-        <span class="ident">RoundedBorderTriangles</span> { <span class="ident">outer</span>, <span class="ident">inner</span>, <span class="ident">is_next_outer</span>, <span class="ident">last_points</span> }
+        <span class="ident">RoundedBorderTriangles</span> { <span class="ident">outer</span>, <span class="ident">inner</span>, <span class="ident">is_next_outer</span>, <span class="ident">last_points</span>, <span class="ident">outer_end</span>, <span class="ident">inner_end</span> }
     }
 }
 
@@ -485,8 +498,8 @@
     <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">Triangle</span><span class="op">&lt;</span><span class="ident">Point</span><span class="op">&gt;</span>;
     <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">next_point</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">is_next_outer</span> {
-            <span class="bool-val">true</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">outer</span>.<span class="ident">next</span>(),
-            <span class="bool-val">false</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">next</span>(),
+            <span class="bool-val">true</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">outer</span>.<span class="ident">next</span>().<span class="ident">or_else</span>(<span class="op">||</span> <span class="self">self</span>.<span class="ident">outer_end</span>.<span class="ident">take</span>()),
+            <span class="bool-val">false</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">next</span>().<span class="ident">or_else</span>(<span class="op">||</span> <span class="self">self</span>.<span class="ident">inner_end</span>.<span class="ident">take</span>()),
         };
         <span class="ident">next_point</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">c</span><span class="op">|</span> {
             <span class="self">self</span>.<span class="ident">is_next_outer</span> <span class="op">=</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">is_next_outer</span>;
