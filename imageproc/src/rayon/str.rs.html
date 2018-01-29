@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.7.1/src/str.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.9.0/src/str.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>str.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -28,10 +31,18 @@
     
 
     <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
         
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -442,77 +453,36 @@
 <span id="397">397</span>
 <span id="398">398</span>
 <span id="399">399</span>
-<span id="400">400</span>
-<span id="401">401</span>
-<span id="402">402</span>
-<span id="403">403</span>
-<span id="404">404</span>
-<span id="405">405</span>
-<span id="406">406</span>
-<span id="407">407</span>
-<span id="408">408</span>
-<span id="409">409</span>
-<span id="410">410</span>
-<span id="411">411</span>
-<span id="412">412</span>
-<span id="413">413</span>
-<span id="414">414</span>
-<span id="415">415</span>
-<span id="416">416</span>
-<span id="417">417</span>
-<span id="418">418</span>
-<span id="419">419</span>
-<span id="420">420</span>
-<span id="421">421</span>
-<span id="422">422</span>
-<span id="423">423</span>
-<span id="424">424</span>
-<span id="425">425</span>
-<span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-<span id="441">441</span>
-<span id="442">442</span>
-<span id="443">443</span>
-<span id="444">444</span>
-<span id="445">445</span>
-<span id="446">446</span>
-<span id="447">447</span>
-<span id="448">448</span>
-<span id="449">449</span>
-<span id="450">450</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! This module contains extension methods for `String` that expose</span>
 <span class="doccomment">//! parallel iterators, such as `par_split_whitespace()`. You will</span>
 <span class="doccomment">//! rarely need to interact with it directly, since if you add `use</span>
 <span class="doccomment">//! rayon::prelude::*` to your file, that will include the helper</span>
 <span class="doccomment">//! traits defined in this module.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Note: [`ParallelString::par_split()`] and [`par_split_terminator()`]</span>
+<span class="doccomment">//! reference a `Pattern` trait which is not visible outside this crate.</span>
+<span class="doccomment">//! This trait is intentionally kept private, for use only by Rayon itself.</span>
+<span class="doccomment">//! It is implemented for `char` and any `F: Fn(char) -&gt; bool + Sync + Send`.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! [`ParallelString::par_split()`]: trait.ParallelString.html#method.par_split</span>
+<span class="doccomment">//! [`par_split_terminator()`]: trait.ParallelString.html#method.par_split_terminator</span>
 
 <span class="kw">use</span> <span class="ident">iter</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">iter</span>::<span class="ident">internal</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">min</span>;
+<span class="kw">use</span> <span class="ident">iter</span>::<span class="ident">plumbing</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">split_producer</span>::<span class="kw-2">*</span>;
 
 
 <span class="doccomment">/// Test if a byte is the start of a UTF-8 character.</span>
 <span class="doccomment">/// (extracted from `str::is_char_boundary`)</span>
+<span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="kw">fn</span> <span class="ident">is_char_boundary</span>(<span class="ident">b</span>: <span class="ident">u8</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
     <span class="comment">// This is bit magic equivalent to: b &lt; 128 || b &gt;= 192</span>
     (<span class="ident">b</span> <span class="kw">as</span> <span class="ident">i8</span>) <span class="op">&gt;=</span> <span class="op">-</span><span class="number">0x40</span>
 }
 
 <span class="doccomment">/// Find the index of a character boundary near the midpoint.</span>
+<span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="kw">fn</span> <span class="ident">find_char_midpoint</span>(<span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
     <span class="kw">let</span> <span class="ident">mid</span> <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">len</span>() <span class="op">/</span> <span class="number">2</span>;
 
@@ -530,88 +500,100 @@
 
 
 <span class="doccomment">/// Parallel extensions for strings.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Implementing this trait is not permitted outside of `rayon`.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ParallelString</span> {
-    <span class="macro">private_decl</span><span class="macro">!</span>{}
+    <span class="doccomment">/// Returns a plain string slice, which is used to implement the rest of</span>
+    <span class="doccomment">/// the parallel methods.</span>
+    <span class="kw">fn</span> <span class="ident">as_parallel_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span>;
 
     <span class="doccomment">/// Returns a parallel iterator over the characters of a string.</span>
-    <span class="kw">fn</span> <span class="ident">par_chars</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Chars</span>;
+    <span class="kw">fn</span> <span class="ident">par_chars</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Chars</span> {
+        <span class="ident">Chars</span> { <span class="ident">chars</span>: <span class="self">self</span>.<span class="ident">as_parallel_string</span>() }
+    }
 
     <span class="doccomment">/// Returns a parallel iterator over substrings separated by a</span>
-    <span class="doccomment">/// given character, similar to `str::split`.</span>
-    <span class="kw">fn</span> <span class="ident">par_split</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>;
+    <span class="doccomment">/// given character or predicate, similar to `str::split`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note: the `Pattern` trait is private, for use only by Rayon itself.</span>
+    <span class="doccomment">/// It is implemented for `char` and any `F: Fn(char) -&gt; bool + Sync + Send`.</span>
+    <span class="kw">fn</span> <span class="ident">par_split</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">separator</span>: <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> {
+        <span class="ident">Split</span>::<span class="ident">new</span>(<span class="self">self</span>.<span class="ident">as_parallel_string</span>(), <span class="ident">separator</span>)
+    }
 
     <span class="doccomment">/// Returns a parallel iterator over substrings terminated by a</span>
-    <span class="doccomment">/// given character, similar to `str::split_terminator`.  It&#39;s</span>
-    <span class="doccomment">/// equivalent to `par_split`, except it doesn&#39;t produce an empty</span>
+    <span class="doccomment">/// given character or predicate, similar to `str::split_terminator`.</span>
+    <span class="doccomment">/// It&#39;s equivalent to `par_split`, except it doesn&#39;t produce an empty</span>
     <span class="doccomment">/// substring after a trailing terminator.</span>
-    <span class="kw">fn</span> <span class="ident">par_split_terminator</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="ident">SplitTerminator</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span>;
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note: the `Pattern` trait is private, for use only by Rayon itself.</span>
+    <span class="doccomment">/// It is implemented for `char` and any `F: Fn(char) -&gt; bool + Sync + Send`.</span>
+    <span class="kw">fn</span> <span class="ident">par_split_terminator</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">terminator</span>: <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="ident">SplitTerminator</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> {
+        <span class="ident">SplitTerminator</span>::<span class="ident">new</span>(<span class="self">self</span>.<span class="ident">as_parallel_string</span>(), <span class="ident">terminator</span>)
+    }
 
     <span class="doccomment">/// Returns a parallel iterator over the lines of a string, ending with an</span>
     <span class="doccomment">/// optional carriage return and with a newline (`\r\n` or just `\n`).</span>
     <span class="doccomment">/// The final line ending is optional, and line endings are not included in</span>
     <span class="doccomment">/// the output strings.</span>
-    <span class="kw">fn</span> <span class="ident">par_lines</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Lines</span>;
+    <span class="kw">fn</span> <span class="ident">par_lines</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Lines</span> {
+        <span class="ident">Lines</span>(<span class="self">self</span>.<span class="ident">as_parallel_string</span>())
+    }
 
     <span class="doccomment">/// Returns a parallel iterator over the sub-slices of a string that are</span>
     <span class="doccomment">/// separated by any amount of whitespace.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// As with `str::split_whitespace`, &#39;whitespace&#39; is defined according to</span>
     <span class="doccomment">/// the terms of the Unicode Derived Core Property `White_Space`.</span>
-    <span class="kw">fn</span> <span class="ident">par_split_whitespace</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">SplitWhitespace</span>;
+    <span class="kw">fn</span> <span class="ident">par_split_whitespace</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">SplitWhitespace</span> {
+        <span class="ident">SplitWhitespace</span>(<span class="self">self</span>.<span class="ident">as_parallel_string</span>())
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">ParallelString</span> <span class="kw">for</span> <span class="ident">str</span> {
-    <span class="macro">private_impl</span><span class="macro">!</span>{}
-
-    <span class="kw">fn</span> <span class="ident">par_chars</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Chars</span> {
-        <span class="ident">Chars</span> { <span class="ident">chars</span>: <span class="self">self</span> }
-    }
-
-    <span class="kw">fn</span> <span class="ident">par_split</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">separator</span>: <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> {
-        <span class="ident">Split</span>::<span class="ident">new</span>(<span class="self">self</span>, <span class="ident">separator</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">par_split_terminator</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">terminator</span>: <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="ident">SplitTerminator</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> {
-        <span class="ident">SplitTerminator</span>::<span class="ident">new</span>(<span class="self">self</span>, <span class="ident">terminator</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">par_lines</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Lines</span> {
-        <span class="ident">Lines</span>(<span class="self">self</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">par_split_whitespace</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">SplitWhitespace</span> {
-        <span class="ident">SplitWhitespace</span>(<span class="self">self</span>)
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">as_parallel_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
+        <span class="self">self</span>
     }
 }
 
 
 <span class="comment">// /////////////////////////////////////////////////////////////////////////</span>
 
-<span class="doccomment">/// Pattern-matching trait for `ParallelString`, somewhat like a mix of</span>
-<span class="doccomment">/// `std::str::pattern::{Pattern, Searcher}`.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Implementing this trait is not permitted outside of `rayon`.</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Pattern</span>: <span class="ident">Sized</span> <span class="op">+</span> <span class="ident">Sync</span> {
-    <span class="macro">private_decl</span><span class="macro">!</span>{}
-    <span class="kw">fn</span> <span class="ident">find_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>;
-    <span class="kw">fn</span> <span class="ident">rfind_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>;
-    <span class="kw">fn</span> <span class="ident">is_suffix_of</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>;
-    <span class="kw">fn</span> <span class="ident">fold_with</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>, <span class="ident">folder</span>: <span class="ident">F</span>, <span class="ident">skip_last</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="ident">F</span> <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Folder</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span><span class="op">&gt;</span>;
+<span class="doccomment">/// We hide the `Pattern` trait in a private module, as its API is not meant</span>
+<span class="doccomment">/// for general consumption.  If we could have privacy on trait items, then it</span>
+<span class="doccomment">/// would be nicer to have its basic existence and implementors public while</span>
+<span class="doccomment">/// keeping all of the methods private.</span>
+<span class="kw">mod</span> <span class="ident">private</span> {
+    <span class="kw">use</span> <span class="ident">iter</span>::<span class="ident">plumbing</span>::<span class="ident">Folder</span>;
+
+    <span class="doccomment">/// Pattern-matching trait for `ParallelString`, somewhat like a mix of</span>
+    <span class="doccomment">/// `std::str::pattern::{Pattern, Searcher}`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Implementing this trait is not permitted outside of `rayon`.</span>
+    <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Pattern</span>: <span class="ident">Sized</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="ident">Send</span> {
+        <span class="macro">private_decl</span><span class="macro">!</span>{}
+        <span class="kw">fn</span> <span class="ident">find_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>;
+        <span class="kw">fn</span> <span class="ident">rfind_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>;
+        <span class="kw">fn</span> <span class="ident">is_suffix_of</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>;
+        <span class="kw">fn</span> <span class="ident">fold_with</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>, <span class="ident">folder</span>: <span class="ident">F</span>, <span class="ident">skip_last</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="ident">F</span>
+            <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Folder</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span><span class="op">&gt;</span>;
+    }
 }
+<span class="kw">use</span> <span class="self">self</span>::<span class="ident">private</span>::<span class="ident">Pattern</span>;
 
 <span class="kw">impl</span> <span class="ident">Pattern</span> <span class="kw">for</span> <span class="ident">char</span> {
     <span class="macro">private_impl</span><span class="macro">!</span>{}
 
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">fn</span> <span class="ident">find_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
         <span class="ident">chars</span>.<span class="ident">find</span>(<span class="kw-2">*</span><span class="self">self</span>)
     }
 
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">fn</span> <span class="ident">rfind_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
         <span class="ident">chars</span>.<span class="ident">rfind</span>(<span class="kw-2">*</span><span class="self">self</span>)
     }
 
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">fn</span> <span class="ident">is_suffix_of</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
         <span class="ident">chars</span>.<span class="ident">ends_with</span>(<span class="kw-2">*</span><span class="self">self</span>)
     }
@@ -627,7 +609,7 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">FN</span>: <span class="ident">Sync</span> <span class="op">+</span> <span class="ident">Fn</span>(<span class="ident">char</span>) <span class="op">-&gt;</span> <span class="ident">bool</span><span class="op">&gt;</span> <span class="ident">Pattern</span> <span class="kw">for</span> <span class="ident">FN</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">FN</span>: <span class="ident">Sync</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Fn</span>(<span class="ident">char</span>) <span class="op">-&gt;</span> <span class="ident">bool</span><span class="op">&gt;</span> <span class="ident">Pattern</span> <span class="kw">for</span> <span class="ident">FN</span> {
     <span class="macro">private_impl</span><span class="macro">!</span>{}
 
     <span class="kw">fn</span> <span class="ident">find_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
@@ -657,6 +639,7 @@
 <span class="comment">// /////////////////////////////////////////////////////////////////////////</span>
 
 <span class="doccomment">/// Parallel iterator over the characters of a string</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Chars</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span> {
     <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>,
 }
@@ -700,17 +683,10 @@
 <span class="comment">// /////////////////////////////////////////////////////////////////////////</span>
 
 <span class="doccomment">/// Parallel iterator over substrings separated by a pattern</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span> {
     <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>,
     <span class="ident">separator</span>: <span class="ident">P</span>,
-}
-
-<span class="kw">struct</span> <span class="ident">SplitProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span>: <span class="ident">Pattern</span> <span class="op">+</span> <span class="lifetime">&#39;sep</span><span class="op">&gt;</span> {
-    <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>,
-    <span class="ident">separator</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;sep</span> <span class="ident">P</span>,
-
-    <span class="doccomment">/// Marks the endpoint beyond which we&#39;ve already found no separators.</span>
-    <span class="ident">tail</span>: <span class="ident">usize</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span><span class="op">&gt;</span> {
@@ -722,112 +698,47 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span>: <span class="ident">Pattern</span> <span class="op">+</span> <span class="lifetime">&#39;sep</span><span class="op">&gt;</span> <span class="ident">SplitProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">split</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;sep</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
-        <span class="ident">SplitProducer</span> {
-            <span class="ident">chars</span>: <span class="ident">split</span>.<span class="ident">chars</span>,
-            <span class="ident">separator</span>: <span class="kw-2">&amp;</span><span class="ident">split</span>.<span class="ident">separator</span>,
-            <span class="ident">tail</span>: <span class="ident">split</span>.<span class="ident">chars</span>.<span class="ident">len</span>(),
-        }
-    }
-
-    <span class="doccomment">/// Common `fold_with` implementation, integrating `SplitTerminator`&#39;s</span>
-    <span class="doccomment">/// need to sometimes skip its final empty item.</span>
-    <span class="kw">fn</span> <span class="ident">fold_with</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">folder</span>: <span class="ident">F</span>, <span class="ident">skip_last</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="ident">F</span>
-        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Folder</span><span class="op">&lt;&lt;</span><span class="self">Self</span> <span class="kw">as</span> <span class="ident">UnindexedProducer</span><span class="op">&gt;</span>::<span class="ident">Item</span><span class="op">&gt;</span>
-    {
-        <span class="kw">let</span> <span class="ident">SplitProducer</span> { <span class="ident">chars</span>, <span class="ident">separator</span>, <span class="ident">tail</span> } <span class="op">=</span> <span class="self">self</span>;
-
-        <span class="kw">if</span> <span class="ident">tail</span> <span class="op">==</span> <span class="ident">chars</span>.<span class="ident">len</span>() {
-            <span class="comment">// No tail section, so just let `str::split` handle it.</span>
-            <span class="ident">separator</span>.<span class="ident">fold_with</span>(<span class="ident">chars</span>, <span class="ident">folder</span>, <span class="ident">skip_last</span>)
-
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">index</span>) <span class="op">=</span> <span class="ident">separator</span>.<span class="ident">rfind_in</span>(<span class="kw-2">&amp;</span><span class="ident">chars</span>[..<span class="ident">tail</span>]) {
-            <span class="comment">// We found the last separator to complete the tail, so</span>
-            <span class="comment">// end with that slice after `str::split` finds the rest.</span>
-            <span class="kw">let</span> (<span class="ident">left</span>, <span class="ident">right</span>) <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">split_at</span>(<span class="ident">index</span>);
-            <span class="kw">let</span> <span class="ident">folder</span> <span class="op">=</span> <span class="ident">separator</span>.<span class="ident">fold_with</span>(<span class="ident">left</span>, <span class="ident">folder</span>, <span class="bool-val">false</span>);
-            <span class="kw">if</span> <span class="ident">skip_last</span> <span class="op">||</span> <span class="ident">folder</span>.<span class="ident">full</span>() {
-                <span class="ident">folder</span>
-            } <span class="kw">else</span> {
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">right_iter</span> <span class="op">=</span> <span class="ident">right</span>.<span class="ident">chars</span>();
-                <span class="ident">right_iter</span>.<span class="ident">next</span>(); <span class="comment">// skip the separator</span>
-                <span class="ident">folder</span>.<span class="ident">consume</span>(<span class="ident">right_iter</span>.<span class="ident">as_str</span>())
-            }
-
-        } <span class="kw">else</span> {
-            <span class="comment">// We know there are no separators at all.  Return our whole string.</span>
-            <span class="kw">if</span> <span class="ident">skip_last</span> {
-                <span class="ident">folder</span>
-            } <span class="kw">else</span> {
-                <span class="ident">folder</span>.<span class="ident">consume</span>(<span class="ident">chars</span>)
-            }
-        }
-    }
-}
-
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span> <span class="ident">ParallelIterator</span> <span class="kw">for</span> <span class="ident">Split</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span><span class="op">&gt;</span> {
     <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>;
 
     <span class="kw">fn</span> <span class="ident">drive_unindexed</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">consumer</span>: <span class="ident">C</span>) <span class="op">-&gt;</span> <span class="ident">C</span>::<span class="prelude-ty">Result</span>
         <span class="kw">where</span> <span class="ident">C</span>: <span class="ident">UnindexedConsumer</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>
     {
-        <span class="kw">let</span> <span class="ident">producer</span> <span class="op">=</span> <span class="ident">SplitProducer</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="self">self</span>);
+        <span class="kw">let</span> <span class="ident">producer</span> <span class="op">=</span> <span class="ident">SplitProducer</span>::<span class="ident">new</span>(<span class="self">self</span>.<span class="ident">chars</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">separator</span>);
         <span class="ident">bridge_unindexed</span>(<span class="ident">producer</span>, <span class="ident">consumer</span>)
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span>: <span class="ident">Pattern</span> <span class="op">+</span> <span class="lifetime">&#39;sep</span><span class="op">&gt;</span> <span class="ident">UnindexedProducer</span> <span class="kw">for</span> <span class="ident">SplitProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span><span class="op">&gt;</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>;
-
-    <span class="kw">fn</span> <span class="ident">split</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>) {
-        <span class="kw">let</span> <span class="ident">SplitProducer</span> { <span class="ident">chars</span>, <span class="ident">separator</span>, <span class="ident">tail</span> } <span class="op">=</span> <span class="self">self</span>;
-
-        <span class="comment">// First find a suitable UTF-8 boundary in the unsearched region.</span>
-        <span class="kw">let</span> <span class="ident">char_index</span> <span class="op">=</span> <span class="ident">find_char_midpoint</span>(<span class="kw-2">&amp;</span><span class="ident">chars</span>[..<span class="ident">tail</span>]);
-
-        <span class="comment">// Look forward for the separator, and failing that look backward.</span>
-        <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="ident">separator</span>.<span class="ident">find_in</span>(<span class="kw-2">&amp;</span><span class="ident">chars</span>[<span class="ident">char_index</span>..<span class="ident">tail</span>])
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">i</span><span class="op">|</span> <span class="ident">char_index</span> <span class="op">+</span> <span class="ident">i</span>)
-            .<span class="ident">or_else</span>(<span class="op">||</span> <span class="ident">separator</span>.<span class="ident">rfind_in</span>(<span class="kw-2">&amp;</span><span class="ident">chars</span>[..<span class="ident">char_index</span>]));
-
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">index</span>) <span class="op">=</span> <span class="ident">index</span> {
-            <span class="kw">let</span> (<span class="ident">left</span>, <span class="ident">right</span>) <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">split_at</span>(<span class="ident">index</span>);
-
-            <span class="comment">// Update `self` as the region before the separator.</span>
-            <span class="self">self</span>.<span class="ident">chars</span> <span class="op">=</span> <span class="ident">left</span>;
-            <span class="self">self</span>.<span class="ident">tail</span> <span class="op">=</span> <span class="ident">min</span>(<span class="ident">char_index</span>, <span class="ident">index</span>);
-
-            <span class="comment">// Create the right split following the separator.</span>
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">right_iter</span> <span class="op">=</span> <span class="ident">right</span>.<span class="ident">chars</span>();
-            <span class="ident">right_iter</span>.<span class="ident">next</span>(); <span class="comment">// skip the separator</span>
-            <span class="kw">let</span> <span class="ident">right_chars</span> <span class="op">=</span> <span class="ident">right_iter</span>.<span class="ident">as_str</span>();
-            <span class="kw">let</span> <span class="ident">right_index</span> <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">right_chars</span>.<span class="ident">len</span>();
-
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">right</span> <span class="op">=</span> <span class="ident">SplitProducer</span> {
-                <span class="ident">chars</span>: <span class="ident">right_chars</span>,
-                <span class="ident">separator</span>: <span class="ident">separator</span>,
-                <span class="ident">tail</span>: <span class="ident">tail</span> <span class="op">-</span> <span class="ident">right_index</span>,
-            };
-
-            <span class="comment">// If we scanned backwards to find the separator, everything in</span>
-            <span class="comment">// the right side is exhausted, with no separators left to find.</span>
-            <span class="kw">if</span> <span class="ident">index</span> <span class="op">&lt;</span> <span class="ident">char_index</span> {
-                <span class="ident">right</span>.<span class="ident">tail</span> <span class="op">=</span> <span class="number">0</span>;
-            }
-
-            (<span class="self">self</span>, <span class="prelude-val">Some</span>(<span class="ident">right</span>))
-
-        } <span class="kw">else</span> {
-            <span class="self">self</span>.<span class="ident">tail</span> <span class="op">=</span> <span class="number">0</span>;
-            (<span class="self">self</span>, <span class="prelude-val">None</span>)
-        }
+<span class="doccomment">/// Implement support for `SplitProducer`.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span> <span class="ident">Fissile</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span> {
+    <span class="kw">fn</span> <span class="ident">length</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">len</span>()
     }
 
-    <span class="kw">fn</span> <span class="ident">fold_with</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">folder</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">F</span>
-        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Folder</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>
+    <span class="kw">fn</span> <span class="ident">midpoint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">end</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+        <span class="comment">// First find a suitable UTF-8 boundary.</span>
+        <span class="ident">find_char_midpoint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>[..<span class="ident">end</span>])
+    }
+
+    <span class="kw">fn</span> <span class="ident">find</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">separator</span>: <span class="kw-2">&amp;</span><span class="ident">P</span>, <span class="ident">start</span>: <span class="ident">usize</span>, <span class="ident">end</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+        <span class="ident">separator</span>.<span class="ident">find_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>[<span class="ident">start</span>..<span class="ident">end</span>])
+    }
+
+    <span class="kw">fn</span> <span class="ident">rfind</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">separator</span>: <span class="kw-2">&amp;</span><span class="ident">P</span>, <span class="ident">end</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+        <span class="ident">separator</span>.<span class="ident">rfind_in</span>(<span class="kw-2">&amp;</span><span class="self">self</span>[..<span class="ident">end</span>])
+    }
+
+    <span class="kw">fn</span> <span class="ident">split_once</span>(<span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> (<span class="self">Self</span>, <span class="self">Self</span>) {
+        <span class="kw">let</span> (<span class="ident">left</span>, <span class="ident">right</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">split_at</span>(<span class="ident">index</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">right_iter</span> <span class="op">=</span> <span class="ident">right</span>.<span class="ident">chars</span>();
+        <span class="ident">right_iter</span>.<span class="ident">next</span>(); <span class="comment">// skip the separator</span>
+        (<span class="ident">left</span>, <span class="ident">right_iter</span>.<span class="ident">as_str</span>())
+    }
+
+    <span class="kw">fn</span> <span class="ident">fold_splits</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">separator</span>: <span class="kw-2">&amp;</span><span class="ident">P</span>, <span class="ident">folder</span>: <span class="ident">F</span>, <span class="ident">skip_last</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="ident">F</span>
+        <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Folder</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>
     {
-        <span class="self">self</span>.<span class="ident">fold_with</span>(<span class="ident">folder</span>, <span class="bool-val">false</span>)
+        <span class="ident">separator</span>.<span class="ident">fold_with</span>(<span class="self">self</span>, <span class="ident">folder</span>, <span class="ident">skip_last</span>)
     }
 }
 
@@ -835,26 +746,31 @@
 <span class="comment">// /////////////////////////////////////////////////////////////////////////</span>
 
 <span class="doccomment">/// Parallel iterator over substrings separated by a terminator pattern</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SplitTerminator</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span> {
-    <span class="ident">splitter</span>: <span class="ident">Split</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span><span class="op">&gt;</span>,
+    <span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>,
+    <span class="ident">terminator</span>: <span class="ident">P</span>,
 }
 
 <span class="kw">struct</span> <span class="ident">SplitTerminatorProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span>: <span class="ident">Pattern</span> <span class="op">+</span> <span class="lifetime">&#39;sep</span><span class="op">&gt;</span> {
-    <span class="ident">splitter</span>: <span class="ident">SplitProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span><span class="op">&gt;</span>,
-    <span class="ident">endpoint</span>: <span class="ident">bool</span>,
+    <span class="ident">splitter</span>: <span class="ident">SplitProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;sep</span>, <span class="ident">P</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">skip_last</span>: <span class="ident">bool</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span>: <span class="ident">Pattern</span><span class="op">&gt;</span> <span class="ident">SplitTerminator</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>, <span class="ident">terminator</span>: <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
-        <span class="ident">SplitTerminator</span> { <span class="ident">splitter</span>: <span class="ident">Split</span>::<span class="ident">new</span>(<span class="ident">chars</span>, <span class="ident">terminator</span>) }
+        <span class="ident">SplitTerminator</span> {
+            <span class="ident">chars</span>: <span class="ident">chars</span>,
+            <span class="ident">terminator</span>: <span class="ident">terminator</span>,
+        }
     }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span>: <span class="ident">Pattern</span> <span class="op">+</span> <span class="lifetime">&#39;sep</span><span class="op">&gt;</span> <span class="ident">SplitTerminatorProducer</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="lifetime">&#39;sep</span>, <span class="ident">P</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">split</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;sep</span> <span class="ident">SplitTerminator</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span>, <span class="ident">P</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">chars</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>, <span class="ident">terminator</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;sep</span> <span class="ident">P</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
         <span class="ident">SplitTerminatorProducer</span> {
-            <span class="ident">splitter</span>: <span class="ident">SplitProducer</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">split</span>.<span class="ident">splitter</span>),
-            <span class="ident">endpoint</span>: <span class="bool-val">true</span>,
+            <span class="ident">splitter</span>: <span class="ident">SplitProducer</span>::<span class="ident">new</span>(<span class="ident">chars</span>, <span class="ident">terminator</span>),
+            <span class="ident">skip_last</span>: <span class="ident">chars</span>.<span class="ident">is_empty</span>() <span class="op">||</span> <span class="ident">terminator</span>.<span class="ident">is_suffix_of</span>(<span class="ident">chars</span>),
         }
     }
 }
@@ -865,7 +781,7 @@
     <span class="kw">fn</span> <span class="ident">drive_unindexed</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">consumer</span>: <span class="ident">C</span>) <span class="op">-&gt;</span> <span class="ident">C</span>::<span class="prelude-ty">Result</span>
         <span class="kw">where</span> <span class="ident">C</span>: <span class="ident">UnindexedConsumer</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>
     {
-        <span class="kw">let</span> <span class="ident">producer</span> <span class="op">=</span> <span class="ident">SplitTerminatorProducer</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="self">self</span>);
+        <span class="kw">let</span> <span class="ident">producer</span> <span class="op">=</span> <span class="ident">SplitTerminatorProducer</span>::<span class="ident">new</span>(<span class="self">self</span>.<span class="ident">chars</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">terminator</span>);
         <span class="ident">bridge_unindexed</span>(<span class="ident">producer</span>, <span class="ident">consumer</span>)
     }
 }
@@ -877,11 +793,11 @@
         <span class="kw">let</span> (<span class="ident">left</span>, <span class="ident">right</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">splitter</span>.<span class="ident">split</span>();
         <span class="self">self</span>.<span class="ident">splitter</span> <span class="op">=</span> <span class="ident">left</span>;
         <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> <span class="ident">right</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">right</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">endpoint</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">endpoint</span>;
-            <span class="self">self</span>.<span class="ident">endpoint</span> <span class="op">=</span> <span class="bool-val">false</span>;
+            <span class="kw">let</span> <span class="ident">skip_last</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">skip_last</span>;
+            <span class="self">self</span>.<span class="ident">skip_last</span> <span class="op">=</span> <span class="bool-val">false</span>;
             <span class="ident">SplitTerminatorProducer</span> {
                 <span class="ident">splitter</span>: <span class="ident">right</span>,
-                <span class="ident">endpoint</span>: <span class="ident">endpoint</span>,
+                <span class="ident">skip_last</span>: <span class="ident">skip_last</span>,
             }
         });
         (<span class="self">self</span>, <span class="ident">right</span>)
@@ -890,16 +806,7 @@
     <span class="kw">fn</span> <span class="ident">fold_with</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">folder</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">F</span>
         <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Folder</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>
     {
-        <span class="comment">// See if we need to eat the empty trailing substring</span>
-        <span class="kw">let</span> <span class="ident">skip_last</span> <span class="op">=</span> <span class="kw">if</span> <span class="self">self</span>.<span class="ident">endpoint</span> {
-            <span class="kw">let</span> <span class="ident">chars</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">splitter</span>.<span class="ident">chars</span>;
-            <span class="kw">let</span> <span class="ident">terminator</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">splitter</span>.<span class="ident">separator</span>;
-            <span class="ident">chars</span>.<span class="ident">is_empty</span>() <span class="op">||</span> <span class="ident">terminator</span>.<span class="ident">is_suffix_of</span>(<span class="ident">chars</span>)
-        } <span class="kw">else</span> {
-            <span class="bool-val">false</span>
-        };
-
-        <span class="self">self</span>.<span class="ident">splitter</span>.<span class="ident">fold_with</span>(<span class="ident">folder</span>, <span class="ident">skip_last</span>)
+        <span class="self">self</span>.<span class="ident">splitter</span>.<span class="ident">fold_with</span>(<span class="ident">folder</span>, <span class="self">self</span>.<span class="ident">skip_last</span>)
     }
 }
 
@@ -907,6 +814,7 @@
 <span class="comment">// /////////////////////////////////////////////////////////////////////////</span>
 
 <span class="doccomment">/// Parallel iterator over lines in a string</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Lines</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>);
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span> <span class="ident">ParallelIterator</span> <span class="kw">for</span> <span class="ident">Lines</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span> {
@@ -930,6 +838,7 @@
 <span class="comment">// /////////////////////////////////////////////////////////////////////////</span>
 
 <span class="doccomment">/// Parallel iterator over substrings separated by whitespace</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SplitWhitespace</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;ch</span> <span class="ident">str</span>);
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span> <span class="ident">ParallelIterator</span> <span class="kw">for</span> <span class="ident">SplitWhitespace</span><span class="op">&lt;</span><span class="lifetime">&#39;ch</span><span class="op">&gt;</span> {
@@ -958,20 +867,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

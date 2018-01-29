@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/nalgebra-0.11.2/src/geometry/transform.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/nalgebra-0.13.1/src/geometry/transform.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>transform.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css" id="themeStyle">
+    <script src="../../../storage.js"></script>
     
 
     
@@ -28,10 +31,18 @@
     
 
     <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
         
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -353,17 +364,36 @@
 <span id="308">308</span>
 <span id="309">309</span>
 <span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">Any</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">marker</span>::<span class="ident">PhantomData</span>;
-<span class="kw">use</span> <span class="ident">approx</span>::<span class="ident">ApproxEq</span>;
 
-<span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">general</span>::<span class="ident">Field</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>)]</span>
+<span class="kw">use</span> <span class="ident">serde</span>;
 
-<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">Scalar</span>, <span class="ident">SquareMatrix</span>, <span class="ident">OwnedSquareMatrix</span>};
+<span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">general</span>::<span class="ident">Real</span>;
+
+<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">DefaultAllocator</span>, <span class="ident">MatrixN</span>};
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">dimension</span>::{<span class="ident">DimName</span>, <span class="ident">DimNameAdd</span>, <span class="ident">DimNameSum</span>, <span class="ident">U1</span>};
-<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">storage</span>::{<span class="ident">Storage</span>, <span class="ident">StorageMut</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">storage</span>::<span class="ident">Owned</span>;
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">allocator</span>::<span class="ident">Allocator</span>;
 
 <span class="doccomment">/// Trait implemented by phantom types identifying the projective transformation type.</span>
@@ -379,11 +409,9 @@
 
     <span class="doccomment">/// Checks that the given matrix is a valid homogeneous representation of an element of the</span>
     <span class="doccomment">/// category `Self`.</span>
-    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(<span class="ident">mat</span>: <span class="kw-2">&amp;</span><span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Field</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
-              <span class="ident">D</span>: <span class="ident">DimName</span>,
-              <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span>,
-              <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span>;
+    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimName</span><span class="op">&gt;</span>(<span class="ident">mat</span>: <span class="kw-2">&amp;</span><span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span>,
+              <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span>;
 }
 
 <span class="doccomment">/// Traits that gives the `Transform` category that is compatible with the result of the</span>
@@ -409,37 +437,30 @@
 
 <span class="doccomment">/// Tag representing the most general (not necessarily inversible) `Transform` type.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>, <span class="ident">derive</span>(<span class="ident">Serialize</span>, <span class="ident">Deserialize</span>))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TGeneral</span> { }
 
 <span class="doccomment">/// Tag representing the most general inversible `Transform` type.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>, <span class="ident">derive</span>(<span class="ident">Serialize</span>, <span class="ident">Deserialize</span>))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TProjective</span> { }
 
 <span class="doccomment">/// Tag representing an affine `Transform`. Its bottom-row is equal to `(0, 0 ... 0, 1)`.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>, <span class="ident">derive</span>(<span class="ident">Serialize</span>, <span class="ident">Deserialize</span>))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TAffine</span> { }
 
 <span class="kw">impl</span> <span class="ident">TCategory</span> <span class="kw">for</span> <span class="ident">TGeneral</span> {
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(_: <span class="kw-2">&amp;</span><span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Field</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
-              <span class="ident">D</span>: <span class="ident">DimName</span>,
-              <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span>,
-              <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span> {
+    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimName</span><span class="op">&gt;</span>(_: <span class="kw-2">&amp;</span><span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span>,
+              <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span> {
         <span class="bool-val">true</span>
     }
 }
 
 <span class="kw">impl</span> <span class="ident">TCategory</span> <span class="kw">for</span> <span class="ident">TProjective</span> {
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(<span class="ident">mat</span>: <span class="kw-2">&amp;</span><span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Field</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
-              <span class="ident">D</span>: <span class="ident">DimName</span>,
-              <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span>,
-              <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span> {
+    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimName</span><span class="op">&gt;</span>(<span class="ident">mat</span>: <span class="kw-2">&amp;</span><span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span>,
+              <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span> {
         <span class="ident">mat</span>.<span class="ident">is_invertible</span>()
     }
 }
@@ -451,14 +472,13 @@
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(<span class="ident">mat</span>: <span class="kw-2">&amp;</span><span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Field</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
-              <span class="ident">D</span>: <span class="ident">DimName</span>,
-              <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span>,
-              <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span> {
-        <span class="ident">mat</span>.<span class="ident">is_invertible</span>()                   <span class="op">&amp;&amp;</span>
-        <span class="ident">mat</span>[(<span class="ident">D</span>::<span class="ident">dim</span>(), <span class="ident">D</span>::<span class="ident">dim</span>())] <span class="op">==</span> <span class="ident">N</span>::<span class="ident">one</span>() <span class="op">&amp;&amp;</span>
-        (<span class="number">0</span> .. <span class="ident">D</span>::<span class="ident">dim</span>()).<span class="ident">all</span>(<span class="op">|</span><span class="ident">i</span><span class="op">|</span> <span class="ident">mat</span>[(<span class="ident">D</span>::<span class="ident">dim</span>(), <span class="ident">i</span>)].<span class="ident">is_zero</span>())
+    <span class="kw">fn</span> <span class="ident">check_homogeneous_invariants</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimName</span><span class="op">&gt;</span>(<span class="ident">mat</span>: <span class="kw-2">&amp;</span><span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span>,
+              <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">last</span> <span class="op">=</span> <span class="ident">D</span>::<span class="ident">dim</span>() <span class="op">-</span> <span class="number">1</span>;
+        <span class="ident">mat</span>.<span class="ident">is_invertible</span>()           <span class="op">&amp;&amp;</span>
+        <span class="ident">mat</span>[(<span class="ident">last</span>, <span class="ident">last</span>)] <span class="op">==</span> <span class="ident">N</span>::<span class="ident">one</span>() <span class="op">&amp;&amp;</span>
+        (<span class="number">0</span> .. <span class="ident">last</span>).<span class="ident">all</span>(<span class="op">|</span><span class="ident">i</span><span class="op">|</span> <span class="ident">mat</span>[(<span class="ident">last</span>, <span class="ident">i</span>)].<span class="ident">is_zero</span>())
     }
 }
 
@@ -476,17 +496,17 @@
 }
 
 <span class="macro">category_mul_impl</span><span class="macro">!</span>(
-    <span class="comment">// TGeneral * TGeneral     =&gt; TGeneral;</span>
-    <span class="ident">TGeneral</span> <span class="op">*</span> <span class="ident">TProjective</span>  <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
-    <span class="ident">TGeneral</span> <span class="op">*</span> <span class="ident">TAffine</span>      <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
+<span class="comment">//  TGeneral * TGeneral    =&gt; TGeneral;</span>
+    <span class="ident">TGeneral</span> <span class="op">*</span> <span class="ident">TProjective</span> <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
+    <span class="ident">TGeneral</span> <span class="op">*</span> <span class="ident">TAffine</span>     <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
 
-    <span class="ident">TProjective</span> <span class="op">*</span> <span class="ident">TGeneral</span>     <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
-    <span class="comment">// TProjective * TProjective  =&gt; TProjective;</span>
-    <span class="ident">TProjective</span> <span class="op">*</span> <span class="ident">TAffine</span>      <span class="op">=&gt;</span> <span class="ident">TProjective</span>;
+    <span class="ident">TProjective</span> <span class="op">*</span> <span class="ident">TGeneral</span>    <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
+<span class="comment">//  TProjective * TProjective =&gt; TProjective;</span>
+    <span class="ident">TProjective</span> <span class="op">*</span> <span class="ident">TAffine</span>     <span class="op">=&gt;</span> <span class="ident">TProjective</span>;
 
-    <span class="ident">TAffine</span> <span class="op">*</span> <span class="ident">TGeneral</span>     <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
-    <span class="ident">TAffine</span> <span class="op">*</span> <span class="ident">TProjective</span>  <span class="op">=&gt;</span> <span class="ident">TProjective</span>;
-    <span class="comment">// TAffine * TAffine      =&gt; TAffine;</span>
+    <span class="ident">TAffine</span> <span class="op">*</span> <span class="ident">TGeneral</span>    <span class="op">=&gt;</span> <span class="ident">TGeneral</span>;
+    <span class="ident">TAffine</span> <span class="op">*</span> <span class="ident">TProjective</span> <span class="op">=&gt;</span> <span class="ident">TProjective</span>;
+<span class="comment">//  TAffine * TAffine     =&gt; TAffine;</span>
 );
 
 <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">super_tcategory_impl</span>(
@@ -498,15 +518,10 @@
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">SuperTCategoryOf</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">T</span> { }
 
 <span class="macro">super_tcategory_impl</span><span class="macro">!</span>(
-    <span class="ident">TGeneral</span> <span class="op">&gt;=</span> <span class="ident">TProjective</span>;
-    <span class="ident">TGeneral</span> <span class="op">&gt;=</span> <span class="ident">TAffine</span>;
+    <span class="ident">TGeneral</span>    <span class="op">&gt;=</span> <span class="ident">TProjective</span>;
+    <span class="ident">TGeneral</span>    <span class="op">&gt;=</span> <span class="ident">TAffine</span>;
     <span class="ident">TProjective</span> <span class="op">&gt;=</span> <span class="ident">TAffine</span>;
 );
-
-
-<span class="doccomment">/// A transformation matrix that owns its data.</span>
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">OwnedTransform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">A</span>, <span class="ident">C</span><span class="op">&gt;</span>
-    <span class="op">=</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="op">&lt;</span><span class="ident">A</span> <span class="kw">as</span> <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>::<span class="ident">Buffer</span>, <span class="ident">C</span><span class="op">&gt;</span>;
 
 
 <span class="doccomment">/// A transformation matrix in homogeneous coordinates.</span>
@@ -514,67 +529,93 @@
 <span class="doccomment">/// It is stored as a matrix with dimensions `(D + 1, D + 1)`, e.g., it stores a 4x4 matrix for a</span>
 <span class="doccomment">/// 3D transformation.</span>
 <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span> <span class="comment">// FIXME: Hash</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>, <span class="ident">derive</span>(<span class="ident">Serialize</span>, <span class="ident">Deserialize</span>))]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Scalar</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> {
-    <span class="ident">matrix</span>:   <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span>,
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
 
-    <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>, <span class="ident">serde</span>(<span class="ident">skip_serializing</span>, <span class="ident">skip_deserializing</span>))]</span>
+    <span class="ident">matrix</span>:   <span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>,
     <span class="ident">_phantom</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>
 }
 
-<span class="comment">// XXX: for some reasons, implementing Clone and Copy manually causes an ICE…</span>
+<span class="comment">// FIXME</span>
+<span class="comment">// impl&lt;N: Real + hash::Hash, D: DimNameAdd&lt;U1&gt; + hash::Hash, C: TCategory&gt; hash::Hash for Transform&lt;N, D, C&gt;</span>
+<span class="comment">//     where DefaultAllocator: Allocator&lt;N, DimNameSum&lt;D, U1&gt;, DimNameSum&lt;D, U1&gt;&gt;,</span>
+<span class="comment">//           Owned&lt;N, DimNameSum&lt;D, U1&gt;, DimNameSum&lt;D, U1&gt;&gt;: hash::Hash {</span>
+<span class="comment">//     fn hash&lt;H: hash::Hasher&gt;(&amp;self, state: &amp;mut H) {</span>
+<span class="comment">//         self.matrix.hash(state);</span>
+<span class="comment">//     }</span>
+<span class="comment">// }</span>
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">Eq</span> <span class="kw">for</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Eq</span>,
-          <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>,
-          <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> { }
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Copy</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">Copy</span> <span class="kw">for</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>,
+          <span class="ident">Owned</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>: <span class="ident">Copy</span> {
+}
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span>,
-          <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>,
-          <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Transform</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">clone</span>())
+    }
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>)]</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">serde</span>::<span class="ident">Serialize</span> <span class="kw">for</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+<span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>,
+      <span class="ident">Owned</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>: <span class="ident">serde</span>::<span class="ident">Serialize</span> {
+
+    <span class="kw">fn</span> <span class="ident">serialize</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">serializer</span>: <span class="ident">S</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">S</span>::<span class="prelude-val">Ok</span>, <span class="ident">S</span>::<span class="ident">Error</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">S</span>: <span class="ident">serde</span>::<span class="ident">Serializer</span> {
+            <span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">serialize</span>(<span class="ident">serializer</span>)
+        }
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde-serialize&quot;</span>)]</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">serde</span>::<span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+<span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>,
+      <span class="ident">Owned</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>: <span class="ident">serde</span>::<span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+
+    <span class="kw">fn</span> <span class="ident">deserialize</span><span class="op">&lt;</span><span class="ident">Des</span><span class="op">&gt;</span>(<span class="ident">deserializer</span>: <span class="ident">Des</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Des</span>::<span class="ident">Error</span><span class="op">&gt;</span>
+        <span class="kw">where</span> <span class="ident">Des</span>: <span class="ident">serde</span>::<span class="ident">Deserializer</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+            <span class="kw">let</span> <span class="ident">matrix</span> <span class="op">=</span> <span class="ident">MatrixN</span>::<span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>::<span class="ident">deserialize</span>(<span class="ident">deserializer</span>)<span class="question-mark">?</span>;
+
+            <span class="prelude-val">Ok</span>(<span class="ident">Transform</span>::<span class="ident">from_matrix_unchecked</span>(<span class="ident">matrix</span>))
+        }
+}
+
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span> <span class="op">+</span> <span class="ident">Eq</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">Eq</span> <span class="kw">for</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> { }
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">right</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
         <span class="self">self</span>.<span class="ident">matrix</span> <span class="op">==</span> <span class="ident">right</span>.<span class="ident">matrix</span>
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span>,
-          <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>,
-          <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">C</span>: <span class="ident">TCategory</span><span class="op">&gt;</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
     <span class="doccomment">/// Creates a new transformation from the given homogeneous matrix. The transformation category</span>
     <span class="doccomment">/// of `Self` is not checked to be verified by the given matrix.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_matrix_unchecked</span>(<span class="ident">matrix</span>: <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
-        <span class="ident">TransformBase</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_matrix_unchecked</span>(<span class="ident">matrix</span>: <span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Transform</span> {
             <span class="ident">matrix</span>:   <span class="ident">matrix</span>,
             <span class="ident">_phantom</span>: <span class="ident">PhantomData</span>
         }
     }
 
-    <span class="doccomment">/// Moves this transform into one that owns its data.</span>
-    <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_owned</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">OwnedTransform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>::<span class="ident">Alloc</span>, <span class="ident">C</span><span class="op">&gt;</span> {
-        <span class="ident">TransformBase</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">into_owned</span>())
-    }
-
-    <span class="doccomment">/// Clones this transform into one that owns its data.</span>
-    <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clone_owned</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">OwnedTransform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>::<span class="ident">Alloc</span>, <span class="ident">C</span><span class="op">&gt;</span> {
-        <span class="ident">TransformBase</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">clone_owned</span>())
-    }
-
     <span class="doccomment">/// The underlying matrix.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">unwrap</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">unwrap</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
         <span class="self">self</span>.<span class="ident">matrix</span>
     }
 
     <span class="doccomment">/// A reference to the underlynig matrix.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matrix</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matrix</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">matrix</span>
     }
 
@@ -583,7 +624,7 @@
     <span class="doccomment">/// It is `_unchecked` because direct modifications of this matrix may break invariants</span>
     <span class="doccomment">/// identified by this transformation category.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matrix_mut_unchecked</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matrix_mut_unchecked</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">matrix</span>
     }
 
@@ -594,28 +635,29 @@
     <span class="doccomment">/// `TAffine` because not all projective transformations are affine (the other way-round is</span>
     <span class="doccomment">/// valid though).</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_category</span><span class="op">&lt;</span><span class="ident">CNew</span>: <span class="ident">SuperTCategoryOf</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;&gt;</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">CNew</span><span class="op">&gt;</span> {
-        <span class="ident">TransformBase</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>)
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_category</span><span class="op">&lt;</span><span class="ident">CNew</span>: <span class="ident">SuperTCategoryOf</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;&gt;</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">CNew</span><span class="op">&gt;</span> {
+        <span class="ident">Transform</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>)
+    }
+
+    <span class="doccomment">/// Clones this transform into one that owns its data.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="attribute">#[<span class="ident">deprecated</span>(<span class="ident">note</span> <span class="op">=</span> <span class="string">&quot;This method is a no-op and will be removed in a future release.&quot;</span>)]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clone_owned</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span> {
+        <span class="ident">Transform</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">clone_owned</span>())
     }
 
     <span class="doccomment">/// Converts this transform into its equivalent homogeneous transformation matrix.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_homogeneous</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">OwnedSquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span>::<span class="ident">Alloc</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_homogeneous</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
         <span class="self">self</span>.<span class="ident">matrix</span>().<span class="ident">clone_owned</span>()
     }
-}
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Field</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
-          <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>,
-          <span class="ident">C</span>: <span class="ident">TCategory</span>,
-          <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
     <span class="doccomment">/// Attempts to invert this transformation. You may use `.inverse` instead of this</span>
     <span class="doccomment">/// transformation has a subcategory of `TProjective`.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_inverse</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">OwnedTransform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>::<span class="ident">Alloc</span>, <span class="ident">C</span><span class="op">&gt;&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_inverse</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;&gt;</span> {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">m</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">try_inverse</span>() {
-            <span class="prelude-val">Some</span>(<span class="ident">TransformBase</span>::<span class="ident">from_matrix_unchecked</span>(<span class="ident">m</span>))
+            <span class="prelude-val">Some</span>(<span class="ident">Transform</span>::<span class="ident">from_matrix_unchecked</span>(<span class="ident">m</span>))
         }
         <span class="kw">else</span> {
             <span class="prelude-val">None</span>
@@ -625,18 +667,12 @@
     <span class="doccomment">/// Inverts this transformation. Use `.try_inverse` if this transform has the `TGeneral`</span>
     <span class="doccomment">/// category (it may not be invertible).</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">inverse</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">OwnedTransform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>::<span class="ident">Alloc</span>, <span class="ident">C</span><span class="op">&gt;</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">inverse</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">C</span><span class="op">&gt;</span>
         <span class="kw">where</span> <span class="ident">C</span>: <span class="ident">SubTCategoryOf</span><span class="op">&lt;</span><span class="ident">TProjective</span><span class="op">&gt;</span> {
         <span class="comment">// FIXME: specialize for TAffine?</span>
-        <span class="ident">TransformBase</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">try_inverse</span>().<span class="ident">unwrap</span>())
+        <span class="ident">Transform</span>::<span class="ident">from_matrix_unchecked</span>(<span class="self">self</span>.<span class="ident">matrix</span>.<span class="ident">try_inverse</span>().<span class="ident">unwrap</span>())
     }
-}
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">Field</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
-          <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>,
-          <span class="ident">C</span>: <span class="ident">TCategory</span>,
-          <span class="ident">S</span>: <span class="ident">StorageMut</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
     <span class="doccomment">/// Attempts to invert this transformation in-place. You may use `.inverse_mut` instead of this</span>
     <span class="doccomment">/// transformation has a subcategory of `TProjective`.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
@@ -653,15 +689,24 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span> <span class="ident">TransformBase</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span>, <span class="ident">TGeneral</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Scalar</span>,
-          <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;</span>,
-          <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">DimNameAdd</span><span class="op">&lt;</span><span class="ident">U1</span><span class="op">&gt;&gt;</span> <span class="ident">Transform</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">TGeneral</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
     <span class="doccomment">/// A mutable reference to underlying matrix. Use `.matrix_mut_unchecked` instead if this</span>
     <span class="doccomment">/// transformation category is not `TGeneral`.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matrix_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matrix_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">MatrixN</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">DimNameSum</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">U1</span><span class="op">&gt;&gt;</span> {
         <span class="self">self</span>.<span class="ident">matrix_mut_unchecked</span>()
+    }
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">mod</span> <span class="ident">tests</span> {
+    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+    <span class="kw">use</span> ::<span class="ident">core</span>::<span class="ident">Matrix4</span>;
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">checks_homogeneous_invariants_of_square_identity_matrix</span>() {
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">TAffine</span>::<span class="ident">check_homogeneous_invariants</span>(<span class="kw-2">&amp;</span><span class="ident">Matrix4</span>::<span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>::<span class="ident">identity</span>()));
     }
 }
 </pre>
@@ -678,20 +723,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

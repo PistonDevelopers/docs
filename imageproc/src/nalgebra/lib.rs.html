@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/nalgebra-0.11.2/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/nalgebra-0.13.1/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -28,10 +31,18 @@
     
 
     <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
         
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -529,6 +540,22 @@
 <span id="484">484</span>
 <span id="485">485</span>
 <span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
 </pre><pre class="rust ">
 <span class="doccomment">/*!
 # nalgebra
@@ -547,7 +574,7 @@ Simply add the following to your `Cargo.toml` file:
 
 ```.ignore
 [dependencies]
-nalgebra = &quot;0.11&quot;
+nalgebra = &quot;0.13&quot;
 ```
 
 
@@ -582,7 +609,7 @@ an optimized set of tools for computer graphics and physics. Those features incl
 * Matrices and vectors with compile-time sizes are statically allocated while dynamic ones are
   allocated on the heap.
 * Convenient aliases for low-dimensional matrices and vectors: `Vector1` to `Vector6` and
-  `Matrix1x1` to `Matrix6x6` (including rectangular matrices like `Matrix2x5`.
+  `Matrix1x1` to `Matrix6x6`, including rectangular matrices like `Matrix2x5`.
 * Points sizes known at compile time, and convenience aliases: `Point1` to `Point6`.
 * Translation (seen as a transformation that composes by multiplication): `Translation2`,
   `Translation3`.
@@ -598,7 +625,8 @@ an optimized set of tools for computer graphics and physics. Those features incl
 * General transformations that does not have to be invertible, stored as an homogeneous matrix:
   `Transform2`, `Transform3`.
 * 3D projections for computer graphics: `Perspective3`, `Orthographic3`.
-* Linear algebra and data analysis operators: QR decomposition, eigen-decomposition.
+* Matrix factorizations: `Cholesky`, `QR`, `LU`, `FullPivLU`, `SVD`, `RealSchur`, `Hessenberg`, `SymmetricEigen`.
+* Insertion and removal of rows of columns of a matrix.
 * Implements traits from the [alga](https://crates.io/crates/alga) crate for
   generic programming.
 */</span>
@@ -616,16 +644,24 @@ an optimized set of tools for computer graphics and physics. Those features incl
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">non_upper_case_globals</span>)]</span>
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unused_qualifications</span>)]</span>
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unused_results</span>)]</span>
-<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">missing_docs</span>)]</span>
-<span class="attribute">#![<span class="ident">doc</span>(<span class="ident">html_root_url</span> <span class="op">=</span> <span class="string">&quot;http://nalgebra.org/doc&quot;</span>)]</span>
+<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_docs</span>)]</span>
+<span class="attribute">#![<span class="ident">doc</span>(<span class="ident">html_root_url</span> <span class="op">=</span> <span class="string">&quot;http://nalgebra.org/rustdoc&quot;</span>)]</span>
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;arbitrary&quot;</span>)]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">quickcheck</span>;
+
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde&quot;</span>)]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">serde</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;serde&quot;</span>)]</span>
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">serde_derive</span>;
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;abomonation-serialize&quot;</span>)]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">abomonation</span>;
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;mint&quot;</span>)]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">mint</span>;
+
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">num_traits</span> <span class="kw">as</span> <span class="ident">num</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">num_complex</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">rand</span>;
@@ -633,17 +669,20 @@ an optimized set of tools for computer graphics and physics. Those features incl
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">approx</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">typenum</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">generic_array</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">matrixmultiply</span>;
 
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">alga</span>;
 
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">core</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">linalg</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">geometry</span>;
-<span class="kw">mod</span> <span class="ident">traits</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">debug</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">core</span>::<span class="kw-2">*</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">linalg</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">geometry</span>::<span class="kw-2">*</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">traits</span>::<span class="kw-2">*</span>;
 
 
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::{<span class="self">self</span>, <span class="ident">PartialOrd</span>, <span class="ident">Ordering</span>};
@@ -654,7 +693,7 @@ an optimized set of tools for computer graphics and physics. Those features incl
 <span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">linear</span>::<span class="ident">SquareMatrix</span> <span class="kw">as</span> <span class="ident">AlgaSquareMatrix</span>;
 <span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">linear</span>::{<span class="ident">InnerSpace</span>, <span class="ident">NormedSpace</span>, <span class="ident">FiniteDimVectorSpace</span>, <span class="ident">EuclideanSpace</span>};
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">general</span>::<span class="ident">Id</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">general</span>::{<span class="ident">Real</span>, <span class="ident">Id</span>};
 
 
 <span class="comment">/*
@@ -976,12 +1015,16 @@ an optimized set of tools for computer graphics and physics. Those features incl
  * Cast
  */</span>
 <span class="doccomment">/// Converts an object from one type to an equivalent or more general one.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// See also `::try_convert` for conversion to more specific types.</span>
 <span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">convert</span><span class="op">&lt;</span><span class="ident">From</span>, <span class="ident">To</span>: <span class="ident">SupersetOf</span><span class="op">&lt;</span><span class="ident">From</span><span class="op">&gt;&gt;</span>(<span class="ident">t</span>: <span class="ident">From</span>) <span class="op">-&gt;</span> <span class="ident">To</span> {
     <span class="ident">To</span>::<span class="ident">from_subset</span>(<span class="kw-2">&amp;</span><span class="ident">t</span>)
 }
 
 <span class="doccomment">/// Attempts to convert an object to a more specific one.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// See also `::convert` for conversion to more general types.</span>
 <span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_convert</span><span class="op">&lt;</span><span class="ident">From</span>: <span class="ident">SupersetOf</span><span class="op">&lt;</span><span class="ident">To</span><span class="op">&gt;</span>, <span class="ident">To</span><span class="op">&gt;</span>(<span class="ident">t</span>: <span class="ident">From</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">To</span><span class="op">&gt;</span> {
     <span class="ident">t</span>.<span class="ident">to_subset</span>()
@@ -1030,20 +1073,22 @@ an optimized set of tools for computer graphics and physics. Those features incl
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

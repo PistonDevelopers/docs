@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rusttype-0.2.3/src/gpu_cache.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rusttype-0.3.0/src/gpu_cache.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>gpu_cache.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -28,10 +31,18 @@
     
 
     <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
         
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -786,6 +797,42 @@
 <span id="741">741</span>
 <span id="742">742</span>
 <span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! This module provides capabilities for managing a cache of rendered glyphs in GPU memory, with the goal of</span>
 <span class="doccomment">//! minimisng the size and frequency of glyph uploads to GPU memory from the CPU.</span>
@@ -816,26 +863,39 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>, <span class="ident">BTreeMap</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">Bound</span>::{<span class="ident">Included</span>, <span class="ident">Unbounded</span>};
 <span class="kw">use</span> <span class="ident">linked_hash_map</span>::<span class="ident">LinkedHashMap</span>;
+<span class="kw">use</span> <span class="ident">ordered_float</span>::<span class="ident">OrderedFloat</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::{<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Ord</span>, <span class="ident">PartialOrd</span>, <span class="ident">Ordering</span>};
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">PartialOrd</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">struct</span> <span class="ident">PGlyphSpec</span> {
     <span class="ident">font_id</span>: <span class="ident">usize</span>,
     <span class="ident">glyph_id</span>: <span class="ident">GlyphId</span>,
     <span class="ident">scale</span>: <span class="ident">Scale</span>,
-    <span class="ident">offset</span>: <span class="ident">Vector</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>
+    <span class="ident">offset</span>: <span class="ident">Vector</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">impl</span> ::<span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">Eq</span> <span class="kw">for</span> <span class="ident">PGlyphSpec</span> {}
+<span class="kw">impl</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">PGlyphSpec</span> {
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">PGlyphSpec</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">to_orderable</span>() <span class="op">==</span> <span class="ident">other</span>.<span class="ident">to_orderable</span>()
+    }
+}
 
-<span class="kw">impl</span> ::<span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">Ord</span> <span class="kw">for</span> <span class="ident">PGlyphSpec</span> {
-    <span class="kw">fn</span> <span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">PGlyphSpec</span>) <span class="op">-&gt;</span> ::<span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">Ordering</span> {
-        <span class="self">self</span>.<span class="ident">partial_cmp</span>(<span class="ident">other</span>).<span class="ident">unwrap</span>()
+<span class="kw">impl</span> <span class="ident">Eq</span> <span class="kw">for</span> <span class="ident">PGlyphSpec</span> {}
+
+<span class="kw">impl</span> <span class="ident">PartialOrd</span> <span class="kw">for</span> <span class="ident">PGlyphSpec</span> {
+    <span class="kw">fn</span> <span class="ident">partial_cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">PGlyphSpec</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Ordering</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">to_orderable</span>().<span class="ident">partial_cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">to_orderable</span>())
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Ord</span> <span class="kw">for</span> <span class="ident">PGlyphSpec</span> {
+    <span class="kw">fn</span> <span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">PGlyphSpec</span>) <span class="op">-&gt;</span> <span class="ident">Ordering</span> {
+        <span class="self">self</span>.<span class="ident">to_orderable</span>().<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">to_orderable</span>())
     }
 }
 
 <span class="kw">impl</span> <span class="ident">PGlyphSpec</span> {
-    <span class="doccomment">/// Returns if this cached glyph can be considered to match another</span>
-    <span class="doccomment">/// at input tolerances</span>
+    <span class="doccomment">/// Returns if this cached glyph can be considered to match another at input tolerances</span>
     <span class="kw">fn</span> <span class="ident">matches</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">PGlyphSpec</span>, <span class="ident">scale_tolerance</span>: <span class="ident">f32</span>, <span class="ident">position_tolerance</span>: <span class="ident">f32</span>)
         <span class="op">-&gt;</span> <span class="ident">bool</span>
     {
@@ -845,6 +905,26 @@
             (<span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">y</span> <span class="op">-</span> <span class="ident">other</span>.<span class="ident">scale</span>.<span class="ident">y</span>).<span class="ident">abs</span>() <span class="op">&lt;</span> <span class="ident">scale_tolerance</span> <span class="op">&amp;&amp;</span>
             (<span class="self">self</span>.<span class="ident">offset</span>.<span class="ident">x</span> <span class="op">-</span> <span class="ident">other</span>.<span class="ident">offset</span>.<span class="ident">x</span>).<span class="ident">abs</span>() <span class="op">&lt;</span> <span class="ident">position_tolerance</span> <span class="op">&amp;&amp;</span>
             (<span class="self">self</span>.<span class="ident">offset</span>.<span class="ident">y</span> <span class="op">-</span> <span class="ident">other</span>.<span class="ident">offset</span>.<span class="ident">y</span>).<span class="ident">abs</span>() <span class="op">&lt;</span> <span class="ident">position_tolerance</span>
+    }
+
+    <span class="doccomment">/// Returns a data view that is implicitly equal-able/hash-able/orderable</span>
+    <span class="kw">fn</span> <span class="ident">to_orderable</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (
+        <span class="ident">usize</span>,
+        <span class="ident">GlyphId</span>,
+        <span class="ident">OrderedFloat</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
+        <span class="ident">OrderedFloat</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
+        <span class="ident">OrderedFloat</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
+        <span class="ident">OrderedFloat</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>,
+    ) {
+        <span class="kw">let</span> <span class="ident">PGlyphSpec</span> { <span class="ident">font_id</span>, <span class="ident">glyph_id</span>, <span class="ident">scale</span>, <span class="ident">offset</span> } <span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span>;
+        (
+            <span class="ident">font_id</span>,
+            <span class="ident">glyph_id</span>,
+            <span class="ident">OrderedFloat</span>(<span class="ident">scale</span>.<span class="ident">x</span>),
+            <span class="ident">OrderedFloat</span>(<span class="ident">scale</span>.<span class="ident">y</span>),
+            <span class="ident">OrderedFloat</span>(<span class="ident">offset</span>.<span class="ident">x</span>),
+            <span class="ident">OrderedFloat</span>(<span class="ident">offset</span>.<span class="ident">y</span>),
+        )
     }
 }
 
@@ -901,7 +981,7 @@
 }
 
 <span class="doccomment">/// An implementation of a dynamic GPU glyph cache. See the module documentation for more information.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Cache</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Cache</span><span class="op">&lt;</span><span class="lifetime">&#39;font</span><span class="op">&gt;</span> {
     <span class="ident">scale_tolerance</span>: <span class="ident">f32</span>,
     <span class="ident">position_tolerance</span>: <span class="ident">f32</span>,
     <span class="ident">width</span>: <span class="ident">u32</span>,
@@ -909,7 +989,7 @@
     <span class="ident">rows</span>: <span class="ident">LinkedHashMap</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Row</span><span class="op">&gt;</span>,
     <span class="ident">space_start_for_end</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">u32</span><span class="op">&gt;</span>,
     <span class="ident">space_end_for_start</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">u32</span><span class="op">&gt;</span>,
-    <span class="ident">queue</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">PositionedGlyph</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span>)<span class="op">&gt;</span>,
+    <span class="ident">queue</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">PositionedGlyph</span><span class="op">&lt;</span><span class="lifetime">&#39;font</span><span class="op">&gt;</span>)<span class="op">&gt;</span>,
     <span class="ident">queue_retry</span>: <span class="ident">bool</span>,
     <span class="ident">all_glyphs</span>: <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">PGlyphSpec</span>, (<span class="ident">u32</span>, <span class="ident">u32</span>)<span class="op">&gt;</span>
 }
@@ -943,7 +1023,7 @@
     <span class="ident">offset</span>
 }
 
-<span class="kw">impl</span> <span class="ident">Cache</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;font</span><span class="op">&gt;</span> <span class="ident">Cache</span><span class="op">&lt;</span><span class="lifetime">&#39;font</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Constructs a new cache. Note that this is just the CPU side of the cache. The GPU texture is managed</span>
     <span class="doccomment">/// by the user.</span>
     <span class="doccomment">///</span>
@@ -965,8 +1045,12 @@
     <span class="doccomment">/// # Panics</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// `scale_tolerance` or `position_tolerance` are less than or equal to zero.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">width</span>: <span class="ident">u32</span>, <span class="ident">height</span>: <span class="ident">u32</span>,
-               <span class="ident">scale_tolerance</span>: <span class="ident">f32</span>, <span class="ident">position_tolerance</span>: <span class="ident">f32</span>) <span class="op">-&gt;</span> <span class="ident">Cache</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(
+        <span class="ident">width</span>: <span class="ident">u32</span>,
+        <span class="ident">height</span>: <span class="ident">u32</span>,
+        <span class="ident">scale_tolerance</span>: <span class="ident">f32</span>,
+        <span class="ident">position_tolerance</span>: <span class="ident">f32</span>,
+    ) <span class="op">-&gt;</span> <span class="ident">Cache</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">scale_tolerance</span> <span class="op">&gt;=</span> <span class="number">0.0</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">position_tolerance</span> <span class="op">&gt;=</span> <span class="number">0.0</span>);
         <span class="kw">let</span> <span class="ident">scale_tolerance</span> <span class="op">=</span> <span class="ident">scale_tolerance</span>.<span class="ident">max</span>(<span class="number">0.001</span>);
@@ -1021,9 +1105,9 @@
     <span class="doccomment">/// Queue a glyph for caching by the next call to `cache_queued`. `font_id` is used to</span>
     <span class="doccomment">/// disambiguate glyphs from different fonts. The user should ensure that `font_id` is unique to the</span>
     <span class="doccomment">/// font the glyph is from.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">queue_glyph</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">font_id</span>: <span class="ident">usize</span>, <span class="ident">glyph</span>: <span class="ident">PositionedGlyph</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">queue_glyph</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">font_id</span>: <span class="ident">usize</span>, <span class="ident">glyph</span>: <span class="ident">PositionedGlyph</span><span class="op">&lt;</span><span class="lifetime">&#39;font</span><span class="op">&gt;</span>) {
         <span class="kw">if</span> <span class="ident">glyph</span>.<span class="ident">pixel_bounding_box</span>().<span class="ident">is_some</span>() {
-            <span class="self">self</span>.<span class="ident">queue</span>.<span class="ident">push</span>((<span class="ident">font_id</span>, <span class="ident">glyph</span>.<span class="ident">standalone</span>()));
+            <span class="self">self</span>.<span class="ident">queue</span>.<span class="ident">push</span>((<span class="ident">font_id</span>, <span class="ident">glyph</span>));
         }
     }
     <span class="doccomment">/// Clears the cache. Does not affect the glyph queue.</span>
@@ -1371,9 +1455,9 @@
     <span class="kw">use</span> ::<span class="ident">FontCollection</span>;
     <span class="kw">use</span> ::<span class="ident">Scale</span>;
     <span class="kw">use</span> ::<span class="ident">point</span>;
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cache</span> <span class="op">=</span> <span class="ident">Cache</span>::<span class="ident">new</span>(<span class="number">32</span>, <span class="number">32</span>, <span class="number">0.1</span>, <span class="number">0.1</span>);
-    <span class="kw">let</span> <span class="ident">font_data</span> <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;../examples/DejaVuSans.ttf&quot;</span>);
+    <span class="kw">let</span> <span class="ident">font_data</span> <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;../fonts/wqy-microhei/WenQuanYiMicroHei.ttf&quot;</span>);
     <span class="kw">let</span> <span class="ident">font</span> <span class="op">=</span> <span class="ident">FontCollection</span>::<span class="ident">from_bytes</span>(<span class="ident">font_data</span> <span class="kw">as</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]).<span class="ident">into_font</span>().<span class="ident">unwrap</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cache</span> <span class="op">=</span> <span class="ident">Cache</span>::<span class="ident">new</span>(<span class="number">32</span>, <span class="number">32</span>, <span class="number">0.1</span>, <span class="number">0.1</span>);
     <span class="kw">let</span> <span class="ident">strings</span> <span class="op">=</span> [
         (<span class="string">&quot;Hello World!&quot;</span>, <span class="number">15.0</span>),
         (<span class="string">&quot;Hello World!&quot;</span>, <span class="number">14.0</span>),
@@ -1397,7 +1481,7 @@
     <span class="kw">use</span> ::<span class="ident">FontCollection</span>;
     <span class="kw">use</span> ::<span class="ident">Scale</span>;
     <span class="kw">use</span> ::<span class="ident">point</span>;
-    <span class="kw">let</span> <span class="ident">font_data</span> <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;../examples/DejaVuSans.ttf&quot;</span>);
+    <span class="kw">let</span> <span class="ident">font_data</span> <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;../fonts/wqy-microhei/WenQuanYiMicroHei.ttf&quot;</span>);
     <span class="kw">let</span> <span class="ident">font</span> <span class="op">=</span> <span class="ident">FontCollection</span>::<span class="ident">from_bytes</span>(<span class="ident">font_data</span> <span class="kw">as</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]).<span class="ident">into_font</span>().<span class="ident">unwrap</span>();
 
     <span class="kw">let</span> <span class="ident">glyph</span> <span class="op">=</span> <span class="ident">font</span>.<span class="ident">glyph</span>(<span class="string">&#39;l&#39;</span>).<span class="ident">unwrap</span>();
@@ -1429,8 +1513,7 @@
     <span class="kw">use</span> ::{<span class="ident">FontCollection</span>, <span class="ident">Scale</span>, <span class="ident">Font</span>, <span class="ident">point</span>};
 
     <span class="kw">const</span> <span class="ident">FONT_ID</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">0</span>;
-    <span class="comment">// TODO use a more complex font</span>
-    <span class="kw">const</span> <span class="ident">FONT_BYTES</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;../examples/DejaVuSans.ttf&quot;</span>);
+    <span class="kw">const</span> <span class="ident">FONT_BYTES</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;../fonts/wqy-microhei/WenQuanYiMicroHei.ttf&quot;</span>);
     <span class="kw">const</span> <span class="ident">TEST_STR</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="macro">include_str</span><span class="macro">!</span>(<span class="string">&quot;../tests/lipsum.txt&quot;</span>);
 
     <span class="doccomment">/// Reproduces Err(GlyphNotCached) issue &amp; serves as a general purpose cache benchmark</span>
@@ -1483,13 +1566,13 @@
         <span class="comment">// Cache settings also affect this, it occurs when position_tolerance is &lt; 1.0</span>
         <span class="kw">for</span> <span class="ident">scale</span> <span class="kw">in</span> <span class="kw-2">&amp;</span>[<span class="number">25_f32</span>, <span class="number">24.5</span>, <span class="number">25.01</span>, <span class="number">24.7</span>, <span class="number">24.99</span>] {
             <span class="kw">for</span> <span class="ident">glyph</span> <span class="kw">in</span> <span class="ident">layout_paragraph</span>(<span class="kw-2">&amp;</span><span class="ident">font</span>, <span class="ident">Scale</span>::<span class="ident">uniform</span>(<span class="kw-2">*</span><span class="ident">scale</span>), <span class="number">500</span>, <span class="ident">TEST_STR</span>) {
-                <span class="ident">glyphs</span>.<span class="ident">push</span>(<span class="ident">glyph</span>.<span class="ident">standalone</span>());
+                <span class="ident">glyphs</span>.<span class="ident">push</span>(<span class="ident">glyph</span>);
             }
         }
         <span class="ident">glyphs</span>
     }
 
-    <span class="kw">fn</span> <span class="ident">layout_paragraph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">font</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Font</span>,
+    <span class="kw">fn</span> <span class="ident">layout_paragraph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">font</span>: <span class="kw-2">&amp;</span><span class="ident">Font</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
                             <span class="ident">scale</span>: <span class="ident">Scale</span>,
                             <span class="ident">width</span>: <span class="ident">u32</span>,
                             <span class="ident">text</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PositionedGlyph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;&gt;</span> {
@@ -1544,20 +1627,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

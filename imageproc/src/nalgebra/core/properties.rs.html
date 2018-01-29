@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/nalgebra-0.11.2/src/core/properties.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/nalgebra-0.13.1/src/core/properties.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>properties.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css" id="themeStyle">
+    <script src="../../../storage.js"></script>
     
 
     
@@ -28,10 +31,18 @@
     
 
     <nav class="sidebar">
+        <div class="sidebar-menu">&#9776;</div>
         
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -150,38 +161,51 @@
 <span id="105">105</span>
 <span id="106">106</span>
 <span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
 </pre><pre class="rust ">
 <span class="comment">// Matrix properties checks.</span>
 <span class="kw">use</span> <span class="ident">num</span>::{<span class="ident">Zero</span>, <span class="ident">One</span>};
 <span class="kw">use</span> <span class="ident">approx</span>::<span class="ident">ApproxEq</span>;
 
-<span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">general</span>::{<span class="ident">ClosedAdd</span>, <span class="ident">ClosedMul</span>, <span class="ident">ClosedSub</span>, <span class="ident">Field</span>};
+<span class="kw">use</span> <span class="ident">alga</span>::<span class="ident">general</span>::{<span class="ident">ClosedAdd</span>, <span class="ident">ClosedMul</span>, <span class="ident">Real</span>};
 
-<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">Scalar</span>, <span class="ident">Matrix</span>, <span class="ident">SquareMatrix</span>};
-<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">dimension</span>::<span class="ident">Dim</span>;
+<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">DefaultAllocator</span>, <span class="ident">Scalar</span>, <span class="ident">Matrix</span>, <span class="ident">SquareMatrix</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">dimension</span>::{<span class="ident">Dim</span>, <span class="ident">DimMin</span>};
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">storage</span>::<span class="ident">Storage</span>;
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">allocator</span>::<span class="ident">Allocator</span>;
 
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Scalar</span>, <span class="ident">R</span>: <span class="ident">Dim</span>, <span class="ident">C</span>: <span class="ident">Dim</span>, <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">R</span>, <span class="ident">C</span><span class="op">&gt;&gt;</span> <span class="ident">Matrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">R</span>, <span class="ident">C</span>, <span class="ident">S</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Indicates if this is a square matrix.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_square</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
-        <span class="kw">let</span> <span class="ident">shape</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">shape</span>();
-        <span class="ident">shape</span>.<span class="number">0</span> <span class="op">==</span> <span class="ident">shape</span>.<span class="number">1</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_empty</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">let</span> (<span class="ident">nrows</span>, <span class="ident">ncols</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">shape</span>();
+        <span class="ident">nrows</span> <span class="op">==</span> <span class="number">0</span> <span class="op">||</span> <span class="ident">ncols</span> <span class="op">==</span> <span class="number">0</span>
     }
-}
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Scalar</span>, <span class="ident">R</span>: <span class="ident">Dim</span>, <span class="ident">C</span>: <span class="ident">Dim</span>, <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">R</span>, <span class="ident">C</span><span class="op">&gt;&gt;</span> <span class="ident">Matrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">R</span>, <span class="ident">C</span>, <span class="ident">S</span><span class="op">&gt;</span>
+    <span class="doccomment">/// Indicates if this is a square matrix.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_square</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">let</span> (<span class="ident">nrows</span>, <span class="ident">ncols</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">shape</span>();
+        <span class="ident">nrows</span> <span class="op">==</span> <span class="ident">ncols</span>
+    }
+
     <span class="comment">// FIXME: ApproxEq prevents us from using those methods on integer matrices…</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">ApproxEq</span>,
-          <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span> {
     <span class="doccomment">/// Indicated if this is the identity matrix within a relative error of `eps`.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// If the matrix is diagonal, this checks that diagonal elements (i.e. at coordinates `(i, i)`</span>
     <span class="doccomment">/// for i from `0` to `min(R, C)`) are equal one; and that all other elements are zero.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_identity</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">eps</span>: <span class="ident">N</span>::<span class="ident">Epsilon</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Zero</span> <span class="op">+</span> <span class="ident">One</span> {
+    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Zero</span> <span class="op">+</span> <span class="ident">One</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
+          <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span> {
         <span class="kw">let</span> (<span class="ident">nrows</span>, <span class="ident">ncols</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">shape</span>();
         <span class="kw">let</span> <span class="ident">d</span>;
 
@@ -228,32 +252,35 @@
 
         <span class="bool-val">true</span>
     }
-}
 
-
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Scalar</span> <span class="op">+</span> <span class="ident">ApproxEq</span>, <span class="ident">D</span>: <span class="ident">Dim</span>, <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;&gt;</span> <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Zero</span> <span class="op">+</span> <span class="ident">One</span> <span class="op">+</span> <span class="ident">ClosedAdd</span> <span class="op">+</span> <span class="ident">ClosedMul</span>,
-          <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span> {
-    <span class="doccomment">/// Checks that this matrix is orthogonal, i.e., that it is square and `M × Mᵀ = Id`.</span>
+    <span class="doccomment">/// Checks that `Mᵀ × M = Id`.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// In this definition `Id` is approximately equal to the identity matrix with a relative error</span>
     <span class="doccomment">/// equal to `eps`.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_orthogonal</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">eps</span>: <span class="ident">N</span>::<span class="ident">Epsilon</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
-        <span class="self">self</span>.<span class="ident">is_square</span>() <span class="op">&amp;&amp;</span> (<span class="self">self</span>.<span class="ident">tr_mul</span>(<span class="self">self</span>)).<span class="ident">is_identity</span>(<span class="ident">eps</span>)
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_orthogonal</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">eps</span>: <span class="ident">N</span>::<span class="ident">Epsilon</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Zero</span> <span class="op">+</span> <span class="ident">One</span> <span class="op">+</span> <span class="ident">ClosedAdd</span> <span class="op">+</span> <span class="ident">ClosedMul</span> <span class="op">+</span> <span class="ident">ApproxEq</span>,
+              <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">R</span>, <span class="ident">C</span><span class="op">&gt;</span>,
+              <span class="ident">N</span>::<span class="ident">Epsilon</span>: <span class="ident">Copy</span>,
+              <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">C</span>, <span class="ident">C</span><span class="op">&gt;</span> {
+        (<span class="self">self</span>.<span class="ident">tr_mul</span>(<span class="self">self</span>)).<span class="ident">is_identity</span>(<span class="ident">eps</span>)
     }
+}
 
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Real</span>, <span class="ident">D</span>: <span class="ident">Dim</span>, <span class="ident">S</span>: <span class="ident">Storage</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;&gt;</span> <span class="ident">SquareMatrix</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>
+    <span class="kw">where</span> <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Checks that this matrix is orthogonal and has a determinant equal to 1.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_special_orthogonal</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">eps</span>: <span class="ident">N</span>::<span class="ident">Epsilon</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">ClosedSub</span> <span class="op">+</span> <span class="ident">PartialOrd</span> {
-            <span class="self">self</span>.<span class="ident">is_orthogonal</span>(<span class="ident">eps</span>) <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">determinant</span>() <span class="op">&gt;</span> <span class="ident">N</span>::<span class="ident">zero</span>()
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_special_orthogonal</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">eps</span>: <span class="ident">N</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
+        <span class="kw">where</span> <span class="ident">D</span>: <span class="ident">DimMin</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">Output</span> <span class="op">=</span> <span class="ident">D</span><span class="op">&gt;</span>,
+              <span class="ident">DefaultAllocator</span>: <span class="ident">Allocator</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>), <span class="ident">D</span><span class="op">&gt;</span> {
+            <span class="self">self</span>.<span class="ident">is_square</span>() <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">is_orthogonal</span>(<span class="ident">eps</span>) <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">determinant</span>() <span class="op">&gt;</span> <span class="ident">N</span>::<span class="ident">zero</span>()
     }
 
     <span class="doccomment">/// Returns `true` if this matrix is invertible.</span>
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_invertible</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>
-        <span class="kw">where</span> <span class="ident">N</span>: <span class="ident">Field</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_invertible</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
         <span class="comment">// FIXME: improve this?</span>
         <span class="self">self</span>.<span class="ident">clone_owned</span>().<span class="ident">try_inverse</span>().<span class="ident">is_some</span>()
     }
@@ -272,20 +299,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 
