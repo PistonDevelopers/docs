@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Kind","bitmask of flags in presented event"]],"struct":[["WpPresentationFeedback",""]],"trait":[["Handler",""]]});
+initSidebarItems({"enum":[["Kind","bitmask of flags in presented event"]],"struct":[["Implementation",""],["WpPresentationFeedback",""]]});

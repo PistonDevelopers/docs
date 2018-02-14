@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rusttype-0.2.3/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rusttype-0.3.0/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -924,11 +934,10 @@
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">arrayvec</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">stb_truetype</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">linked_hash_map</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">ordered_float</span>;
 
 <span class="kw">mod</span> <span class="ident">geometry</span>;
 <span class="kw">mod</span> <span class="ident">rasterizer</span>;
-
-<span class="kw">mod</span> <span class="ident">support</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">gpu_cache</span>;
 
@@ -953,14 +962,15 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="ident">ByRef</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>]),
-    <span class="ident">ByArc</span>(<span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;&gt;</span>)
+    <span class="ident">ByArc</span>(<span class="ident">Arc</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>),
 }
+
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> ::<span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> [<span class="ident">u8</span>];
     <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
         <span class="kw">match</span> <span class="kw-2">*</span><span class="self">self</span> {
             <span class="ident">SharedBytes</span>::<span class="ident">ByRef</span>(<span class="ident">bytes</span>) <span class="op">=&gt;</span> <span class="ident">bytes</span>,
-            <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="kw-2">ref</span> <span class="ident">bytes</span>) <span class="op">=&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">bytes</span>
+            <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="kw-2">ref</span> <span class="ident">bytes</span>) <span class="op">=&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">bytes</span>
         }
     }
 }
@@ -969,21 +979,22 @@
         <span class="ident">SharedBytes</span>::<span class="ident">ByRef</span>(<span class="ident">bytes</span>)
     }
 }
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;&gt;</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">bytes</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;&gt;</span>) <span class="op">-&gt;</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
+<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">bytes</span>: <span class="ident">Arc</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
         <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="ident">bytes</span>)
     }
 }
 <span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">bytes</span>: <span class="ident">Box</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
-        <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">bytes</span>))
+        <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="ident">bytes</span>.<span class="ident">into</span>())
     }
 }
 <span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> <span class="kw">for</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">bytes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">SharedBytes</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
-        <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">bytes</span>.<span class="ident">into_boxed_slice</span>()))
+        <span class="ident">SharedBytes</span>::<span class="ident">ByArc</span>(<span class="ident">bytes</span>.<span class="ident">into</span>())
     }
 }
+
 <span class="doccomment">/// Represents a Unicode code point.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Hash</span>, <span class="ident">PartialOrd</span>, <span class="ident">Ord</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Codepoint</span>(<span class="kw">pub</span> <span class="ident">u32</span>);
@@ -1013,7 +1024,7 @@
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
 <span class="kw">enum</span> <span class="ident">GlyphInner</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">Proxy</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Font</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>, <span class="ident">u32</span>),
+    <span class="ident">Proxy</span>(<span class="ident">Font</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>, <span class="ident">u32</span>),
     <span class="ident">Shared</span>(<span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">SharedGlyphData</span><span class="op">&gt;</span>)
 }
 
@@ -1174,12 +1185,13 @@
     <span class="doccomment">/// otherwise `None` is returned.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Note that code points without corresponding glyphs in this font map to the &quot;undef&quot; glyph, glyph 0.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">glyph</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CodepointOrGlyphId</span><span class="op">&gt;&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">C</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Glyph</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">glyph</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">CodepointOrGlyphId</span><span class="op">&gt;&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">C</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Glyph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;&gt;</span> {
         <span class="kw">let</span> <span class="ident">gid</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">id</span>.<span class="ident">into</span>() {
             <span class="ident">CodepointOrGlyphId</span>::<span class="ident">Codepoint</span>(<span class="ident">Codepoint</span>(<span class="ident">c</span>)) <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">info</span>.<span class="ident">find_glyph_index</span>(<span class="ident">c</span>),
             <span class="ident">CodepointOrGlyphId</span>::<span class="ident">GlyphId</span>(<span class="ident">GlyphId</span>(<span class="ident">gid</span>)) <span class="op">=&gt;</span> <span class="ident">gid</span>
         };
-        <span class="prelude-val">Some</span>(<span class="ident">Glyph</span>::<span class="ident">new</span>(<span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="self">self</span>, <span class="ident">gid</span>)))
+        <span class="comment">// font clone either a reference clone, or arc clone</span>
+        <span class="prelude-val">Some</span>(<span class="ident">Glyph</span>::<span class="ident">new</span>(<span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="self">self</span>.<span class="ident">clone</span>(), <span class="ident">gid</span>)))
     }
     <span class="doccomment">/// A convenience function.</span>
     <span class="doccomment">///</span>
@@ -1288,17 +1300,15 @@
     }
 }
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Glyph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">inner</span>: <span class="ident">GlyphInner</span>) <span class="op">-&gt;</span> <span class="ident">Glyph</span> {
-        <span class="ident">Glyph</span> {
-            <span class="ident">inner</span>: <span class="ident">inner</span>
-        }
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">inner</span>: <span class="ident">GlyphInner</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Glyph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+        <span class="ident">Glyph</span> { <span class="ident">inner</span> }
     }
     <span class="doccomment">/// The font to which this glyph belongs. If the glyph is a standalone glyph that owns its resources,</span>
     <span class="doccomment">/// it no longer has a reference to the font which it was created from (using `standalone()`). In which</span>
     <span class="doccomment">/// case, `None` is returned.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">font</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Font</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;&gt;</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">f</span>, _) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">f</span>),
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">f</span>, _) <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">f</span>),
             <span class="ident">GlyphInner</span>::<span class="ident">Shared</span>(_) <span class="op">=&gt;</span> <span class="prelude-val">None</span>
         }
     }
@@ -1313,7 +1323,7 @@
     <span class="doccomment">/// available.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">scaled</span>(<span class="self">self</span>, <span class="ident">scale</span>: <span class="ident">Scale</span>) <span class="op">-&gt;</span> <span class="ident">ScaledGlyph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">scale_x</span>, <span class="ident">scale_y</span>) <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, _) <span class="op">=&gt;</span> {
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, _) <span class="op">=&gt;</span> {
                 <span class="kw">let</span> <span class="ident">scale_y</span> <span class="op">=</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">scale_for_pixel_height</span>(<span class="ident">scale</span>.<span class="ident">y</span>);
                 <span class="kw">let</span> <span class="ident">scale_x</span> <span class="op">=</span> <span class="ident">scale_y</span> <span class="op">*</span> <span class="ident">scale</span>.<span class="ident">x</span> <span class="op">/</span> <span class="ident">scale</span>.<span class="ident">y</span>;
                 (<span class="ident">scale_x</span>, <span class="ident">scale_y</span>)
@@ -1336,7 +1346,7 @@
     <span class="doccomment">/// Calling `standalone()` on a standalone glyph shares the resources, and is equivalent to `clone()`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">standalone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Glyph</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">Glyph</span>::<span class="ident">new</span>(<span class="ident">GlyphInner</span>::<span class="ident">Shared</span>(<span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">SharedGlyphData</span> {
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">Glyph</span>::<span class="ident">new</span>(<span class="ident">GlyphInner</span>::<span class="ident">Shared</span>(<span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">SharedGlyphData</span> {
                 <span class="ident">id</span>: <span class="ident">id</span>,
                 <span class="ident">scale_for_1_pixel</span>: <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">scale_for_pixel_height</span>(<span class="number">1.0</span>),
                 <span class="ident">unit_h_metrics</span>: {
@@ -1390,7 +1400,7 @@
     <span class="doccomment">/// glyph available.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">positioned</span>(<span class="self">self</span>, <span class="ident">p</span>: <span class="ident">Point</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">PositionedGlyph</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">bb</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">g</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> {
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> {
                 <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_bitmap_box_subpixel</span>(<span class="ident">id</span>,
                                                         <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">x</span>, <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">y</span>,
                                                         <span class="ident">p</span>.<span class="ident">x</span>, <span class="ident">p</span>.<span class="ident">y</span>)
@@ -1420,7 +1430,7 @@
     <span class="doccomment">/// Retrieves the &quot;horizontal metrics&quot; of this glyph. See `HMetrics` for more detail.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">h_metrics</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">HMetrics</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">g</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> {
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> {
                 <span class="kw">let</span> <span class="ident">hm</span> <span class="op">=</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_h_metrics</span>(<span class="ident">id</span>);
                 <span class="ident">HMetrics</span> {
                     <span class="ident">advance_width</span>: <span class="ident">hm</span>.<span class="ident">advance_width</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">x</span>,
@@ -1439,7 +1449,7 @@
         <span class="kw">use</span> <span class="ident">stb_truetype</span>::<span class="ident">VertexType</span>;
         <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">replace</span>;
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">g</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_shape</span>(<span class="ident">id</span>),
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_shape</span>(<span class="ident">id</span>),
             <span class="ident">GlyphInner</span>::<span class="ident">Shared</span>(<span class="kw-2">ref</span> <span class="ident">data</span>) <span class="op">=&gt;</span> <span class="ident">data</span>.<span class="ident">shape</span>.<span class="ident">clone</span>()
         }.<span class="ident">map</span>(<span class="op">|</span><span class="ident">shape</span><span class="op">|</span> {
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
@@ -1449,7 +1459,7 @@
                 <span class="kw">let</span> <span class="ident">end</span> <span class="op">=</span> <span class="ident">point</span>(<span class="ident">v</span>.<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">x</span> <span class="op">+</span> <span class="ident">offset</span>.<span class="ident">x</span>,
                                 <span class="ident">v</span>.<span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">y</span> <span class="op">+</span> <span class="ident">offset</span>.<span class="ident">y</span>);
                 <span class="kw">match</span> <span class="ident">v</span>.<span class="ident">vertex_type</span>() {
-                    <span class="ident">VertexType</span>::<span class="ident">MoveTo</span> <span class="kw">if</span> <span class="ident">result</span>.<span class="ident">len</span>() <span class="op">!=</span> <span class="number">0</span> <span class="op">=&gt;</span> {
+                    <span class="ident">VertexType</span>::<span class="ident">MoveTo</span> <span class="kw">if</span> <span class="ident">current</span>.<span class="ident">len</span>() <span class="op">!=</span> <span class="number">0</span> <span class="op">=&gt;</span> {
                         <span class="ident">result</span>.<span class="ident">push</span>(<span class="ident">Contour</span> {
                             <span class="ident">segments</span>: <span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">current</span>, <span class="ident">Vec</span>::<span class="ident">new</span>())
                         })
@@ -1489,7 +1499,7 @@
     <span class="doccomment">/// conservative pixel-boundary bounding box. The coordinates are relative to the glyph&#39;s origin.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">exact_bounding_box</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Rect</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;&gt;</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">g</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_box</span>(<span class="ident">id</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">bb</span><span class="op">|</span> {
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_box</span>(<span class="ident">id</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">bb</span><span class="op">|</span> {
                 <span class="ident">Rect</span> {
                     <span class="ident">min</span>: <span class="ident">point</span>(<span class="ident">bb</span>.<span class="ident">x0</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">x</span>, <span class="op">-</span><span class="ident">bb</span>.<span class="ident">y1</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">y</span>),
                     <span class="ident">max</span>: <span class="ident">point</span>(<span class="ident">bb</span>.<span class="ident">x1</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">x</span>, <span class="op">-</span><span class="ident">bb</span>.<span class="ident">y0</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">scale</span>.<span class="ident">y</span>)
@@ -1568,7 +1578,7 @@
         <span class="kw">use</span> <span class="ident">geometry</span>::{<span class="ident">Line</span>, <span class="ident">Curve</span>};
         <span class="kw">use</span> <span class="ident">stb_truetype</span>::<span class="ident">VertexType</span>;
         <span class="kw">let</span> <span class="ident">shape</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">sg</span>.<span class="ident">g</span>.<span class="ident">inner</span> {
-            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_shape</span>(<span class="ident">id</span>).<span class="ident">unwrap_or_else</span>(<span class="op">||</span> <span class="ident">Vec</span>::<span class="ident">new</span>()),
+            <span class="ident">GlyphInner</span>::<span class="ident">Proxy</span>(<span class="kw-2">ref</span> <span class="ident">font</span>, <span class="ident">id</span>) <span class="op">=&gt;</span> <span class="ident">font</span>.<span class="ident">info</span>.<span class="ident">get_glyph_shape</span>(<span class="ident">id</span>).<span class="ident">unwrap_or_else</span>(<span class="op">||</span> <span class="ident">Vec</span>::<span class="ident">new</span>()),
             <span class="ident">GlyphInner</span>::<span class="ident">Shared</span>(<span class="kw-2">ref</span> <span class="ident">data</span>) <span class="op">=&gt;</span> <span class="ident">data</span>.<span class="ident">shape</span>.<span class="ident">clone</span>().<span class="ident">unwrap_or_else</span>(<span class="op">||</span> <span class="ident">Vec</span>::<span class="ident">new</span>())
         };
         <span class="kw">let</span> <span class="ident">bb</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">bb</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">bb</span>.<span class="ident">as_ref</span>() {
@@ -1631,20 +1641,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

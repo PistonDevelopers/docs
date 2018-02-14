@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Capability","capabilities advertised by the compositor"],["Error","wl_fullscreen_shell error values"],["PresentMethod","different method to set the surface fullscreen"]],"struct":[["ZwpFullscreenShellV1",""]],"trait":[["Handler",""]]});

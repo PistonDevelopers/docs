@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/libloading-0.3.4/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/libloading-0.4.3/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -325,6 +335,39 @@
 <span id="279">279</span>
 <span id="280">280</span>
 <span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! A memory-safer wrapper around system dynamic library loading primitives.</span>
 <span class="doccomment">//!</span>
@@ -345,7 +388,7 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! ```toml</span>
 <span class="doccomment">//! [dependencies]</span>
-<span class="doccomment">//! libloading = &quot;0.3&quot;</span>
+<span class="doccomment">//! libloading = &quot;0.4&quot;</span>
 <span class="doccomment">//! ```</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! Then inside your project</span>
@@ -354,9 +397,9 @@
 <span class="doccomment">//! extern crate libloading as lib;</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! fn call_dynamic() -&gt; lib::Result&lt;u32&gt; {</span>
-<span class="doccomment">//!     let lib = try!(lib::Library::new(&quot;/path/to/liblibrary.so&quot;));</span>
+<span class="doccomment">//!     let lib = lib::Library::new(&quot;/path/to/liblibrary.so&quot;)?;</span>
 <span class="doccomment">//!     unsafe {</span>
-<span class="doccomment">//!         let func: lib::Symbol&lt;unsafe extern fn() -&gt; u32&gt; = try!(lib.get(b&quot;my_func&quot;));</span>
+<span class="doccomment">//!         let func: lib::Symbol&lt;unsafe extern fn() -&gt; u32&gt; = lib.get(b&quot;my_func&quot;)?;</span>
 <span class="doccomment">//!         Ok(func())</span>
 <span class="doccomment">//!     }</span>
 <span class="doccomment">//! }</span>
@@ -396,14 +439,26 @@
     <span class="doccomment">/// * Absolute path to the library;</span>
     <span class="doccomment">/// * Relative (to the current working directory) path to the library.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// ## Platform-specific behaviour</span>
+    <span class="doccomment">/// ## Thread-safety</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// When a plain library filename is supplied, locations where library is searched for is</span>
-    <span class="doccomment">/// platform specific and cannot be adjusted in a portable manner.</span>
+    <span class="doccomment">/// The implementation strives to be as MT-safe as sanely possible, however due to certain</span>
+    <span class="doccomment">/// error-handling related resources not always being safe, this library is not MT-safe either.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * On Windows Vista and earlier error handling falls back to [`SetErrorMode`], which is not</span>
+    <span class="doccomment">///   MT-safe. MT-scenarios involving this function may cause a traditional data race;</span>
+    <span class="doccomment">/// * On some UNIX targets `dlerror` might not be MT-safe, resulting in garbage error messages</span>
+    <span class="doccomment">///   in certain MT-scenarios.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [`SetErrorMode`]: https://msdn.microsoft.com/en-us/library/windows/desktop/ms680621(v=vs.85).aspx</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Calling this function from multiple threads is not safe if used in conjunction with</span>
     <span class="doccomment">/// path-less filename and library search path is modified (`SetDllDirectory` function on</span>
     <span class="doccomment">/// Windows, `{DY,}LD_LIBRARY_PATH` environment variable on UNIX).</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ## Platform-specific behaviour</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When a plain library filename is supplied, locations where library is searched for is</span>
+    <span class="doccomment">/// platform specific and cannot be adjusted in a portable manner.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ### Windows</span>
     <span class="doccomment">///</span>
@@ -582,6 +637,27 @@
     }
 }
 
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;lib</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Symbol</span><span class="op">&lt;</span><span class="lifetime">&#39;lib</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;&gt;</span> {
+    <span class="doccomment">/// Lift Option out of the symbol.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ## Examples</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ```no_run</span>
+    <span class="doccomment">/// # use ::libloading::{Library, Symbol};</span>
+    <span class="doccomment">/// let lib = Library::new(&quot;/path/to/awesome.module&quot;).unwrap();</span>
+    <span class="doccomment">/// unsafe {</span>
+    <span class="doccomment">///     let symbol: Symbol&lt;Option&lt;*mut u32&gt;&gt; = lib.get(b&quot;symbol\0&quot;).unwrap();</span>
+    <span class="doccomment">///     let symbol: Symbol&lt;*mut u32&gt; = symbol.lift_option().expect(&quot;static is not null&quot;);</span>
+    <span class="doccomment">/// }</span>
+    <span class="doccomment">/// ```</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">lift_option</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Symbol</span><span class="op">&lt;</span><span class="lifetime">&#39;lib</span>, <span class="ident">T</span><span class="op">&gt;&gt;</span> {
+        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">lift_option</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">is</span><span class="op">|</span> <span class="ident">Symbol</span> {
+            <span class="ident">inner</span>: <span class="ident">is</span>,
+            <span class="ident">pd</span>: <span class="ident">marker</span>::<span class="ident">PhantomData</span>,
+        })
+    }
+}
+
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;lib</span>, <span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">Symbol</span><span class="op">&lt;</span><span class="lifetime">&#39;lib</span>, <span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Symbol</span><span class="op">&lt;</span><span class="lifetime">&#39;lib</span>, <span class="ident">T</span><span class="op">&gt;</span> {
         <span class="ident">Symbol</span> {
@@ -621,20 +697,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

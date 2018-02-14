@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["WlBuffer",""]],"trait":[["Handler",""]]});
+initSidebarItems({"struct":[["Implementation",""],["WlBuffer",""]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["ZwpPointerGestureSwipeV1",""]],"trait":[["Handler",""]]});

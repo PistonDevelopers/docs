@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.8.3/src/platform/linux/x11/window.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.10.0/src/platform/linux/x11/window.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>window.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../../../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../main.css" id="themeStyle">
+    <script src="../../../../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../../../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../../../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -767,6 +777,50 @@
 <span id="721">721</span>
 <span id="722">722</span>
 <span id="723">723</span>
+<span id="724">724</span>
+<span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
+<span id="740">740</span>
+<span id="741">741</span>
+<span id="742">742</span>
+<span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">MouseCursor</span>;
 <span class="kw">use</span> <span class="ident">CreationError</span>;
@@ -775,7 +829,7 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Borrow</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">mem</span>, <span class="ident">cmp</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::{<span class="ident">c_int</span>, <span class="ident">c_long</span>, <span class="ident">c_uchar</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::{<span class="ident">c_int</span>, <span class="ident">c_long</span>, <span class="ident">c_uchar</span>, <span class="ident">c_ulong</span>, <span class="ident">c_void</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">thread</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">time</span>::<span class="ident">Duration</span>;
 
@@ -789,14 +843,31 @@
 
 <span class="kw">use</span> <span class="ident">platform</span>::<span class="ident">x11</span>::<span class="ident">monitor</span>::<span class="ident">get_available_monitors</span>;
 
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">ffi</span>};
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">XConnection</span>, <span class="ident">WindowId</span>, <span class="ident">EventsLoop</span>};
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">ffi</span>, <span class="ident">util</span>, <span class="ident">XConnection</span>, <span class="ident">WindowId</span>, <span class="ident">EventsLoop</span>};
 
 <span class="comment">// TODO: remove me</span>
 <span class="kw">fn</span> <span class="ident">with_c_str</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">f</span>: <span class="ident">F</span>) <span class="op">-&gt;</span> <span class="ident">T</span> <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>(<span class="kw-2">*</span><span class="kw">const</span> <span class="ident">libc</span>::<span class="ident">c_char</span>) <span class="op">-&gt;</span> <span class="ident">T</span> {
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ffi</span>::<span class="ident">CString</span>;
     <span class="kw">let</span> <span class="ident">c_str</span> <span class="op">=</span> <span class="ident">CString</span>::<span class="ident">new</span>(<span class="ident">s</span>.<span class="ident">as_bytes</span>().<span class="ident">to_vec</span>()).<span class="ident">unwrap</span>();
     <span class="ident">f</span>(<span class="ident">c_str</span>.<span class="ident">as_ptr</span>())
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">enum</span> <span class="ident">StateOperation</span> {
+    <span class="ident">Remove</span> <span class="op">=</span> <span class="number">0</span>, <span class="comment">// _NET_WM_STATE_REMOVE</span>
+    <span class="ident">Add</span> <span class="op">=</span> <span class="number">1</span>, <span class="comment">// _NET_WM_STATE_ADD</span>
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
+    <span class="ident">Toggle</span> <span class="op">=</span> <span class="number">2</span>, <span class="comment">// _NET_WM_STATE_TOGGLE</span>
+}
+
+<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">StateOperation</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">b</span>: <span class="ident">bool</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+        <span class="kw">if</span> <span class="ident">b</span> {
+            <span class="ident">StateOperation</span>::<span class="ident">Add</span>
+        } <span class="kw">else</span> {
+            <span class="ident">StateOperation</span>::<span class="ident">Remove</span>
+        }
+    }
 }
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">XWindow</span> {
@@ -814,6 +885,7 @@
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Window2</span> {
     <span class="kw">pub</span> <span class="ident">x</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">XWindow</span><span class="op">&gt;</span>,
+    <span class="ident">cursor</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">MouseCursor</span><span class="op">&gt;</span>,
     <span class="ident">cursor_state</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">CursorState</span><span class="op">&gt;</span>,
 }
 
@@ -895,85 +967,6 @@
             <span class="ident">win</span>
         };
 
-        <span class="comment">// Set ICCCM WM_CLASS property based on initial window title</span>
-        <span class="comment">// Must be done *before* mapping the window by ICCCM 4.1.2.5</span>
-        <span class="kw">unsafe</span> {
-            <span class="ident">with_c_str</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">window_attrs</span>.<span class="ident">title</span>, <span class="op">|</span><span class="ident">c_name</span><span class="op">|</span> {
-                <span class="kw">let</span> <span class="ident">hint</span> <span class="op">=</span> (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XAllocClassHint</span>)();
-                (<span class="kw-2">*</span><span class="ident">hint</span>).<span class="ident">res_name</span> <span class="op">=</span> <span class="ident">c_name</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_char</span>;
-                (<span class="kw-2">*</span><span class="ident">hint</span>).<span class="ident">res_class</span> <span class="op">=</span> <span class="ident">c_name</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_char</span>;
-                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetClassHint</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">window</span>, <span class="ident">hint</span>);
-                <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetClassHint&quot;</span>);
-                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFree</span>)(<span class="ident">hint</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _);
-            });
-        }
-
-        <span class="comment">// set visibility</span>
-        <span class="kw">if</span> <span class="ident">window_attrs</span>.<span class="ident">visible</span> {
-            <span class="kw">unsafe</span> {
-                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XMapRaised</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">window</span>);
-                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="ident">display</span>.<span class="ident">display</span>);
-            }
-
-            <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to set window visibility&quot;</span>);
-        }
-
-        <span class="comment">// Opt into handling window close</span>
-        <span class="kw">unsafe</span> {
-            (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetWMProtocols</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">window</span>, <span class="kw-2">&amp;</span><span class="ident">ctx</span>.<span class="ident">wm_delete_window</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _ <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _, <span class="number">1</span>);
-            <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetWMProtocols&quot;</span>);
-            (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="ident">display</span>.<span class="ident">display</span>);
-            <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XFlush&quot;</span>);
-        }
-
-        <span class="comment">// Attempt to make keyboard input repeat detectable</span>
-        <span class="kw">unsafe</span> {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">supported_ptr</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">False</span>;
-            (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XkbSetDetectableAutoRepeat</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">ffi</span>::<span class="ident">True</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">supported_ptr</span>);
-            <span class="kw">if</span> <span class="ident">supported_ptr</span> <span class="op">==</span> <span class="ident">ffi</span>::<span class="ident">False</span> {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">OsError</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;XkbSetDetectableAutoRepeat failed&quot;</span>)));
-            }
-        }
-
-        <span class="comment">// set size hints</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">size_hints</span>: <span class="ident">ffi</span>::<span class="ident">XSizeHints</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">mem</span>::<span class="ident">zeroed</span>() };
-        <span class="ident">size_hints</span>.<span class="ident">flags</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">PSize</span>;
-        <span class="ident">size_hints</span>.<span class="ident">width</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">i32</span>;
-        <span class="ident">size_hints</span>.<span class="ident">height</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">i32</span>;
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">dimensions</span>) <span class="op">=</span> <span class="ident">window_attrs</span>.<span class="ident">min_dimensions</span> {
-            <span class="ident">size_hints</span>.<span class="ident">flags</span> <span class="op">|=</span> <span class="ident">ffi</span>::<span class="ident">PMinSize</span>;
-            <span class="ident">size_hints</span>.<span class="ident">min_width</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">i32</span>;
-            <span class="ident">size_hints</span>.<span class="ident">min_height</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">i32</span>;
-        }
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">dimensions</span>) <span class="op">=</span> <span class="ident">window_attrs</span>.<span class="ident">max_dimensions</span> {
-            <span class="ident">size_hints</span>.<span class="ident">flags</span> <span class="op">|=</span> <span class="ident">ffi</span>::<span class="ident">PMaxSize</span>;
-            <span class="ident">size_hints</span>.<span class="ident">max_width</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">i32</span>;
-            <span class="ident">size_hints</span>.<span class="ident">max_height</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">i32</span>;
-        }
-        <span class="kw">unsafe</span> {
-            (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetNormalHints</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">window</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">size_hints</span>);
-            <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetNormalHints&quot;</span>);
-        }
-
-        <span class="comment">// Select XInput2 events</span>
-        {
-            <span class="kw">let</span> <span class="ident">mask</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">XI_MotionMask</span>
-                <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_ButtonPressMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_ButtonReleaseMask</span>
-                <span class="comment">// | ffi::XI_KeyPressMask | ffi::XI_KeyReleaseMask</span>
-                <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_EnterMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_LeaveMask</span>
-                <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_FocusInMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_FocusOutMask</span>
-                <span class="op">|</span> <span class="kw">if</span> <span class="ident">window_attrs</span>.<span class="ident">multitouch</span> { <span class="ident">ffi</span>::<span class="ident">XI_TouchBeginMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_TouchUpdateMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_TouchEndMask</span> } <span class="kw">else</span> { <span class="number">0</span> };
-            <span class="kw">unsafe</span> {
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">event_mask</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">XIEventMask</span>{
-                    <span class="ident">deviceid</span>: <span class="ident">ffi</span>::<span class="ident">XIAllMasterDevices</span>,
-                    <span class="ident">mask</span>: <span class="ident">mem</span>::<span class="ident">transmute</span>::<span class="op">&lt;</span><span class="kw-2">*</span><span class="kw">const</span> <span class="ident">i32</span>, <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_uchar</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">mask</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">i32</span>),
-                    <span class="ident">mask_len</span>: <span class="ident">mem</span>::<span class="ident">size_of_val</span>(<span class="kw-2">&amp;</span><span class="ident">mask</span>) <span class="kw">as</span> <span class="ident">c_int</span>,
-                };
-                (<span class="ident">display</span>.<span class="ident">xinput2</span>.<span class="ident">XISelectEvents</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">window</span>,
-                                                 <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">event_mask</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ffi</span>::<span class="ident">XIEventMask</span>, <span class="number">1</span>);
-            };
-        }
-
         <span class="kw">let</span> <span class="ident">window</span> <span class="op">=</span> <span class="ident">Window2</span> {
             <span class="ident">x</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">XWindow</span> {
                 <span class="ident">display</span>: <span class="ident">display</span>.<span class="ident">clone</span>(),
@@ -981,38 +974,142 @@
                 <span class="ident">root</span>,
                 <span class="ident">screen_id</span>,
             }),
+            <span class="ident">cursor</span>: <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">MouseCursor</span>::<span class="ident">Default</span>),
             <span class="ident">cursor_state</span>: <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">CursorState</span>::<span class="ident">Normal</span>),
         };
 
+        <span class="comment">// Title must be set before mapping, lest some tiling window managers briefly pick up on</span>
+        <span class="comment">// the initial un-titled window state</span>
         <span class="ident">window</span>.<span class="ident">set_title</span>(<span class="kw-2">&amp;</span><span class="ident">window_attrs</span>.<span class="ident">title</span>);
         <span class="ident">window</span>.<span class="ident">set_decorations</span>(<span class="ident">window_attrs</span>.<span class="ident">decorations</span>);
-        <span class="ident">window</span>.<span class="ident">set_maximized</span>(<span class="ident">window_attrs</span>.<span class="ident">maximized</span>);
-        <span class="ident">window</span>.<span class="ident">set_fullscreen</span>(<span class="ident">window_attrs</span>.<span class="ident">fullscreen</span>.<span class="ident">clone</span>());
 
-        <span class="kw">if</span> <span class="ident">window_attrs</span>.<span class="ident">visible</span> {
+        {
+            <span class="kw">let</span> <span class="kw-2">ref</span> <span class="ident">x_window</span>: <span class="kw-2">&amp;</span><span class="ident">XWindow</span> <span class="op">=</span> <span class="ident">window</span>.<span class="ident">x</span>.<span class="ident">borrow</span>();
+
+            <span class="comment">// Enable drag and drop</span>
             <span class="kw">unsafe</span> {
-                <span class="kw">let</span> <span class="kw-2">ref</span> <span class="ident">x_window</span>: <span class="kw-2">&amp;</span><span class="ident">XWindow</span> <span class="op">=</span> <span class="ident">window</span>.<span class="ident">x</span>.<span class="ident">borrow</span>();
+                <span class="kw">let</span> <span class="ident">atom</span> <span class="op">=</span> <span class="ident">util</span>::<span class="ident">get_atom</span>(<span class="ident">display</span>, <span class="string">b&quot;XdndAware\0&quot;</span>)
+                    .<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom (XdndAware)&quot;</span>);
+                <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="number">5</span>; <span class="comment">// Latest version; hasn&#39;t changed since 2002</span>
+                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XChangeProperty</span>)(
+                    <span class="ident">display</span>.<span class="ident">display</span>,
+                    <span class="ident">x_window</span>.<span class="ident">window</span>,
+                    <span class="ident">atom</span>,
+                    <span class="ident">ffi</span>::<span class="ident">XA_ATOM</span>,
+                    <span class="number">32</span>,
+                    <span class="ident">ffi</span>::<span class="ident">PropModeReplace</span>,
+                    <span class="ident">version</span>,
+                    <span class="number">1</span>
+                );
+                <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to set drag and drop properties&quot;</span>);
+            }
 
-                <span class="comment">// XSetInputFocus generates an error if the window is not visible,</span>
-                <span class="comment">// therefore we wait until it&#39;s the case.</span>
-                <span class="kw">loop</span> {
-                    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">window_attributes</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">uninitialized</span>();
-                    (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XGetWindowAttributes</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">window_attributes</span>);
-                    <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XGetWindowAttributes&quot;</span>);
+            <span class="comment">// Set ICCCM WM_CLASS property based on initial window title</span>
+            <span class="comment">// Must be done *before* mapping the window by ICCCM 4.1.2.5</span>
+            <span class="kw">unsafe</span> {
+                <span class="ident">with_c_str</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">window_attrs</span>.<span class="ident">title</span>, <span class="op">|</span><span class="ident">c_name</span><span class="op">|</span> {
+                    <span class="kw">let</span> <span class="ident">hint</span> <span class="op">=</span> (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XAllocClassHint</span>)();
+                    (<span class="kw-2">*</span><span class="ident">hint</span>).<span class="ident">res_name</span> <span class="op">=</span> <span class="ident">c_name</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_char</span>;
+                    (<span class="kw-2">*</span><span class="ident">hint</span>).<span class="ident">res_class</span> <span class="op">=</span> <span class="ident">c_name</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_char</span>;
+                    (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetClassHint</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>, <span class="ident">hint</span>);
+                    <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetClassHint&quot;</span>);
+                    (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFree</span>)(<span class="ident">hint</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _);
+                });
+            }
 
-                    <span class="kw">if</span> <span class="ident">window_attributes</span>.<span class="ident">map_state</span> <span class="op">==</span> <span class="ident">ffi</span>::<span class="ident">IsViewable</span> {
-                        (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetInputFocus</span>)(
-                            <span class="ident">display</span>.<span class="ident">display</span>,
-                            <span class="ident">x_window</span>.<span class="ident">window</span>,
-                            <span class="ident">ffi</span>::<span class="ident">RevertToParent</span>,
-                            <span class="ident">ffi</span>::<span class="ident">CurrentTime</span>
-                        );
-                        <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetInputFocus&quot;</span>);
-                        <span class="kw">break</span>;
+            <span class="comment">// set size hints</span>
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">size_hints</span>: <span class="ident">ffi</span>::<span class="ident">XSizeHints</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">mem</span>::<span class="ident">zeroed</span>() };
+            <span class="ident">size_hints</span>.<span class="ident">flags</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">PSize</span>;
+            <span class="ident">size_hints</span>.<span class="ident">width</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">i32</span>;
+            <span class="ident">size_hints</span>.<span class="ident">height</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">i32</span>;
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">dimensions</span>) <span class="op">=</span> <span class="ident">window_attrs</span>.<span class="ident">min_dimensions</span> {
+                <span class="ident">size_hints</span>.<span class="ident">flags</span> <span class="op">|=</span> <span class="ident">ffi</span>::<span class="ident">PMinSize</span>;
+                <span class="ident">size_hints</span>.<span class="ident">min_width</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">i32</span>;
+                <span class="ident">size_hints</span>.<span class="ident">min_height</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">i32</span>;
+            }
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">dimensions</span>) <span class="op">=</span> <span class="ident">window_attrs</span>.<span class="ident">max_dimensions</span> {
+                <span class="ident">size_hints</span>.<span class="ident">flags</span> <span class="op">|=</span> <span class="ident">ffi</span>::<span class="ident">PMaxSize</span>;
+                <span class="ident">size_hints</span>.<span class="ident">max_width</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">i32</span>;
+                <span class="ident">size_hints</span>.<span class="ident">max_height</span> <span class="op">=</span> <span class="ident">dimensions</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">i32</span>;
+            }
+            <span class="kw">unsafe</span> {
+                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetNormalHints</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">size_hints</span>);
+                <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetNormalHints&quot;</span>);
+            }
+
+            <span class="comment">// Opt into handling window close</span>
+            <span class="kw">unsafe</span> {
+                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetWMProtocols</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>, <span class="kw-2">&amp;</span><span class="ident">ctx</span>.<span class="ident">wm_delete_window</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _ <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _, <span class="number">1</span>);
+                <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetWMProtocols&quot;</span>);
+                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="ident">display</span>.<span class="ident">display</span>);
+                <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XFlush&quot;</span>);
+            }
+
+            <span class="comment">// Set visibility (map window)</span>
+            <span class="kw">if</span> <span class="ident">window_attrs</span>.<span class="ident">visible</span> {
+                <span class="kw">unsafe</span> {
+                    (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XMapRaised</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>);
+                    (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="ident">display</span>.<span class="ident">display</span>);
+                }
+
+                <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to set window visibility&quot;</span>);
+            }
+
+            <span class="comment">// Attempt to make keyboard input repeat detectable</span>
+            <span class="kw">unsafe</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">supported_ptr</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">False</span>;
+                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XkbSetDetectableAutoRepeat</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">ffi</span>::<span class="ident">True</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">supported_ptr</span>);
+                <span class="kw">if</span> <span class="ident">supported_ptr</span> <span class="op">==</span> <span class="ident">ffi</span>::<span class="ident">False</span> {
+                    <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">OsError</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;XkbSetDetectableAutoRepeat failed&quot;</span>)));
+                }
+            }
+
+            <span class="comment">// Select XInput2 events</span>
+            {
+                <span class="kw">let</span> <span class="ident">mask</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">XI_MotionMask</span>
+                    <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_ButtonPressMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_ButtonReleaseMask</span>
+                    <span class="comment">// | ffi::XI_KeyPressMask | ffi::XI_KeyReleaseMask</span>
+                    <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_EnterMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_LeaveMask</span>
+                    <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_FocusInMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_FocusOutMask</span>
+                    <span class="op">|</span> <span class="kw">if</span> <span class="ident">window_attrs</span>.<span class="ident">multitouch</span> { <span class="ident">ffi</span>::<span class="ident">XI_TouchBeginMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_TouchUpdateMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">XI_TouchEndMask</span> } <span class="kw">else</span> { <span class="number">0</span> };
+                <span class="kw">unsafe</span> {
+                    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">event_mask</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">XIEventMask</span>{
+                        <span class="ident">deviceid</span>: <span class="ident">ffi</span>::<span class="ident">XIAllMasterDevices</span>,
+                        <span class="ident">mask</span>: <span class="ident">mem</span>::<span class="ident">transmute</span>::<span class="op">&lt;</span><span class="kw-2">*</span><span class="kw">const</span> <span class="ident">i32</span>, <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_uchar</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">mask</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">i32</span>),
+                        <span class="ident">mask_len</span>: <span class="ident">mem</span>::<span class="ident">size_of_val</span>(<span class="kw-2">&amp;</span><span class="ident">mask</span>) <span class="kw">as</span> <span class="ident">c_int</span>,
+                    };
+                    (<span class="ident">display</span>.<span class="ident">xinput2</span>.<span class="ident">XISelectEvents</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>,
+                                                     <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">event_mask</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ffi</span>::<span class="ident">XIEventMask</span>, <span class="number">1</span>);
+                };
+            }
+
+            <span class="comment">// These properties must be set after mapping</span>
+            <span class="ident">window</span>.<span class="ident">set_maximized</span>(<span class="ident">window_attrs</span>.<span class="ident">maximized</span>);
+            <span class="ident">window</span>.<span class="ident">set_fullscreen</span>(<span class="ident">window_attrs</span>.<span class="ident">fullscreen</span>.<span class="ident">clone</span>());
+
+            <span class="kw">if</span> <span class="ident">window_attrs</span>.<span class="ident">visible</span> {
+                <span class="kw">unsafe</span> {
+                    <span class="comment">// XSetInputFocus generates an error if the window is not visible,</span>
+                    <span class="comment">// therefore we wait until it&#39;s the case.</span>
+                    <span class="kw">loop</span> {
+                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">window_attributes</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">uninitialized</span>();
+                        (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XGetWindowAttributes</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">x_window</span>.<span class="ident">window</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">window_attributes</span>);
+                        <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XGetWindowAttributes&quot;</span>);
+
+                        <span class="kw">if</span> <span class="ident">window_attributes</span>.<span class="ident">map_state</span> <span class="op">==</span> <span class="ident">ffi</span>::<span class="ident">IsViewable</span> {
+                            (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSetInputFocus</span>)(
+                                <span class="ident">display</span>.<span class="ident">display</span>,
+                                <span class="ident">x_window</span>.<span class="ident">window</span>,
+                                <span class="ident">ffi</span>::<span class="ident">RevertToParent</span>,
+                                <span class="ident">ffi</span>::<span class="ident">CurrentTime</span>
+                            );
+                            <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSetInputFocus&quot;</span>);
+                            <span class="kw">break</span>;
+                        }
+
+                        <span class="comment">// Wait about a frame to avoid too-busy waiting</span>
+                        <span class="ident">thread</span>::<span class="ident">sleep</span>(<span class="ident">Duration</span>::<span class="ident">from_millis</span>(<span class="number">16</span>));
                     }
-
-                    <span class="comment">// Wait about a frame to avoid too-busy waiting</span>
-                    <span class="ident">thread</span>::<span class="ident">sleep</span>(<span class="ident">Duration</span>::<span class="ident">from_millis</span>(<span class="number">16</span>));
                 }
             }
         }
@@ -1021,49 +1118,32 @@
         <span class="prelude-val">Ok</span>(<span class="ident">window</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">set_netwm</span>(<span class="ident">display</span>: <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">XConnection</span><span class="op">&gt;</span>, <span class="ident">window</span>: <span class="ident">ffi</span>::<span class="ident">Window</span>, <span class="ident">root</span>: <span class="ident">ffi</span>::<span class="ident">Window</span>, <span class="ident">property</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">val</span>: <span class="ident">bool</span>) {
-        <span class="kw">let</span> <span class="ident">state_atom</span> <span class="op">=</span> <span class="kw">unsafe</span> {
-            <span class="ident">with_c_str</span>(<span class="string">&quot;_NET_WM_STATE&quot;</span>, <span class="op">|</span><span class="ident">state</span><span class="op">|</span>
-                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XInternAtom</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">state</span>, <span class="number">0</span>)
-            )
-        };
-        <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom&quot;</span>);
-        <span class="kw">let</span> <span class="ident">atom</span> <span class="op">=</span> <span class="kw">unsafe</span> {
-            <span class="ident">with_c_str</span>(<span class="ident">property</span>, <span class="op">|</span><span class="ident">state</span><span class="op">|</span>
-                (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XInternAtom</span>)(<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">state</span>, <span class="number">0</span>)
-            )
-        };
-        <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom&quot;</span>);
-
-        <span class="kw">let</span> <span class="ident">client_message_event</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">XClientMessageEvent</span> {
-            <span class="ident">type_</span>: <span class="ident">ffi</span>::<span class="ident">ClientMessage</span>,
-            <span class="ident">serial</span>: <span class="number">0</span>,
-            <span class="ident">send_event</span>: <span class="number">1</span>,            <span class="comment">// true because we are sending this through `XSendEvent`</span>
-            <span class="ident">display</span>: <span class="ident">display</span>.<span class="ident">display</span>,
-            <span class="ident">window</span>: <span class="ident">window</span>,
-            <span class="ident">message_type</span>: <span class="ident">state_atom</span>, <span class="comment">// the _NET_WM_STATE atom is sent to change the state of a window</span>
-            <span class="ident">format</span>: <span class="number">32</span>,               <span class="comment">// view `data` as `c_long`s</span>
-            <span class="ident">data</span>: {
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">ClientMessageData</span>::<span class="ident">new</span>();
-                <span class="comment">// This first `long` is the action; `1` means add/set following property.</span>
-                <span class="ident">data</span>.<span class="ident">set_long</span>(<span class="number">0</span>, <span class="ident">val</span> <span class="kw">as</span> <span class="ident">c_long</span>);
-                <span class="comment">// This second `long` is the property to set (fullscreen)</span>
-                <span class="ident">data</span>.<span class="ident">set_long</span>(<span class="number">1</span>, <span class="ident">atom</span> <span class="kw">as</span> <span class="ident">c_long</span>);
-                <span class="ident">data</span>
-            }
-        };
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">x_event</span> <span class="op">=</span> <span class="ident">ffi</span>::<span class="ident">XEvent</span>::<span class="ident">from</span>(<span class="ident">client_message_event</span>);
+    <span class="kw">fn</span> <span class="ident">set_netwm</span>(
+        <span class="ident">xconn</span>: <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">XConnection</span><span class="op">&gt;</span>,
+        <span class="ident">window</span>: <span class="ident">ffi</span>::<span class="ident">Window</span>,
+        <span class="ident">root</span>: <span class="ident">ffi</span>::<span class="ident">Window</span>,
+        <span class="ident">properties</span>: (<span class="ident">c_long</span>, <span class="ident">c_long</span>, <span class="ident">c_long</span>, <span class="ident">c_long</span>),
+        <span class="ident">operation</span>: <span class="ident">StateOperation</span>
+    ) {
+        <span class="kw">let</span> <span class="ident">state_atom</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">util</span>::<span class="ident">get_atom</span>(<span class="ident">xconn</span>, <span class="string">b&quot;_NET_WM_STATE\0&quot;</span>) }
+            .<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom (_NET_WM_STATE)&quot;</span>);
 
         <span class="kw">unsafe</span> {
-            (<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XSendEvent</span>)(
-                <span class="ident">display</span>.<span class="ident">display</span>,
+            <span class="ident">util</span>::<span class="ident">send_client_msg</span>(
+                <span class="ident">xconn</span>,
+                <span class="ident">window</span>,
                 <span class="ident">root</span>,
-                <span class="number">0</span>,
-                <span class="ident">ffi</span>::<span class="ident">SubstructureRedirectMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">SubstructureNotifyMask</span>,
-                <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">x_event</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _
-            );
-            <span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XSendEvent&quot;</span>);
-        }
+                <span class="ident">state_atom</span>,
+                <span class="prelude-val">Some</span>(<span class="ident">ffi</span>::<span class="ident">SubstructureRedirectMask</span> <span class="op">|</span> <span class="ident">ffi</span>::<span class="ident">SubstructureNotifyMask</span>),
+                (
+                    <span class="ident">operation</span> <span class="kw">as</span> <span class="ident">c_long</span>,
+                    <span class="ident">properties</span>.<span class="number">0</span>,
+                    <span class="ident">properties</span>.<span class="number">1</span>,
+                    <span class="ident">properties</span>.<span class="number">2</span>,
+                    <span class="ident">properties</span>.<span class="number">3</span>,
+                )
+            )
+        }.<span class="ident">expect</span>(<span class="string">&quot;Failed to send NET_WM hint.&quot;</span>);
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_fullscreen</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">monitor</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">RootMonitorId</span><span class="op">&gt;</span>) {
@@ -1102,6 +1182,8 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">find</span> <span class="op">=</span> <span class="ident">default</span>;
         <span class="kw">for</span> <span class="ident">monitor</span> <span class="kw">in</span> <span class="ident">monitors</span> {
             <span class="kw">let</span> (<span class="ident">mx</span>, <span class="ident">my</span>) <span class="op">=</span> <span class="ident">monitor</span>.<span class="ident">get_position</span>();
+            <span class="kw">let</span> <span class="ident">mx</span> <span class="op">=</span> <span class="ident">mx</span> <span class="kw">as</span> <span class="ident">u32</span>;
+            <span class="kw">let</span> <span class="ident">my</span> <span class="op">=</span> <span class="ident">my</span> <span class="kw">as</span> <span class="ident">u32</span>;
             <span class="kw">let</span> (<span class="ident">mw</span>, <span class="ident">mh</span>) <span class="op">=</span> <span class="ident">monitor</span>.<span class="ident">get_dimensions</span>();
             <span class="kw">let</span> (<span class="ident">mxo</span>, <span class="ident">myo</span>) <span class="op">=</span> (<span class="ident">mx</span><span class="op">+</span><span class="ident">mw</span><span class="op">-</span><span class="number">1</span>, <span class="ident">my</span><span class="op">+</span><span class="ident">mh</span><span class="op">-</span><span class="number">1</span>);
             <span class="kw">let</span> (<span class="ident">ox</span>, <span class="ident">oy</span>) <span class="op">=</span> (<span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">wx</span>, <span class="ident">mx</span>), <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">wy</span>, <span class="ident">my</span>));
@@ -1118,12 +1200,35 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_maximized</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">maximized</span>: <span class="ident">bool</span>) {
-        <span class="ident">Window2</span>::<span class="ident">set_netwm</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">root</span>, <span class="string">&quot;_NET_WM_STATE_MAXIMIZED_HORZ&quot;</span>, <span class="ident">maximized</span>);
-        <span class="ident">Window2</span>::<span class="ident">set_netwm</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">root</span>, <span class="string">&quot;_NET_WM_STATE_MAXIMIZED_VERT&quot;</span>, <span class="ident">maximized</span>);
+        <span class="kw">let</span> <span class="ident">xconn</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>;
+
+        <span class="kw">let</span> <span class="ident">horz_atom</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">util</span>::<span class="ident">get_atom</span>(<span class="ident">xconn</span>, <span class="string">b&quot;_NET_WM_STATE_MAXIMIZED_HORZ\0&quot;</span>) }
+            .<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom (_NET_WM_STATE_MAXIMIZED_HORZ)&quot;</span>);
+        <span class="kw">let</span> <span class="ident">vert_atom</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">util</span>::<span class="ident">get_atom</span>(<span class="ident">xconn</span>, <span class="string">b&quot;_NET_WM_STATE_MAXIMIZED_VERT\0&quot;</span>) }
+            .<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom (_NET_WM_STATE_MAXIMIZED_VERT)&quot;</span>);
+
+        <span class="ident">Window2</span>::<span class="ident">set_netwm</span>(
+            <span class="ident">xconn</span>,
+            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>,
+            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">root</span>,
+            (<span class="ident">horz_atom</span> <span class="kw">as</span> <span class="ident">c_long</span>, <span class="ident">vert_atom</span> <span class="kw">as</span> <span class="ident">c_long</span>, <span class="number">0</span>, <span class="number">0</span>),
+            <span class="ident">maximized</span>.<span class="ident">into</span>()
+        );
     }
 
     <span class="kw">fn</span> <span class="ident">set_fullscreen_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">fullscreen</span>: <span class="ident">bool</span>) {
-        <span class="ident">Window2</span>::<span class="ident">set_netwm</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">root</span>, <span class="string">&quot;_NET_WM_STATE_FULLSCREEN&quot;</span>, <span class="ident">fullscreen</span>);
+        <span class="kw">let</span> <span class="ident">xconn</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>;
+
+        <span class="kw">let</span> <span class="ident">fullscreen_atom</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">util</span>::<span class="ident">get_atom</span>(<span class="ident">xconn</span>, <span class="string">b&quot;_NET_WM_STATE_FULLSCREEN\0&quot;</span>) }
+            .<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom (_NET_WM_STATE_FULLSCREEN)&quot;</span>);
+
+        <span class="ident">Window2</span>::<span class="ident">set_netwm</span>(
+            <span class="ident">xconn</span>,
+            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>,
+            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">root</span>,
+            (<span class="ident">fullscreen_atom</span> <span class="kw">as</span> <span class="ident">c_long</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>),
+            <span class="ident">fullscreen</span>.<span class="ident">into</span>()
+        );
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_title</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">title</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) {
@@ -1153,40 +1258,36 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_decorations</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">decorations</span>: <span class="ident">bool</span>) {
         <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
         <span class="kw">struct</span> <span class="ident">MotifWindowHints</span> {
-            <span class="ident">flags</span>: <span class="ident">u32</span>,
-            <span class="ident">functions</span>: <span class="ident">u32</span>,
-            <span class="ident">decorations</span>: <span class="ident">u32</span>,
-            <span class="ident">input_mode</span>: <span class="ident">i32</span>,
-            <span class="ident">status</span>: <span class="ident">u32</span>,
+            <span class="ident">flags</span>: <span class="ident">c_ulong</span>,
+            <span class="ident">functions</span>: <span class="ident">c_ulong</span>,
+            <span class="ident">decorations</span>: <span class="ident">c_ulong</span>,
+            <span class="ident">input_mode</span>: <span class="ident">c_long</span>,
+            <span class="ident">status</span>: <span class="ident">c_ulong</span>,
         }
 
-        <span class="kw">let</span> <span class="ident">wm_hints</span> <span class="op">=</span> <span class="kw">unsafe</span> {
-            (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XInternAtom</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="string">b&quot;_MOTIF_WM_HINTS\0&quot;</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _, <span class="number">0</span>)
+        <span class="kw">let</span> <span class="ident">wm_hints</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">util</span>::<span class="ident">get_atom</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>, <span class="string">b&quot;_MOTIF_WM_HINTS\0&quot;</span>) }
+            .<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom (_MOTIF_WM_HINTS)&quot;</span>);
+
+        <span class="kw">let</span> <span class="ident">hints</span> <span class="op">=</span> <span class="ident">MotifWindowHints</span> {
+            <span class="ident">flags</span>: <span class="number">2</span>, <span class="comment">// MWM_HINTS_DECORATIONS</span>
+            <span class="ident">functions</span>: <span class="number">0</span>,
+            <span class="ident">decorations</span>: <span class="ident">decorations</span> <span class="kw">as</span> _,
+            <span class="ident">input_mode</span>: <span class="number">0</span>,
+            <span class="ident">status</span>: <span class="number">0</span>,
         };
-        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XInternAtom&quot;</span>);
 
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">decorations</span> {
-            <span class="kw">let</span> <span class="ident">hints</span> <span class="op">=</span> <span class="ident">MotifWindowHints</span> {
-                <span class="ident">flags</span>: <span class="number">2</span>, <span class="comment">// MWM_HINTS_DECORATIONS</span>
-                <span class="ident">functions</span>: <span class="number">0</span>,
-                <span class="ident">decorations</span>: <span class="number">0</span>,
-                <span class="ident">input_mode</span>: <span class="number">0</span>,
-                <span class="ident">status</span>: <span class="number">0</span>,
-            };
-
-            <span class="kw">unsafe</span> {
-                (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XChangeProperty</span>)(
-                    <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>,
-                    <span class="ident">wm_hints</span>, <span class="ident">wm_hints</span>, <span class="number">32</span> <span class="comment">/* Size of elements in struct */</span>,
-                    <span class="ident">ffi</span>::<span class="ident">PropModeReplace</span>, <span class="kw-2">&amp;</span><span class="ident">hints</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">MotifWindowHints</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">u8</span>,
-                    <span class="number">5</span> <span class="comment">/* Number of elements in struct */</span>);
-                (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>);
-            }
-        } <span class="kw">else</span> {
-            <span class="kw">unsafe</span> {
-                (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XDeleteProperty</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="ident">wm_hints</span>);
-                (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>);
-            }
+        <span class="kw">unsafe</span> {
+            (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XChangeProperty</span>)(
+                <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>,
+                <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>,
+                <span class="ident">wm_hints</span>,
+                <span class="ident">wm_hints</span>,
+                <span class="number">32</span>, <span class="comment">// struct members are longs</span>
+                <span class="ident">ffi</span>::<span class="ident">PropModeReplace</span>,
+                <span class="kw-2">&amp;</span><span class="ident">hints</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> _ <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">u8</span>,
+                <span class="number">5</span> <span class="comment">// struct has 5 members</span>
+            );
+            (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFlush</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>);
         }
 
         <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to set decorations&quot;</span>);
@@ -1243,7 +1344,7 @@
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_inner_size</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">u32</span>, <span class="ident">u32</span>)<span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_geometry</span>().<span class="ident">map</span>(<span class="op">|</span>(_, _, <span class="ident">w</span>, <span class="ident">h</span>, _)<span class="op">|</span> ((<span class="ident">w</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">hidpi_factor</span>()) <span class="kw">as</span> <span class="ident">u32</span>, (<span class="ident">h</span> <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="self">self</span>.<span class="ident">hidpi_factor</span>()) <span class="kw">as</span> <span class="ident">u32</span>))
+        <span class="self">self</span>.<span class="ident">get_geometry</span>().<span class="ident">map</span>(<span class="op">|</span>(_, _, <span class="ident">w</span>, <span class="ident">h</span>, _)<span class="op">|</span> (<span class="ident">w</span>, <span class="ident">h</span>))
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
@@ -1258,13 +1359,13 @@
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xlib_display</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span> {
-        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xlib_display</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span> {
+        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span> <span class="kw">as</span> _
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xlib_screen_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span> {
-        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">screen_id</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xlib_screen_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">c_int</span> {
+        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">screen_id</span>
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
@@ -1274,91 +1375,22 @@
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">platform_display</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span> {
-        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span>
+        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span> <span class="kw">as</span> _
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xlib_window</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span> {
-        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xlib_window</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">c_ulong</span> {
+        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">platform_window</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span> {
-        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span>
+        <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span> <span class="kw">as</span> _
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xcb_connection</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_xcb_connection</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span> {
         <span class="kw">unsafe</span> {
             (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib_xcb</span>.<span class="ident">XGetXCBConnection</span>)(<span class="self">self</span>.<span class="ident">get_xlib_display</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _
-        }
-    }
-
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_cursor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">cursor</span>: <span class="ident">MouseCursor</span>) {
-        <span class="kw">unsafe</span> {
-            <span class="kw">let</span> <span class="ident">load</span> <span class="op">=</span> <span class="op">|</span><span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">|</span> {
-                <span class="self">self</span>.<span class="ident">load_cursor</span>(<span class="ident">name</span>)
-            };
-
-            <span class="kw">let</span> <span class="ident">loadn</span> <span class="op">=</span> <span class="op">|</span><span class="ident">names</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]<span class="op">|</span> {
-                <span class="self">self</span>.<span class="ident">load_first_existing_cursor</span>(<span class="ident">names</span>)
-            };
-
-            <span class="comment">// Try multiple names in some cases where the name</span>
-            <span class="comment">// differs on the desktop environments or themes.</span>
-            <span class="comment">//</span>
-            <span class="comment">// Try the better looking (or more suiting) names first.</span>
-            <span class="kw">let</span> <span class="ident">xcursor</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">cursor</span> {
-                <span class="ident">MouseCursor</span>::<span class="ident">Alias</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;link&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Arrow</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;arrow&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Cell</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;plus&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Copy</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;copy&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Crosshair</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;crosshair&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Default</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;left_ptr&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Hand</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;hand2&quot;</span>, <span class="string">&quot;hand1&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">Help</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;question_arrow&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Move</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;move&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">Grab</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;openhand&quot;</span>, <span class="string">&quot;grab&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">Grabbing</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;closedhand&quot;</span>, <span class="string">&quot;grabbing&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">Progress</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;left_ptr_watch&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">AllScroll</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;all-scroll&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">ContextMenu</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;context-menu&quot;</span>),
-
-                <span class="ident">MouseCursor</span>::<span class="ident">NoDrop</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;no-drop&quot;</span>, <span class="string">&quot;circle&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">NotAllowed</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;crossed_circle&quot;</span>),
-
-
-                <span class="doccomment">/// Resize cursors</span>
-                <span class="ident">MouseCursor</span>::<span class="ident">EResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;right_side&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">NResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;top_side&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">NeResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;top_right_corner&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">NwResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;top_left_corner&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">SResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;bottom_side&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">SeResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;bottom_right_corner&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">SwResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;bottom_left_corner&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">WResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;left_side&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">EwResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;h_double_arrow&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">NsResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;v_double_arrow&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">NwseResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;bd_double_arrow&quot;</span>, <span class="string">&quot;size_bdiag&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">NeswResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;fd_double_arrow&quot;</span>, <span class="string">&quot;size_fdiag&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">ColResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;split_h&quot;</span>, <span class="string">&quot;h_double_arrow&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">RowResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;split_v&quot;</span>, <span class="string">&quot;v_double_arrow&quot;</span>]),
-
-                <span class="ident">MouseCursor</span>::<span class="ident">Text</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;text&quot;</span>, <span class="string">&quot;xterm&quot;</span>]),
-                <span class="ident">MouseCursor</span>::<span class="ident">VerticalText</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;vertical-text&quot;</span>),
-
-                <span class="ident">MouseCursor</span>::<span class="ident">Wait</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;watch&quot;</span>),
-
-                <span class="ident">MouseCursor</span>::<span class="ident">ZoomIn</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;zoom-in&quot;</span>),
-                <span class="ident">MouseCursor</span>::<span class="ident">ZoomOut</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;zoom-out&quot;</span>),
-
-                <span class="ident">MouseCursor</span>::<span class="ident">NoneCursor</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">create_empty_cursor</span>(),
-            };
-
-            (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XDefineCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="ident">xcursor</span>);
-            <span class="kw">if</span> <span class="ident">xcursor</span> <span class="op">!=</span> <span class="number">0</span> {
-                (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFreeCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">xcursor</span>);
-            }
-            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to set or free the cursor&quot;</span>);
         }
     }
 
@@ -1378,6 +1410,85 @@
             }
         }
         <span class="number">0</span>
+    }
+
+    <span class="kw">fn</span> <span class="ident">get_cursor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">cursor</span>: <span class="ident">MouseCursor</span>) <span class="op">-&gt;</span> <span class="ident">ffi</span>::<span class="ident">Cursor</span> {
+        <span class="kw">let</span> <span class="ident">load</span> <span class="op">=</span> <span class="op">|</span><span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">|</span> {
+            <span class="self">self</span>.<span class="ident">load_cursor</span>(<span class="ident">name</span>)
+        };
+
+        <span class="kw">let</span> <span class="ident">loadn</span> <span class="op">=</span> <span class="op">|</span><span class="ident">names</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]<span class="op">|</span> {
+            <span class="self">self</span>.<span class="ident">load_first_existing_cursor</span>(<span class="ident">names</span>)
+        };
+
+        <span class="comment">// Try multiple names in some cases where the name</span>
+        <span class="comment">// differs on the desktop environments or themes.</span>
+        <span class="comment">//</span>
+        <span class="comment">// Try the better looking (or more suiting) names first.</span>
+        <span class="kw">match</span> <span class="ident">cursor</span> {
+            <span class="ident">MouseCursor</span>::<span class="ident">Alias</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;link&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Arrow</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;arrow&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Cell</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;plus&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Copy</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;copy&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Crosshair</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;crosshair&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Default</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;left_ptr&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Hand</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;hand2&quot;</span>, <span class="string">&quot;hand1&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">Help</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;question_arrow&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Move</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;move&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">Grab</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;openhand&quot;</span>, <span class="string">&quot;grab&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">Grabbing</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;closedhand&quot;</span>, <span class="string">&quot;grabbing&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">Progress</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;left_ptr_watch&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">AllScroll</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;all-scroll&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">ContextMenu</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;context-menu&quot;</span>),
+
+            <span class="ident">MouseCursor</span>::<span class="ident">NoDrop</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;no-drop&quot;</span>, <span class="string">&quot;circle&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">NotAllowed</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;crossed_circle&quot;</span>),
+
+
+            <span class="comment">// Resize cursors</span>
+            <span class="ident">MouseCursor</span>::<span class="ident">EResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;right_side&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">NResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;top_side&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">NeResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;top_right_corner&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">NwResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;top_left_corner&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">SResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;bottom_side&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">SeResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;bottom_right_corner&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">SwResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;bottom_left_corner&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">WResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;left_side&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">EwResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;h_double_arrow&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">NsResize</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;v_double_arrow&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">NwseResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;bd_double_arrow&quot;</span>, <span class="string">&quot;size_bdiag&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">NeswResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;fd_double_arrow&quot;</span>, <span class="string">&quot;size_fdiag&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">ColResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;split_h&quot;</span>, <span class="string">&quot;h_double_arrow&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">RowResize</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;split_v&quot;</span>, <span class="string">&quot;v_double_arrow&quot;</span>]),
+
+            <span class="ident">MouseCursor</span>::<span class="ident">Text</span> <span class="op">=&gt;</span> <span class="ident">loadn</span>(<span class="kw-2">&amp;</span>[<span class="string">&quot;text&quot;</span>, <span class="string">&quot;xterm&quot;</span>]),
+            <span class="ident">MouseCursor</span>::<span class="ident">VerticalText</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;vertical-text&quot;</span>),
+
+            <span class="ident">MouseCursor</span>::<span class="ident">Wait</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;watch&quot;</span>),
+
+            <span class="ident">MouseCursor</span>::<span class="ident">ZoomIn</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;zoom-in&quot;</span>),
+            <span class="ident">MouseCursor</span>::<span class="ident">ZoomOut</span> <span class="op">=&gt;</span> <span class="ident">load</span>(<span class="string">&quot;zoom-out&quot;</span>),
+
+            <span class="ident">MouseCursor</span>::<span class="ident">NoneCursor</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">create_empty_cursor</span>(),
+        }
+    }
+
+    <span class="kw">fn</span> <span class="ident">update_cursor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">cursor</span>: <span class="ident">ffi</span>::<span class="ident">Cursor</span>) {
+        <span class="kw">unsafe</span> {
+            (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XDefineCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="ident">cursor</span>);
+            <span class="kw">if</span> <span class="ident">cursor</span> <span class="op">!=</span> <span class="number">0</span> {
+                (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFreeCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">cursor</span>);
+            }
+            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to set or free the cursor&quot;</span>);
+        }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_cursor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">cursor</span>: <span class="ident">MouseCursor</span>) {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">current_cursor</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cursor</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+        <span class="kw-2">*</span><span class="ident">current_cursor</span> <span class="op">=</span> <span class="ident">cursor</span>;
+        <span class="kw">if</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">cursor_state</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>() <span class="op">!=</span> <span class="ident">CursorState</span>::<span class="ident">Hide</span> {
+            <span class="self">self</span>.<span class="ident">update_cursor</span>(<span class="self">self</span>.<span class="ident">get_cursor</span>(<span class="kw-2">*</span><span class="ident">current_cursor</span>));
+        }
     }
 
     <span class="comment">// TODO: This could maybe be cached. I don&#39;t think it&#39;s worth</span>
@@ -1424,27 +1535,14 @@
                 }
             },
             <span class="ident">Normal</span> <span class="op">=&gt;</span> {},
-            <span class="ident">Hide</span> <span class="op">=&gt;</span> {
-                <span class="comment">// NB: Calling XDefineCursor with None (aka 0)</span>
-                <span class="comment">// as a value resets the cursor to the default.</span>
-                <span class="kw">unsafe</span> {
-                    (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XDefineCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="number">0</span>);
-                }
-            },
+            <span class="ident">Hide</span> <span class="op">=&gt;</span> <span class="self">self</span>.<span class="ident">update_cursor</span>(<span class="self">self</span>.<span class="ident">get_cursor</span>(<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">cursor</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>())),
         }
 
         <span class="kw-2">*</span><span class="ident">cursor_state</span> <span class="op">=</span> <span class="ident">state</span>;
         <span class="kw">match</span> <span class="ident">state</span> {
             <span class="ident">Normal</span> <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(()),
             <span class="ident">Hide</span> <span class="op">=&gt;</span> {
-                <span class="kw">unsafe</span> {
-                    <span class="kw">let</span> <span class="ident">cursor</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_empty_cursor</span>();
-                    (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XDefineCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">window</span>, <span class="ident">cursor</span>);
-                    <span class="kw">if</span> <span class="ident">cursor</span> <span class="op">!=</span> <span class="number">0</span> {
-                        (<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">xlib</span>.<span class="ident">XFreeCursor</span>)(<span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">display</span>, <span class="ident">cursor</span>);
-                    }
-                    <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">display</span>.<span class="ident">check_errors</span>().<span class="ident">expect</span>(<span class="string">&quot;Failed to call XDefineCursor or free the empty cursor&quot;</span>);
-                }
+                <span class="self">self</span>.<span class="ident">update_cursor</span>(<span class="self">self</span>.<span class="ident">create_empty_cursor</span>());
                 <span class="prelude-val">Ok</span>(())
             },
             <span class="ident">Grab</span> <span class="op">=&gt;</span> {
@@ -1505,20 +1603,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

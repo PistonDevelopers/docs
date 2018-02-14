@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["WlCallback",""]],"trait":[["Handler",""]]});
+initSidebarItems({"struct":[["Implementation",""],["WlCallback",""]]});

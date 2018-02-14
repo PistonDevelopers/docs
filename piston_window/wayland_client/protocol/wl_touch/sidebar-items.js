@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["WlTouch",""]],"trait":[["Handler",""]]});
+initSidebarItems({"struct":[["Implementation",""],["WlTouch",""]]});

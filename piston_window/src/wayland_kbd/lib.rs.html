@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-kbd-0.9.1/src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-kbd-0.13.1/src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -66,21 +76,28 @@
 <span id="20">20</span>
 <span id="21">21</span>
 <span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Keyboard mapping utility for `wayland-client` using libxkbcommon.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! This library provides a simple handler for the wayland Keyboard objects,</span>
-<span class="doccomment">//! handling all keymap issues using libxkbcommon in a dynamic way (loading the</span>
-<span class="doccomment">//! library dynamically and thus not being linked to it).</span>
+<span class="doccomment">//! This library provide a simple implemenation for wl_keyboard objects</span>
+<span class="doccomment">//! that use libxkbcommon to interpret the keyboard input according to the</span>
+<span class="doccomment">//! keymap provided by the compositor.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! To use it, create your backend handler implementing the `wayland_kbd::Handler` trait,</span>
-<span class="doccomment">//! and provide a `MappedKeyboard&lt;YourHandler&gt;` to the event queue. The MappedKeyboard</span>
-<span class="doccomment">//! will translate the events into utf8 and forward them to you.</span>
+<span class="doccomment">//! ## Usage</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! To intialize a wl_keyboard with this crate, simply use the provided</span>
+<span class="doccomment">//! `register_kbd` function. See its documentation for details.</span>
 
-
-<span class="attribute">#[<span class="ident">macro_use</span>]</span> <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">bitflags</span>;
-<span class="attribute">#[<span class="ident">macro_use</span>]</span> <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">dlib</span>;
-<span class="attribute">#[<span class="ident">macro_use</span>]</span> <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">lazy_static</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">bitflags</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">dlib</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">lazy_static</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">memmap</span>;
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">wayland_client</span>;
 
@@ -88,7 +105,8 @@
 <span class="kw">mod</span> <span class="ident">mapped_keyboard</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ffi</span>::<span class="ident">keysyms</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">mapped_keyboard</span>::{<span class="ident">MappedKeyboard</span>, <span class="ident">MappedKeyboardError</span>, <span class="ident">Handler</span>, <span class="ident">ModifiersState</span>};
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">mapped_keyboard</span>::{<span class="ident">register_kbd</span>, <span class="ident">register_kbd_from_rmlvo</span>, <span class="ident">MappedKeyboardError</span>,
+                          <span class="ident">MappedKeyboardImplementation</span>, <span class="ident">ModifiersState</span>, <span class="ident">RMLVO</span>};
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
@@ -103,20 +121,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

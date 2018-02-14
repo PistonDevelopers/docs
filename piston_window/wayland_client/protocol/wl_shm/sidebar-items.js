@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Error","wl_shm error values"],["Format","pixel formats"]],"struct":[["WlShm",""]],"trait":[["Handler",""]]});
+initSidebarItems({"enum":[["Error","wl_shm error values"],["Format","pixel formats"]],"struct":[["Implementation",""],["WlShm",""]]});

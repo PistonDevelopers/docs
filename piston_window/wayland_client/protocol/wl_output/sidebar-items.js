@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["Current",""],["Preferred",""]],"enum":[["Subpixel","subpixel geometry information"],["Transform","transform from framebuffer to output"]],"struct":[["Mode","mode information"],["WlOutput",""]],"trait":[["Handler",""]]});
+initSidebarItems({"enum":[["Subpixel","subpixel geometry information"],["Transform","transform from framebuffer to output"]],"struct":[["Implementation",""],["Mode","mode information"],["WlOutput",""]]});

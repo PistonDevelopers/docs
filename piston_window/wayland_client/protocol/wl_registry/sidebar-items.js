@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["WlRegistry",""]],"trait":[["Handler",""]]});
+initSidebarItems({"struct":[["Implementation",""],["WlRegistry",""]]});

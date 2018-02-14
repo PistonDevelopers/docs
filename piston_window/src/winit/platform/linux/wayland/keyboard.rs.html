@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.8.3/src/platform/linux/wayland/keyboard.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.10.0/src/platform/linux/wayland/keyboard.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>keyboard.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../../../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../main.css" id="themeStyle">
+    <script src="../../../../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../../../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../../../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -280,72 +290,192 @@
 <span id="234">234</span>
 <span id="235">235</span>
 <span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>};
 
-<span class="kw">use</span> {<span class="ident">VirtualKeyCode</span>, <span class="ident">ElementState</span>, <span class="ident">WindowEvent</span> <span class="kw">as</span> <span class="ident">Event</span>, <span class="ident">KeyboardInput</span>};
+<span class="kw">use</span> {<span class="ident">VirtualKeyCode</span>, <span class="ident">ElementState</span>, <span class="ident">WindowEvent</span> <span class="kw">as</span> <span class="ident">Event</span>, <span class="ident">KeyboardInput</span>, <span class="ident">ModifiersState</span>};
 
-<span class="kw">use</span> <span class="ident">events</span>::<span class="ident">ModifiersState</span>;
-
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">wayland_kbd</span>, <span class="ident">EventsLoopSink</span>, <span class="ident">WindowId</span>, <span class="ident">DeviceId</span>};
-<span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">EventQueueHandle</span>;
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">EventsLoopSink</span>, <span class="ident">WindowId</span>, <span class="ident">make_wid</span>, <span class="ident">DeviceId</span>};
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">wayland_kbd</span>::{<span class="ident">MappedKeyboardImplementation</span>, <span class="ident">register_kbd</span>};
 <span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">protocol</span>::<span class="ident">wl_keyboard</span>;
+<span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">EventQueueHandle</span>;
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">KbdHandler</span> {
-    <span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">WindowId</span><span class="op">&gt;</span>
-}
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">init_keyboard</span>(<span class="ident">evq</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>, <span class="ident">keyboard</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>, <span class="ident">sink</span>: <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>) {
+    <span class="kw">let</span> <span class="ident">idata</span> <span class="op">=</span> <span class="ident">KeyboardIData</span> {
+        <span class="ident">sink</span>: <span class="ident">sink</span>.<span class="ident">clone</span>(),
+        <span class="ident">target</span>: <span class="prelude-val">None</span>
+    };
 
-<span class="kw">impl</span> <span class="ident">KbdHandler</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>) <span class="op">-&gt;</span> <span class="ident">KbdHandler</span> {
-        <span class="ident">KbdHandler</span> { <span class="ident">sink</span>: <span class="ident">sink</span>, <span class="ident">target</span>: <span class="prelude-val">None</span> }
+    <span class="kw">if</span> <span class="ident">register_kbd</span>(<span class="ident">evq</span>, <span class="ident">keyboard</span>, <span class="ident">mapped_keyboard_impl</span>(), <span class="ident">idata</span>).<span class="ident">is_err</span>() {
+        <span class="comment">// initializing libxkbcommon failed :(</span>
+        <span class="comment">// fallback implementation</span>
+        <span class="kw">let</span> <span class="ident">idata</span> <span class="op">=</span> <span class="ident">KeyboardIData</span> {
+            <span class="ident">sink</span>: <span class="ident">sink</span>.<span class="ident">clone</span>(),
+            <span class="ident">target</span>: <span class="prelude-val">None</span>
+        };
+        <span class="ident">evq</span>.<span class="ident">register</span>(<span class="ident">keyboard</span>, <span class="ident">raw_keyboard_impl</span>(), <span class="ident">idata</span>);
     }
 }
 
-<span class="kw">impl</span> <span class="ident">wayland_kbd</span>::<span class="ident">Handler</span> <span class="kw">for</span> <span class="ident">KbdHandler</span> {
-    <span class="kw">fn</span> <span class="ident">key</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-           <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-           <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-           <span class="ident">_serial</span>: <span class="ident">u32</span>,
-           <span class="ident">_time</span>: <span class="ident">u32</span>,
-           <span class="ident">mods</span>: <span class="kw-2">&amp;</span><span class="ident">wayland_kbd</span>::<span class="ident">ModifiersState</span>,
-           <span class="ident">rawkey</span>: <span class="ident">u32</span>,
-           <span class="ident">keysym</span>: <span class="ident">u32</span>,
-           <span class="ident">state</span>: <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>,
-           <span class="ident">utf8</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>)
-    {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">wid</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">target</span> {
-            <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">state</span> {
-                <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Pressed</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Pressed</span>,
-                <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Released</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Released</span>,
-            };
-            <span class="kw">let</span> <span class="ident">vkcode</span> <span class="op">=</span> <span class="ident">key_to_vkey</span>(<span class="ident">rawkey</span>, <span class="ident">keysym</span>);
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-            <span class="ident">guard</span>.<span class="ident">send_event</span>(
-                <span class="ident">Event</span>::<span class="ident">KeyboardInput</span> {
-                    <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                    <span class="ident">input</span>: <span class="ident">KeyboardInput</span> {
-                        <span class="ident">state</span>: <span class="ident">state</span>,
-                        <span class="ident">scancode</span>: <span class="ident">rawkey</span>,
-                        <span class="ident">virtual_keycode</span>: <span class="ident">vkcode</span>,
-                        <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span> {
-                            <span class="ident">shift</span>: <span class="ident">mods</span>.<span class="ident">shift</span>,
-                            <span class="ident">ctrl</span>: <span class="ident">mods</span>.<span class="ident">ctrl</span>,
-                            <span class="ident">alt</span>: <span class="ident">mods</span>.<span class="ident">alt</span>,
-                            <span class="ident">logo</span>: <span class="ident">mods</span>.<span class="ident">logo</span>
+<span class="kw">struct</span> <span class="ident">KeyboardIData</span> {
+    <span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">WindowId</span><span class="op">&gt;</span>
+}
+
+<span class="kw">fn</span> <span class="ident">mapped_keyboard_impl</span>() <span class="op">-&gt;</span> <span class="ident">MappedKeyboardImplementation</span><span class="op">&lt;</span><span class="ident">KeyboardIData</span><span class="op">&gt;</span> {
+    <span class="ident">MappedKeyboardImplementation</span> {
+        <span class="ident">enter</span>: <span class="op">|</span>_, <span class="ident">idata</span>, _, _, <span class="ident">surface</span>, _, _, _<span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">wid</span> <span class="op">=</span> <span class="ident">make_wid</span>(<span class="ident">surface</span>);
+            <span class="ident">idata</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Focused</span>(<span class="bool-val">true</span>), <span class="ident">wid</span>);
+            <span class="ident">idata</span>.<span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">wid</span>);
+        },
+        <span class="ident">leave</span>: <span class="op">|</span>_, <span class="ident">idata</span>, _, _, <span class="ident">surface</span><span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">wid</span> <span class="op">=</span> <span class="ident">make_wid</span>(<span class="ident">surface</span>);
+            <span class="ident">idata</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Focused</span>(<span class="bool-val">false</span>), <span class="ident">wid</span>);
+            <span class="ident">idata</span>.<span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+        },
+        <span class="ident">key</span>: <span class="op">|</span>_, <span class="ident">idata</span>, _, _, _, <span class="ident">mods</span>, <span class="ident">rawkey</span>, <span class="ident">keysym</span>, <span class="ident">state</span>, <span class="ident">utf8</span><span class="op">|</span> {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">wid</span>) <span class="op">=</span> <span class="ident">idata</span>.<span class="ident">target</span> {
+                <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">state</span> {
+                    <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Pressed</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Pressed</span>,
+                    <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Released</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Released</span>,
+                };
+                <span class="kw">let</span> <span class="ident">vkcode</span> <span class="op">=</span> <span class="ident">key_to_vkey</span>(<span class="ident">rawkey</span>, <span class="ident">keysym</span>);
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="ident">idata</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+                <span class="ident">guard</span>.<span class="ident">send_event</span>(
+                    <span class="ident">Event</span>::<span class="ident">KeyboardInput</span> {
+                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                        <span class="ident">input</span>: <span class="ident">KeyboardInput</span> {
+                            <span class="ident">state</span>: <span class="ident">state</span>,
+                            <span class="ident">scancode</span>: <span class="ident">rawkey</span>,
+                            <span class="ident">virtual_keycode</span>: <span class="ident">vkcode</span>,
+                            <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span> {
+                                <span class="ident">shift</span>: <span class="ident">mods</span>.<span class="ident">shift</span>,
+                                <span class="ident">ctrl</span>: <span class="ident">mods</span>.<span class="ident">ctrl</span>,
+                                <span class="ident">alt</span>: <span class="ident">mods</span>.<span class="ident">alt</span>,
+                                <span class="ident">logo</span>: <span class="ident">mods</span>.<span class="ident">logo</span>
+                            },
                         },
                     },
-                },
-                <span class="ident">wid</span>
-            );
-            <span class="comment">// send char event only on key press, not release</span>
-            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">ElementState</span>::<span class="ident">Released</span> <span class="op">=</span> <span class="ident">state</span> { <span class="kw">return</span> }
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">txt</span>) <span class="op">=</span> <span class="ident">utf8</span> {
-                <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="ident">txt</span>.<span class="ident">chars</span>() {
-                    <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">ReceivedCharacter</span>(<span class="ident">chr</span>), <span class="ident">wid</span>);
+                    <span class="ident">wid</span>
+                );
+                <span class="comment">// send char event only on key press, not release</span>
+                <span class="kw">if</span> <span class="kw">let</span> <span class="ident">ElementState</span>::<span class="ident">Released</span> <span class="op">=</span> <span class="ident">state</span> { <span class="kw">return</span> }
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">txt</span>) <span class="op">=</span> <span class="ident">utf8</span> {
+                    <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="ident">txt</span>.<span class="ident">chars</span>() {
+                        <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">ReceivedCharacter</span>(<span class="ident">chr</span>), <span class="ident">wid</span>);
+                    }
                 }
             }
+        },
+        <span class="ident">repeat_info</span>: <span class="op">|</span>_, <span class="ident">_idata</span>, _, <span class="ident">_rate</span>, <span class="ident">_delay</span><span class="op">|</span> {
+            <span class="comment">// TODO: handle repeat info</span>
         }
+    }
+}
+
+
+<span class="comment">// This is fallback impl if libxkbcommon was not available</span>
+<span class="comment">// This case should probably never happen, as most wayland</span>
+<span class="comment">// compositors _need_ libxkbcommon anyway...</span>
+<span class="comment">//</span>
+<span class="comment">// In this case, we don&#39;t have the keymap information (it is</span>
+<span class="comment">// supposed to be serialized by the compositor using libxkbcommon)</span>
+<span class="kw">fn</span> <span class="ident">raw_keyboard_impl</span>() <span class="op">-&gt;</span> <span class="ident">wl_keyboard</span>::<span class="ident">Implementation</span><span class="op">&lt;</span><span class="ident">KeyboardIData</span><span class="op">&gt;</span> {
+    <span class="ident">wl_keyboard</span>::<span class="ident">Implementation</span> {
+        <span class="ident">enter</span>: <span class="op">|</span>_, <span class="ident">idata</span>, _, _, <span class="ident">surface</span>, _<span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">wid</span> <span class="op">=</span> <span class="ident">make_wid</span>(<span class="ident">surface</span>);
+            <span class="ident">idata</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Focused</span>(<span class="bool-val">true</span>), <span class="ident">wid</span>);
+            <span class="ident">idata</span>.<span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">wid</span>);
+        },
+        <span class="ident">leave</span>: <span class="op">|</span>_, <span class="ident">idata</span>, _, _, <span class="ident">surface</span><span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">wid</span> <span class="op">=</span> <span class="ident">make_wid</span>(<span class="ident">surface</span>);
+            <span class="ident">idata</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Focused</span>(<span class="bool-val">false</span>), <span class="ident">wid</span>);
+            <span class="ident">idata</span>.<span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+        },
+        <span class="ident">key</span>: <span class="op">|</span>_, <span class="ident">idata</span>, _, _, _, <span class="ident">key</span>, <span class="ident">state</span><span class="op">|</span> {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">wid</span>) <span class="op">=</span> <span class="ident">idata</span>.<span class="ident">target</span> {
+                <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">state</span> {
+                    <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Pressed</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Pressed</span>,
+                    <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Released</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Released</span>,
+                };
+                <span class="ident">idata</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
+                    <span class="ident">Event</span>::<span class="ident">KeyboardInput</span> {
+                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
+                        <span class="ident">input</span>: <span class="ident">KeyboardInput</span> {
+                            <span class="ident">state</span>: <span class="ident">state</span>,
+                            <span class="ident">scancode</span>: <span class="ident">key</span>,
+                            <span class="ident">virtual_keycode</span>: <span class="prelude-val">None</span>,
+                            <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span>::<span class="ident">default</span>(),
+                        },
+                    },
+                    <span class="ident">wid</span>
+                );
+            }
+        },
+        <span class="ident">repeat_info</span>: <span class="op">|</span>_, <span class="ident">_idata</span>, _, <span class="ident">_rate</span>, <span class="ident">_delay</span><span class="op">|</span> {},
+        <span class="ident">keymap</span>: <span class="op">|</span>_, _, _, _, _, _<span class="op">|</span> {},
+        <span class="ident">modifiers</span>: <span class="op">|</span>_, _, _, _, _, _, _, _<span class="op">|</span> {}
     }
 }
 
@@ -531,20 +661,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

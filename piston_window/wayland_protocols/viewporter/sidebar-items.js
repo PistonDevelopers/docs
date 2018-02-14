@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["client",""]]});
+initSidebarItems({"mod":[["client","Client-side API of this protocol"]]});

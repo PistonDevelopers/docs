@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["Keyboard",""],["Pointer",""],["Touch",""]],"struct":[["Capability","seat capability bitmask"],["WlSeat",""]],"trait":[["Handler",""]]});
+initSidebarItems({"struct":[["Capability","seat capability bitmask"],["Implementation",""],["WlSeat",""]]});

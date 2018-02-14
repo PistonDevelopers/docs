@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Error",""]],"struct":[["WlDataDevice",""]],"trait":[["Handler",""]]});
+initSidebarItems({"enum":[["Error",""]],"struct":[["Implementation",""],["WlDataDevice",""]]});

@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.9.10/src/display.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.12.5/src/display.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>display.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css" id="themeStyle">
+    <script src="../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -246,20 +256,13 @@
 <span id="200">200</span>
 <span id="201">201</span>
 <span id="202">202</span>
-<span id="203">203</span>
-<span id="204">204</span>
-<span id="205">205</span>
-<span id="206">206</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">Proxy</span>;
-
-<span class="kw">use</span> <span class="ident">event_queue</span>::{<span class="ident">EventQueue</span>, <span class="ident">create_event_queue</span>};
+<span class="kw">use</span> <span class="ident">event_queue</span>::{<span class="ident">create_event_queue</span>, <span class="ident">EventQueue</span>};
 <span class="kw">use</span> <span class="ident">generated</span>::<span class="ident">client</span>::<span class="ident">wl_display</span>::<span class="ident">WlDisplay</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ffi</span>::{<span class="ident">CStr</span>, <span class="ident">CString</span>, <span class="ident">OsStr</span>};
-
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">ffi</span>::<span class="ident">OsStrExt</span>;
-
 <span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">client</span>::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// Enum representing the possible reasons why connecting to the wayland server failed</span>
@@ -333,9 +336,7 @@
     }
     <span class="comment">// Only possible error is interior null, and in this case, no compositor will be listening to a socket</span>
     <span class="comment">// with null in its name.</span>
-    <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">CString</span>::<span class="ident">new</span>(<span class="ident">name</span>.<span class="ident">as_bytes</span>().<span class="ident">to_owned</span>()).<span class="ident">map_err</span>(<span class="op">|</span>_<span class="op">|</span> {
-        <span class="ident">ConnectError</span>::<span class="ident">NoCompositorListening</span>
-    })<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">CString</span>::<span class="ident">new</span>(<span class="ident">name</span>.<span class="ident">as_bytes</span>().<span class="ident">to_owned</span>()).<span class="ident">map_err</span>(<span class="op">|</span>_<span class="op">|</span> <span class="ident">ConnectError</span>::<span class="ident">NoCompositorListening</span>)<span class="question-mark">?</span>;
     <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_connect</span>, <span class="ident">name</span>.<span class="ident">as_ptr</span>()) };
     <span class="kw">if</span> <span class="ident">ptr</span>.<span class="ident">is_null</span>() {
         <span class="prelude-val">Err</span>(<span class="ident">ConnectError</span>::<span class="ident">NoCompositorListening</span>)
@@ -444,17 +445,18 @@
             <span class="self">self</span>.<span class="ident">ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _
         )
     }
-}
 
-<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">WlDisplay</span> {
-    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
-        <span class="kw">unsafe</span> {
-            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                <span class="ident">wl_display_disconnect</span>,
-                <span class="self">self</span>.<span class="ident">ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _
-            )
-        }
+    <span class="doccomment">/// Close the wayland connection</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is unsafe because you must ensure you do this only</span>
+    <span class="doccomment">/// after all wayland objects are destroyed, as this will</span>
+    <span class="doccomment">/// release the wayland shared state.</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">disconnect</span>(<span class="self">self</span>) {
+        <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+            <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+            <span class="ident">wl_display_disconnect</span>,
+            <span class="self">self</span>.<span class="ident">ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> _
+        )
     }
 }
 </pre>
@@ -471,20 +473,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 

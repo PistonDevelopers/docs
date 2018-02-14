@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.8.3/src/platform/linux/wayland/event_loop.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.10.0/src/platform/linux/wayland/event_loop.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>event_loop.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css">
-    <link rel="stylesheet" type="text/css" href="../../../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../rustdoc.css" id="mainThemeStyle">
+    
+    <link rel="stylesheet" type="text/css" href="../../../../../dark.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../main.css" id="themeStyle">
+    <script src="../../../../../storage.js"></script>
     
 
     
@@ -33,6 +36,13 @@
         
     </nav>
 
+    <div class="theme-picker">
+        <button id="theme-picker" aria-label="Pick another theme!">
+            <img src="../../../../../brush.svg" width="18" alt="Pick another theme!">
+        </button>
+        <div id="theme-choices"></div>
+    </div>
+    <script src="../../../../../theme.js"></script>
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
@@ -635,96 +645,26 @@
 <span id="589">589</span>
 <span id="590">590</span>
 <span id="591">591</span>
-<span id="592">592</span>
-<span id="593">593</span>
-<span id="594">594</span>
-<span id="595">595</span>
-<span id="596">596</span>
-<span id="597">597</span>
-<span id="598">598</span>
-<span id="599">599</span>
-<span id="600">600</span>
-<span id="601">601</span>
-<span id="602">602</span>
-<span id="603">603</span>
-<span id="604">604</span>
-<span id="605">605</span>
-<span id="606">606</span>
-<span id="607">607</span>
-<span id="608">608</span>
-<span id="609">609</span>
-<span id="610">610</span>
-<span id="611">611</span>
-<span id="612">612</span>
-<span id="613">613</span>
-<span id="614">614</span>
-<span id="615">615</span>
-<span id="616">616</span>
-<span id="617">617</span>
-<span id="618">618</span>
-<span id="619">619</span>
-<span id="620">620</span>
-<span id="621">621</span>
-<span id="622">622</span>
-<span id="623">623</span>
-<span id="624">624</span>
-<span id="625">625</span>
-<span id="626">626</span>
-<span id="627">627</span>
-<span id="628">628</span>
-<span id="629">629</span>
-<span id="630">630</span>
-<span id="631">631</span>
-<span id="632">632</span>
-<span id="633">633</span>
-<span id="634">634</span>
-<span id="635">635</span>
-<span id="636">636</span>
-<span id="637">637</span>
-<span id="638">638</span>
-<span id="639">639</span>
-<span id="640">640</span>
-<span id="641">641</span>
-<span id="642">642</span>
-<span id="643">643</span>
-<span id="644">644</span>
-<span id="645">645</span>
-<span id="646">646</span>
-<span id="647">647</span>
-<span id="648">648</span>
-<span id="649">649</span>
-<span id="650">650</span>
-<span id="651">651</span>
-<span id="652">652</span>
-<span id="653">653</span>
 </pre><pre class="rust ">
-<span class="kw">use</span> {<span class="ident">WindowEvent</span> <span class="kw">as</span> <span class="ident">Event</span>, <span class="ident">ElementState</span>, <span class="ident">MouseButton</span>, <span class="ident">MouseScrollDelta</span>, <span class="ident">TouchPhase</span>, <span class="ident">ModifiersState</span>,
-     <span class="ident">KeyboardInput</span>, <span class="ident">EventsLoopClosed</span>, <span class="ident">ControlFlow</span>};
-
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cell</span>::<span class="ident">RefCell</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">VecDeque</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>, <span class="ident">Weak</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="self">self</span>, <span class="ident">AtomicBool</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>};
 
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">DecoratedHandler</span>, <span class="ident">WindowId</span>, <span class="ident">DeviceId</span>, <span class="ident">WaylandContext</span>};
+<span class="kw">use</span> {<span class="ident">EventsLoopClosed</span>, <span class="ident">ControlFlow</span>};
 
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">WindowId</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">window</span>::<span class="ident">WindowStore</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">keyboard</span>::<span class="ident">init_keyboard</span>;
 
-<span class="kw">use</span> <span class="ident">wayland_client</span>::{<span class="ident">EventQueue</span>, <span class="ident">EventQueueHandle</span>, <span class="ident">Init</span>, <span class="ident">Proxy</span>, <span class="ident">Liveness</span>};
-<span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">protocol</span>::{<span class="ident">wl_seat</span>, <span class="ident">wl_surface</span>, <span class="ident">wl_pointer</span>, <span class="ident">wl_keyboard</span>};
+<span class="kw">use</span> <span class="ident">wayland_client</span>::{<span class="ident">EnvHandler</span>, <span class="ident">EnvNotify</span>, <span class="ident">default_connect</span>, <span class="ident">EventQueue</span>, <span class="ident">EventQueueHandle</span>, <span class="ident">Proxy</span>, <span class="ident">StateToken</span>};
+<span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">protocol</span>::{<span class="ident">wl_compositor</span>, <span class="ident">wl_seat</span>, <span class="ident">wl_shell</span>, <span class="ident">wl_shm</span>, <span class="ident">wl_subcompositor</span>,
+                               <span class="ident">wl_display</span>, <span class="ident">wl_registry</span>, <span class="ident">wl_output</span>, <span class="ident">wl_surface</span>,
+                               <span class="ident">wl_pointer</span>, <span class="ident">wl_keyboard</span>, <span class="ident">wl_touch</span>};
 
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">make_wid</span>;
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">wayland_window</span>::<span class="ident">DecoratedSurface</span>;
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">wayland_kbd</span>::<span class="ident">MappedKeyboard</span>;
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">keyboard</span>::<span class="ident">KbdHandler</span>;
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">wayland_window</span>::{<span class="ident">Frame</span>, <span class="ident">Shell</span>, <span class="ident">create_frame</span>, <span class="ident">FrameImplementation</span>};
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">wayland_protocols</span>::<span class="ident">unstable</span>::<span class="ident">xdg_shell</span>::<span class="ident">v6</span>::<span class="ident">client</span>::<span class="ident">zxdg_shell_v6</span>;
 
-<span class="doccomment">/// This struct is used as a holder for the callback</span>
-<span class="doccomment">/// during the dispatching of events.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The proper ay to use it is:</span>
-<span class="doccomment">/// - set a callback in it (and retrieve the noop one it contains)</span>
-<span class="doccomment">/// - dispatch the EventQueue</span>
-<span class="doccomment">/// - put back the noop callback in it</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Failure to do so is unsafe™</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventsLoopSink</span> {
     <span class="ident">buffer</span>: <span class="ident">VecDeque</span><span class="op">&lt;</span>::<span class="ident">Event</span><span class="op">&gt;</span>
 }
@@ -732,7 +672,8 @@
 <span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Send</span> <span class="kw">for</span> <span class="ident">EventsLoopSink</span> { }
 
 <span class="kw">impl</span> <span class="ident">EventsLoopSink</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">EventsLoopSink</span>{<span class="ident">EventsLoopSink</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">EventsLoopSink</span>{
+        <span class="ident">EventsLoopSink</span> {
             <span class="ident">buffer</span>: <span class="ident">VecDeque</span>::<span class="ident">new</span>()
         }
     }
@@ -757,24 +698,30 @@
 }
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventsLoop</span> {
-    <span class="comment">// the wayland context</span>
-    <span class="ident">ctxt</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">WaylandContext</span><span class="op">&gt;</span>,
-    <span class="comment">// ids of the DecoratedHandlers of the surfaces we know</span>
-    <span class="ident">decorated_ids</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;</span>)<span class="op">&gt;&gt;</span>,
+    <span class="comment">// The Event Queue</span>
+    <span class="kw">pub</span> <span class="ident">evq</span>: <span class="ident">RefCell</span><span class="op">&lt;</span><span class="ident">EventQueue</span><span class="op">&gt;</span>,
     <span class="comment">// our sink, shared with some handlers, buffering the events</span>
     <span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>,
-    <span class="comment">// trigger cleanup of the dead surfaces</span>
-    <span class="ident">cleanup_needed</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
     <span class="comment">// Whether or not there is a pending `Awakened` event to be emitted.</span>
     <span class="ident">pending_wakeup</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
-    <span class="ident">hid</span>: <span class="ident">usize</span>,
+    <span class="comment">// The window store</span>
+    <span class="kw">pub</span> <span class="ident">store</span>: <span class="ident">StateToken</span><span class="op">&lt;</span><span class="ident">WindowStore</span><span class="op">&gt;</span>,
+    <span class="comment">// the env</span>
+    <span class="ident">env_token</span>: <span class="ident">StateToken</span><span class="op">&lt;</span><span class="ident">EnvHandler</span><span class="op">&lt;</span><span class="ident">InnerEnv</span><span class="op">&gt;&gt;</span>,
+    <span class="comment">// the ctxt</span>
+    <span class="kw">pub</span> <span class="ident">ctxt_token</span>: <span class="ident">StateToken</span><span class="op">&lt;</span><span class="ident">StateContext</span><span class="op">&gt;</span>,
+    <span class="comment">// a cleanup switch to prune dead windows</span>
+    <span class="kw">pub</span> <span class="ident">cleanup_needed</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;&gt;</span>,
+    <span class="comment">// The wayland display</span>
+    <span class="kw">pub</span> <span class="ident">display</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_display</span>::<span class="ident">WlDisplay</span><span class="op">&gt;</span>,
 }
 
 <span class="comment">// A handle that can be sent across threads and used to wake up the `EventsLoop`.</span>
 <span class="comment">//</span>
 <span class="comment">// We should only try and wake up the `EventsLoop` if it still exists, so we hold Weak ptrs.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventsLoopProxy</span> {
-    <span class="ident">ctxt</span>: <span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">WaylandContext</span><span class="op">&gt;</span>,
+    <span class="ident">display</span>: <span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">wl_display</span>::<span class="ident">WlDisplay</span><span class="op">&gt;</span>,
     <span class="ident">pending_wakeup</span>: <span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span>,
 }
 
@@ -783,15 +730,15 @@
     <span class="comment">//</span>
     <span class="comment">// Returns `Err` if the associated `EventsLoop` no longer exists.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wakeup</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">EventsLoopClosed</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">upgrade</span>();
+        <span class="kw">let</span> <span class="ident">display</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">display</span>.<span class="ident">upgrade</span>();
         <span class="kw">let</span> <span class="ident">wakeup</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">upgrade</span>();
-        <span class="kw">match</span> (<span class="ident">ctxt</span>, <span class="ident">wakeup</span>) {
-            (<span class="prelude-val">Some</span>(<span class="ident">ctxt</span>), <span class="prelude-val">Some</span>(<span class="ident">wakeup</span>)) <span class="op">=&gt;</span> {
+        <span class="kw">match</span> (<span class="ident">display</span>, <span class="ident">wakeup</span>) {
+            (<span class="prelude-val">Some</span>(<span class="ident">display</span>), <span class="prelude-val">Some</span>(<span class="ident">wakeup</span>)) <span class="op">=&gt;</span> {
                 <span class="comment">// Update the `EventsLoop`&#39;s `pending_wakeup` flag.</span>
-                <span class="ident">wakeup</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+                <span class="ident">wakeup</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
                 <span class="comment">// Cause the `EventsLoop` to break from `dispatch` if it is currently blocked.</span>
-                <span class="ident">ctxt</span>.<span class="ident">display</span>.<span class="ident">sync</span>();
-                <span class="ident">ctxt</span>.<span class="ident">display</span>.<span class="ident">flush</span>().<span class="ident">ok</span>();
+                <span class="ident">display</span>.<span class="ident">sync</span>();
+                <span class="ident">display</span>.<span class="ident">flush</span>().<span class="ident">map_err</span>(<span class="op">|</span>_<span class="op">|</span> <span class="ident">EventsLoopClosed</span>)<span class="question-mark">?</span>;
                 <span class="prelude-val">Ok</span>(())
             },
             _ <span class="op">=&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">EventsLoopClosed</span>),
@@ -800,121 +747,94 @@
 }
 
 <span class="kw">impl</span> <span class="ident">EventsLoop</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="kw-2">mut</span> <span class="ident">ctxt</span>: <span class="ident">WaylandContext</span>) <span class="op">-&gt;</span> <span class="ident">EventsLoop</span> {
-        <span class="kw">let</span> <span class="ident">sink</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">EventsLoopSink</span>::<span class="ident">new</span>()));
-        <span class="kw">let</span> <span class="ident">inputh</span> <span class="op">=</span> <span class="ident">InputHandler</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">ctxt</span>, <span class="ident">sink</span>.<span class="ident">clone</span>());
-        <span class="kw">let</span> <span class="ident">hid</span> <span class="op">=</span> <span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">get_mut</span>().<span class="ident">unwrap</span>().<span class="ident">add_handler_with_init</span>(<span class="ident">inputh</span>);
-        <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">ctxt</span>);
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">EventsLoop</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> (<span class="ident">display</span>, <span class="kw-2">mut</span> <span class="ident">event_queue</span>) <span class="op">=</span> <span class="kw">match</span> <span class="ident">default_connect</span>() {
+            <span class="prelude-val">Ok</span>(<span class="ident">ret</span>) <span class="op">=&gt;</span> <span class="ident">ret</span>,
+            <span class="prelude-val">Err</span>(_) <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">None</span>
+        };
 
-        <span class="ident">EventsLoop</span> {
-            <span class="ident">ctxt</span>: <span class="ident">ctxt</span>,
-            <span class="ident">decorated_ids</span>: <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()),
+        <span class="kw">let</span> <span class="ident">registry</span> <span class="op">=</span> <span class="ident">display</span>.<span class="ident">get_registry</span>();
+        <span class="kw">let</span> <span class="ident">ctxt_token</span> <span class="op">=</span> <span class="ident">event_queue</span>.<span class="ident">state</span>().<span class="ident">insert</span>(
+            <span class="ident">StateContext</span>::<span class="ident">new</span>(<span class="ident">registry</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>())
+        );
+        <span class="kw">let</span> <span class="ident">env_token</span> <span class="op">=</span> <span class="ident">EnvHandler</span>::<span class="ident">init_with_notify</span>(
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">event_queue</span>,
+            <span class="kw-2">&amp;</span><span class="ident">registry</span>,
+            <span class="ident">env_notify</span>(),
+            <span class="ident">ctxt_token</span>.<span class="ident">clone</span>()
+        );
+
+        <span class="comment">// two round trips to fully initialize</span>
+        <span class="ident">event_queue</span>.<span class="ident">sync_roundtrip</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection unexpectedly lost&quot;</span>);
+        <span class="ident">event_queue</span>.<span class="ident">sync_roundtrip</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection unexpectedly lost&quot;</span>);
+
+        <span class="ident">event_queue</span>.<span class="ident">state</span>().<span class="ident">with_value</span>(<span class="kw-2">&amp;</span><span class="ident">ctxt_token</span>, <span class="op">|</span><span class="ident">proxy</span>, <span class="ident">ctxt</span><span class="op">|</span> {
+            <span class="ident">ctxt</span>.<span class="ident">ensure_shell</span>(<span class="ident">proxy</span>.<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="ident">env_token</span>))
+        });
+
+        <span class="kw">let</span> <span class="ident">sink</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">EventsLoopSink</span>::<span class="ident">new</span>()));
+
+        <span class="kw">let</span> <span class="ident">store</span> <span class="op">=</span> <span class="ident">event_queue</span>.<span class="ident">state</span>().<span class="ident">insert</span>(<span class="ident">WindowStore</span>::<span class="ident">new</span>());
+
+        <span class="kw">let</span> <span class="ident">seat_idata</span> <span class="op">=</span> <span class="ident">SeatIData</span> {
+            <span class="ident">sink</span>: <span class="ident">sink</span>.<span class="ident">clone</span>(),
+            <span class="ident">keyboard</span>: <span class="prelude-val">None</span>,
+            <span class="ident">pointer</span>: <span class="prelude-val">None</span>,
+            <span class="ident">touch</span>: <span class="prelude-val">None</span>,
+            <span class="ident">windows_token</span>: <span class="ident">store</span>.<span class="ident">clone</span>()
+        };
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">me</span> <span class="op">=</span> <span class="ident">EventsLoop</span> {
+            <span class="ident">display</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">display</span>),
+            <span class="ident">evq</span>: <span class="ident">RefCell</span>::<span class="ident">new</span>(<span class="ident">event_queue</span>),
             <span class="ident">sink</span>: <span class="ident">sink</span>,
             <span class="ident">pending_wakeup</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>)),
-            <span class="ident">cleanup_needed</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>)),
-            <span class="ident">hid</span>: <span class="ident">hid</span>
-        }
-    }
+            <span class="ident">store</span>: <span class="ident">store</span>,
+            <span class="ident">ctxt_token</span>: <span class="ident">ctxt_token</span>,
+            <span class="ident">env_token</span>: <span class="ident">env_token</span>,
+            <span class="ident">cleanup_needed</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="bool-val">false</span>))
+        };
 
-    <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">context</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">WaylandContext</span><span class="op">&gt;</span> {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt</span>
+        <span class="ident">me</span>.<span class="ident">init_seat</span>(<span class="op">|</span><span class="ident">evqh</span>, <span class="ident">seat</span><span class="op">|</span> {
+            <span class="ident">evqh</span>.<span class="ident">register</span>(<span class="ident">seat</span>, <span class="ident">seat_implementation</span>(), <span class="ident">seat_idata</span>);
+        });
+
+        <span class="prelude-val">Some</span>(<span class="ident">me</span>)
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_proxy</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">EventsLoopProxy</span> {
         <span class="ident">EventsLoopProxy</span> {
-            <span class="ident">ctxt</span>: <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt</span>),
+            <span class="ident">display</span>: <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">display</span>),
             <span class="ident">pending_wakeup</span>: <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">pending_wakeup</span>),
         }
-    }
-
-    <span class="comment">// some internals that Window needs access to</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_window_init</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">AtomicBool</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">clone</span>()
-    }
-
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">register_window</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">decorated_id</span>: <span class="ident">usize</span>, <span class="ident">surface</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;</span>) {
-        <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">push</span>((<span class="ident">decorated_id</span>, <span class="ident">surface</span>.<span class="ident">clone</span>()));
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>();
-        <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">InputHandler</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">hid</span>).<span class="ident">windows</span>.<span class="ident">push</span>(<span class="ident">surface</span>);
-    }
-
-    <span class="kw">fn</span> <span class="ident">process_resize</span>(<span class="ident">evq</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueue</span>, <span class="ident">ids</span>: <span class="kw-2">&amp;</span>[(<span class="ident">usize</span>, <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;</span>)], <span class="ident">sink</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventsLoopSink</span>)
-    {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">evq</span>.<span class="ident">state</span>();
-        <span class="kw">for</span> <span class="kw-2">&amp;</span>(<span class="ident">decorated_id</span>, <span class="kw-2">ref</span> <span class="ident">window</span>) <span class="kw">in</span> <span class="ident">ids</span> {
-            <span class="kw">let</span> <span class="ident">decorated</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">DecoratedSurface</span><span class="op">&lt;</span><span class="ident">DecoratedHandler</span><span class="op">&gt;&gt;</span>(<span class="ident">decorated_id</span>);
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">w</span>, <span class="ident">h</span>)) <span class="op">=</span> <span class="ident">decorated</span>.<span class="ident">handler</span>().<span class="ident">as_mut</span>().<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">h</span><span class="op">|</span> <span class="ident">h</span>.<span class="ident">take_newsize</span>()) {
-                <span class="ident">decorated</span>.<span class="ident">resize</span>(<span class="ident">w</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">h</span> <span class="kw">as</span> <span class="ident">i32</span>);
-                <span class="ident">sink</span>.<span class="ident">send_event</span>(
-                     ::<span class="ident">WindowEvent</span>::<span class="ident">Resized</span>(<span class="ident">w</span>,<span class="ident">h</span>),
-                     <span class="ident">make_wid</span>(<span class="kw-2">&amp;</span><span class="ident">window</span>)
-                );
-            }
-            <span class="kw">if</span> <span class="ident">decorated</span>.<span class="ident">handler</span>().<span class="ident">as_mut</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">h</span><span class="op">|</span> <span class="ident">h</span>.<span class="ident">take_refresh</span>()).<span class="ident">unwrap_or</span>(<span class="bool-val">false</span>) {
-                <span class="ident">sink</span>.<span class="ident">send_event</span>(
-                     ::<span class="ident">WindowEvent</span>::<span class="ident">Refresh</span>,
-                     <span class="ident">make_wid</span>(<span class="kw-2">&amp;</span><span class="ident">window</span>)
-                );
-            }
-            <span class="kw">if</span> <span class="ident">decorated</span>.<span class="ident">handler</span>().<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">h</span><span class="op">|</span> <span class="ident">h</span>.<span class="ident">is_closed</span>()).<span class="ident">unwrap_or</span>(<span class="bool-val">false</span>) {
-                 <span class="ident">sink</span>.<span class="ident">send_event</span>(
-                     ::<span class="ident">WindowEvent</span>::<span class="ident">Closed</span>,
-                     <span class="ident">make_wid</span>(<span class="kw-2">&amp;</span><span class="ident">window</span>)
-                );
-
-            }
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">prune_dead_windows</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">retain</span>(<span class="op">|</span><span class="kw-2">&amp;</span>(_, <span class="kw-2">ref</span> <span class="ident">w</span>)<span class="op">|</span> <span class="ident">w</span>.<span class="ident">status</span>() <span class="op">==</span> <span class="ident">Liveness</span>::<span class="ident">Alive</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evq_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">evq_guard</span>.<span class="ident">state</span>();
-        <span class="kw">let</span> <span class="ident">handler</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_mut_handler</span>::<span class="op">&lt;</span><span class="ident">InputHandler</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">hid</span>);
-        <span class="ident">handler</span>.<span class="ident">windows</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="ident">w</span><span class="op">|</span> <span class="ident">w</span>.<span class="ident">status</span>() <span class="op">==</span> <span class="ident">Liveness</span>::<span class="ident">Alive</span>);
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">w</span>) <span class="op">=</span> <span class="ident">handler</span>.<span class="ident">mouse_focus</span>.<span class="ident">take</span>() {
-            <span class="kw">if</span> <span class="ident">w</span>.<span class="ident">status</span>() <span class="op">==</span> <span class="ident">Liveness</span>::<span class="ident">Alive</span> {
-                <span class="ident">handler</span>.<span class="ident">mouse_focus</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">w</span>)
-            }
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">post_dispatch_triggers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evq_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">evq</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sink_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">ids_guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decorated_ids</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-        <span class="self">self</span>.<span class="ident">emit_pending_wakeup</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">sink_guard</span>);
-        <span class="self">Self</span>::<span class="ident">process_resize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">evq_guard</span>, <span class="kw-2">&amp;</span><span class="ident">ids_guard</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">sink_guard</span>);
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">poll_events</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">callback</span>: <span class="ident">F</span>)
         <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(::<span class="ident">Event</span>)
     {
-        <span class="comment">// send pending requests to the server...</span>
-        <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">flush</span>();
+        <span class="comment">// send pending events to the server</span>
+        <span class="self">self</span>.<span class="ident">display</span>.<span class="ident">flush</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection lost.&quot;</span>);
 
         <span class="comment">// dispatch any pre-buffered events</span>
         <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">empty_with</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">callback</span>);
 
-        <span class="comment">// try dispatching events without blocking</span>
-        <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">read_events</span>();
-        <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">dispatch_pending</span>();
+        <span class="comment">// try to read pending events</span>
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">h</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">get_mut</span>().<span class="ident">prepare_read</span>() {
+            <span class="ident">h</span>.<span class="ident">read_events</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection lost.&quot;</span>);
+        }
+        <span class="comment">// dispatch wayland events</span>
+        <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">get_mut</span>().<span class="ident">dispatch_pending</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection lost.&quot;</span>);
         <span class="self">self</span>.<span class="ident">post_dispatch_triggers</span>();
 
+        <span class="comment">// dispatch buffered events to client</span>
         <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">empty_with</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">callback</span>);
-
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">swap</span>(<span class="bool-val">false</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
-            <span class="self">self</span>.<span class="ident">prune_dead_windows</span>()
-        }
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">run_forever</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">callback</span>: <span class="ident">F</span>)
         <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnMut</span>(::<span class="ident">Event</span>) <span class="op">-&gt;</span> <span class="ident">ControlFlow</span>,
     {
-        <span class="comment">// send pending requests to the server...</span>
-        <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">flush</span>();
+        <span class="comment">// send pending events to the server</span>
+        <span class="self">self</span>.<span class="ident">display</span>.<span class="ident">flush</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection lost.&quot;</span>);
 
         <span class="comment">// Check for control flow by wrapping the callback.</span>
         <span class="kw">let</span> <span class="ident">control_flow</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">cell</span>::<span class="ident">Cell</span>::<span class="ident">new</span>(<span class="ident">ControlFlow</span>::<span class="ident">Continue</span>);
@@ -922,20 +842,17 @@
             <span class="ident">control_flow</span>.<span class="ident">set</span>(<span class="ident">ControlFlow</span>::<span class="ident">Break</span>);
         };
 
-        <span class="comment">// dispatch pre-buffered events</span>
+        <span class="comment">// dispatch any pre-buffered events</span>
+        <span class="self">self</span>.<span class="ident">post_dispatch_triggers</span>();
         <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">empty_with</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">callback</span>);
 
         <span class="kw">loop</span> {
             <span class="comment">// dispatch events blocking if needed</span>
-            <span class="self">self</span>.<span class="ident">ctxt</span>.<span class="ident">dispatch</span>();
+            <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">get_mut</span>().<span class="ident">dispatch</span>().<span class="ident">expect</span>(<span class="string">&quot;Wayland connection lost.&quot;</span>);
             <span class="self">self</span>.<span class="ident">post_dispatch_triggers</span>();
 
             <span class="comment">// empty buffer of events</span>
             <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">empty_with</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">callback</span>);
-
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">swap</span>(<span class="bool-val">false</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
-                <span class="self">self</span>.<span class="ident">prune_dead_windows</span>()
-            }
 
             <span class="kw">if</span> <span class="kw">let</span> <span class="ident">ControlFlow</span>::<span class="ident">Break</span> <span class="op">=</span> <span class="ident">control_flow</span>.<span class="ident">get</span>() {
                 <span class="kw">break</span>;
@@ -943,414 +860,383 @@
         }
     }
 
-    <span class="comment">// If an `EventsLoopProxy` has signalled a wakeup, emit an event and reset the flag.</span>
-    <span class="kw">fn</span> <span class="ident">emit_pending_wakeup</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">sink</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventsLoopSink</span>) {
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">load</span>(<span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
-            <span class="ident">sink</span>.<span class="ident">send_raw_event</span>(::<span class="ident">Event</span>::<span class="ident">Awakened</span>);
-            <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">store</span>(<span class="bool-val">false</span>, <span class="ident">atomic</span>::<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_primary_monitor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">MonitorId</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">borrow_mut</span>();
+        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>();
+        <span class="kw">let</span> <span class="ident">state_ctxt</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt_token</span>);
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">info</span>) <span class="op">=</span> <span class="ident">state_ctxt</span>.<span class="ident">monitors</span>.<span class="ident">iter</span>().<span class="ident">next</span>() {
+            <span class="ident">MonitorId</span> {
+                <span class="ident">info</span>: <span class="ident">info</span>.<span class="ident">clone</span>()
+            }
+        } <span class="kw">else</span> {
+            <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;No monitor is available.&quot;</span>)
         }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_available_monitors</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">VecDeque</span><span class="op">&lt;</span><span class="ident">MonitorId</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">borrow_mut</span>();
+        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>();
+        <span class="kw">let</span> <span class="ident">state_ctxt</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt_token</span>);
+        <span class="ident">state_ctxt</span>.<span class="ident">monitors</span>.<span class="ident">iter</span>()
+        .<span class="ident">map</span>(<span class="op">|</span><span class="ident">m</span><span class="op">|</span> <span class="ident">MonitorId</span> { <span class="ident">info</span>: <span class="ident">m</span>.<span class="ident">clone</span>() })
+        .<span class="ident">collect</span>()
     }
 }
 
-<span class="kw">enum</span> <span class="ident">KbdType</span> {
-    <span class="ident">Mapped</span>(<span class="ident">MappedKeyboard</span><span class="op">&lt;</span><span class="ident">KbdHandler</span><span class="op">&gt;</span>),
-    <span class="ident">Plain</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">WindowId</span><span class="op">&gt;</span>)
-}
+<span class="comment">/*
+ * Private EventsLoop Internals
+ */</span>
 
-<span class="kw">struct</span> <span class="ident">InputHandler</span> {
-    <span class="ident">my_id</span>: <span class="ident">usize</span>,
-    <span class="ident">windows</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;&gt;</span>,
+<span class="macro">wayland_env</span><span class="macro">!</span>(<span class="ident">InnerEnv</span>,
+    <span class="ident">compositor</span>: <span class="ident">wl_compositor</span>::<span class="ident">WlCompositor</span>,
+    <span class="ident">shm</span>: <span class="ident">wl_shm</span>::<span class="ident">WlShm</span>,
+    <span class="ident">subcompositor</span>: <span class="ident">wl_subcompositor</span>::<span class="ident">WlSubcompositor</span>
+);
+
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StateContext</span> {
+    <span class="ident">registry</span>: <span class="ident">wl_registry</span>::<span class="ident">WlRegistry</span>,
     <span class="ident">seat</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_seat</span>::<span class="ident">WlSeat</span><span class="op">&gt;</span>,
-    <span class="ident">mouse</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span><span class="op">&gt;</span>,
-    <span class="ident">mouse_focus</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span><span class="op">&gt;&gt;</span>,
-    <span class="ident">mouse_location</span>: (<span class="ident">f64</span>, <span class="ident">f64</span>),
-    <span class="ident">axis_buffer</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">f32</span>, <span class="ident">f32</span>)<span class="op">&gt;</span>,
-    <span class="ident">axis_discrete_buffer</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">i32</span>, <span class="ident">i32</span>)<span class="op">&gt;</span>,
-    <span class="ident">axis_state</span>: <span class="ident">TouchPhase</span>,
-    <span class="ident">kbd</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span><span class="op">&gt;</span>,
-    <span class="ident">kbd_handler</span>: <span class="ident">KbdType</span>,
-    <span class="ident">callback</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>
+    <span class="ident">shell</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Shell</span><span class="op">&gt;</span>,
+    <span class="ident">monitors</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">OutputInfo</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>
 }
 
-<span class="kw">impl</span> <span class="ident">InputHandler</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">ctxt</span>: <span class="kw-2">&amp;</span><span class="ident">WaylandContext</span>, <span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>) <span class="op">-&gt;</span> <span class="ident">InputHandler</span> {
-        <span class="kw">let</span> <span class="ident">kbd_handler</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">MappedKeyboard</span>::<span class="ident">new</span>(<span class="ident">KbdHandler</span>::<span class="ident">new</span>(<span class="ident">sink</span>.<span class="ident">clone</span>())) {
-            <span class="prelude-val">Ok</span>(<span class="ident">h</span>) <span class="op">=&gt;</span> <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="ident">h</span>),
-            <span class="prelude-val">Err</span>(_) <span class="op">=&gt;</span> <span class="ident">KbdType</span>::<span class="ident">Plain</span>(<span class="prelude-val">None</span>)
-        };
-        <span class="ident">InputHandler</span> {
-            <span class="ident">my_id</span>: <span class="number">0</span>,
-            <span class="ident">windows</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
-            <span class="ident">seat</span>: <span class="ident">ctxt</span>.<span class="ident">get_seat</span>(),
-            <span class="ident">mouse</span>: <span class="prelude-val">None</span>,
-            <span class="ident">mouse_focus</span>: <span class="prelude-val">None</span>,
-            <span class="ident">mouse_location</span>: (<span class="number">0.0</span>,<span class="number">0.0</span>),
-            <span class="ident">axis_buffer</span>: <span class="prelude-val">None</span>,
-            <span class="ident">axis_discrete_buffer</span>: <span class="prelude-val">None</span>,
-            <span class="ident">axis_state</span>: <span class="ident">TouchPhase</span>::<span class="ident">Started</span>,
-            <span class="ident">kbd</span>: <span class="prelude-val">None</span>,
-            <span class="ident">kbd_handler</span>: <span class="ident">kbd_handler</span>,
-            <span class="ident">callback</span>: <span class="ident">sink</span>
+<span class="kw">impl</span> <span class="ident">StateContext</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">registry</span>: <span class="ident">wl_registry</span>::<span class="ident">WlRegistry</span>) <span class="op">-&gt;</span> <span class="ident">StateContext</span> {
+        <span class="ident">StateContext</span> {
+            <span class="ident">registry</span>: <span class="ident">registry</span>,
+            <span class="ident">seat</span>: <span class="prelude-val">None</span>,
+            <span class="ident">shell</span>: <span class="prelude-val">None</span>,
+            <span class="ident">monitors</span>: <span class="ident">Vec</span>::<span class="ident">new</span>()
         }
     }
-}
 
-<span class="kw">impl</span> <span class="ident">Init</span> <span class="kw">for</span> <span class="ident">InputHandler</span> {
-    <span class="kw">fn</span> <span class="ident">init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>, <span class="ident">index</span>: <span class="ident">usize</span>) {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">seat</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">seat</span> {
-            <span class="ident">evqh</span>.<span class="ident">register</span>::<span class="op">&lt;</span>_, <span class="ident">InputHandler</span><span class="op">&gt;</span>(<span class="ident">seat</span>, <span class="ident">index</span>);
+    <span class="doccomment">/// Ensures a shell is available</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If a shell is already bound, do nothing. Otherwise,</span>
+    <span class="doccomment">/// try to bind wl_shell as a fallback. If this fails,</span>
+    <span class="doccomment">/// panic, as this is a bug from the compositor.</span>
+    <span class="kw">fn</span> <span class="ident">ensure_shell</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">env</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EnvHandler</span><span class="op">&lt;</span><span class="ident">InnerEnv</span><span class="op">&gt;</span>) {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">shell</span>.<span class="ident">is_some</span>() {
+            <span class="kw">return</span>;
         }
-        <span class="self">self</span>.<span class="ident">my_id</span> <span class="op">=</span> <span class="ident">index</span>;
-    }
-}
-
-<span class="kw">impl</span> <span class="ident">wl_seat</span>::<span class="ident">Handler</span> <span class="kw">for</span> <span class="ident">InputHandler</span> {
-    <span class="kw">fn</span> <span class="ident">capabilities</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-                    <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                    <span class="ident">seat</span>: <span class="kw-2">&amp;</span><span class="ident">wl_seat</span>::<span class="ident">WlSeat</span>,
-                    <span class="ident">capabilities</span>: <span class="ident">wl_seat</span>::<span class="ident">Capability</span>)
-    {
-        <span class="comment">// create pointer if applicable</span>
-        <span class="kw">if</span> <span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Pointer</span>) <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">mouse</span>.<span class="ident">is_none</span>() {
-            <span class="kw">let</span> <span class="ident">pointer</span> <span class="op">=</span> <span class="ident">seat</span>.<span class="ident">get_pointer</span>().<span class="ident">expect</span>(<span class="string">&quot;Seat is not dead&quot;</span>);
-            <span class="ident">evqh</span>.<span class="ident">register</span>::<span class="op">&lt;</span>_, <span class="ident">InputHandler</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">pointer</span>, <span class="self">self</span>.<span class="ident">my_id</span>);
-            <span class="self">self</span>.<span class="ident">mouse</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">pointer</span>);
-        }
-        <span class="comment">// destroy pointer if applicable</span>
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Pointer</span>) {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">pointer</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse</span>.<span class="ident">take</span>() {
-                <span class="ident">pointer</span>.<span class="ident">release</span>();
+        <span class="comment">// xdg_shell is not available, so initialize wl_shell</span>
+        <span class="kw">for</span> <span class="kw-2">&amp;</span>(<span class="ident">name</span>, <span class="kw-2">ref</span> <span class="ident">interface</span>, _) <span class="kw">in</span> <span class="ident">env</span>.<span class="ident">globals</span>() {
+            <span class="kw">if</span> <span class="ident">interface</span> <span class="op">==</span> <span class="string">&quot;wl_shell&quot;</span> {
+                <span class="self">self</span>.<span class="ident">shell</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Shell</span>::<span class="ident">Wl</span>(<span class="self">self</span>.<span class="ident">registry</span>.<span class="ident">bind</span>::<span class="op">&lt;</span><span class="ident">wl_shell</span>::<span class="ident">WlShell</span><span class="op">&gt;</span>(<span class="number">1</span>, <span class="ident">name</span>)));
+                <span class="kw">return</span>;
             }
         }
-        <span class="comment">// create keyboard if applicable</span>
-        <span class="kw">if</span> <span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Keyboard</span>) <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">kbd</span>.<span class="ident">is_none</span>() {
-            <span class="kw">let</span> <span class="ident">kbd</span> <span class="op">=</span> <span class="ident">seat</span>.<span class="ident">get_keyboard</span>().<span class="ident">expect</span>(<span class="string">&quot;Seat is not dead&quot;</span>);
-            <span class="ident">evqh</span>.<span class="ident">register</span>::<span class="op">&lt;</span>_, <span class="ident">InputHandler</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">kbd</span>, <span class="self">self</span>.<span class="ident">my_id</span>);
-            <span class="self">self</span>.<span class="ident">kbd</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">kbd</span>);
-        }
-        <span class="comment">// destroy keyboard if applicable</span>
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Keyboard</span>) {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">kbd</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">kbd</span>.<span class="ident">take</span>() {
-                <span class="ident">kbd</span>.<span class="ident">release</span>();
-            }
-        }
-    }
-}
-
-<span class="macro">declare_handler</span><span class="macro">!</span>(<span class="ident">InputHandler</span>, <span class="ident">wl_seat</span>::<span class="ident">Handler</span>, <span class="ident">wl_seat</span>::<span class="ident">WlSeat</span>);
-
-<span class="comment">/*
- * Pointer Handling
- */</span>
-
-<span class="kw">impl</span> <span class="ident">wl_pointer</span>::<span class="ident">Handler</span> <span class="kw">for</span> <span class="ident">InputHandler</span> {
-    <span class="kw">fn</span> <span class="ident">enter</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-             <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-             <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-             <span class="ident">_serial</span>: <span class="ident">u32</span>,
-             <span class="ident">surface</span>: <span class="kw-2">&amp;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>,
-             <span class="ident">surface_x</span>: <span class="ident">f64</span>,
-             <span class="ident">surface_y</span>: <span class="ident">f64</span>)
-    {
-        <span class="self">self</span>.<span class="ident">mouse_location</span> <span class="op">=</span> (<span class="ident">surface_x</span>, <span class="ident">surface_y</span>);
-        <span class="kw">for</span> <span class="ident">window</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">windows</span> {
-            <span class="kw">if</span> <span class="ident">window</span>.<span class="ident">equals</span>(<span class="ident">surface</span>) {
-                <span class="self">self</span>.<span class="ident">mouse_focus</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">window</span>.<span class="ident">clone</span>());
-                <span class="kw">let</span> (<span class="ident">w</span>, <span class="ident">h</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_location</span>;
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-                <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseEntered</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)) },
-                                 <span class="ident">make_wid</span>(<span class="ident">window</span>));
-                <span class="ident">guard</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseMoved</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                                                     <span class="ident">position</span>: (<span class="ident">w</span>, <span class="ident">h</span>) },
-                                 <span class="ident">make_wid</span>(<span class="ident">window</span>));
-                <span class="kw">break</span>;
-            }
-        }
+        <span class="comment">// This is a compositor bug, it _must_ at least support wl_shell</span>
+        <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Compositor didi not advertize xdg_shell not wl_shell.&quot;</span>);
     }
 
-    <span class="kw">fn</span> <span class="ident">leave</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-             <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-             <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-             <span class="ident">_serial</span>: <span class="ident">u32</span>,
-             <span class="ident">surface</span>: <span class="kw-2">&amp;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>)
-    {
-        <span class="self">self</span>.<span class="ident">mouse_focus</span> <span class="op">=</span> <span class="prelude-val">None</span>;
-        <span class="kw">for</span> <span class="ident">window</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">windows</span> {
-            <span class="kw">if</span> <span class="ident">window</span>.<span class="ident">equals</span>(<span class="ident">surface</span>) {
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseLeft</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)) },
-                                                         <span class="ident">make_wid</span>(<span class="ident">window</span>));
-            }
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">motion</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-              <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-              <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-              <span class="ident">_time</span>: <span class="ident">u32</span>,
-              <span class="ident">surface_x</span>: <span class="ident">f64</span>,
-              <span class="ident">surface_y</span>: <span class="ident">f64</span>)
-    {
-        <span class="self">self</span>.<span class="ident">mouse_location</span> <span class="op">=</span> (<span class="ident">surface_x</span>, <span class="ident">surface_y</span>);
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">window</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_focus</span> {
-            <span class="kw">let</span> (<span class="ident">w</span>,<span class="ident">h</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_location</span>;
-            <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">MouseMoved</span> { <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                                                                         <span class="ident">position</span>: (<span class="ident">w</span>, <span class="ident">h</span>) }, <span class="ident">make_wid</span>(<span class="ident">window</span>));
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">button</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-              <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-              <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-              <span class="ident">_serial</span>: <span class="ident">u32</span>,
-              <span class="ident">_time</span>: <span class="ident">u32</span>,
-              <span class="ident">button</span>: <span class="ident">u32</span>,
-              <span class="ident">state</span>: <span class="ident">wl_pointer</span>::<span class="ident">ButtonState</span>)
-    {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">window</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_focus</span> {
-            <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">state</span> {
-                <span class="ident">wl_pointer</span>::<span class="ident">ButtonState</span>::<span class="ident">Pressed</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Pressed</span>,
-                <span class="ident">wl_pointer</span>::<span class="ident">ButtonState</span>::<span class="ident">Released</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Released</span>
-            };
-            <span class="kw">let</span> <span class="ident">button</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">button</span> {
-                <span class="number">0x110</span> <span class="op">=&gt;</span> <span class="ident">MouseButton</span>::<span class="ident">Left</span>,
-                <span class="number">0x111</span> <span class="op">=&gt;</span> <span class="ident">MouseButton</span>::<span class="ident">Right</span>,
-                <span class="number">0x112</span> <span class="op">=&gt;</span> <span class="ident">MouseButton</span>::<span class="ident">Middle</span>,
-                <span class="comment">// TODO figure out the translation ?</span>
-                _ <span class="op">=&gt;</span> <span class="kw">return</span>
-            };
-            <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                <span class="ident">Event</span>::<span class="ident">MouseInput</span> {
-                    <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                    <span class="ident">state</span>: <span class="ident">state</span>,
-                    <span class="ident">button</span>: <span class="ident">button</span>,
-                },
-                <span class="ident">make_wid</span>(<span class="ident">window</span>)
-            );
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">axis</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-            <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-            <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-            <span class="ident">_time</span>: <span class="ident">u32</span>,
-            <span class="ident">axis</span>: <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>,
-            <span class="ident">value</span>: <span class="ident">f64</span>)
-    {
-        <span class="kw">let</span> (<span class="kw-2">mut</span> <span class="ident">x</span>, <span class="kw-2">mut</span> <span class="ident">y</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">axis_buffer</span>.<span class="ident">unwrap_or</span>((<span class="number">0.0</span>, <span class="number">0.0</span>));
-        <span class="kw">match</span> <span class="ident">axis</span> {
-            <span class="comment">// wayland vertical sign convention is the inverse of winit</span>
-            <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>::<span class="ident">VerticalScroll</span> <span class="op">=&gt;</span> <span class="ident">y</span> <span class="op">-=</span> <span class="ident">value</span> <span class="kw">as</span> <span class="ident">f32</span>,
-            <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>::<span class="ident">HorizontalScroll</span> <span class="op">=&gt;</span> <span class="ident">x</span> <span class="op">+=</span> <span class="ident">value</span> <span class="kw">as</span> <span class="ident">f32</span>
-        }
-        <span class="self">self</span>.<span class="ident">axis_buffer</span> <span class="op">=</span> <span class="prelude-val">Some</span>((<span class="ident">x</span>,<span class="ident">y</span>));
-        <span class="self">self</span>.<span class="ident">axis_state</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">axis_state</span> {
-            <span class="ident">TouchPhase</span>::<span class="ident">Started</span> <span class="op">|</span> <span class="ident">TouchPhase</span>::<span class="ident">Moved</span> <span class="op">=&gt;</span> <span class="ident">TouchPhase</span>::<span class="ident">Moved</span>,
-            _ <span class="op">=&gt;</span> <span class="ident">TouchPhase</span>::<span class="ident">Started</span>
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">frame</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-             <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-             <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>)
-    {
-        <span class="kw">let</span> <span class="ident">axis_buffer</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">axis_buffer</span>.<span class="ident">take</span>();
-        <span class="kw">let</span> <span class="ident">axis_discrete_buffer</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">axis_discrete_buffer</span>.<span class="ident">take</span>();
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">window</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mouse_focus</span> {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">x</span>, <span class="ident">y</span>)) <span class="op">=</span> <span class="ident">axis_discrete_buffer</span> {
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                    <span class="ident">Event</span>::<span class="ident">MouseWheel</span> {
-                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                        <span class="ident">delta</span>: <span class="ident">MouseScrollDelta</span>::<span class="ident">LineDelta</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>),
-                        <span class="ident">phase</span>: <span class="self">self</span>.<span class="ident">axis_state</span>,
-                    },
-                    <span class="ident">make_wid</span>(<span class="ident">window</span>)
-                );
-            } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">x</span>, <span class="ident">y</span>)) <span class="op">=</span> <span class="ident">axis_buffer</span> {
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                    <span class="ident">Event</span>::<span class="ident">MouseWheel</span> {
-                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                        <span class="ident">delta</span>: <span class="ident">MouseScrollDelta</span>::<span class="ident">PixelDelta</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="ident">y</span> <span class="kw">as</span> <span class="ident">f32</span>),
-                        <span class="ident">phase</span>: <span class="self">self</span>.<span class="ident">axis_state</span>,
-                    },
-                    <span class="ident">make_wid</span>(<span class="ident">window</span>)
-                );
-            }
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">axis_source</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-                   <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                   <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-                   <span class="ident">_axis_source</span>: <span class="ident">wl_pointer</span>::<span class="ident">AxisSource</span>)
-    {
-    }
-
-    <span class="kw">fn</span> <span class="ident">axis_stop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-                 <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                 <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-                 <span class="ident">_time</span>: <span class="ident">u32</span>,
-                 <span class="ident">_axis</span>: <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>)
-    {
-        <span class="self">self</span>.<span class="ident">axis_state</span> <span class="op">=</span> <span class="ident">TouchPhase</span>::<span class="ident">Ended</span>;
-    }
-
-    <span class="kw">fn</span> <span class="ident">axis_discrete</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-                     <span class="ident">_evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                     <span class="ident">_proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>,
-                     <span class="ident">axis</span>: <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>,
-                     <span class="ident">discrete</span>: <span class="ident">i32</span>)
-    {
-        <span class="kw">let</span> (<span class="kw-2">mut</span> <span class="ident">x</span>, <span class="kw-2">mut</span> <span class="ident">y</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">axis_discrete_buffer</span>.<span class="ident">unwrap_or</span>((<span class="number">0</span>,<span class="number">0</span>));
-        <span class="kw">match</span> <span class="ident">axis</span> {
-            <span class="comment">// wayland vertical sign convention is the inverse of winit</span>
-            <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>::<span class="ident">VerticalScroll</span> <span class="op">=&gt;</span> <span class="ident">y</span> <span class="op">-=</span> <span class="ident">discrete</span>,
-            <span class="ident">wl_pointer</span>::<span class="ident">Axis</span>::<span class="ident">HorizontalScroll</span> <span class="op">=&gt;</span> <span class="ident">x</span> <span class="op">+=</span> <span class="ident">discrete</span>
-        }
-        <span class="self">self</span>.<span class="ident">axis_discrete_buffer</span> <span class="op">=</span> <span class="prelude-val">Some</span>((<span class="ident">x</span>,<span class="ident">y</span>));
-                <span class="self">self</span>.<span class="ident">axis_state</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">axis_state</span> {
-            <span class="ident">TouchPhase</span>::<span class="ident">Started</span> <span class="op">|</span> <span class="ident">TouchPhase</span>::<span class="ident">Moved</span> <span class="op">=&gt;</span> <span class="ident">TouchPhase</span>::<span class="ident">Moved</span>,
-            _ <span class="op">=&gt;</span> <span class="ident">TouchPhase</span>::<span class="ident">Started</span>
-        }
-    }
-}
-
-<span class="macro">declare_handler</span><span class="macro">!</span>(<span class="ident">InputHandler</span>, <span class="ident">wl_pointer</span>::<span class="ident">Handler</span>, <span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span>);
-
-<span class="comment">/*
- * Keyboard Handling
- */</span>
-
-<span class="kw">impl</span> <span class="ident">wl_keyboard</span>::<span class="ident">Handler</span> <span class="kw">for</span> <span class="ident">InputHandler</span> {
-    <span class="comment">// mostly pass-through</span>
-    <span class="kw">fn</span> <span class="ident">keymap</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-              <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-              <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-              <span class="ident">format</span>: <span class="ident">wl_keyboard</span>::<span class="ident">KeymapFormat</span>,
-              <span class="ident">fd</span>: ::<span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">io</span>::<span class="ident">RawFd</span>,
-              <span class="ident">size</span>: <span class="ident">u32</span>)
-    {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">kbd_handler</span> {
-            <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">h</span>) <span class="op">=&gt;</span> <span class="ident">h</span>.<span class="ident">keymap</span>(<span class="ident">evqh</span>, <span class="ident">proxy</span>, <span class="ident">format</span>, <span class="ident">fd</span>, <span class="ident">size</span>),
-            _ <span class="op">=&gt;</span> ()
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">enter</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-             <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-             <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-             <span class="ident">serial</span>: <span class="ident">u32</span>,
-             <span class="ident">surface</span>: <span class="kw-2">&amp;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>,
-             <span class="ident">keys</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>)
-    {
-        <span class="kw">for</span> <span class="ident">window</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">windows</span> {
-            <span class="kw">if</span> <span class="ident">window</span>.<span class="ident">equals</span>(<span class="ident">surface</span>) {
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Focused</span>(<span class="bool-val">true</span>), <span class="ident">make_wid</span>(<span class="ident">window</span>));
-                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">kbd_handler</span> {
-                    <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">h</span>) <span class="op">=&gt;</span> {
-                        <span class="ident">h</span>.<span class="ident">handler</span>().<span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">make_wid</span>(<span class="ident">window</span>));
-                        <span class="ident">h</span>.<span class="ident">enter</span>(<span class="ident">evqh</span>, <span class="ident">proxy</span>, <span class="ident">serial</span>, <span class="ident">surface</span>, <span class="ident">keys</span>);
-                    },
-                    <span class="ident">KbdType</span>::<span class="ident">Plain</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">target</span>) <span class="op">=&gt;</span> {
-                        <span class="kw-2">*</span><span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">make_wid</span>(<span class="ident">window</span>))
-                    }
-                }
-                <span class="kw">break</span>;
-            }
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">leave</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-             <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-             <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-             <span class="ident">serial</span>: <span class="ident">u32</span>,
-             <span class="ident">surface</span>: <span class="kw-2">&amp;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>)
-    {
-        <span class="kw">for</span> <span class="ident">window</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">windows</span> {
-            <span class="kw">if</span> <span class="ident">window</span>.<span class="ident">equals</span>(<span class="ident">surface</span>) {
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Focused</span>(<span class="bool-val">false</span>), <span class="ident">make_wid</span>(<span class="ident">window</span>));
-                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">kbd_handler</span> {
-                    <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">h</span>) <span class="op">=&gt;</span> {
-                        <span class="ident">h</span>.<span class="ident">handler</span>().<span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">None</span>;
-                        <span class="ident">h</span>.<span class="ident">leave</span>(<span class="ident">evqh</span>, <span class="ident">proxy</span>, <span class="ident">serial</span>, <span class="ident">surface</span>);
-                    },
-                    <span class="ident">KbdType</span>::<span class="ident">Plain</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">target</span>) <span class="op">=&gt;</span> {
-                        <span class="kw-2">*</span><span class="ident">target</span> <span class="op">=</span> <span class="prelude-val">None</span>
-                    }
-                }
-                <span class="kw">break</span>;
-            }
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">key</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-           <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-           <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-           <span class="ident">serial</span>: <span class="ident">u32</span>,
-           <span class="ident">time</span>: <span class="ident">u32</span>,
-           <span class="ident">key</span>: <span class="ident">u32</span>,
-           <span class="ident">state</span>: <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>)
-    {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">kbd_handler</span> {
-            <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">h</span>) <span class="op">=&gt;</span> <span class="ident">h</span>.<span class="ident">key</span>(<span class="ident">evqh</span>, <span class="ident">proxy</span>, <span class="ident">serial</span>, <span class="ident">time</span>, <span class="ident">key</span>, <span class="ident">state</span>),
-            <span class="ident">KbdType</span>::<span class="ident">Plain</span>(<span class="prelude-val">Some</span>(<span class="ident">wid</span>)) <span class="op">=&gt;</span> {
-                <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">state</span> {
-                    <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Pressed</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Pressed</span>,
-                    <span class="ident">wl_keyboard</span>::<span class="ident">KeyState</span>::<span class="ident">Released</span> <span class="op">=&gt;</span> <span class="ident">ElementState</span>::<span class="ident">Released</span>,
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">monitor_id_for</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">output</span>: <span class="kw-2">&amp;</span><span class="ident">wl_output</span>::<span class="ident">WlOutput</span>) <span class="op">-&gt;</span> <span class="ident">MonitorId</span> {
+        <span class="kw">for</span> <span class="ident">info</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">monitors</span> {
+            <span class="kw">let</span> <span class="ident">guard</span> <span class="op">=</span> <span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+            <span class="kw">if</span> <span class="ident">guard</span>.<span class="ident">output</span>.<span class="ident">equals</span>(<span class="ident">output</span>) {
+                <span class="kw">return</span> <span class="ident">MonitorId</span> {
+                    <span class="ident">info</span>: <span class="ident">info</span>.<span class="ident">clone</span>()
                 };
-                <span class="comment">// This is fallback impl if libxkbcommon was not available</span>
-                <span class="comment">// This case should probably never happen, as most wayland</span>
-                <span class="comment">// compositors _need_ libxkbcommon anyway...</span>
-                <span class="comment">//</span>
-                <span class="comment">// In this case, we don&#39;t have the modifiers state information</span>
-                <span class="comment">// anyway, as we need libxkbcommon to interpret it (it is</span>
-                <span class="comment">// supposed to be serialized by the compositor using libxkbcommon)</span>
-                <span class="self">self</span>.<span class="ident">callback</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">send_event</span>(
-                    <span class="ident">Event</span>::<span class="ident">KeyboardInput</span> {
-                        <span class="ident">device_id</span>: ::<span class="ident">DeviceId</span>(::<span class="ident">platform</span>::<span class="ident">DeviceId</span>::<span class="ident">Wayland</span>(<span class="ident">DeviceId</span>)),
-                        <span class="ident">input</span>: <span class="ident">KeyboardInput</span> {
-                            <span class="ident">state</span>: <span class="ident">state</span>,
-                            <span class="ident">scancode</span>: <span class="ident">key</span>,
-                            <span class="ident">virtual_keycode</span>: <span class="prelude-val">None</span>,
-                            <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span>::<span class="ident">default</span>(),
-                        },
-                    },
-                    <span class="ident">wid</span>
+            }
+        }
+        <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Received an inexistent wl_output?!&quot;</span>);
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">EventsLoop</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">init_seat</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">f</span>: <span class="ident">F</span>)
+    <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>, <span class="kw-2">&amp;</span><span class="ident">wl_seat</span>::<span class="ident">WlSeat</span>)
+    {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">borrow_mut</span>();
+        <span class="kw">if</span> <span class="ident">guard</span>.<span class="ident">state</span>().<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt_token</span>).<span class="ident">seat</span>.<span class="ident">is_some</span>() {
+            <span class="comment">// seat has already been init</span>
+            <span class="kw">return</span>;
+        }
+
+        <span class="comment">// clone the token to make borrow checker happy</span>
+        <span class="kw">let</span> <span class="ident">ctxt_token</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ctxt_token</span>.<span class="ident">clone</span>();
+        <span class="kw">let</span> <span class="ident">seat</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>().<span class="ident">with_value</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">env_token</span>, <span class="op">|</span><span class="ident">proxy</span>, <span class="ident">env</span><span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="ident">proxy</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">ctxt_token</span>);
+            <span class="kw">for</span> <span class="kw-2">&amp;</span>(<span class="ident">name</span>, <span class="kw-2">ref</span> <span class="ident">interface</span>, _) <span class="kw">in</span> <span class="ident">env</span>.<span class="ident">globals</span>() {
+                <span class="kw">if</span> <span class="ident">interface</span> <span class="op">==</span> <span class="ident">wl_seat</span>::<span class="ident">WlSeat</span>::<span class="ident">interface_name</span>() {
+                    <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">ctxt</span>.<span class="ident">registry</span>.<span class="ident">bind</span>::<span class="op">&lt;</span><span class="ident">wl_seat</span>::<span class="ident">WlSeat</span><span class="op">&gt;</span>(<span class="number">5</span>, <span class="ident">name</span>));
+                }
+            }
+            <span class="prelude-val">None</span>
+        });
+
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">seat</span>) <span class="op">=</span> <span class="ident">seat</span> {
+            <span class="ident">f</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">guard</span>, <span class="kw-2">&amp;</span><span class="ident">seat</span>);
+            <span class="ident">guard</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt_token</span>).<span class="ident">seat</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">seat</span>)
+        }
+    }
+
+    <span class="kw">fn</span> <span class="ident">post_dispatch_triggers</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sink</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">sink</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">evq</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">get_mut</span>();
+        <span class="comment">// process a possible pending wakeup call</span>
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">load</span>(<span class="ident">Ordering</span>::<span class="ident">Relaxed</span>) {
+            <span class="ident">sink</span>.<span class="ident">send_raw_event</span>(::<span class="ident">Event</span>::<span class="ident">Awakened</span>);
+            <span class="self">self</span>.<span class="ident">pending_wakeup</span>.<span class="ident">store</span>(<span class="bool-val">false</span>, <span class="ident">Ordering</span>::<span class="ident">Relaxed</span>);
+        }
+        <span class="comment">// prune possible dead windows</span>
+        {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cleanup_needed</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cleanup_needed</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+            <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">cleanup_needed</span> {
+                <span class="ident">evq</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">store</span>).<span class="ident">cleanup</span>();
+                <span class="kw-2">*</span><span class="ident">cleanup_needed</span> <span class="op">=</span> <span class="bool-val">false</span>;
+            }
+        }
+        <span class="comment">// process pending resize/refresh</span>
+        <span class="ident">evq</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">store</span>).<span class="ident">for_each</span>(
+            <span class="op">|</span><span class="ident">newsize</span>, <span class="ident">refresh</span>, <span class="ident">frame_refresh</span>, <span class="ident">closed</span>, <span class="ident">wid</span>, <span class="ident">frame</span><span class="op">|</span> {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">frame</span>) <span class="op">=</span> <span class="ident">frame</span> {
+                    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">w</span>, <span class="ident">h</span>)) <span class="op">=</span> <span class="ident">newsize</span> {
+                        <span class="ident">frame</span>.<span class="ident">resize</span>(<span class="ident">w</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">h</span> <span class="kw">as</span> <span class="ident">i32</span>);
+                        <span class="ident">frame</span>.<span class="ident">refresh</span>();
+                        <span class="ident">sink</span>.<span class="ident">send_event</span>(::<span class="ident">WindowEvent</span>::<span class="ident">Resized</span>(<span class="ident">w</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">h</span> <span class="kw">as</span> <span class="ident">u32</span>), <span class="ident">wid</span>);
+                    } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">frame_refresh</span> {
+                        <span class="ident">frame</span>.<span class="ident">refresh</span>();
+                    }
+                }
+                <span class="kw">if</span> <span class="ident">refresh</span> {
+                    <span class="ident">sink</span>.<span class="ident">send_event</span>(::<span class="ident">WindowEvent</span>::<span class="ident">Refresh</span>, <span class="ident">wid</span>);
+                }
+                <span class="kw">if</span> <span class="ident">closed</span> {
+                    <span class="ident">sink</span>.<span class="ident">send_event</span>(::<span class="ident">WindowEvent</span>::<span class="ident">Closed</span>, <span class="ident">wid</span>);
+                }
+            }
+        )
+    }
+
+    <span class="doccomment">/// Create a new window with given dimensions</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Grabs a lock on the event queue in the process</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_window</span><span class="op">&lt;</span><span class="ident">ID</span>: <span class="lifetime">&#39;static</span>, <span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">width</span>: <span class="ident">u32</span>, <span class="ident">height</span>: <span class="ident">u32</span>, <span class="ident">implem</span>: <span class="ident">FrameImplementation</span><span class="op">&lt;</span><span class="ident">ID</span><span class="op">&gt;</span>, <span class="ident">idata</span>: <span class="ident">F</span>)
+        <span class="op">-&gt;</span> (<span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>, <span class="ident">Frame</span>)
+    <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>(<span class="kw-2">&amp;</span><span class="ident">wl_surface</span>::<span class="ident">WlSurface</span>) <span class="op">-&gt;</span> <span class="ident">ID</span>
+    {
+        <span class="kw">let</span> (<span class="ident">surface</span>, <span class="ident">frame</span>) <span class="op">=</span> {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">evq</span>.<span class="ident">borrow_mut</span>();
+            <span class="kw">let</span> <span class="ident">env</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>().<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">env_token</span>).<span class="ident">clone_inner</span>().<span class="ident">unwrap</span>();
+            <span class="kw">let</span> <span class="ident">shell</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">guard</span>.<span class="ident">state</span>().<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt_token</span>).<span class="ident">shell</span> {
+                <span class="prelude-val">Some</span>(<span class="ident">Shell</span>::<span class="ident">Wl</span>(<span class="kw-2">ref</span> <span class="ident">wl_shell</span>)) <span class="op">=&gt;</span> <span class="ident">Shell</span>::<span class="ident">Wl</span>(<span class="ident">wl_shell</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>()),
+                <span class="prelude-val">Some</span>(<span class="ident">Shell</span>::<span class="ident">Xdg</span>(<span class="kw-2">ref</span> <span class="ident">xdg_shell</span>)) <span class="op">=&gt;</span> <span class="ident">Shell</span>::<span class="ident">Xdg</span>(<span class="ident">xdg_shell</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>()),
+                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>()
+            };
+            <span class="kw">let</span> <span class="ident">seat</span> <span class="op">=</span> <span class="ident">guard</span>.<span class="ident">state</span>().<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ctxt_token</span>).<span class="ident">seat</span>.<span class="ident">as_ref</span>().<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">clone</span>());
+            <span class="kw">let</span> <span class="ident">surface</span> <span class="op">=</span> <span class="ident">env</span>.<span class="ident">compositor</span>.<span class="ident">create_surface</span>();
+            <span class="kw">let</span> <span class="ident">frame</span> <span class="op">=</span> <span class="ident">create_frame</span>(
+                <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">guard</span>,
+                <span class="ident">implem</span>,
+                <span class="ident">idata</span>(<span class="kw-2">&amp;</span><span class="ident">surface</span>),
+                <span class="kw-2">&amp;</span><span class="ident">surface</span>, <span class="ident">width</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">height</span> <span class="kw">as</span> <span class="ident">i32</span>,
+                <span class="kw-2">&amp;</span><span class="ident">env</span>.<span class="ident">compositor</span>,
+                <span class="kw-2">&amp;</span><span class="ident">env</span>.<span class="ident">subcompositor</span>,
+                <span class="kw-2">&amp;</span><span class="ident">env</span>.<span class="ident">shm</span>,
+                <span class="kw-2">&amp;</span><span class="ident">shell</span>,
+                <span class="ident">seat</span>
+            ).<span class="ident">expect</span>(<span class="string">&quot;Failed to create a tmpfile buffer.&quot;</span>);
+            (<span class="ident">surface</span>, <span class="ident">frame</span>)
+        };
+
+        (<span class="ident">surface</span>, <span class="ident">frame</span>)
+    }
+}
+
+<span class="comment">/*
+ * Wayland protocol implementations
+ */</span>
+
+<span class="kw">fn</span> <span class="ident">env_notify</span>() <span class="op">-&gt;</span> <span class="ident">EnvNotify</span><span class="op">&lt;</span><span class="ident">StateToken</span><span class="op">&lt;</span><span class="ident">StateContext</span><span class="op">&gt;&gt;</span> {
+    <span class="ident">EnvNotify</span> {
+        <span class="ident">new_global</span>: <span class="op">|</span><span class="ident">evqh</span>, <span class="ident">token</span>, <span class="ident">registry</span>, <span class="ident">id</span>, <span class="ident">interface</span>, <span class="ident">version</span><span class="op">|</span> {
+            <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">min</span>;
+            <span class="kw">if</span> <span class="ident">interface</span> <span class="op">==</span> <span class="ident">wl_output</span>::<span class="ident">WlOutput</span>::<span class="ident">interface_name</span>() {
+                <span class="comment">// a new output is available</span>
+                <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">registry</span>.<span class="ident">bind</span>::<span class="op">&lt;</span><span class="ident">wl_output</span>::<span class="ident">WlOutput</span><span class="op">&gt;</span>(<span class="ident">min</span>(<span class="ident">version</span>, <span class="number">3</span>), <span class="ident">id</span>);
+                <span class="ident">evqh</span>.<span class="ident">register</span>(<span class="kw-2">&amp;</span><span class="ident">output</span>, <span class="ident">output_impl</span>(), <span class="ident">token</span>.<span class="ident">clone</span>());
+                <span class="ident">evqh</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="ident">token</span>).<span class="ident">monitors</span>.<span class="ident">push</span>(
+                    <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">OutputInfo</span>::<span class="ident">new</span>(<span class="ident">output</span>, <span class="ident">id</span>)))
                 );
-            },
-            <span class="ident">KbdType</span>::<span class="ident">Plain</span>(<span class="prelude-val">None</span>) <span class="op">=&gt;</span> ()
-        }
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">interface</span> <span class="op">==</span> <span class="ident">zxdg_shell_v6</span>::<span class="ident">ZxdgShellV6</span>::<span class="ident">interface_name</span>() {
+                <span class="comment">// We have an xdg_shell, bind it</span>
+                <span class="kw">let</span> <span class="ident">xdg_shell</span> <span class="op">=</span> <span class="ident">registry</span>.<span class="ident">bind</span>::<span class="op">&lt;</span><span class="ident">zxdg_shell_v6</span>::<span class="ident">ZxdgShellV6</span><span class="op">&gt;</span>(<span class="number">1</span>, <span class="ident">id</span>);
+                <span class="ident">evqh</span>.<span class="ident">register</span>(<span class="kw-2">&amp;</span><span class="ident">xdg_shell</span>, <span class="ident">xdg_ping_implementation</span>(), ());
+                <span class="ident">evqh</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="ident">token</span>).<span class="ident">shell</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Shell</span>::<span class="ident">Xdg</span>(<span class="ident">xdg_shell</span>));
+            }
+        },
+        <span class="ident">del_global</span>: <span class="op">|</span><span class="ident">evqh</span>, <span class="ident">token</span>, _, <span class="ident">id</span><span class="op">|</span> {
+            <span class="comment">// maybe this was a monitor, cleanup</span>
+            <span class="ident">evqh</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="ident">token</span>).<span class="ident">monitors</span>.<span class="ident">retain</span>(
+                <span class="op">|</span><span class="ident">m</span><span class="op">|</span> <span class="ident">m</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">id</span> <span class="op">!=</span> <span class="ident">id</span>
+            );
+        },
+        <span class="ident">ready</span>: <span class="op">|</span>_, _, _<span class="op">|</span> {}
     }
+}
 
-    <span class="kw">fn</span> <span class="ident">modifiers</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-                 <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                 <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-                 <span class="ident">serial</span>: <span class="ident">u32</span>,
-                 <span class="ident">mods_depressed</span>: <span class="ident">u32</span>,
-                 <span class="ident">mods_latched</span>: <span class="ident">u32</span>,
-                 <span class="ident">mods_locked</span>: <span class="ident">u32</span>,
-                 <span class="ident">group</span>: <span class="ident">u32</span>)
-    {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">kbd_handler</span> {
-            <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">h</span>) <span class="op">=&gt;</span> <span class="ident">h</span>.<span class="ident">modifiers</span>(<span class="ident">evqh</span>, <span class="ident">proxy</span>, <span class="ident">serial</span>, <span class="ident">mods_depressed</span>,
-                                                      <span class="ident">mods_latched</span>, <span class="ident">mods_locked</span>, <span class="ident">group</span>),
-            _ <span class="op">=&gt;</span> ()
-        }
-    }
-
-    <span class="kw">fn</span> <span class="ident">repeat_info</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-                   <span class="ident">evqh</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-                   <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>,
-                   <span class="ident">rate</span>: <span class="ident">i32</span>,
-                   <span class="ident">delay</span>: <span class="ident">i32</span>)
-    {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">kbd_handler</span> {
-            <span class="ident">KbdType</span>::<span class="ident">Mapped</span>(<span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">h</span>) <span class="op">=&gt;</span> <span class="ident">h</span>.<span class="ident">repeat_info</span>(<span class="ident">evqh</span>, <span class="ident">proxy</span>, <span class="ident">rate</span>, <span class="ident">delay</span>),
-            _ <span class="op">=&gt;</span> ()
+<span class="kw">fn</span> <span class="ident">xdg_ping_implementation</span>() <span class="op">-&gt;</span> <span class="ident">zxdg_shell_v6</span>::<span class="ident">Implementation</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="ident">zxdg_shell_v6</span>::<span class="ident">Implementation</span> {
+        <span class="ident">ping</span>: <span class="op">|</span>_, _, <span class="ident">shell</span>, <span class="ident">serial</span><span class="op">|</span> {
+            <span class="ident">shell</span>.<span class="ident">pong</span>(<span class="ident">serial</span>);
         }
     }
 }
 
-<span class="macro">declare_handler</span><span class="macro">!</span>(<span class="ident">InputHandler</span>, <span class="ident">wl_keyboard</span>::<span class="ident">Handler</span>, <span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span>);
+<span class="kw">struct</span> <span class="ident">SeatIData</span> {
+    <span class="ident">sink</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">EventsLoopSink</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">pointer</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_pointer</span>::<span class="ident">WlPointer</span><span class="op">&gt;</span>,
+    <span class="ident">keyboard</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_keyboard</span>::<span class="ident">WlKeyboard</span><span class="op">&gt;</span>,
+    <span class="ident">touch</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">wl_touch</span>::<span class="ident">WlTouch</span><span class="op">&gt;</span>,
+    <span class="ident">windows_token</span>: <span class="ident">StateToken</span><span class="op">&lt;</span><span class="ident">WindowStore</span><span class="op">&gt;</span>
+}
+
+<span class="kw">fn</span> <span class="ident">seat_implementation</span>() <span class="op">-&gt;</span> <span class="ident">wl_seat</span>::<span class="ident">Implementation</span><span class="op">&lt;</span><span class="ident">SeatIData</span><span class="op">&gt;</span> {
+    <span class="ident">wl_seat</span>::<span class="ident">Implementation</span> {
+        <span class="ident">name</span>: <span class="op">|</span>_, _, _, _<span class="op">|</span> {},
+        <span class="ident">capabilities</span>: <span class="op">|</span><span class="ident">evqh</span>, <span class="ident">idata</span>, <span class="ident">seat</span>, <span class="ident">capabilities</span><span class="op">|</span> {
+            <span class="comment">// create pointer if applicable</span>
+            <span class="kw">if</span> <span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Capability</span>::<span class="ident">Pointer</span>) <span class="op">&amp;&amp;</span> <span class="ident">idata</span>.<span class="ident">pointer</span>.<span class="ident">is_none</span>() {
+                <span class="kw">let</span> <span class="ident">pointer</span> <span class="op">=</span> <span class="ident">seat</span>.<span class="ident">get_pointer</span>().<span class="ident">expect</span>(<span class="string">&quot;Seat is not dead&quot;</span>);
+                <span class="kw">let</span> <span class="ident">p_idata</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">pointer</span>::<span class="ident">PointerIData</span>::<span class="ident">new</span>(
+                    <span class="kw-2">&amp;</span><span class="ident">idata</span>.<span class="ident">sink</span>,
+                    <span class="ident">idata</span>.<span class="ident">windows_token</span>.<span class="ident">clone</span>()
+                );
+                <span class="ident">evqh</span>.<span class="ident">register</span>(<span class="kw-2">&amp;</span><span class="ident">pointer</span>, <span class="kw">super</span>::<span class="ident">pointer</span>::<span class="ident">pointer_implementation</span>(), <span class="ident">p_idata</span>);
+                <span class="ident">idata</span>.<span class="ident">pointer</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">pointer</span>);
+            }
+            <span class="comment">// destroy pointer if applicable</span>
+            <span class="kw">if</span> <span class="op">!</span><span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Capability</span>::<span class="ident">Pointer</span>) {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">pointer</span>) <span class="op">=</span> <span class="ident">idata</span>.<span class="ident">pointer</span>.<span class="ident">take</span>() {
+                    <span class="ident">pointer</span>.<span class="ident">release</span>();
+                }
+            }
+            <span class="comment">// create keyboard if applicable</span>
+            <span class="kw">if</span> <span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Capability</span>::<span class="ident">Keyboard</span>) <span class="op">&amp;&amp;</span> <span class="ident">idata</span>.<span class="ident">keyboard</span>.<span class="ident">is_none</span>() {
+                <span class="kw">let</span> <span class="ident">kbd</span> <span class="op">=</span> <span class="ident">seat</span>.<span class="ident">get_keyboard</span>().<span class="ident">expect</span>(<span class="string">&quot;Seat is not dead&quot;</span>);
+                <span class="ident">init_keyboard</span>(<span class="ident">evqh</span>, <span class="kw-2">&amp;</span><span class="ident">kbd</span>, <span class="kw-2">&amp;</span><span class="ident">idata</span>.<span class="ident">sink</span>);
+                <span class="ident">idata</span>.<span class="ident">keyboard</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">kbd</span>);
+            }
+            <span class="comment">// destroy keyboard if applicable</span>
+            <span class="kw">if</span> <span class="op">!</span><span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Capability</span>::<span class="ident">Keyboard</span>) {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">kbd</span>) <span class="op">=</span> <span class="ident">idata</span>.<span class="ident">keyboard</span>.<span class="ident">take</span>() {
+                    <span class="ident">kbd</span>.<span class="ident">release</span>();
+                }
+            }
+            <span class="comment">// create touch if applicable</span>
+            <span class="kw">if</span> <span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Capability</span>::<span class="ident">Touch</span>) <span class="op">&amp;&amp;</span> <span class="ident">idata</span>.<span class="ident">touch</span>.<span class="ident">is_none</span>() {
+                <span class="kw">let</span> <span class="ident">touch</span> <span class="op">=</span> <span class="ident">seat</span>.<span class="ident">get_touch</span>().<span class="ident">expect</span>(<span class="string">&quot;Seat is not dead&quot;</span>);
+                <span class="kw">let</span> <span class="ident">t_idata</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">touch</span>::<span class="ident">TouchIData</span>::<span class="ident">new</span>(
+                    <span class="kw-2">&amp;</span><span class="ident">idata</span>.<span class="ident">sink</span>,
+                    <span class="ident">idata</span>.<span class="ident">windows_token</span>.<span class="ident">clone</span>()
+                );
+                <span class="ident">evqh</span>.<span class="ident">register</span>(<span class="kw-2">&amp;</span><span class="ident">touch</span>, <span class="kw">super</span>::<span class="ident">touch</span>::<span class="ident">touch_implementation</span>(), <span class="ident">t_idata</span>);
+                <span class="ident">idata</span>.<span class="ident">touch</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">touch</span>);
+            }
+            <span class="comment">// destroy touch if applicable</span>
+            <span class="kw">if</span> <span class="op">!</span><span class="ident">capabilities</span>.<span class="ident">contains</span>(<span class="ident">wl_seat</span>::<span class="ident">Capability</span>::<span class="ident">Touch</span>) {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">touch</span>) <span class="op">=</span> <span class="ident">idata</span>.<span class="ident">touch</span>.<span class="ident">take</span>() {
+                    <span class="ident">touch</span>.<span class="ident">release</span>();
+                }
+            }
+        }
+    }
+}
+
+<span class="comment">/*
+ * Monitor stuff
+ */</span>
+
+<span class="kw">fn</span> <span class="ident">output_impl</span>() <span class="op">-&gt;</span> <span class="ident">wl_output</span>::<span class="ident">Implementation</span><span class="op">&lt;</span><span class="ident">StateToken</span><span class="op">&lt;</span><span class="ident">StateContext</span><span class="op">&gt;&gt;</span> {
+    <span class="ident">wl_output</span>::<span class="ident">Implementation</span> {
+        <span class="ident">geometry</span>: <span class="op">|</span><span class="ident">evqh</span>, <span class="ident">token</span>, <span class="ident">output</span>, <span class="ident">x</span>, <span class="ident">y</span>, _, _, _, <span class="ident">make</span>, <span class="ident">model</span>, _<span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="ident">evqh</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="ident">token</span>);
+            <span class="kw">for</span> <span class="ident">info</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">ctxt</span>.<span class="ident">monitors</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+                <span class="kw">if</span> <span class="ident">guard</span>.<span class="ident">output</span>.<span class="ident">equals</span>(<span class="ident">output</span>) {
+                    <span class="ident">guard</span>.<span class="ident">pix_pos</span> <span class="op">=</span> (<span class="ident">x</span>, <span class="ident">y</span>);
+                    <span class="ident">guard</span>.<span class="ident">name</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{} - {}&quot;</span>, <span class="ident">make</span>, <span class="ident">model</span>);
+                    <span class="kw">return</span>;
+                }
+            }
+        },
+        <span class="ident">mode</span>: <span class="op">|</span><span class="ident">evqh</span>, <span class="ident">token</span>, <span class="ident">output</span>, <span class="ident">flags</span>, <span class="ident">w</span>, <span class="ident">h</span>, <span class="ident">_refresh</span><span class="op">|</span> {
+            <span class="kw">if</span> <span class="ident">flags</span>.<span class="ident">contains</span>(<span class="ident">wl_output</span>::<span class="ident">Mode</span>::<span class="ident">Current</span>) {
+                <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="ident">evqh</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="ident">token</span>);
+                <span class="kw">for</span> <span class="ident">info</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">ctxt</span>.<span class="ident">monitors</span> {
+                    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+                    <span class="kw">if</span> <span class="ident">guard</span>.<span class="ident">output</span>.<span class="ident">equals</span>(<span class="ident">output</span>) {
+                        <span class="ident">guard</span>.<span class="ident">pix_size</span> <span class="op">=</span> (<span class="ident">w</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">h</span> <span class="kw">as</span> <span class="ident">u32</span>);
+                        <span class="kw">return</span>;
+                    }
+                }
+            }
+        },
+        <span class="ident">done</span>: <span class="op">|</span>_, _, _<span class="op">|</span> {},
+        <span class="ident">scale</span>: <span class="op">|</span><span class="ident">evqh</span>, <span class="ident">token</span>, <span class="ident">output</span>, <span class="ident">scale</span><span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">ctxt</span> <span class="op">=</span> <span class="ident">evqh</span>.<span class="ident">state</span>().<span class="ident">get_mut</span>(<span class="ident">token</span>);
+            <span class="kw">for</span> <span class="ident">info</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">ctxt</span>.<span class="ident">monitors</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">guard</span> <span class="op">=</span> <span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+                <span class="kw">if</span> <span class="ident">guard</span>.<span class="ident">output</span>.<span class="ident">equals</span>(<span class="ident">output</span>) {
+                    <span class="ident">guard</span>.<span class="ident">scale</span> <span class="op">=</span> <span class="ident">scale</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                    <span class="kw">return</span>;
+                }
+            }
+        }
+    }
+}
+
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">OutputInfo</span> {
+    <span class="kw">pub</span> <span class="ident">output</span>: <span class="ident">wl_output</span>::<span class="ident">WlOutput</span>,
+    <span class="kw">pub</span> <span class="ident">id</span>: <span class="ident">u32</span>,
+    <span class="kw">pub</span> <span class="ident">scale</span>: <span class="ident">f32</span>,
+    <span class="kw">pub</span> <span class="ident">pix_size</span>: (<span class="ident">u32</span>, <span class="ident">u32</span>),
+    <span class="kw">pub</span> <span class="ident">pix_pos</span>: (<span class="ident">i32</span>, <span class="ident">i32</span>),
+    <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">String</span>
+}
+
+<span class="kw">impl</span> <span class="ident">OutputInfo</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">output</span>: <span class="ident">wl_output</span>::<span class="ident">WlOutput</span>, <span class="ident">id</span>: <span class="ident">u32</span>) <span class="op">-&gt;</span> <span class="ident">OutputInfo</span> {
+        <span class="ident">OutputInfo</span> {
+            <span class="ident">output</span>: <span class="ident">output</span>,
+            <span class="ident">id</span>: <span class="ident">id</span>,
+            <span class="ident">scale</span>: <span class="number">1.0</span>,
+            <span class="ident">pix_size</span>: (<span class="number">0</span>, <span class="number">0</span>),
+            <span class="ident">pix_pos</span>: (<span class="number">0</span>, <span class="number">0</span>),
+            <span class="ident">name</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>()
+        }
+    }
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MonitorId</span> {
+    <span class="kw">pub</span> <span class="ident">info</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">OutputInfo</span><span class="op">&gt;&gt;</span>
+}
+
+<span class="kw">impl</span> <span class="ident">MonitorId</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">name</span>.<span class="ident">clone</span>())
+    }
+
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_native_identifier</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">u32</span> {
+        <span class="self">self</span>.<span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">id</span>
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_dimensions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">u32</span>, <span class="ident">u32</span>) {
+        <span class="self">self</span>.<span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">pix_size</span>
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_position</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">i32</span>, <span class="ident">i32</span>) {
+        <span class="self">self</span>.<span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">pix_pos</span>
+    }
+
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_hidpi_factor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">f32</span> {
+        <span class="self">self</span>.<span class="ident">info</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">scale</span>
+    }
+}
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
@@ -1365,20 +1251,22 @@
                 <h2>Keyboard Shortcuts</h2>
 
                 <dl>
-                    <dt>?</dt>
+                    <dt><kbd>?</kbd></dt>
                     <dd>Show this help dialog</dd>
-                    <dt>S</dt>
+                    <dt><kbd>S</kbd></dt>
                     <dd>Focus the search field</dd>
-                    <dt>↑</dt>
+                    <dt><kbd>↑</kbd></dt>
                     <dd>Move up in search results</dd>
-                    <dt>↓</dt>
+                    <dt><kbd>↓</kbd></dt>
                     <dd>Move down in search results</dd>
-                    <dt>↹</dt>
+                    <dt><kbd>↹</kbd></dt>
                     <dd>Switch tab</dd>
-                    <dt>&#9166;</dt>
+                    <dt><kbd>&#9166;</kbd></dt>
                     <dd>Go to active search result</dd>
-                    <dt style="width:31px;">+ / -</dt>
-                    <dd>Collapse/expand all sections</dd>
+                    <dt><kbd>+</kbd></dt>
+                    <dd>Expand all sections</dd>
+                    <dt><kbd>-</kbd></dt>
+                    <dd>Collapse all sections</dd>
                 </dl>
             </div>
 
