@@ -47,6 +47,8 @@
     // 2 for "In Return Types"
     var currentTab = 0;
 
+    var themesWidth = null;
+
     function hasClass(elem, className) {
         if (elem && className && elem.className) {
             var elemClass = elem.className;
@@ -121,10 +123,9 @@
                 sidebar.appendChild(div);
             }
         }
-        document.getElementsByTagName("body")[0].style.marginTop = '45px';
-        var themePicker = document.getElementById("theme-picker");
-        if (themePicker) {
-            themePicker.style.position = "fixed";
+        var themePicker = document.getElementsByClassName("theme-picker");
+        if (themePicker && themePicker.length > 0) {
+            themePicker[0].style.display = "none";
         }
     }
 
@@ -140,9 +141,9 @@
             filler.remove();
         }
         document.getElementsByTagName("body")[0].style.marginTop = '';
-        var themePicker = document.getElementById("theme-picker");
-        if (themePicker) {
-            themePicker.style.position = "absolute";
+        var themePicker = document.getElementsByClassName("theme-picker");
+        if (themePicker && themePicker.length > 0) {
+            themePicker[0].style.display = null;
         }
     }
 

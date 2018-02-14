@@ -59,62 +59,8 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../src/rayon/lib.rs.html#1-133' title='goto source code'>[src]</a></span></h1>
-<div class='docblock'><p>Data-parallelism library that is easy to convert sequential computations into parallel.</p>
-<p>Rayon is lightweight and convenient for application to existing code.  It guarantees
-data-race free executions, and takes advantage of parallelism when sensible, based
-on work-load at runtime.  There are two categories of rayon workloads: parallel
-iterators and multi-branched recursion (<code>join</code> method).</p>
-<h1 id="parallel-iterators" class="section-header"><a href="#parallel-iterators">Parallel Iterators</a></h1>
-<p>Parallel iterators are formed using <a href="iter/trait.IntoParallelRefIterator.html#tymethod.par_iter"><code>par_iter</code></a>, <a href="iter/trait.IntoParallelRefMutIterator.html#tymethod.par_iter_mut"><code>par_iter_mut</code></a>, and <a href="iter/trait.IntoParallelIterator.html#tymethod.into_par_iter"><code>into_par_iter</code></a>
-functions to iterate by shared reference, mutable reference, or by value respectively.
-These iterators are chained with computations that can take the
-shape of <code>map</code> or <code>for_each</code> as an example.  This solves <a href="https://en.wikipedia.org/wiki/Embarrassingly_parallel">embarrassingly</a>
-parallel tasks that are completely independent of one another.</p>
-<h1 id="examples" class="section-header"><a href="#examples">Examples</a></h1>
-<p>Here a string is encrypted using ROT13 leveraging parallelism.  Once all the
-threads are complete, they are collected into a string.</p>
-
-<pre class="rust rust-example-rendered">
-<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">rayon</span>;
-<span class="kw">use</span> <span class="ident">rayon</span>::<span class="ident">prelude</span>::<span class="kw-2">*</span>;
-<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chars</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;</span> <span class="op">=</span> <span class="string">&quot;A man, a plan, a canal - Panama!&quot;</span>.<span class="ident">chars</span>().<span class="ident">collect</span>();
-<span class="kw">let</span> <span class="ident">encrypted</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">into_par_iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">c</span><span class="op">|</span> {
-       <span class="kw">match</span> <span class="ident">c</span> {
-           <span class="string">&#39;A&#39;</span> ... <span class="string">&#39;M&#39;</span> <span class="op">|</span> <span class="string">&#39;a&#39;</span> ... <span class="string">&#39;m&#39;</span> <span class="op">=&gt;</span> ((<span class="ident">c</span> <span class="kw">as</span> <span class="ident">u8</span>) <span class="op">+</span> <span class="number">13</span>) <span class="kw">as</span> <span class="ident">char</span>,
-           <span class="string">&#39;N&#39;</span> ... <span class="string">&#39;Z&#39;</span> <span class="op">|</span> <span class="string">&#39;n&#39;</span> ... <span class="string">&#39;z&#39;</span> <span class="op">=&gt;</span> ((<span class="ident">c</span> <span class="kw">as</span> <span class="ident">u8</span>) <span class="op">-</span> <span class="number">13</span>) <span class="kw">as</span> <span class="ident">char</span>,
-           _ <span class="op">=&gt;</span> <span class="ident">c</span>
-       }
-   }).<span class="ident">collect</span>();
-   <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">encrypted</span>, <span class="string">&quot;N zna, n cyna, n pnany - Cnanzn!&quot;</span>);</pre>
-<h1 id="divide-and-conquer-with-join" class="section-header"><a href="#divide-and-conquer-with-join">Divide and conquer with <code>join</code></a></h1>
-<p><a href="fn.join.html"><code>join</code></a> takes two closures and runs them in parallel if doing so will improve
-execution time.  Parallel Iterators are implemented using <a href="fn.join.html"><code>join</code></a> with
-work-stealing.  Given two tasks that safely run in parallel, one task is queued
-and another starts processing.  If idle threads exist, they begin execution on
-the queued work.</p>
-<h1 id="examples-1" class="section-header"><a href="#examples-1">Examples</a></h1>
-<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
-<span class="ident">join</span>(<span class="op">||</span> <span class="ident">do_something</span>(), <span class="op">||</span> <span class="ident">do_something_else</span>())</pre>
-
-<pre class="rust rust-example-rendered">
-<span class="kw">fn</span> <span class="ident">quick_sort</span><span class="op">&lt;</span><span class="ident">T</span>:<span class="ident">PartialOrd</span><span class="op">+</span><span class="ident">Send</span><span class="op">&gt;</span>(<span class="ident">v</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">T</span>]) {
-   <span class="kw">if</span> <span class="ident">v</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">1</span> {
-       <span class="kw">let</span> <span class="ident">mid</span> <span class="op">=</span> <span class="ident">partition</span>(<span class="ident">v</span>);
-       <span class="kw">let</span> (<span class="ident">lo</span>, <span class="ident">hi</span>) <span class="op">=</span> <span class="ident">v</span>.<span class="ident">split_at_mut</span>(<span class="ident">mid</span>);
-       <span class="ident">rayon</span>::<span class="ident">join</span>(<span class="op">||</span> <span class="ident">quick_sort</span>(<span class="ident">lo</span>),
-                   <span class="op">||</span> <span class="ident">quick_sort</span>(<span class="ident">hi</span>));
-   }
-}</pre>
-<h1 id="rayon-types" class="section-header"><a href="#rayon-types">Rayon Types</a></h1>
-<p>Rayon traits are bundled into <a href="prelude/index.html"><code>rayon::prelude::*</code></a>.  To get access to parallel
-implementations on various standard types include <code>use rayon::prelude::*;</code></p>
-<p>These implementations will give you access to <code>par_iter</code> with parallel
-implementations of iterative functions including <a href="iter/trait.ParallelIterator.html#method.map"><code>map</code></a>, <a href="iter/trait.ParallelIterator.html#method.for_each"><code>for_each</code></a>, <a href="iter/trait.ParallelIterator.html#method.filter"><code>filter</code></a>,
-<a href="iter/trait.ParallelIterator.html#method.fold"><code>fold</code></a>, and <a href="iter/trait.ParallelIterator.html#provided-methods">more</a>.</p>
-<h1 id="crate-layout" class="section-header"><a href="#crate-layout">Crate Layout</a></h1>
-<p>Rayon is modeled after <a href="https://doc.rust-lang.org/std/"><code>std</code></a>.  Types are included in provided modules.</p>
-</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+               </span><a class='srclink' href='../src/rayon/lib.rs.html#1-47' title='goto source code'>[src]</a></span></h1>
+<h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
 <table>
                        <tr class=' module-item'>
                            <td><a class="mod" href="collections/index.html"
@@ -219,14 +165,6 @@ unless you have need to name one of those types.</p>
                            </td>
                        </tr>
                        <tr class=' module-item'>
-                           <td><a class="struct" href="struct.FnContext.html"
-                                  title='struct rayon::FnContext'>FnContext</a></td>
-                           <td class='docblock-short'>
-                                <p>Provides the calling context to a closure called by <code>join_context</code>.</p>
-
-                           </td>
-                       </tr>
-                       <tr class=' module-item'>
                            <td><a class="struct" href="struct.Scope.html"
                                   title='struct rayon::Scope'>Scope</a></td>
                            <td class='docblock-short'>
@@ -277,19 +215,6 @@ in parallel. It returns a pair of the results from those closures.</p>
                            </td>
                        </tr>
                        <tr class=' module-item'>
-                           <td><a class="fn" href="fn.join_context.html"
-                                  title='fn rayon::join_context'>join_context</a></td>
-                           <td class='docblock-short'>
-                                <p>The <code>join_context</code> function is identical to <code>join</code>, except the closures
-have a parameter that provides context for the way the closure has been
-called, especially indicating whether they're executing on a different
-thread than where <code>join_context</code> was called.  This will occur if the second
-job is stolen by a different thread, or if <code>join_context</code> was called from
-outside the thread pool to begin with.</p>
-
-                           </td>
-                       </tr>
-                       <tr class=' module-item'>
                            <td><a class="fn" href="fn.scope.html"
                                   title='fn rayon::scope'>scope</a></td>
                            <td class='docblock-short'>
@@ -312,6 +237,15 @@ tied to the current stack frame, and hence it cannot hold any
 references other than those with <code>'static</code> lifetime. If you want
 to spawn a task that references stack data, use <a href="fn.scope.html">the <code>scope()</code>
 function</a> to create a scope.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.split.html"
+                                  title='fn rayon::split'>split</a></td>
+                           <td class='docblock-short'>
+                                <p>The <code>split</code> function takes arbitrary data and a closure that knows how to
+split it, and turns this into a <code>ParallelIterator</code>.</p>
 
                            </td>
                        </tr></table></section>

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/quickcheck-0.6.0/src/tester.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/quickcheck-0.6.1/src/tester.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>tester.rs.html -- source</title>
@@ -484,6 +484,24 @@
 <span id="428">428</span>
 <span id="429">429</span>
 <span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">panic</span>;
@@ -546,17 +564,9 @@
     <span class="doccomment">/// the max number of overall tests is set to `10000` and the generator</span>
     <span class="doccomment">/// is set to a `StdGen` with a default size of `100`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">QuickCheck</span><span class="op">&lt;</span><span class="ident">StdGen</span><span class="op">&lt;</span><span class="ident">rand</span>::<span class="ident">ThreadRng</span><span class="op">&gt;&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tests</span> <span class="op">=</span> <span class="ident">qc_tests</span>();
-        <span class="kw">let</span> <span class="ident">max_tests</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">tests</span>, <span class="ident">qc_max_tests</span>());
         <span class="kw">let</span> <span class="ident">gen_size</span> <span class="op">=</span> <span class="ident">qc_gen_size</span>();
-        <span class="kw">let</span> <span class="ident">min_tests_passed</span> <span class="op">=</span> <span class="ident">qc_min_tests_passed</span>();
 
-        <span class="ident">QuickCheck</span> {
-            <span class="ident">tests</span>: <span class="ident">tests</span>,
-            <span class="ident">max_tests</span>: <span class="ident">max_tests</span>,
-            <span class="ident">min_tests_passed</span>: <span class="ident">min_tests_passed</span>,
-            <span class="ident">gen</span>: <span class="ident">StdGen</span>::<span class="ident">new</span>(<span class="ident">rand</span>::<span class="ident">thread_rng</span>(), <span class="ident">gen_size</span>),
-        }
+        <span class="ident">QuickCheck</span>::<span class="ident">with_gen</span>(<span class="ident">StdGen</span>::<span class="ident">new</span>(<span class="ident">rand</span>::<span class="ident">thread_rng</span>(), <span class="ident">gen_size</span>))
     }
 }
 
@@ -572,6 +582,20 @@
         <span class="self">self</span>
     }
 
+    <span class="doccomment">/// Create a new instance of `QuickCheck` using the given generator.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_gen</span>(<span class="ident">generator</span>: <span class="ident">G</span>) <span class="op">-&gt;</span> <span class="ident">QuickCheck</span><span class="op">&lt;</span><span class="ident">G</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">tests</span> <span class="op">=</span> <span class="ident">qc_tests</span>();
+        <span class="kw">let</span> <span class="ident">max_tests</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">tests</span>, <span class="ident">qc_max_tests</span>());
+        <span class="kw">let</span> <span class="ident">min_tests_passed</span> <span class="op">=</span> <span class="ident">qc_min_tests_passed</span>();
+
+        <span class="ident">QuickCheck</span> {
+            <span class="ident">tests</span>: <span class="ident">tests</span>,
+            <span class="ident">max_tests</span>: <span class="ident">max_tests</span>,
+            <span class="ident">min_tests_passed</span>: <span class="ident">min_tests_passed</span>,
+            <span class="ident">gen</span>: <span class="ident">generator</span>,
+        }
+    }
+
     <span class="doccomment">/// Set the maximum number of tests to run.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// The number of invocations of a property will never exceed this number.</span>
@@ -583,9 +607,11 @@
     }
 
     <span class="doccomment">/// Set the random number generator to be used by QuickCheck.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">gen</span>(<span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">gen</span>: <span class="ident">G</span>) <span class="op">-&gt;</span> <span class="ident">QuickCheck</span><span class="op">&lt;</span><span class="ident">G</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">gen</span> <span class="op">=</span> <span class="ident">gen</span>;
-        <span class="self">self</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">gen</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">Gen</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">gen</span>: <span class="ident">N</span>) <span class="op">-&gt;</span> <span class="ident">QuickCheck</span><span class="op">&lt;</span><span class="ident">N</span><span class="op">&gt;</span> {
+        <span class="comment">// unfortunately this is necessary because using QuickCheck{ ..self, gen }</span>
+        <span class="comment">// wouldn&#39;t work due to mismatched types.</span>
+        <span class="kw">let</span> <span class="ident">QuickCheck</span>{ <span class="ident">tests</span>, <span class="ident">max_tests</span>, <span class="ident">min_tests_passed</span>, .. } <span class="op">=</span> <span class="self">self</span>;
+        <span class="ident">QuickCheck</span> { <span class="ident">tests</span>, <span class="ident">max_tests</span>, <span class="ident">min_tests_passed</span>, <span class="ident">gen</span> }
     }
 
     <span class="doccomment">/// Set the minimum number of tests that needs to pass.</span>
@@ -892,7 +918,7 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
     <span class="kw">use</span> {<span class="ident">QuickCheck</span>, <span class="ident">StdGen</span>};
-    <span class="kw">use</span> <span class="ident">rand</span>;
+    <span class="kw">use</span> <span class="ident">rand</span>::{<span class="self">self</span>, <span class="ident">OsRng</span>};
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">shrinking_regression_issue_126</span>() {
@@ -913,6 +939,16 @@
         <span class="ident">QuickCheck</span>::<span class="ident">new</span>()
             .<span class="ident">gen</span>(<span class="ident">StdGen</span>::<span class="ident">new</span>(<span class="ident">rand</span>::<span class="ident">thread_rng</span>(), <span class="number">129</span>))
             .<span class="ident">quickcheck</span>(<span class="ident">t</span> <span class="kw">as</span> <span class="kw">fn</span>(<span class="ident">i8</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>);
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">different_generator</span>() {
+        <span class="kw">fn</span> <span class="ident">prop</span>(_: <span class="ident">i32</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> { <span class="bool-val">true</span> }
+        <span class="ident">QuickCheck</span>::<span class="ident">with_gen</span>(<span class="ident">StdGen</span>::<span class="ident">new</span>(<span class="ident">OsRng</span>::<span class="ident">new</span>().<span class="ident">unwrap</span>(), <span class="number">129</span>))
+            .<span class="ident">quickcheck</span>(<span class="ident">prop</span> <span class="kw">as</span> <span class="kw">fn</span>(<span class="ident">i32</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>);
+        <span class="ident">QuickCheck</span>::<span class="ident">new</span>()
+            .<span class="ident">gen</span>(<span class="ident">StdGen</span>::<span class="ident">new</span>(<span class="ident">OsRng</span>::<span class="ident">new</span>().<span class="ident">unwrap</span>(), <span class="number">129</span>))
+            .<span class="ident">quickcheck</span>(<span class="ident">prop</span> <span class="kw">as</span> <span class="kw">fn</span>(<span class="ident">i32</span>) <span class="op">-&gt;</span> <span class="ident">bool</span>);
     }
 }
 </pre>
