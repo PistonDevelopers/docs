@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-0.8.2/src/vec.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/rayon-1.0.0/src/vec.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>vec.rs.html -- source</title>
@@ -186,16 +186,29 @@
 <span id="130">130</span>
 <span id="131">131</span>
 <span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
 </pre><pre class="rust ">
-<span class="doccomment">//! This module contains the parallel iterator types for vectors</span>
-<span class="doccomment">//! (`Vec&lt;T&gt;`). You will rarely need to interact with it directly</span>
-<span class="doccomment">//! unless you have need to name one of those types.</span>
+<span class="doccomment">//! Parallel iterator types for [vectors][std::vec] (`Vec&lt;T&gt;`)</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! You will rarely need to interact with this module directly unless you need</span>
+<span class="doccomment">//! to name one of the iterator types.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! [std::vec]: https://doc.rust-lang.org/stable/std/vec/</span>
 
 <span class="kw">use</span> <span class="ident">iter</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">iter</span>::<span class="ident">internal</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">iter</span>::<span class="ident">plumbing</span>::<span class="kw-2">*</span>;
 <span class="kw">use</span> <span class="ident">std</span>;
 
 <span class="doccomment">/// Parallel iterator that moves out of a vector.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">IntoIter</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Send</span><span class="op">&gt;</span> {
     <span class="ident">vec</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
 }
@@ -218,7 +231,7 @@
         <span class="ident">bridge</span>(<span class="self">self</span>, <span class="ident">consumer</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">opt_len</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">opt_len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
         <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">len</span>())
     }
 }
@@ -230,7 +243,7 @@
         <span class="ident">bridge</span>(<span class="self">self</span>, <span class="ident">consumer</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">vec</span>.<span class="ident">len</span>()
     }
 
@@ -295,6 +308,11 @@
 
     <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">iter</span>.<span class="ident">next</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">ptr</span><span class="op">|</span> <span class="kw">unsafe</span> { <span class="ident">std</span>::<span class="ident">ptr</span>::<span class="ident">read</span>(<span class="ident">ptr</span>) })
+    }
+
+    <span class="kw">fn</span> <span class="ident">size_hint</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        (<span class="ident">len</span>, <span class="prelude-val">Some</span>(<span class="ident">len</span>))
     }
 }
 
