@@ -351,6 +351,8 @@
 <span id="295">295</span>
 <span id="296">296</span>
 <span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! Construct bitmap font using FreeType library.</span>
 <span class="doccomment">//! Generates raw texture data for the given font and collects information</span>
@@ -413,12 +415,14 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_bytes</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">font_size</span>: <span class="ident">u8</span>, <span class="ident">chars</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">char</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">FontResult</span> {
+        <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">rc</span>::<span class="ident">Rc</span>;
+
         <span class="kw">let</span> <span class="ident">library</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">ft</span>::<span class="ident">Library</span>::<span class="ident">init</span>());
-        <span class="kw">let</span> <span class="ident">face</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">library</span>.<span class="ident">new_memory_face</span>(<span class="ident">data</span>, <span class="number">0</span>));
+        <span class="kw">let</span> <span class="ident">face</span> <span class="op">=</span> <span class="macro">try</span><span class="macro">!</span>(<span class="ident">library</span>.<span class="ident">new_memory_face</span>(<span class="ident">Rc</span>::<span class="ident">new</span>(<span class="ident">data</span>.<span class="ident">into</span>()), <span class="number">0</span>));
         <span class="self">Self</span>::<span class="ident">new</span>(<span class="ident">face</span>, <span class="ident">font_size</span>, <span class="ident">chars</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">get_all_face_chars</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">face</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Face</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">get_all_face_chars</span>(<span class="ident">face</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Face</span>) <span class="op">-&gt;</span> <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">HashSet</span>::<span class="ident">new</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">index</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="kw">let</span> <span class="ident">face_ptr</span> <span class="op">=</span> <span class="ident">face</span>.<span class="ident">raw_mut</span>();
@@ -439,7 +443,7 @@
     <span class="comment">// overflows.</span>
     <span class="doccomment">/// Construct new BitMap font using provided parameters (this is general</span>
     <span class="doccomment">/// method, called via `from_` helpers).</span>
-    <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="ident">face</span>: <span class="ident">ft</span>::<span class="ident">Face</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>, <span class="ident">font_size</span>: <span class="ident">u8</span>, <span class="ident">chars</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">char</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">FontResult</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="kw-2">mut</span> <span class="ident">face</span>: <span class="ident">ft</span>::<span class="ident">Face</span>, <span class="ident">font_size</span>: <span class="ident">u8</span>, <span class="ident">chars</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">char</span>]<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">FontResult</span> {
         <span class="kw">let</span> <span class="ident">needed_chars</span> <span class="op">=</span> <span class="ident">chars</span>
             .<span class="ident">map</span>(<span class="op">|</span><span class="ident">sl</span><span class="op">|</span> <span class="ident">HashSet</span>::<span class="ident">from_iter</span>(<span class="ident">sl</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>()))
             .<span class="ident">unwrap_or_else</span>(<span class="op">||</span> <span class="self">Self</span>::<span class="ident">get_all_face_chars</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">face</span>));
