@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["match_template","Slides a `template` over an `image` and computes the sum of squared pixel intensity differences at each point."]]});
+initSidebarItems({"enum":[["MatchTemplateMethod","Method used to compute the matching score between a template and an image region."]],"fn":[["match_template","Slides a `template` over an `image` and scores the match at each point using the requested `method`."]]});
