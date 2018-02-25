@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["match_template","Slides a `template` over an `image` and computes the sum of squared pixel intensity differences at each point."]]});
