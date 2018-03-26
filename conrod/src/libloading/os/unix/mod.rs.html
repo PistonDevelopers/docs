@@ -4,13 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/libloading-0.4.3/src/os/unix/mod.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/libloading-0.5.0/src/os/unix/mod.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>mod.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../../normalize.css">
-    <link rel="stylesheet" type="text/css" href="../../../../rustdoc.css" id="mainThemeStyle">
+    <link rel="stylesheet" type="text/css" href="../../../../rustdoc.css"
+          id="mainThemeStyle">
     
     <link rel="stylesheet" type="text/css" href="../../../../dark.css">
     <link rel="stylesheet" type="text/css" href="../../../../main.css" id="themeStyle">
@@ -339,6 +340,25 @@
 <span id="283">283</span>
 <span id="284">284</span>
 <span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">util</span>::{<span class="ident">ensure_compatible_types</span>, <span class="ident">cstr_cow_from_bytes</span>};
 
@@ -346,10 +366,29 @@
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">fmt</span>, <span class="ident">io</span>, <span class="ident">marker</span>, <span class="ident">mem</span>, <span class="ident">ptr</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">ffi</span>::<span class="ident">OsStrExt</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Mutex</span>;
 
-<span class="macro">lazy_static</span><span class="macro">!</span> {
-    <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">DLERROR_MUTEX</span>: <span class="ident">Mutex</span><span class="op">&lt;</span>()<span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Mutex</span>::<span class="ident">new</span>(());
+<span class="kw">extern</span> <span class="string">&quot;C&quot;</span> {
+    <span class="kw">fn</span> <span class="ident">rust_libloading_dlerror_mutex_lock</span>();
+    <span class="kw">fn</span> <span class="ident">rust_libloading_dlerror_mutex_unlock</span>();
+}
+
+<span class="kw">struct</span> <span class="ident">DlerrorMutexGuard</span>(());
+
+<span class="kw">impl</span> <span class="ident">DlerrorMutexGuard</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">DlerrorMutexGuard</span> {
+        <span class="kw">unsafe</span> {
+            <span class="ident">rust_libloading_dlerror_mutex_lock</span>();
+        }
+        <span class="ident">DlerrorMutexGuard</span>(())
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">DlerrorMutexGuard</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">unsafe</span> {
+            <span class="ident">rust_libloading_dlerror_mutex_unlock</span>();
+        }
+    }
 }
 
 <span class="comment">// libdl is crazy.</span>
@@ -361,7 +400,7 @@
 <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">FnOnce</span>() <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="comment">// We will guard all uses of libdl library with our own mutex. This makes libdl</span>
     <span class="comment">// safe to use in MT programs provided the only way a program uses libdl is via this library.</span>
-    <span class="kw">let</span> <span class="ident">_lock</span> <span class="op">=</span> <span class="ident">DLERROR_MUTEX</span>.<span class="ident">lock</span>();
+    <span class="kw">let</span> <span class="ident">_lock</span> <span class="op">=</span> <span class="ident">DlerrorMutexGuard</span>::<span class="ident">new</span>();
     <span class="comment">// While we could could call libdl here to clear the previous error value, only the dlsym</span>
     <span class="comment">// depends on it being cleared beforehand and only in some cases too. We will instead clear the</span>
     <span class="comment">// error inside the dlsym binding instead.</span>
