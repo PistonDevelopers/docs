@@ -14,11 +14,11 @@
           id="mainThemeStyle">
     
     <link rel="stylesheet" type="text/css" href="../dark.css">
-    <link rel="stylesheet" type="text/css" href="../main.css" id="themeStyle">
+    <link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle">
     <script src="../storage.js"></script>
     
 
-    
+    <link rel="shortcut icon" href="https://www.rust-lang.org/favicon.ico">
     
 </head>
 <body class="rustdoc mod">
@@ -33,7 +33,7 @@
 
     <nav class="sidebar">
         <div class="sidebar-menu">&#9776;</div>
-        
+        <a href='../tempfile/index.html'><img src='https://www.rust-lang.org/logos/rust-logo-128x128-blk-v2.png' alt='logo' width='100'></a>
         <p class='location'>Crate tempfile</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'tempfile', ty: 'mod', relpath: '../'};</script></div>
     </nav>
 
@@ -55,34 +55,72 @@
         </form>
     </nav>
 
-    <section id='main' class="content">
-<h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>tempfile</a></span><span class='out-of-band'><span id='render-detail'>
+    <section id='main' class="content"><h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>tempfile</a></span><span class='out-of-band'><span id='render-detail'>
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../src/tempfile/lib.rs.html#1-57' title='goto source code'>[src]</a></span></h1>
-<div class='docblock'><p>Securely create and manage temporary files. Temporary files created by this create are
-automatically deleted.</p>
-<p>This crate provides two temporary file variants: a <code>tempfile()</code> function that returns standard
-<code>File</code> objects and <code>NamedTempFile</code>. When choosing between the variants, prefer <code>tempfile()</code>
+               </span><a class='srclink' href='../src/tempfile/lib.rs.html#1-436' title='goto source code'>[src]</a></span></h1><div class='docblock'><p>Temporary files and directories.</p>
+<ul>
+<li>Use the <a href="fn.tempfile.html"><code>tempfile()</code></a> function for temporary files</li>
+<li>Use the <a href="fn.tempdir.html"><code>tempdir()</code></a> function for temporary directories.</li>
+</ul>
+<h1 id="design" class="section-header"><a href="#design">Design</a></h1>
+<p>This crate provides several approaches to creating temporary files and directories.
+<a href="fn.tempfile.html"><code>tempfile()</code></a> relies on the OS to remove the temporary file once the last handle is closed.
+<a href="struct.TempDir.html"><code>TempDir</code></a> and <a href="struct.NamedTempFile.html"><code>NamedTempFile</code></a> both rely on Rust destructors for cleanup.</p>
+<p>When choosing between the temporary file variants, prefer <code>tempfile</code>
 unless you either need to know the file's path or to be able to persist it.</p>
-<h1 id="example" class="section-header"><a href="#example">Example</a></h1>
-<pre class="rust rust-example-rendered">
-<span class="kw">use</span> <span class="ident">tempfile</span>::<span class="ident">tempfile</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fs</span>::<span class="ident">File</span>;
-
-<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">file</span>: <span class="ident">File</span> <span class="op">=</span> <span class="ident">tempfile</span>().<span class="ident">expect</span>(<span class="string">&quot;failed to create temporary file&quot;</span>);</pre>
-<h1 id="differences" class="section-header"><a href="#differences">Differences</a></h1><h2 id="resource-leaking" class="section-header"><a href="#resource-leaking">Resource Leaking</a></h2>
-<p><code>tempfile()</code> will (almost) never fail to cleanup temporary files but <code>NamedTempFile</code> will if
-its destructor doesn't run. This is because <code>tempfile()</code> relies on the OS to cleanup the
-underlying file so the file while <code>NamedTempFile</code> relies on its destructor to do so.</p>
+<h2 id="resource-leaking" class="section-header"><a href="#resource-leaking">Resource Leaking</a></h2>
+<p><code>tempfile</code> will (almost) never fail to cleanup temporary resources but <code>TempDir</code> and <code>NamedTempFile</code> will if
+their destructors don't run. This is because <code>tempfile</code> relies on the OS to cleanup the
+underlying file so the file while <code>TempDir</code> and <code>NamedTempFile</code> rely on their destructors to do so.</p>
 <h2 id="security" class="section-header"><a href="#security">Security</a></h2>
 <p>In the presence of pathological temporary file cleaner, relying on file paths is unsafe because
 a temporary file cleaner could delete the temporary file which an attacker could then replace.</p>
-<p><code>tempfile()</code> doesn't rely on file paths so this isn't an issue. However, <code>NamedTempFile</code> does
+<p><code>tempfile</code> doesn't rely on file paths so this isn't an issue. However, <code>NamedTempFile</code> does
 rely on file paths.</p>
+<h2 id="examples" class="section-header"><a href="#examples">Examples</a></h2>
+<p>Create a temporary file and write some data into it:</p>
+
+<pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">tempfile</span>::<span class="ident">tempfile</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="self">self</span>, <span class="ident">Write</span>};
+
+<span class="comment">// Create a file inside of `std::env::temp_dir()`.</span>
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">file</span> <span class="op">=</span> <span class="ident">tempfile</span>()<span class="question-mark">?</span>;
+
+<span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">file</span>, <span class="string">&quot;Brian was here. Briefly.&quot;</span>)<span class="question-mark">?</span>;</pre>
+<p>Create a temporary directory and add a file to it:</p>
+
+<pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">tempfile</span>::<span class="ident">tempdir</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fs</span>::<span class="ident">File</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="self">self</span>, <span class="ident">Write</span>};
+
+<span class="comment">// Create a directory inside of `std::env::temp_dir()`.</span>
+<span class="kw">let</span> <span class="ident">dir</span> <span class="op">=</span> <span class="ident">tempdir</span>()<span class="question-mark">?</span>;
+
+<span class="kw">let</span> <span class="ident">file_path</span> <span class="op">=</span> <span class="ident">dir</span>.<span class="ident">path</span>().<span class="ident">join</span>(<span class="string">&quot;my-temporary-note.txt&quot;</span>);
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">file</span> <span class="op">=</span> <span class="ident">File</span>::<span class="ident">create</span>(<span class="ident">file_path</span>)<span class="question-mark">?</span>;
+<span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">file</span>, <span class="string">&quot;Brian was here. Briefly.&quot;</span>)<span class="question-mark">?</span>;
+
+<span class="comment">// By closing the `TempDir` explicitly, we can check that it has</span>
+<span class="comment">// been deleted successfully. If we don&#39;t close it explicitly,</span>
+<span class="comment">// the directory will still be deleted when `dir` goes out</span>
+<span class="comment">// of scope, but we won&#39;t know whether deleting the directory</span>
+<span class="comment">// succeeded.</span>
+<span class="ident">drop</span>(<span class="ident">file</span>);
+<span class="ident">dir</span>.<span class="ident">close</span>()<span class="question-mark">?</span>;</pre>
 </div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Builder.html"
+                                  title='struct tempfile::Builder'>Builder</a></td>
+                           <td class='docblock-short'>
+                                <p>Create a new temporary file or directory with custom parameters.</p>
+
+                           </td>
+                       </tr>
                        <tr class=' module-item'>
                            <td><a class="struct" href="struct.NamedTempFile.html"
                                   title='struct tempfile::NamedTempFile'>NamedTempFile</a></td>
@@ -92,27 +130,52 @@ rely on file paths.</p>
                            </td>
                        </tr>
                        <tr class=' module-item'>
-                           <td><a class="struct" href="struct.NamedTempFileOptions.html"
-                                  title='struct tempfile::NamedTempFileOptions'>NamedTempFileOptions</a></td>
+                           <td><a class="struct" href="struct.PersistError.html"
+                                  title='struct tempfile::PersistError'>PersistError</a></td>
                            <td class='docblock-short'>
-                                <p>Create a new temporary file with custom parameters.</p>
+                                <p>Error returned when persisting a temporary file fails.</p>
 
                            </td>
                        </tr>
                        <tr class=' module-item'>
-                           <td><a class="struct" href="struct.PersistError.html"
-                                  title='struct tempfile::PersistError'>PersistError</a></td>
+                           <td><a class="struct" href="struct.TempDir.html"
+                                  title='struct tempfile::TempDir'>TempDir</a></td>
                            <td class='docblock-short'>
-                                <p>Error returned when persisting a temporary file fails</p>
+                                <p>A directory in the filesystem that is automatically deleted when
+it goes out of scope.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.TempPath.html"
+                                  title='struct tempfile::TempPath'>TempPath</a></td>
+                           <td class='docblock-short'>
+                                <p>A path to a named temporary file without an open file handle.</p>
 
                            </td>
                        </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
 <table>
                        <tr class=' module-item'>
+                           <td><a class="fn" href="fn.tempdir.html"
+                                  title='fn tempfile::tempdir'>tempdir</a></td>
+                           <td class='docblock-short'>
+                                <p>Create a new temporary directory.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.tempdir_in.html"
+                                  title='fn tempfile::tempdir_in'>tempdir_in</a></td>
+                           <td class='docblock-short'>
+                                <p>Create a new temporary directory.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
                            <td><a class="fn" href="fn.tempfile.html"
                                   title='fn tempfile::tempfile'>tempfile</a></td>
                            <td class='docblock-short'>
-                                <p>Create an unnamed temporary file.</p>
+                                <p>Create a new temporary file.</p>
 
                            </td>
                        </tr>
@@ -120,7 +183,7 @@ rely on file paths.</p>
                            <td><a class="fn" href="fn.tempfile_in.html"
                                   title='fn tempfile::tempfile_in'>tempfile_in</a></td>
                            <td class='docblock-short'>
-                                <p>Create an unnamed temporary file in the specified directory.</p>
+                                <p>Create a new temporary file in the specified directory.</p>
 
                            </td>
                        </tr></table></section>
