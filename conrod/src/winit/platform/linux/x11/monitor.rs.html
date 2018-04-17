@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.10.0/src/platform/linux/x11/monitor.rs`.">
+    <meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.12.0/src/platform/linux/x11/monitor.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>monitor.rs.html -- source</title>
@@ -161,6 +161,29 @@
 <span id="104">104</span>
 <span id="105">105</span>
 <span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">slice</span>;
@@ -179,6 +202,8 @@
     <span class="ident">position</span>: (<span class="ident">i32</span>, <span class="ident">i32</span>),
     <span class="doccomment">/// If the monitor is the primary one</span>
     <span class="ident">primary</span>: <span class="ident">bool</span>,
+    <span class="doccomment">/// The DPI scaling factor</span>
+    <span class="ident">hidpi_factor</span>: <span class="ident">f32</span>,
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_available_monitors</span>(<span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">XConnection</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">MonitorId</span><span class="op">&gt;</span> {
@@ -187,28 +212,36 @@
         <span class="kw">let</span> <span class="ident">root</span> <span class="op">=</span> (<span class="ident">x</span>.<span class="ident">xlib</span>.<span class="ident">XDefaultRootWindow</span>)(<span class="ident">x</span>.<span class="ident">display</span>);
         <span class="kw">let</span> <span class="ident">resources</span> <span class="op">=</span> (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRGetScreenResources</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="ident">root</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">major</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">minor</span> <span class="op">=</span> <span class="number">0</span>;
-        (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRQueryVersion</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">major</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">minor</span>);
-        <span class="kw">if</span> ((<span class="ident">major</span> <span class="kw">as</span> <span class="ident">u64</span>)<span class="op">&lt;&lt;</span><span class="number">32</span>)<span class="op">+</span>(<span class="ident">minor</span> <span class="kw">as</span> <span class="ident">u64</span>) <span class="op">&gt;=</span> (<span class="number">1</span><span class="op">&lt;&lt;</span><span class="number">32</span>)<span class="op">+</span><span class="number">5</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">xrandr_1_5</span>) <span class="op">=</span> <span class="ident">x</span>.<span class="ident">xrandr_1_5</span> {
             <span class="comment">// We&#39;re in XRandR &gt;= 1.5, enumerate Monitors to handle things like MST and videowalls</span>
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">nmonitors</span> <span class="op">=</span> <span class="number">0</span>;
-            <span class="kw">let</span> <span class="ident">monitors</span> <span class="op">=</span> (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRGetMonitors</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="ident">root</span>, <span class="number">1</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">nmonitors</span>);
+            <span class="kw">let</span> <span class="ident">monitors</span> <span class="op">=</span> (<span class="ident">xrandr_1_5</span>.<span class="ident">XRRGetMonitors</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="ident">root</span>, <span class="number">1</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">nmonitors</span>);
             <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">nmonitors</span> {
                 <span class="kw">let</span> <span class="ident">monitor</span> <span class="op">=</span> <span class="kw-2">*</span>(<span class="ident">monitors</span>.<span class="ident">offset</span>(<span class="ident">i</span> <span class="kw">as</span> <span class="ident">isize</span>));
-                <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRGetOutputInfo</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="ident">resources</span>, <span class="kw-2">*</span>(<span class="ident">monitor</span>.<span class="ident">outputs</span>.<span class="ident">offset</span>(<span class="number">0</span>)));
+                <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> (<span class="ident">xrandr_1_5</span>.<span class="ident">XRRGetOutputInfo</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="ident">resources</span>, <span class="kw-2">*</span>(<span class="ident">monitor</span>.<span class="ident">outputs</span>.<span class="ident">offset</span>(<span class="number">0</span>)));
                 <span class="kw">let</span> <span class="ident">nameslice</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">from_raw_parts</span>((<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">name</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>, (<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">nameLen</span> <span class="kw">as</span> <span class="ident">usize</span>);
                 <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">from_utf8_lossy</span>(<span class="ident">nameslice</span>).<span class="ident">into_owned</span>();
-                (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRFreeOutputInfo</span>)(<span class="ident">output</span>);
+                <span class="kw">let</span> <span class="ident">hidpi_factor</span> <span class="op">=</span> {
+                    <span class="kw">let</span> <span class="ident">x_mm</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">mm_width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                    <span class="kw">let</span> <span class="ident">y_mm</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">mm_height</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                    <span class="kw">let</span> <span class="ident">x_px</span> <span class="op">=</span> <span class="ident">monitor</span>.<span class="ident">width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                    <span class="kw">let</span> <span class="ident">y_px</span> <span class="op">=</span> <span class="ident">monitor</span>.<span class="ident">height</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                    <span class="kw">let</span> <span class="ident">ppmm</span> <span class="op">=</span> ((<span class="ident">x_px</span> <span class="op">*</span> <span class="ident">y_px</span>) <span class="op">/</span> (<span class="ident">x_mm</span> <span class="op">*</span> <span class="ident">y_mm</span>)).<span class="ident">sqrt</span>();
+
+                    <span class="comment">// Quantize 1/12 step size</span>
+                    ((<span class="ident">ppmm</span> <span class="op">*</span> (<span class="number">12.0</span> <span class="op">*</span> <span class="number">25.4</span> <span class="op">/</span> <span class="number">96.0</span>)).<span class="ident">round</span>() <span class="op">/</span> <span class="number">12.0</span>).<span class="ident">max</span>(<span class="number">1.0</span>)
+                };
+                (<span class="ident">xrandr_1_5</span>.<span class="ident">XRRFreeOutputInfo</span>)(<span class="ident">output</span>);
                 <span class="ident">available</span>.<span class="ident">push</span>(<span class="ident">MonitorId</span>{
                     <span class="ident">id</span>: <span class="ident">i</span> <span class="kw">as</span> <span class="ident">u32</span>,
                     <span class="ident">name</span>,
+                    <span class="ident">hidpi_factor</span>,
                     <span class="ident">dimensions</span>: (<span class="ident">monitor</span>.<span class="ident">width</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">monitor</span>.<span class="ident">height</span> <span class="kw">as</span> <span class="ident">u32</span>),
                     <span class="ident">position</span>: (<span class="ident">monitor</span>.<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">monitor</span>.<span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>),
                     <span class="ident">primary</span>: (<span class="ident">monitor</span>.<span class="ident">primary</span> <span class="op">!=</span> <span class="number">0</span>),
                 });
             }
-            (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRFreeMonitors</span>)(<span class="ident">monitors</span>);
+            (<span class="ident">xrandr_1_5</span>.<span class="ident">XRRFreeMonitors</span>)(<span class="ident">monitors</span>);
         } <span class="kw">else</span> {
             <span class="comment">// We&#39;re in XRandR &lt; 1.5, enumerate CRTCs. Everything will work but MST and</span>
             <span class="comment">// videowall setups will show more monitors than the logical groups the user</span>
@@ -220,10 +253,23 @@
                     <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRGetOutputInfo</span>)(<span class="ident">x</span>.<span class="ident">display</span>, <span class="ident">resources</span>, <span class="kw-2">*</span>((<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">outputs</span>.<span class="ident">offset</span>(<span class="number">0</span>)));
                     <span class="kw">let</span> <span class="ident">nameslice</span> <span class="op">=</span> <span class="ident">slice</span>::<span class="ident">from_raw_parts</span>((<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">name</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>, (<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">nameLen</span> <span class="kw">as</span> <span class="ident">usize</span>);
                     <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">from_utf8_lossy</span>(<span class="ident">nameslice</span>).<span class="ident">into_owned</span>();
+
+                    <span class="kw">let</span> <span class="ident">hidpi_factor</span> <span class="op">=</span> {
+                        <span class="kw">let</span> <span class="ident">x_mm</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">mm_width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                        <span class="kw">let</span> <span class="ident">y_mm</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">output</span>).<span class="ident">mm_height</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                        <span class="kw">let</span> <span class="ident">x_px</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">width</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                        <span class="kw">let</span> <span class="ident">y_px</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">height</span> <span class="kw">as</span> <span class="ident">f32</span>;
+                        <span class="kw">let</span> <span class="ident">ppmm</span> <span class="op">=</span> ((<span class="ident">x_px</span> <span class="op">*</span> <span class="ident">y_px</span>) <span class="op">/</span> (<span class="ident">x_mm</span> <span class="op">*</span> <span class="ident">y_mm</span>)).<span class="ident">sqrt</span>();
+
+                        <span class="comment">// Quantize 1/12 step size</span>
+                        ((<span class="ident">ppmm</span> <span class="op">*</span> (<span class="number">12.0</span> <span class="op">*</span> <span class="number">25.4</span> <span class="op">/</span> <span class="number">96.0</span>)).<span class="ident">round</span>() <span class="op">/</span> <span class="number">12.0</span>).<span class="ident">max</span>(<span class="number">1.0</span>)
+                    };
+
                     (<span class="ident">x</span>.<span class="ident">xrandr</span>.<span class="ident">XRRFreeOutputInfo</span>)(<span class="ident">output</span>);
                     <span class="ident">available</span>.<span class="ident">push</span>(<span class="ident">MonitorId</span>{
                         <span class="ident">id</span>: <span class="ident">crtcid</span> <span class="kw">as</span> <span class="ident">u32</span>,
                         <span class="ident">name</span>,
+                        <span class="ident">hidpi_factor</span>,
                         <span class="ident">dimensions</span>: ((<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">width</span> <span class="kw">as</span> <span class="ident">u32</span>, (<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">height</span> <span class="kw">as</span> <span class="ident">u32</span>),
                         <span class="ident">position</span>: ((<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span>, (<span class="kw-2">*</span><span class="ident">crtc</span>).<span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span>),
                         <span class="ident">primary</span>: <span class="bool-val">true</span>,
@@ -265,7 +311,7 @@
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_hidpi_factor</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">f32</span> {
-        <span class="number">1.0</span>
+        <span class="self">self</span>.<span class="ident">hidpi_factor</span>
     }
 }
 </pre>
