@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.12.0/src/events.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>events.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.16.2/src/events.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>events.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -446,9 +446,16 @@
 <span id="446">446</span>
 <span id="447">447</span>
 <span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">PathBuf</span>;
-<span class="kw">use</span> {<span class="ident">WindowId</span>, <span class="ident">DeviceId</span>};
+
+<span class="kw">use</span> {<span class="ident">DeviceId</span>, <span class="ident">LogicalPosition</span>, <span class="ident">LogicalSize</span>, <span class="ident">WindowId</span>};
 
 <span class="doccomment">/// Describes a generic event.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
@@ -472,15 +479,17 @@
 <span class="doccomment">/// Describes an event from a `Window`.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">WindowEvent</span> {
+    <span class="doccomment">/// The size of the window has changed. Contains the client area&#39;s new dimensions.</span>
+    <span class="ident">Resized</span>(<span class="ident">LogicalSize</span>),
 
-    <span class="doccomment">/// The size of the window has changed.</span>
-    <span class="ident">Resized</span>(<span class="ident">u32</span>, <span class="ident">u32</span>),
+    <span class="doccomment">/// The position of the window has changed. Contains the window&#39;s new position.</span>
+    <span class="ident">Moved</span>(<span class="ident">LogicalPosition</span>),
 
-    <span class="doccomment">/// The position of the window has changed.</span>
-    <span class="ident">Moved</span>(<span class="ident">i32</span>, <span class="ident">i32</span>),
+    <span class="doccomment">/// The window has been requested to close.</span>
+    <span class="ident">CloseRequested</span>,
 
-    <span class="doccomment">/// The window has been closed.</span>
-    <span class="ident">Closed</span>,
+    <span class="doccomment">/// The window has been destroyed.</span>
+    <span class="ident">Destroyed</span>,
 
     <span class="doccomment">/// A file has been dropped into the window.</span>
     <span class="ident">DroppedFile</span>(<span class="ident">PathBuf</span>),
@@ -509,7 +518,7 @@
         <span class="doccomment">/// (x,y) coords in pixels relative to the top-left corner of the window. Because the range of this data is</span>
         <span class="doccomment">/// limited by the display area and it may have been transformed by the OS to implement effects such as cursor</span>
         <span class="doccomment">/// acceleration, it should not be used to implement non-cursor-like interactions such as 3D camera control.</span>
-        <span class="ident">position</span>: (<span class="ident">f64</span>, <span class="ident">f64</span>),
+        <span class="ident">position</span>: <span class="ident">LogicalPosition</span>,
         <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span>
     },
 
@@ -524,7 +533,7 @@
 
     <span class="doccomment">/// An mouse button press has been received.</span>
     <span class="ident">MouseInput</span> { <span class="ident">device_id</span>: <span class="ident">DeviceId</span>, <span class="ident">state</span>: <span class="ident">ElementState</span>, <span class="ident">button</span>: <span class="ident">MouseButton</span>, <span class="ident">modifiers</span>: <span class="ident">ModifiersState</span> },
-  
+
 
     <span class="doccomment">/// Touchpad pressure event.</span>
     <span class="doccomment">///</span>
@@ -542,14 +551,16 @@
     <span class="doccomment">/// Touch event has been received</span>
     <span class="ident">Touch</span>(<span class="ident">Touch</span>),
 
-    <span class="doccomment">/// DPI scaling factor of the window has changed.</span>
+    <span class="doccomment">/// The DPI factor of the window has changed.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// The following actions cause DPI changes:</span>
+    <span class="doccomment">/// The following user actions can cause DPI changes:</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// * A user changes the resolution.</span>
-    <span class="doccomment">/// * A user changes the desktop scaling value (e.g. in Control Panel on Windows).</span>
-    <span class="doccomment">/// * A user moves the application window to a display with a different DPI.</span>
-    <span class="ident">HiDPIFactorChanged</span>(<span class="ident">f32</span>),
+    <span class="doccomment">/// * Changing the display&#39;s resolution.</span>
+    <span class="doccomment">/// * Changing the display&#39;s DPI factor (e.g. in Control Panel on Windows).</span>
+    <span class="doccomment">/// * Moving the window to a display with a different DPI factor.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// For more information about DPI in general, see the [`dpi`](dpi/index.html) module.</span>
+    <span class="ident">HiDpiFactorChanged</span>(<span class="ident">f64</span>),
 }
 
 <span class="doccomment">/// Represents raw hardware events that are not associated with any particular window.</span>
@@ -643,7 +654,7 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Touch</span> {
     <span class="kw">pub</span> <span class="ident">device_id</span>: <span class="ident">DeviceId</span>,
     <span class="kw">pub</span> <span class="ident">phase</span>: <span class="ident">TouchPhase</span>,
-    <span class="kw">pub</span> <span class="ident">location</span>: (<span class="ident">f64</span>,<span class="ident">f64</span>),
+    <span class="kw">pub</span> <span class="ident">location</span>: <span class="ident">LogicalPosition</span>,
     <span class="doccomment">/// unique identifier of a finger.</span>
     <span class="kw">pub</span> <span class="ident">id</span>: <span class="ident">u64</span>
 }
@@ -688,7 +699,7 @@
 	<span class="doccomment">/// Scroll events are expressed as a PixelDelta if</span>
 	<span class="doccomment">/// supported by the device (eg. a touchpad) and</span>
 	<span class="doccomment">/// platform.</span>
-	<span class="ident">PixelDelta</span>(<span class="ident">f32</span>, <span class="ident">f32</span>)
+	<span class="ident">PixelDelta</span>(<span class="ident">LogicalPosition</span>),
 }
 
 <span class="doccomment">/// Symbolic name for a keyboard key.</span>
@@ -829,7 +840,6 @@
     <span class="ident">LAlt</span>,
     <span class="ident">LBracket</span>,
     <span class="ident">LControl</span>,
-    <span class="ident">LMenu</span>,
     <span class="ident">LShift</span>,
     <span class="ident">LWin</span>,
     <span class="ident">Mail</span>,
@@ -854,7 +864,6 @@
     <span class="ident">RAlt</span>,
     <span class="ident">RBracket</span>,
     <span class="ident">RControl</span>,
-    <span class="ident">RMenu</span>,
     <span class="ident">RShift</span>,
     <span class="ident">RWin</span>,
     <span class="ident">Semicolon</span>,
@@ -877,6 +886,9 @@
     <span class="ident">WebSearch</span>,
     <span class="ident">WebStop</span>,
     <span class="ident">Yen</span>,
+    <span class="ident">Copy</span>,
+    <span class="ident">Paste</span>,
+    <span class="ident">Cut</span>,
 }
 
 <span class="doccomment">/// Represents the current state of the keyboard modifiers</span>

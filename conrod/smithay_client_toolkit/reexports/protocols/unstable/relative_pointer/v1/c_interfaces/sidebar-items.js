@@ -1,0 +1,1 @@
+initSidebarItems({"static":[["zwp_relative_pointer_manager_v1_interface",""],["zwp_relative_pointer_manager_v1_requests",""],["zwp_relative_pointer_v1_events",""],["zwp_relative_pointer_v1_interface",""],["zwp_relative_pointer_v1_requests",""]]});
