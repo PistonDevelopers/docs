@@ -446,6 +446,25 @@
 <span id="446">446</span>
 <span id="447">447</span>
 <span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
 </pre><pre class="rust ">
 <span class="doccomment">//! # YUV4MPEG2 (.y4m) Encoder/Decoder</span>
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_docs</span>)]</span>
@@ -580,6 +599,8 @@
     <span class="ident">C420</span>,
     <span class="doccomment">/// 4:2:0 with coincident chroma planes, 10-bit.</span>
     <span class="ident">C420p10</span>,
+    <span class="doccomment">/// 4:2:0 with coincident chroma planes, 12-bit.</span>
+    <span class="ident">C420p12</span>,
     <span class="doccomment">/// 4:2:0 with biaxially-displaced chroma planes, 8-bit.</span>
     <span class="ident">C420jpeg</span>,
     <span class="doccomment">/// 4:2:0 with vertically-displaced chroma planes, 8-bit.</span>
@@ -590,10 +611,14 @@
     <span class="ident">C422</span>,
     <span class="doccomment">/// 4:2:2, 10-bit.</span>
     <span class="ident">C422p10</span>,
+    <span class="doccomment">/// 4:2:2, 12-bit.</span>
+    <span class="ident">C422p12</span>,
     <span class="doccomment">/// 4:4:4, 8-bit.</span>
     <span class="ident">C444</span>,
     <span class="doccomment">/// 4:4:4, 10-bit.</span>
     <span class="ident">C444p10</span>,
+    <span class="doccomment">/// 4:4:4, 12-bit.</span>
+    <span class="ident">C444p12</span>
 }
 
 <span class="kw">impl</span> <span class="ident">Colorspace</span> {
@@ -611,6 +636,9 @@
             <span class="ident">Colorspace</span>::<span class="ident">C420p10</span> <span class="op">|</span>
             <span class="ident">Colorspace</span>::<span class="ident">C422p10</span> <span class="op">|</span>
             <span class="ident">Colorspace</span>::<span class="ident">C444p10</span> <span class="op">=&gt;</span> <span class="number">10</span>,
+            <span class="ident">Colorspace</span>::<span class="ident">C420p12</span> <span class="op">|</span>
+            <span class="ident">Colorspace</span>::<span class="ident">C422p12</span> <span class="op">|</span>
+            <span class="ident">Colorspace</span>::<span class="ident">C444p12</span> <span class="op">=&gt;</span> <span class="number">12</span>,
         }
     }
 
@@ -628,19 +656,26 @@
 <span class="kw">fn</span> <span class="ident">get_plane_sizes</span>(
     <span class="ident">width</span>: <span class="ident">usize</span>, <span class="ident">height</span>: <span class="ident">usize</span>, <span class="ident">colorspace</span>: <span class="ident">Colorspace</span>,
 ) <span class="op">-&gt;</span> (<span class="ident">usize</span>, <span class="ident">usize</span>, <span class="ident">usize</span>) {
-    <span class="kw">let</span> <span class="ident">pixels</span> <span class="op">=</span> <span class="ident">width</span> <span class="op">*</span> <span class="ident">height</span> <span class="op">*</span> <span class="ident">colorspace</span>.<span class="ident">get_bytes_per_sample</span>();
-    <span class="kw">let</span> <span class="ident">c420_sizes</span> <span class="op">=</span> (<span class="ident">pixels</span>, <span class="ident">pixels</span><span class="op">/</span><span class="number">4</span>, <span class="ident">pixels</span><span class="op">/</span><span class="number">4</span>);
+    <span class="kw">let</span> <span class="ident">y_plane_size</span> <span class="op">=</span> <span class="ident">width</span> <span class="op">*</span> <span class="ident">height</span> <span class="op">*</span> <span class="ident">colorspace</span>.<span class="ident">get_bytes_per_sample</span>();
+
+    <span class="kw">let</span> <span class="ident">c420_sizes</span> <span class="op">=</span> (<span class="ident">y_plane_size</span>, <span class="ident">y_plane_size</span><span class="op">/</span><span class="number">4</span>, <span class="ident">y_plane_size</span><span class="op">/</span><span class="number">4</span>);
+    <span class="kw">let</span> <span class="ident">c422_sizes</span> <span class="op">=</span> (<span class="ident">y_plane_size</span>, <span class="ident">y_plane_size</span><span class="op">/</span><span class="number">2</span>, <span class="ident">y_plane_size</span><span class="op">/</span><span class="number">2</span>);
+    <span class="kw">let</span> <span class="ident">c444_sizes</span> <span class="op">=</span> (<span class="ident">y_plane_size</span>, <span class="ident">y_plane_size</span>, <span class="ident">y_plane_size</span>);
+
     <span class="kw">match</span> <span class="ident">colorspace</span> {
-        <span class="ident">Colorspace</span>::<span class="ident">Cmono</span> <span class="op">=&gt;</span> (<span class="ident">pixels</span>, <span class="number">0</span>, <span class="number">0</span>),
-        <span class="ident">Colorspace</span>::<span class="ident">C420</span> <span class="op">=&gt;</span> <span class="ident">c420_sizes</span>,
-        <span class="ident">Colorspace</span>::<span class="ident">C420p10</span> <span class="op">=&gt;</span> <span class="ident">c420_sizes</span>,
-        <span class="ident">Colorspace</span>::<span class="ident">C422</span> <span class="op">=&gt;</span> (<span class="ident">pixels</span>, <span class="ident">pixels</span><span class="op">/</span><span class="number">2</span>, <span class="ident">pixels</span><span class="op">/</span><span class="number">2</span>),
-        <span class="ident">Colorspace</span>::<span class="ident">C422p10</span> <span class="op">=&gt;</span> (<span class="ident">pixels</span>, <span class="ident">pixels</span><span class="op">/</span><span class="number">2</span>, <span class="ident">pixels</span><span class="op">/</span><span class="number">2</span>),
-        <span class="ident">Colorspace</span>::<span class="ident">C444</span> <span class="op">=&gt;</span> (<span class="ident">pixels</span>, <span class="ident">pixels</span>, <span class="ident">pixels</span>),
-        <span class="ident">Colorspace</span>::<span class="ident">C444p10</span> <span class="op">=&gt;</span> (<span class="ident">pixels</span>, <span class="ident">pixels</span>, <span class="ident">pixels</span>),
-        <span class="ident">Colorspace</span>::<span class="ident">C420jpeg</span> <span class="op">=&gt;</span> <span class="ident">c420_sizes</span>,
-        <span class="ident">Colorspace</span>::<span class="ident">C420paldv</span> <span class="op">=&gt;</span> <span class="ident">c420_sizes</span>,
+        <span class="ident">Colorspace</span>::<span class="ident">Cmono</span> <span class="op">=&gt;</span> (<span class="ident">y_plane_size</span>, <span class="number">0</span>, <span class="number">0</span>),
+        <span class="ident">Colorspace</span>::<span class="ident">C420</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C420p10</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C420p12</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C420jpeg</span> <span class="op">|</span> 
+        <span class="ident">Colorspace</span>::<span class="ident">C420paldv</span> <span class="op">|</span> 
         <span class="ident">Colorspace</span>::<span class="ident">C420mpeg2</span> <span class="op">=&gt;</span> <span class="ident">c420_sizes</span>,
+        <span class="ident">Colorspace</span>::<span class="ident">C422</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C422p10</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C422p12</span> <span class="op">=&gt;</span> <span class="ident">c422_sizes</span>,
+        <span class="ident">Colorspace</span>::<span class="ident">C444</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C444p10</span> <span class="op">|</span>
+        <span class="ident">Colorspace</span>::<span class="ident">C444p12</span> <span class="op">=&gt;</span> <span class="ident">c444_sizes</span>,
     }
 }
 
@@ -693,10 +728,13 @@
                         <span class="string">b&quot;mono&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">Cmono</span>),
                         <span class="string">b&quot;420&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C420</span>),
                         <span class="string">b&quot;420p10&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C420p10</span>),
+                        <span class="string">b&quot;420p12&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C420p12</span>),
                         <span class="string">b&quot;422&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C422</span>),
                         <span class="string">b&quot;422p10&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C422p10</span>),
+                        <span class="string">b&quot;422p12&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C422p12</span>),
                         <span class="string">b&quot;444&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C444</span>),
                         <span class="string">b&quot;444p10&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C444p10</span>),
+                        <span class="string">b&quot;444p12&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C444p12</span>),
                         <span class="string">b&quot;420jpeg&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C420jpeg</span>),
                         <span class="string">b&quot;420paldv&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C420paldv</span>),
                         <span class="string">b&quot;420mpeg2&quot;</span> <span class="op">=&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">Colorspace</span>::<span class="ident">C420mpeg2</span>),
