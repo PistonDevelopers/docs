@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.12.5/src/event_queue.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>event_queue.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-client-0.20.12/src/event_queue.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>event_queue.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -316,190 +316,85 @@
 <span id="316">316</span>
 <span id="317">317</span>
 <span id="318">318</span>
-<span id="319">319</span>
-<span id="320">320</span>
-<span id="321">321</span>
-<span id="322">322</span>
-<span id="323">323</span>
-<span id="324">324</span>
-<span id="325">325</span>
-<span id="326">326</span>
-<span id="327">327</span>
-<span id="328">328</span>
-<span id="329">329</span>
-<span id="330">330</span>
-<span id="331">331</span>
-<span id="332">332</span>
-<span id="333">333</span>
-<span id="334">334</span>
-<span id="335">335</span>
-<span id="336">336</span>
-<span id="337">337</span>
-<span id="338">338</span>
-<span id="339">339</span>
-<span id="340">340</span>
-<span id="341">341</span>
-<span id="342">342</span>
-<span id="343">343</span>
-<span id="344">344</span>
-<span id="345">345</span>
-<span id="346">346</span>
-<span id="347">347</span>
-<span id="348">348</span>
-<span id="349">349</span>
-<span id="350">350</span>
-<span id="351">351</span>
-<span id="352">352</span>
-<span id="353">353</span>
-<span id="354">354</span>
-<span id="355">355</span>
-<span id="356">356</span>
-<span id="357">357</span>
-<span id="358">358</span>
-<span id="359">359</span>
-<span id="360">360</span>
-<span id="361">361</span>
-<span id="362">362</span>
-<span id="363">363</span>
-<span id="364">364</span>
-<span id="365">365</span>
-<span id="366">366</span>
-<span id="367">367</span>
 </pre><pre class="rust ">
-<span class="kw">use</span> {<span class="ident">Implementable</span>, <span class="ident">Proxy</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">any</span>::<span class="ident">Any</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="ident">Error</span> <span class="kw">as</span> <span class="ident">IoError</span>, <span class="prelude-ty">Result</span> <span class="kw">as</span> <span class="ident">IoResult</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">raw</span>::{<span class="ident">c_int</span>, <span class="ident">c_void</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ptr</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">rc</span>::<span class="ident">Rc</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">AtomicPtr</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">token_store</span>::{<span class="ident">Store</span> <span class="kw">as</span> <span class="ident">State</span>, <span class="ident">StoreProxy</span> <span class="kw">as</span> <span class="ident">StateProxy</span>, <span class="ident">Token</span> <span class="kw">as</span> <span class="ident">StateToken</span>};
-<span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">RUST_MANAGED</span>;
+
+<span class="kw">use</span> <span class="ident">display</span>::<span class="ident">DisplayInner</span>;
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
 <span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">client</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">wayland_sys</span>::<span class="ident">common</span>::<span class="kw-2">*</span>;
 
-<span class="kw">type</span> <span class="ident">ProxyUserData</span> <span class="op">=</span> (
-    <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span>,
-    <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span><span class="op">&gt;&gt;</span>,
-    <span class="ident">Arc</span><span class="op">&lt;</span>(<span class="ident">AtomicBool</span>, <span class="ident">AtomicPtr</span><span class="op">&lt;</span>()<span class="op">&gt;</span>)<span class="op">&gt;</span>,
-);
-
-<span class="doccomment">/// Status of a registration attempt of a proxy.</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">RegisterStatus</span> {
-    <span class="doccomment">/// The proxy was properly registered to this event queue &amp; handler.</span>
-    <span class="ident">Registered</span>,
-    <span class="doccomment">/// The proxy was not registered because it is not managed by `wayland-client`.</span>
-    <span class="ident">Unmanaged</span>,
-    <span class="doccomment">/// The proxy was not registered because it is already destroyed.</span>
-    <span class="ident">Dead</span>,
-}
-
-<span class="doccomment">/// Handle to an event queue</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// This handle gives you access to methods on an event queue</span>
-<span class="doccomment">/// that are safe to do from within a callback.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// They are also available on an `EventQueue` object via `Deref`.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventQueueHandle</span> {
-    <span class="ident">state</span>: <span class="ident">State</span>,
+<span class="kw">struct</span> <span class="ident">EventQueueInner</span> {
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
     <span class="ident">wlevq</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_event_queue</span><span class="op">&gt;</span>,
+    <span class="ident">inner</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">DisplayInner</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">EventQueueHandle</span> {
-    <span class="doccomment">/// Register a proxy to this event queue.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// You are required to provide a valid implementation for this proxy</span>
-    <span class="doccomment">/// as well as some associated implementation data. This implementation</span>
-    <span class="doccomment">/// is expected to be a struct holding the various relevant</span>
-    <span class="doccomment">/// function pointers.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// This implementation data can typically contain indexes to state value</span>
-    <span class="doccomment">/// that the implementation will need to work on.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// This overwrites any precedently set implementation for this proxy.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns appropriately and does nothing if this proxy is dead or already managed by</span>
-    <span class="doccomment">/// something else than this library.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">register</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">ID</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">proxy</span>: <span class="kw-2">&amp;</span><span class="ident">P</span>, <span class="ident">implementation</span>: <span class="ident">P</span>::<span class="ident">Implementation</span>, <span class="ident">idata</span>: <span class="ident">ID</span>)
-                           <span class="op">-&gt;</span> <span class="ident">RegisterStatus</span>
-    <span class="kw">where</span>
-        <span class="ident">P</span>: <span class="ident">Proxy</span> <span class="op">+</span> <span class="ident">Implementable</span><span class="op">&lt;</span><span class="ident">ID</span><span class="op">&gt;</span>,
-        <span class="ident">ID</span>: <span class="lifetime">&#39;static</span>,
-    {
-        <span class="kw">match</span> <span class="ident">proxy</span>.<span class="ident">status</span>() {
-            ::<span class="ident">Liveness</span>::<span class="ident">Dead</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="ident">RegisterStatus</span>::<span class="ident">Dead</span>,
-            ::<span class="ident">Liveness</span>::<span class="ident">Unmanaged</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="ident">RegisterStatus</span>::<span class="ident">Unmanaged</span>,
-            ::<span class="ident">Liveness</span>::<span class="ident">Alive</span> <span class="op">=&gt;</span> { <span class="comment">/* ok, we can continue */</span> }
-        }
-
-        <span class="kw">unsafe</span> {
-            <span class="kw">let</span> <span class="ident">data</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ProxyUserData</span> <span class="op">=</span>
-                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_proxy_get_user_data</span>, <span class="ident">proxy</span>.<span class="ident">ptr</span>()) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>;
-            <span class="comment">// This cast from *const to *mut is legit because we enforce that a proxy</span>
-            <span class="comment">// can only be assigned to a single EventQueue.</span>
-            <span class="comment">// (this is actually the whole point of the design of this lib)</span>
-            (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">data</span>).<span class="number">0</span> <span class="op">=</span> <span class="self">self</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>;
-            (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">data</span>).<span class="number">1</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Box</span>::<span class="ident">new</span>((<span class="ident">implementation</span>, <span class="ident">idata</span>)) <span class="kw">as</span> <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Any</span><span class="op">&gt;</span>);
-            <span class="comment">// even if this call fails, we updated the user_data, so the new implementation is in place.</span>
-            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                <span class="ident">wl_proxy_add_dispatcher</span>,
-                <span class="ident">proxy</span>.<span class="ident">ptr</span>(),
-                <span class="ident">dispatch_func</span>::<span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">ID</span><span class="op">&gt;</span>,
-                <span class="kw-2">&amp;</span><span class="ident">RUST_MANAGED</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span>,
-                <span class="ident">data</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>
-            );
-            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                <span class="ident">wl_proxy_set_queue</span>,
-                <span class="ident">proxy</span>.<span class="ident">ptr</span>(),
-                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">wlevq</span> {
-                    <span class="prelude-val">Some</span>(<span class="ident">ptr</span>) <span class="op">=&gt;</span> <span class="ident">ptr</span>,
-                    <span class="prelude-val">None</span> <span class="op">=&gt;</span> ::<span class="ident">std</span>::<span class="ident">ptr</span>::<span class="ident">null_mut</span>(),
-                }
-            );
-        }
-        <span class="ident">RegisterStatus</span>::<span class="ident">Registered</span>
-    }
-
-    <span class="doccomment">/// Get a handle to the internal state</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// The returned guard object allows you to get references</span>
-    <span class="doccomment">/// to the handler objects you previously inserted in this</span>
-    <span class="doccomment">/// event queue.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">state</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">State</span> {
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">state</span>
-    }
-}
-
-<span class="doccomment">/// An event queue managing wayland events</span>
+<span class="doccomment">/// An event queue for protocol messages</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// Each wayland object can receive events from the server. To handle these events</span>
-<span class="doccomment">/// you must associate to these objects an implementation: a struct defined in their</span>
-<span class="doccomment">/// respective module, in which you provide a set of functions that will handle each event.</span>
+<span class="doccomment">/// Event dispatching in wayland is made on a queue basis, allowing you</span>
+<span class="doccomment">/// to organise your objects into different queues that can be dispatched</span>
+<span class="doccomment">/// independently, for example from different threads.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// Your implementation can also access a shared state managed by the event queue. See</span>
-<span class="doccomment">/// the `State` struct and the `state()` method on `EventQueueHandle`. If you need this,</span>
-<span class="doccomment">/// the way to do it is:</span>
+<span class="doccomment">/// And `EventQueue` is not `Send`, and thus must stay on the thread on which</span>
+<span class="doccomment">/// they were created. However the `Display` object is `Send + Sync`, allowing</span>
+<span class="doccomment">/// you to create the queues directly in the threads that host them.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// - insert your state value in the event queue state store, your are then provided with a</span>
-<span class="doccomment">///   token to access it</span>
-<span class="doccomment">/// - provide this token (you can clone it) as implementation data to any wayland object</span>
-<span class="doccomment">///   that need to access this state in its event callbacks.</span>
+<span class="doccomment">/// When a queue is dispatched (via the `dispatch()` or `dispatch_pending()` methods)</span>
+<span class="doccomment">/// all the incoming messages from the server destinated to objects associated with</span>
+<span class="doccomment">/// the queue are processed sequentially, and the appropriate implementation for each</span>
+<span class="doccomment">/// is invoked. When all messages have been processed these methods return.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// The event queues also provides you control on the flow of the program, via the `dispatch()` and</span>
-<span class="doccomment">/// `dispatch_pending()` methods.</span>
+<span class="doccomment">/// Thus, a typical single-queue event loop for a simple wayland app can be:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```no_run</span>
+<span class="doccomment">/// # extern crate wayland_client;</span>
+<span class="doccomment">/// # use wayland_client::{Display};</span>
+<span class="doccomment">/// # fn main() {</span>
+<span class="doccomment">/// #     let (display, mut event_queue) = Display::connect_to_env().unwrap();</span>
+<span class="doccomment">/// loop {</span>
+<span class="doccomment">///     display.flush().unwrap();</span>
+<span class="doccomment">///     event_queue.dispatch().expect(&quot;An error occured during event dispatching!&quot;);</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// # }</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// See `EventQueue::prepare_read()` if you need more control about when the connection</span>
+<span class="doccomment">/// socket is read. This will typically the case if you need to integrate other sources</span>
+<span class="doccomment">/// of event into the event loop of your application.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">EventQueue</span> {
-    <span class="ident">handle</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">EventQueueHandle</span><span class="op">&gt;</span>,
-    <span class="ident">display</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_display</span>,
+    <span class="comment">// EventQueue is *not* Send</span>
+    <span class="ident">inner</span>: <span class="ident">Rc</span><span class="op">&lt;</span><span class="ident">EventQueueInner</span><span class="op">&gt;</span>,
+}
+
+<span class="doccomment">/// A token representing this event queue</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This token can be cloned and is meant to allow easier</span>
+<span class="doccomment">/// interaction with other functions in the library that</span>
+<span class="doccomment">/// require the specification of an event queue, like</span>
+<span class="doccomment">/// `Proxy::make_wrapper` and `NewProxy::implement_nonsend`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">QueueToken</span> {
+    <span class="ident">inner</span>: <span class="ident">Rc</span><span class="op">&lt;</span><span class="ident">EventQueueInner</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">EventQueue</span> {
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">inner</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">DisplayInner</span><span class="op">&gt;</span>, <span class="ident">evq</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_event_queue</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">EventQueue</span> {
+        <span class="ident">EventQueue</span> {
+            <span class="ident">inner</span>: <span class="ident">Rc</span>::<span class="ident">new</span>(<span class="ident">EventQueueInner</span> {
+                <span class="ident">inner</span>: <span class="ident">inner</span>,
+                <span class="ident">wlevq</span>: <span class="ident">evq</span>,
+            }),
+        }
+    }
+
     <span class="doccomment">/// Dispatches events from the internal buffer.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Dispatches all events to their appropriate handlers.</span>
-    <span class="doccomment">/// If not events were in the internal buffer, will block until</span>
+    <span class="doccomment">/// Dispatches all events to their appropriaters.</span>
+    <span class="doccomment">/// If no events were in the internal buffer, will block until</span>
     <span class="doccomment">/// some events are read and dispatch them.</span>
     <span class="doccomment">/// This process can insert events in the internal buffers of</span>
     <span class="doccomment">/// other event queues.</span>
@@ -507,54 +402,66 @@
     <span class="doccomment">/// If an error is returned, your connection with the wayland</span>
     <span class="doccomment">/// compositor is probably lost.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dispatch</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
-                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                    <span class="ident">wl_display_dispatch_queue</span>,
-                    <span class="self">self</span>.<span class="ident">display</span>,
-                    <span class="ident">evq</span>
-                )
-            },
-            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_dispatch</span>, <span class="self">self</span>.<span class="ident">display</span>) },
-        };
-        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ret</span> <span class="kw">as</span> <span class="ident">u32</span>)
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>))]</span>
+        {}
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
+        {
+            <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">wlevq</span> {
+                <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                    <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                        <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                        <span class="ident">wl_display_dispatch_queue</span>,
+                        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>(),
+                        <span class="ident">evq</span>
+                    )
+                },
+                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                    <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_dispatch</span>, <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>())
+                },
+            };
+            <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">ret</span> <span class="kw">as</span> <span class="ident">u32</span>)
+            } <span class="kw">else</span> {
+                <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
+            }
         }
     }
 
     <span class="doccomment">/// Dispatches pending events from the internal buffer.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Dispatches all events to their appropriate handlers.</span>
-    <span class="doccomment">/// Never blocks, if not events were pending, simply returns</span>
+    <span class="doccomment">/// Dispatches all events to their appropriaters.</span>
+    <span class="doccomment">/// Never blocks, if no events were pending, simply returns</span>
     <span class="doccomment">/// `Ok(0)`.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// If an error is returned, your connection with the wayland</span>
     <span class="doccomment">/// compositor is probably lost.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dispatch_pending</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
-                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                    <span class="ident">wl_display_dispatch_queue_pending</span>,
-                    <span class="self">self</span>.<span class="ident">display</span>,
-                    <span class="ident">evq</span>
-                )
-            },
-            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
-                <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                    <span class="ident">wl_display_dispatch_pending</span>,
-                    <span class="self">self</span>.<span class="ident">display</span>
-                )
-            },
-        };
-        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ret</span> <span class="kw">as</span> <span class="ident">u32</span>)
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>))]</span>
+        {}
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
+        {
+            <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">wlevq</span> {
+                <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                    <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                        <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                        <span class="ident">wl_display_dispatch_queue_pending</span>,
+                        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>(),
+                        <span class="ident">evq</span>
+                    )
+                },
+                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="kw">unsafe</span> {
+                    <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                        <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                        <span class="ident">wl_display_dispatch_pending</span>,
+                        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>()
+                    )
+                },
+            };
+            <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">ret</span> <span class="kw">as</span> <span class="ident">u32</span>)
+            } <span class="kw">else</span> {
+                <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
+            }
         }
     }
 
@@ -568,21 +475,39 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// On success returns the number of dispatched events.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sync_roundtrip</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">i32</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> {
-            <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
-                <span class="prelude-val">Some</span>(<span class="ident">evtq</span>) <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
-                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
-                    <span class="ident">wl_display_roundtrip_queue</span>,
-                    <span class="self">self</span>.<span class="ident">display</span>,
-                    <span class="ident">evtq</span>
-                ),
-                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_roundtrip</span>, <span class="self">self</span>.<span class="ident">display</span>),
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>))]</span>
+        {}
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
+        {
+            <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">wlevq</span> {
+                    <span class="prelude-val">Some</span>(<span class="ident">evtq</span>) <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                        <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                        <span class="ident">wl_display_roundtrip_queue</span>,
+                        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>(),
+                        <span class="ident">evtq</span>
+                    ),
+                    <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                        <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                        <span class="ident">wl_display_roundtrip</span>,
+                        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>()
+                    ),
+                }
+            };
+            <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">ret</span>)
+            } <span class="kw">else</span> {
+                <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
             }
-        };
-        <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ret</span>)
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Err</span>(<span class="ident">IoError</span>::<span class="ident">last_os_error</span>())
+        }
+    }
+
+    <span class="doccomment">/// Create a new token associated with this event queue</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// See `QueueToken` documentation for its use.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_token</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">QueueToken</span> {
+        <span class="ident">QueueToken</span> {
+            <span class="ident">inner</span>: <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">clone</span>(),
         }
     }
 
@@ -607,19 +532,23 @@
     <span class="doccomment">/// an io error `WouldBlock` in such cases.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">prepare_read</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ReadEventsGuard</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> {
-            <span class="kw">match</span> <span class="self">self</span>.<span class="ident">handle</span>.<span class="ident">wlevq</span> {
+            <span class="kw">match</span> <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">wlevq</span> {
                 <span class="prelude-val">Some</span>(<span class="ident">evtq</span>) <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
                     <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
                     <span class="ident">wl_display_prepare_read_queue</span>,
-                    <span class="self">self</span>.<span class="ident">display</span>,
+                    <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>(),
                     <span class="ident">evtq</span>
                 ),
-                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_prepare_read</span>, <span class="self">self</span>.<span class="ident">display</span>),
+                <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                    <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                    <span class="ident">wl_display_prepare_read</span>,
+                    <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>()
+                ),
             }
         };
         <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
             <span class="prelude-val">Some</span>(<span class="ident">ReadEventsGuard</span> {
-                <span class="ident">display</span>: <span class="self">self</span>.<span class="ident">display</span>,
+                <span class="ident">inner</span>: <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">clone</span>(),
             })
         } <span class="kw">else</span> {
             <span class="prelude-val">None</span>
@@ -627,16 +556,32 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">EventQueue</span> {
-    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> <span class="ident">EventQueueHandle</span>;
-    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">EventQueueHandle</span> {
-        <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">handle</span>
+<span class="kw">impl</span> <span class="ident">QueueToken</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">assign_proxy</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">proxy</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_proxy</span>) {
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>))]</span>
+        {}
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;native_lib&quot;</span>)]</span>
+        {
+            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                <span class="ident">wl_proxy_set_queue</span>,
+                <span class="ident">proxy</span>,
+                <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">wlevq</span>.<span class="ident">unwrap_or</span>(<span class="ident">ptr</span>::<span class="ident">null_mut</span>())
+            )
+        }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">DerefMut</span> <span class="kw">for</span> <span class="ident">EventQueue</span> {
-    <span class="kw">fn</span> <span class="ident">deref_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventQueueHandle</span> {
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">handle</span>
+<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">EventQueueInner</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;nativel_lib&quot;</span>)]</span>
+        {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">evq</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">wlevq</span> {
+                <span class="kw">unsafe</span> {
+                    <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_event_queue_destroy</span>, <span class="ident">evq</span>);
+                }
+            }
+        }
     }
 }
 
@@ -644,7 +589,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// See `EventQueue::prepare_read()` for details about its use.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ReadEventsGuard</span> {
-    <span class="ident">display</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_display</span>,
+    <span class="ident">inner</span>: <span class="ident">Rc</span><span class="op">&lt;</span><span class="ident">EventQueueInner</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">ReadEventsGuard</span> {
@@ -653,7 +598,13 @@
     <span class="doccomment">/// Reads events from the server socket. If other `ReadEventsGuard` exists, will block</span>
     <span class="doccomment">/// until they are all consumed or destroyed.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">read_events</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">IoResult</span><span class="op">&lt;</span><span class="ident">i32</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_read_events</span>, <span class="self">self</span>.<span class="ident">display</span>) };
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                <span class="ident">wl_display_read_events</span>,
+                <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>()
+            )
+        };
         <span class="comment">// Don&#39;t run destructor that would cancel the read intent</span>
         ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">forget</span>(<span class="self">self</span>);
         <span class="kw">if</span> <span class="ident">ret</span> <span class="op">&gt;=</span> <span class="number">0</span> {
@@ -675,61 +626,12 @@
 
 <span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ReadEventsGuard</span> {
     <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
-        <span class="kw">unsafe</span> { <span class="macro">ffi_dispatch</span><span class="macro">!</span>(<span class="ident">WAYLAND_CLIENT_HANDLE</span>, <span class="ident">wl_display_cancel_read</span>, <span class="self">self</span>.<span class="ident">display</span>) }
-    }
-}
-
-<span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">create_event_queue</span>(<span class="ident">display</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_display</span>, <span class="ident">evq</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_event_queue</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">EventQueue</span> {
-    <span class="ident">EventQueue</span> {
-        <span class="ident">display</span>: <span class="ident">display</span>,
-        <span class="ident">handle</span>: <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">EventQueueHandle</span> {
-            <span class="ident">state</span>: <span class="ident">State</span>::<span class="ident">new</span>(),
-            <span class="ident">wlevq</span>: <span class="ident">evq</span>,
-        }),
-    }
-}
-
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">dispatch_func</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">ID</span><span class="op">&gt;</span>(<span class="ident">_impl</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span>, <span class="ident">proxy</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>, <span class="ident">opcode</span>: <span class="ident">u32</span>,
-                                          <span class="ident">_msg</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">wl_message</span>, <span class="ident">args</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">wl_argument</span>)
-                                          <span class="op">-&gt;</span> <span class="ident">c_int</span>
-<span class="kw">where</span>
-    <span class="ident">P</span>: <span class="ident">Proxy</span> <span class="op">+</span> <span class="ident">Implementable</span><span class="op">&lt;</span><span class="ident">ID</span><span class="op">&gt;</span>,
-    <span class="ident">ID</span>: <span class="lifetime">&#39;static</span>,
-{
-    <span class="comment">// sanity check, if it triggers, it is a bug</span>
-    <span class="kw">if</span> <span class="ident">_impl</span> <span class="op">!=</span> <span class="kw-2">&amp;</span><span class="ident">RUST_MANAGED</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> {
-        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="macro">write</span><span class="macro">!</span>(
-            ::<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">stderr</span>(),
-            <span class="string">&quot;[wayland-client error] Dispatcher got called for a message on a non-managed object.&quot;</span>
-        );
-        ::<span class="ident">libc</span>::<span class="ident">abort</span>();
-    }
-    <span class="comment">// We don&#39;t need to worry about panic-safeness, because if there is a panic,</span>
-    <span class="comment">// we&#39;ll abort the process, so no access to corrupted data is possible.</span>
-    <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">panic</span>::<span class="ident">catch_unwind</span>(<span class="kw">move</span> <span class="op">||</span> {
-        <span class="kw">let</span> <span class="ident">proxy</span> <span class="op">=</span> <span class="ident">P</span>::<span class="ident">from_ptr_initialized</span>(<span class="ident">proxy</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">wl_proxy</span>);
-        <span class="ident">proxy</span>.<span class="ident">__dispatch_msg</span>(<span class="ident">opcode</span>, <span class="ident">args</span>)
-    });
-    <span class="kw">match</span> <span class="ident">ret</span> {
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">Ok</span>(())) <span class="op">=&gt;</span> <span class="kw">return</span> <span class="number">0</span>, <span class="comment">// all went well</span>
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">Err</span>(())) <span class="op">=&gt;</span> {
-            <span class="comment">// an unknown opcode was dispatched, this is not normal</span>
-            <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="macro">write</span><span class="macro">!</span>(
-                ::<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">stderr</span>(),
-                <span class="string">&quot;[wayland-client error] Attempted to dispatch unknown opcode {} for {}, aborting.&quot;</span>,
-                <span class="ident">opcode</span>,
-                <span class="ident">P</span>::<span class="ident">interface_name</span>()
-            );
-            ::<span class="ident">libc</span>::<span class="ident">abort</span>();
-        }
-        <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=&gt;</span> {
-            <span class="comment">// a panic occured</span>
-            <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="macro">write</span><span class="macro">!</span>(
-                ::<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">stderr</span>(),
-                <span class="string">&quot;[wayland-client error] A handler for {} panicked, aborting.&quot;</span>,
-                <span class="ident">P</span>::<span class="ident">interface_name</span>()
-            );
-            ::<span class="ident">libc</span>::<span class="ident">abort</span>();
+        <span class="kw">unsafe</span> {
+            <span class="macro">ffi_dispatch</span><span class="macro">!</span>(
+                <span class="ident">WAYLAND_CLIENT_HANDLE</span>,
+                <span class="ident">wl_display_cancel_read</span>,
+                <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">inner</span>.<span class="ident">ptr</span>()
+            )
         }
     }
 }

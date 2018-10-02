@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Store","A token store"],["StoreProxy","A Proxy representing a `Store` with ongoing borrows"],["Token","A token for accessing the store contents"]]});
