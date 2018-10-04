@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["derivative",""]]});
+initSidebarItems({"derive":[["Derivative",""]]});
