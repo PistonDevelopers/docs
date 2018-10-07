@@ -58,6 +58,7 @@ ALIASES['quote'] = {};
 ALIASES['rand'] = {};
 ALIASES['rand'] = {};
 ALIASES['rand_core'] = {};
+ALIASES['rand_core'] = {};
 ALIASES['read_color'] = {};
 ALIASES['remove_dir_all'] = {};
 ALIASES['rustc_demangle'] = {};
