@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["export_dmabuf","A protocol for low overhead screen content capturing"],["gamma_control","Manage gamma tables of outputs."],["input_inhibitor","Inhibits input events to other clients"],["layer_shell","Layered shell protocol"],["screencopy","Screen content capturing on client buffers"]]});

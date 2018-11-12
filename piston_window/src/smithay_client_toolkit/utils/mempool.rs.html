@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/smithay-client-toolkit-0.3.0/src/utils/mempool.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mempool.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/smithay-client-toolkit-0.4.1/src/utils/mempool.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mempool.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -271,6 +271,16 @@
 <span id="271">271</span>
 <span id="272">272</span>
 <span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">nix</span>;
 <span class="kw">use</span> <span class="ident">nix</span>::<span class="ident">errno</span>::<span class="ident">Errno</span>;
@@ -286,9 +296,9 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">io</span>::<span class="ident">RawFd</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>};
 
+<span class="kw">use</span> <span class="ident">memmap</span>::<span class="ident">MmapMut</span>;
 <span class="kw">use</span> <span class="ident">rand</span>::<span class="ident">prelude</span>::<span class="kw-2">*</span>;
 
-<span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">commons</span>::<span class="ident">Implementation</span>;
 <span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">protocol</span>::{<span class="ident">wl_buffer</span>, <span class="ident">wl_shm</span>, <span class="ident">wl_shm_pool</span>};
 <span class="kw">use</span> <span class="ident">wayland_client</span>::<span class="ident">Proxy</span>;
 
@@ -315,25 +325,25 @@
     <span class="doccomment">/// Create a double memory pool</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">Impl</span><span class="op">&gt;</span>(<span class="ident">shm</span>: <span class="kw-2">&amp;</span><span class="ident">Proxy</span><span class="op">&lt;</span><span class="ident">wl_shm</span>::<span class="ident">WlShm</span><span class="op">&gt;</span>, <span class="ident">implementation</span>: <span class="ident">Impl</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">DoubleMemPool</span><span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">Impl</span>: <span class="ident">Implementation</span><span class="op">&lt;</span>(), ()<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Send</span>,
+        <span class="ident">Impl</span>: <span class="ident">FnMut</span>() <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
     {
         <span class="kw">let</span> <span class="ident">free</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="bool-val">true</span>));
         <span class="kw">let</span> <span class="ident">implementation</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">implementation</span>));
         <span class="kw">let</span> <span class="ident">my_free</span> <span class="op">=</span> <span class="ident">free</span>.<span class="ident">clone</span>();
         <span class="kw">let</span> <span class="ident">my_implementation</span> <span class="op">=</span> <span class="ident">implementation</span>.<span class="ident">clone</span>();
-        <span class="kw">let</span> <span class="ident">pool1</span> <span class="op">=</span> <span class="ident">MemPool</span>::<span class="ident">new</span>(<span class="ident">shm</span>, <span class="kw">move</span> <span class="op">|</span><span class="kw">_</span>, <span class="kw">_</span><span class="op">|</span> {
+        <span class="kw">let</span> <span class="ident">pool1</span> <span class="op">=</span> <span class="ident">MemPool</span>::<span class="ident">new</span>(<span class="ident">shm</span>, <span class="kw">move</span> <span class="op">||</span> {
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">my_free</span> <span class="op">=</span> <span class="ident">my_free</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
             <span class="kw">if</span> <span class="op">!</span><span class="kw-2">*</span><span class="ident">my_free</span> {
-                <span class="ident">my_implementation</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">receive</span>((), ());
+                (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">my_implementation</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>())();
                 <span class="kw-2">*</span><span class="ident">my_free</span> <span class="op">=</span> <span class="bool-val">true</span>
             }
         })<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">my_free</span> <span class="op">=</span> <span class="ident">free</span>.<span class="ident">clone</span>();
         <span class="kw">let</span> <span class="ident">my_implementation</span> <span class="op">=</span> <span class="ident">implementation</span>.<span class="ident">clone</span>();
-        <span class="kw">let</span> <span class="ident">pool2</span> <span class="op">=</span> <span class="ident">MemPool</span>::<span class="ident">new</span>(<span class="ident">shm</span>, <span class="kw">move</span> <span class="op">|</span><span class="kw">_</span>, <span class="kw">_</span><span class="op">|</span> {
+        <span class="kw">let</span> <span class="ident">pool2</span> <span class="op">=</span> <span class="ident">MemPool</span>::<span class="ident">new</span>(<span class="ident">shm</span>, <span class="kw">move</span> <span class="op">||</span> {
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">my_free</span> <span class="op">=</span> <span class="ident">my_free</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
             <span class="kw">if</span> <span class="op">!</span><span class="kw-2">*</span><span class="ident">my_free</span> {
-                <span class="ident">my_implementation</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">receive</span>((), ());
+                (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">my_implementation</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>())();
                 <span class="kw-2">*</span><span class="ident">my_free</span> <span class="op">=</span> <span class="bool-val">true</span>
             }
         })<span class="question-mark">?</span>;
@@ -358,12 +368,12 @@
 
 <span class="doccomment">/// A wrapper handling an SHM memory pool backed by a shared memory file</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// This wrapper handles for you the creation of the shared memory file and its synchronisation</span>
+<span class="doccomment">/// This wrapper handles for you the creation of the shared memory file and its synchronization</span>
 <span class="doccomment">/// with the protocol.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Mempool internally tracks the lifetime of all buffers created from it and to ensure that</span>
 <span class="doccomment">/// this buffer count is correct all buffers must be attached to a surface. Once a buffer is attached to</span>
-<span class="doccomment">/// a surface it must be immediately commited to that surface before another buffer is attached.</span>
+<span class="doccomment">/// a surface it must be immediately committed to that surface before another buffer is attached.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Mempool will also handle the destruction of buffers and as such the `destroy()` method should not</span>
 <span class="doccomment">/// be used on buffers created from Mempool.</span>
@@ -378,29 +388,32 @@
     <span class="ident">len</span>: <span class="ident">usize</span>,
     <span class="ident">pool</span>: <span class="ident">Proxy</span><span class="op">&lt;</span><span class="ident">wl_shm_pool</span>::<span class="ident">WlShmPool</span><span class="op">&gt;</span>,
     <span class="ident">buffer_count</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;&gt;</span>,
-    <span class="ident">implementation</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">Implementation</span><span class="op">&lt;</span>(), ()<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">mmap</span>: <span class="ident">MmapMut</span>,
+    <span class="ident">implementation</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">FnMut</span>() <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">MemPool</span> {
     <span class="doccomment">/// Create a new memory pool associated with given shm</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">Impl</span><span class="op">&gt;</span>(<span class="ident">shm</span>: <span class="kw-2">&amp;</span><span class="ident">Proxy</span><span class="op">&lt;</span><span class="ident">wl_shm</span>::<span class="ident">WlShm</span><span class="op">&gt;</span>, <span class="ident">implementation</span>: <span class="ident">Impl</span>) <span class="op">-&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">MemPool</span><span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">Impl</span>: <span class="ident">Implementation</span><span class="op">&lt;</span>(), ()<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Send</span>,
+        <span class="ident">Impl</span>: <span class="ident">FnMut</span>() <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
     {
         <span class="kw">let</span> <span class="ident">mem_fd</span> <span class="op">=</span> <span class="ident">create_shm_fd</span>()<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">mem_file</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">File</span>::<span class="ident">from_raw_fd</span>(<span class="ident">mem_fd</span>) };
         <span class="ident">mem_file</span>.<span class="ident">set_len</span>(<span class="number">128</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">pool</span> <span class="op">=</span> <span class="ident">shm</span>
-            .<span class="ident">create_pool</span>(<span class="ident">mem_fd</span>, <span class="number">128</span>)
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">implement</span>(<span class="op">|</span><span class="ident">e</span>, <span class="kw">_</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">e</span> {});
+            .<span class="ident">create_pool</span>(<span class="ident">mem_fd</span>, <span class="number">128</span>, <span class="op">|</span><span class="ident">pool</span><span class="op">|</span> <span class="ident">pool</span>.<span class="ident">implement</span>(<span class="op">|</span><span class="ident">e</span>, <span class="kw">_</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">e</span> {}, ()))
+            .<span class="ident">unwrap</span>();
+
+        <span class="kw">let</span> <span class="ident">mmap</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">MmapMut</span>::<span class="ident">map_mut</span>(<span class="kw-2">&amp;</span><span class="ident">mem_file</span>).<span class="ident">unwrap</span>() };
 
         <span class="prelude-val">Ok</span>(<span class="ident">MemPool</span> {
             <span class="ident">file</span>: <span class="ident">mem_file</span>,
             <span class="ident">len</span>: <span class="number">128</span>,
             <span class="ident">pool</span>,
             <span class="ident">buffer_count</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="number">0</span>)),
+            <span class="ident">mmap</span>,
             <span class="ident">implementation</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">implementation</span>)),
         })
     }
@@ -411,7 +424,7 @@
     <span class="doccomment">/// if you extend the temporary file size by writing to it, you need to</span>
     <span class="doccomment">/// call this method otherwise the server won&#39;t see the new size.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Memory pools can only be extented, as such this method wll do nothing</span>
+    <span class="doccomment">/// Memory pools can only be extented, as such this method will do nothing</span>
     <span class="doccomment">/// if the requested new size is smaller than the current size.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// This method allows you to ensure the underlying pool is large enough to</span>
@@ -421,6 +434,7 @@
             <span class="self">self</span>.<span class="ident">file</span>.<span class="ident">set_len</span>(<span class="ident">newsize</span> <span class="kw">as</span> <span class="ident">u64</span>)<span class="question-mark">?</span>;
             <span class="self">self</span>.<span class="ident">pool</span>.<span class="ident">resize</span>(<span class="ident">newsize</span> <span class="kw">as</span> <span class="ident">i32</span>);
             <span class="self">self</span>.<span class="ident">len</span> <span class="op">=</span> <span class="ident">newsize</span>;
+            <span class="self">self</span>.<span class="ident">mmap</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">MmapMut</span>::<span class="ident">map_mut</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">file</span>).<span class="ident">unwrap</span>() };
         }
         <span class="prelude-val">Ok</span>(())
     }
@@ -429,14 +443,14 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// The parameters are:</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// - `offset`: the offset (in bytes) from the beggining of the pool at which this</span>
+    <span class="doccomment">/// - `offset`: the offset (in bytes) from the beginning of the pool at which this</span>
     <span class="doccomment">///   buffer starts</span>
     <span class="doccomment">/// - `width`: the width of this buffer (in pixels)</span>
     <span class="doccomment">/// - `height`: the height of this buffer (in pixels)</span>
-    <span class="doccomment">/// - `stride`: distance (in bytes) between the beggining of a row and the next one</span>
+    <span class="doccomment">/// - `stride`: distance (in bytes) between the beginning of a row and the next one</span>
     <span class="doccomment">/// - `format`: the encoding format of the pixels. Using a format that was not</span>
-    <span class="doccomment">///   advertized to the `wl_shm` global by the server is a protocol error and will</span>
-    <span class="doccomment">///   terminate your connexion</span>
+    <span class="doccomment">///   advertised to the `wl_shm` global by the server is a protocol error and will</span>
+    <span class="doccomment">///   terminate your connection</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">buffer</span>(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         <span class="ident">offset</span>: <span class="ident">i32</span>,
@@ -449,23 +463,29 @@
         <span class="kw">let</span> <span class="ident">my_buffer_count</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">buffer_count</span>.<span class="ident">clone</span>();
         <span class="kw">let</span> <span class="ident">my_implementation</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">implementation</span>.<span class="ident">clone</span>();
         <span class="self">self</span>.<span class="ident">pool</span>
-            .<span class="ident">create_buffer</span>(<span class="ident">offset</span>, <span class="ident">width</span>, <span class="ident">height</span>, <span class="ident">stride</span>, <span class="ident">format</span>)
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">implement</span>(
-                <span class="kw">move</span> <span class="op">|</span><span class="ident">event</span>, <span class="ident">buffer</span>: <span class="ident">Proxy</span><span class="op">&lt;</span><span class="ident">wl_buffer</span>::<span class="ident">WlBuffer</span><span class="op">&gt;</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">event</span> {
-                    <span class="ident">wl_buffer</span>::<span class="ident">Event</span>::<span class="ident">Release</span> <span class="op">=&gt;</span> {
-                        <span class="ident">buffer</span>.<span class="ident">destroy</span>();
-                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">my_buffer_count</span> <span class="op">=</span> <span class="ident">my_buffer_count</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
-                        <span class="kw-2">*</span><span class="ident">my_buffer_count</span> <span class="op">-=</span> <span class="number">1</span>;
-                        <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">my_buffer_count</span> <span class="op">==</span> <span class="number">0</span> {
-                            <span class="ident">my_implementation</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>().<span class="ident">receive</span>((), ());
+            .<span class="ident">create_buffer</span>(<span class="ident">offset</span>, <span class="ident">width</span>, <span class="ident">height</span>, <span class="ident">stride</span>, <span class="ident">format</span>, <span class="op">|</span><span class="ident">buffer</span><span class="op">|</span> {
+                <span class="ident">buffer</span>.<span class="ident">implement</span>(
+                    <span class="kw">move</span> <span class="op">|</span><span class="ident">event</span>, <span class="ident">buffer</span>: <span class="ident">Proxy</span><span class="op">&lt;</span><span class="ident">wl_buffer</span>::<span class="ident">WlBuffer</span><span class="op">&gt;</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">event</span> {
+                        <span class="ident">wl_buffer</span>::<span class="ident">Event</span>::<span class="ident">Release</span> <span class="op">=&gt;</span> {
+                            <span class="ident">buffer</span>.<span class="ident">destroy</span>();
+                            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">my_buffer_count</span> <span class="op">=</span> <span class="ident">my_buffer_count</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>();
+                            <span class="kw-2">*</span><span class="ident">my_buffer_count</span> <span class="op">-=</span> <span class="number">1</span>;
+                            <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">my_buffer_count</span> <span class="op">==</span> <span class="number">0</span> {
+                                (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="ident">my_implementation</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>())();
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                    (),
+                )
+            }).<span class="ident">unwrap</span>()
     }
 
-    <span class="doccomment">/// Retuns true if the pool contains buffers that are currently in use by the server otherwise it returns</span>
+    <span class="doccomment">/// Uses the memmap crate to map the underlying shared memory file</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">mmap</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">MmapMut</span> {
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">mmap</span>
+    }
+
+    <span class="doccomment">/// Returns true if the pool contains buffers that are currently in use by the server otherwise it returns</span>
     <span class="doccomment">/// false</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_used</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
         <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">buffer_count</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>() <span class="op">!=</span> <span class="number">0</span>

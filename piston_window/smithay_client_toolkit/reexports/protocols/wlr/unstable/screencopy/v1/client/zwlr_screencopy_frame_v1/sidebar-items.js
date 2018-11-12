@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error",""],["Event",""],["Request",""]],"struct":[["Flags",""],["ZwlrScreencopyFrameV1",""]],"trait":[["RequestsTrait",""]]});
