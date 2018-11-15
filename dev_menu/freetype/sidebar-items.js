@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["bitmap",""],["bitmap_glyph",""],["error",""],["face",""],["ffi",""],["glyph",""],["glyph_slot",""],["library",""],["outline",""],["render_mode",""],["stroker",""],["tt_os2",""]],"type":[["BBox",""],["GlyphMetrics",""],["Matrix",""],["Vector",""]]});
+initSidebarItems({"mod":[["bitmap",""],["bitmap_glyph",""],["error",""],["face",""],["glyph",""],["glyph_slot",""],["library",""],["outline",""],["render_mode",""],["stroker",""],["tt_os2",""]],"type":[["BBox",""],["GlyphMetrics",""],["Matrix",""],["Vector",""]]});
