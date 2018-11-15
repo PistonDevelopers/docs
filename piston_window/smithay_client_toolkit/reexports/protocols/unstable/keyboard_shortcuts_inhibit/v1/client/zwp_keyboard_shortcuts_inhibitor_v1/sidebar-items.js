@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwpKeyboardShortcutsInhibitorV1",""]],"trait":[["RequestsTrait",""]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Kind","bitmask of flags in presented event"],["Request",""]],"struct":[["WpPresentationFeedback",""]],"trait":[["RequestsTrait",""]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error",""],["Event",""],["Request",""],["Version","latest protocol version"]],"struct":[["XdgShell",""]],"trait":[["RequestsTrait",""]]});

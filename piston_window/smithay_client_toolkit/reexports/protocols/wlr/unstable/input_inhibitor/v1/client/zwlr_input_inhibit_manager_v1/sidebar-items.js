@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error",""],["Event",""],["Request",""]],"struct":[["ZwlrInputInhibitManagerV1",""]],"trait":[["RequestsTrait",""]]});

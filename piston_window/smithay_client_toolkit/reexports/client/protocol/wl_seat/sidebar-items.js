@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["Capability","seat capability bitmask"],["WlSeat",""]],"trait":[["RequestsTrait",""]]});

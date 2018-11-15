@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["CancelReason","cancel reason"],["Event",""],["Flags","frame flags"],["Request",""]],"struct":[["ZwlrExportDmabufFrameV1",""]],"trait":[["RequestsTrait",""]]});

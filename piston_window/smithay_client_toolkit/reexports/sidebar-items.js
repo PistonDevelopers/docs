@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["client","Client-side Wayland connector"],["protocols","This crate provides bindings to the official wayland protocol extensions provided in https://cgit.freedesktop.org/wayland/wayland-protocols"]]});
+initSidebarItems({});

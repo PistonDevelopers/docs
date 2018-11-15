@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwpXwaylandKeyboardGrabManagerV1",""]],"trait":[["RequestsTrait",""]]});

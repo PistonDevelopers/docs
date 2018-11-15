@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error","global error values"],["Event",""],["Request",""]],"struct":[["WlDisplay",""]],"trait":[["RequestsTrait",""]]});

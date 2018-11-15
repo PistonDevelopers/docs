@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwlrScreencopyManagerV1",""]],"trait":[["RequestsTrait",""]]});

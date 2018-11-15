@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZxdgDecorationManagerV1",""]],"trait":[["RequestsTrait",""]]});

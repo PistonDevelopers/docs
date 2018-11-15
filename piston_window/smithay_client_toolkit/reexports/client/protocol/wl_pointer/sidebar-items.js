@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Axis","axis types"],["AxisSource","axis source types"],["ButtonState","physical button state"],["Error",""],["Event",""],["Request",""]],"struct":[["WlPointer",""]],"trait":[["RequestsTrait",""]]});

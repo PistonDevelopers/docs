@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error",""],["Event",""],["Request",""]],"struct":[["ZwlrGammaControlV1",""]],"trait":[["RequestsTrait",""]]});
