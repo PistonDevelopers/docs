@@ -3,6 +3,7 @@ ALIASES['adler32'] = {};
 ALIASES['aho_corasick'] = {};
 ALIASES['approx'] = {};
 ALIASES['arrayvec'] = {};
+ALIASES['assert_approx_eq'] = {};
 ALIASES['atty'] = {};
 ALIASES['bitflags'] = {};
 ALIASES['byteorder'] = {};
