@@ -2,7 +2,7 @@ var N = null;var sourcesIndex = {};
 sourcesIndex['adler32'] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex['aho_corasick'] = {"name":"","dirs":[],"files":["autiter.rs","full.rs","lib.rs"]};
 sourcesIndex['approx'] = {"name":"","dirs":[],"files":["abs_diff_eq.rs","lib.rs","macros.rs","relative_eq.rs","ulps_eq.rs"]};
-sourcesIndex['arrayvec'] = {"name":"","dirs":[],"files":["array.rs","array_string.rs","char.rs","errors.rs","lib.rs","range.rs"]};
+sourcesIndex['arrayvec'] = {"name":"","dirs":[],"files":["array.rs","array_string.rs","char.rs","errors.rs","lib.rs","maybe_uninit.rs","range.rs"]};
 sourcesIndex['assert_approx_eq'] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex['atty'] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex['bitflags'] = {"name":"","dirs":[],"files":["lib.rs"]};
