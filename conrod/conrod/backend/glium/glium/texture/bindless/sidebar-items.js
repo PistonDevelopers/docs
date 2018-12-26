@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["BindlessTexturesNotSupportedError","Bindless textures are not supported."],["ResidentTexture","A texture that is resident in video memory. This allows you to use bindless textures in your shaders."],["TextureHandle","Represents a handle to a texture. Contains a raw pointer to a texture that is hidden from you."]]});

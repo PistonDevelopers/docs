@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""],["ResizeEdge","edge values for resizing"],["State","types of state on the surface"]],"struct":[["ZxdgToplevelV6",""]],"trait":[["RequestsTrait",""]]});

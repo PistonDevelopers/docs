@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""],["Subpixel","subpixel geometry information"],["Transform","transform from framebuffer to output"]],"struct":[["Mode","mode information"],["WlOutput",""]],"trait":[["RequestsTrait",""]]});

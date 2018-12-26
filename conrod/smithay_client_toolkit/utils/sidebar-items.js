@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["DoubleMemPool","A Double memory pool, for convenient double-buffering"],["MemPool","A wrapper handling an SHM memory pool backed by a temporary file"]]});
+initSidebarItems({"struct":[["DoubleMemPool","A Double memory pool, for convenient double-buffering"],["MemPool","A wrapper handling an SHM memory pool backed by a shared memory file"]]});

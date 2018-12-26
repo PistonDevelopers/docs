@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error","fatal presentation errors"],["Event",""],["Request",""]],"struct":[["WpPresentation",""]],"trait":[["RequestsTrait",""]]});

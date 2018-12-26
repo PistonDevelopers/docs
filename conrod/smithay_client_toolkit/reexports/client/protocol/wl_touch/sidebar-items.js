@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["WlTouch",""]],"trait":[["RequestsTrait",""]]});

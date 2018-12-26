@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error","wl_shm error values"],["Event",""],["Format","pixel formats"],["Request",""]],"struct":[["WlShm",""]],"trait":[["RequestsTrait",""]]});

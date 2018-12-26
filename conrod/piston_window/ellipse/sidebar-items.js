@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["centered","Use x, y, half-width, half-height"],["circle","Create `types::Rectangle` for a square with a center in (`x`, `y`) and side `2 * radius`."]],"struct":[["Border","Ellipse border"],["Ellipse","An ellipse with filled color"]]});

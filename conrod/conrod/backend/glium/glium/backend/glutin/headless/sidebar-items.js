@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["GlutinBackend","An implementation of the `Backend` trait for a glutin headless context."],["Headless","A headless glutin context."]]});

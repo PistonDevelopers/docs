@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DepthStencilCubemap","A cube texture  containing both depth and stencil data."],["DepthStencilCubemapImage","Represents a single image of a mipmap level of a layer of `DepthStencilCubemap`."],["DepthStencilCubemapMipmap","Represents a single mipmap level of a `DepthStencilCubemap`."]]});

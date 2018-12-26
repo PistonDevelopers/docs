@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwpTabletSeatV1",""]],"trait":[["RequestsTrait",""]]});
