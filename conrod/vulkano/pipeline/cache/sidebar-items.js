@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["PipelineCache","Opaque cache that contains pipeline objects."]]});

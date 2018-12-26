@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ImmutableImage","Image whose purpose is to be used for read-only purposes. You can write to the image once, but then you must only ever read from it."],["ImmutableImageInitialization",""]]});

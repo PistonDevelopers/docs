@@ -1,0 +1,255 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `swapchain` mod in crate `vulkano`."><meta name="keywords" content="rust, rustlang, rust-lang, swapchain"><title>vulkano::swapchain - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../vulkano/index.html'><img src='https://raw.githubusercontent.com/vulkano-rs/vulkano/master/logo.png' alt='logo' width='100'></a><p class='location'>Module swapchain</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'><a href='../index.html'>vulkano</a></p><script>window.sidebarCurrent = {name: 'swapchain', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/vulkano/swapchain/mod.rs.html#10-341' title='goto source code'>[src]</a></span><span class='in-band'>Module <a href='../index.html'>vulkano</a>::<wbr><a class="mod" href=''>swapchain</a></span></h1><div class='docblock'><p>Link between Vulkan and a window and/or the screen.</p>
+<p>Before you can draw on the screen or a window, you have to create two objects:</p>
+<ul>
+<li>Create a <code>Surface</code> object that represents the location where the image will show up (either
+a window or a monitor).</li>
+<li>Create a <code>Swapchain</code> that uses that <code>Surface</code>.</li>
+</ul>
+<p>Creating a surface can be done with only an <code>Instance</code> object. However creating a swapchain
+requires a <code>Device</code> object.</p>
+<p>Once you have a swapchain, you can retrieve <code>Image</code> objects from it and draw to them just like
+you would draw on any other image.</p>
+<h1 id="surfaces" class="section-header"><a href="#surfaces">Surfaces</a></h1>
+<p>A surface is an object that represents a location where to render. It can be created from an
+instance and either a window handle (in a platform-specific way) or a monitor.</p>
+<p>In order to use surfaces, you will have to enable the <code>VK_KHR_surface</code> extension on the
+instance. See the <code>instance</code> module for more information about how to enable extensions.</p>
+<h2 id="creating-a-surface-from-a-window" class="section-header"><a href="#creating-a-surface-from-a-window">Creating a surface from a window</a></h2>
+<p>There are 5 extensions that each allow you to create a surface from a type of window:</p>
+<ul>
+<li><code>VK_KHR_xlib_surface</code></li>
+<li><code>VK_KHR_xcb_surface</code></li>
+<li><code>VK_KHR_wayland_surface</code></li>
+<li><code>VK_KHR_android_surface</code></li>
+<li><code>VK_KHR_win32_surface</code></li>
+</ul>
+<p>For example if you want to create a surface from an Android surface, you will have to enable
+the <code>VK_KHR_android_surface</code> extension and use <code>Surface::from_anativewindow</code>.
+See the documentation of <code>Surface</code> for all the possible constructors.</p>
+<p>Trying to use one of these functions without enabling the proper extension will result in an
+error.</p>
+<p><strong>Note that the <code>Surface</code> object is potentially unsafe</strong>. It is your responsibility to
+keep the window alive for at least as long as the surface exists. In many cases Surface
+may be able to do this for you, if you pass it ownership of your Window (or a
+reference-counting container for it).</p>
+<h3 id="example" class="section-header"><a href="#example">Example</a></h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ptr</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">instance</span>::<span class="ident">Instance</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">instance</span>::<span class="ident">InstanceExtensions</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">swapchain</span>::<span class="ident">Surface</span>;
+
+<span class="kw">let</span> <span class="ident">instance</span> <span class="op">=</span> {
+    <span class="kw">let</span> <span class="ident">extensions</span> <span class="op">=</span> <span class="ident">InstanceExtensions</span> {
+        <span class="ident">khr_surface</span>: <span class="bool-val">true</span>,
+        <span class="ident">khr_win32_surface</span>: <span class="bool-val">true</span>,        <span class="comment">// If you don&#39;t enable this, `from_hwnd` will fail.</span>
+        .. <span class="ident">InstanceExtensions</span>::<span class="ident">none</span>()
+    };
+
+     <span class="kw">match</span> <span class="ident">Instance</span>::<span class="ident">new</span>(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span><span class="ident">extensions</span>, <span class="prelude-val">None</span>) {
+        <span class="prelude-val">Ok</span>(<span class="ident">i</span>) <span class="op">=&gt;</span> <span class="ident">i</span>,
+        <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Couldn&#39;t build instance: {:?}&quot;</span>, <span class="ident">err</span>)
+    }
+};
+
+<span class="kw">let</span> <span class="ident">window</span> <span class="op">=</span> <span class="ident">build_window</span>();        <span class="comment">// Third-party function, not provided by vulkano</span>
+<span class="kw">let</span> <span class="ident">_surface</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+    <span class="kw">let</span> <span class="ident">hinstance</span>: <span class="kw-2">*</span><span class="kw">const</span> () <span class="op">=</span> <span class="ident">ptr</span>::<span class="ident">null</span>();     <span class="comment">// Windows-specific object</span>
+    <span class="ident">Surface</span>::<span class="ident">from_hwnd</span>(<span class="ident">instance</span>.<span class="ident">clone</span>(), <span class="ident">hinstance</span>, <span class="ident">window</span>.<span class="ident">hwnd</span>(), <span class="ident">Arc</span>::<span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="ident">window</span>)).<span class="ident">unwrap</span>()
+};</pre></div>
+<h2 id="creating-a-surface-from-a-monitor" class="section-header"><a href="#creating-a-surface-from-a-monitor">Creating a surface from a monitor</a></h2>
+<p>Currently no system provides the <code>VK_KHR_display</code> extension that contains this feature.
+This feature is still a work-in-progress in vulkano and will reside in the <code>display</code> module.</p>
+<h1 id="swapchains" class="section-header"><a href="#swapchains">Swapchains</a></h1>
+<p>A surface represents a location on the screen and can be created from an instance. Once you
+have a surface, the next step is to create a swapchain. Creating a swapchain requires a device,
+and allocates the resources that will be used to display images on the screen.</p>
+<p>A swapchain is composed of one or multiple images. Each image of the swapchain is presented in
+turn on the screen, one after another. More information below.</p>
+<p>Swapchains have several properties:</p>
+<ul>
+<li>The number of images that will cycle on the screen.</li>
+<li>The format of the images.</li>
+<li>The 2D dimensions of the images, plus a number of layers, for a total of three dimensions.</li>
+<li>The usage of the images, similar to creating other images.</li>
+<li>The queue families that are going to use the images, similar to creating other images.</li>
+<li>An additional transformation (rotation or mirroring) to perform on the final output.</li>
+<li>How the alpha of the final output will be interpreted.</li>
+<li>How to perform the cycling between images in regard to vsync.</li>
+</ul>
+<p>You can query the supported values of all these properties with
+<a href="struct.Surface.html#method.capabilities"><code>Surface::capabilities()]</code></a>.</p>
+<h2 id="creating-a-swapchain" class="section-header"><a href="#creating-a-swapchain">Creating a swapchain</a></h2>
+<p>In order to create a swapchain, you will first have to enable the <code>VK_KHR_swapchain</code> extension
+on the device (and not on the instance like <code>VK_KHR_surface</code>):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">let</span> <span class="ident">ext</span> <span class="op">=</span> <span class="ident">DeviceExtensions</span> {
+    <span class="ident">khr_swapchain</span>: <span class="bool-val">true</span>,
+    .. <span class="ident">DeviceExtensions</span>::<span class="ident">none</span>()
+};</pre></div>
+<p>Then, query the capabilities of the surface with
+<a href="struct.Surface.html#method.capabilities"><code>Surface::capabilities()</code></a>
+and choose which values you are going to use.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">let</span> <span class="ident">caps</span> <span class="op">=</span> <span class="ident">surface</span>.<span class="ident">capabilities</span>(<span class="ident">device</span>.<span class="ident">physical_device</span>())<span class="question-mark">?</span>;
+
+<span class="comment">// Use the current window size or some fixed resolution.</span>
+<span class="kw">let</span> <span class="ident">dimensions</span> <span class="op">=</span> <span class="ident">caps</span>.<span class="ident">current_extent</span>.<span class="ident">unwrap_or</span>([<span class="number">640</span>, <span class="number">480</span>]);
+
+<span class="comment">// Try to use double-buffering.</span>
+<span class="kw">let</span> <span class="ident">buffers_count</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">caps</span>.<span class="ident">max_image_count</span> {
+    <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="ident">max</span>(<span class="number">2</span>, <span class="ident">caps</span>.<span class="ident">min_image_count</span>),
+    <span class="prelude-val">Some</span>(<span class="ident">limit</span>) <span class="op">=&gt;</span> <span class="ident">min</span>(<span class="ident">max</span>(<span class="number">2</span>, <span class="ident">caps</span>.<span class="ident">min_image_count</span>), <span class="ident">limit</span>)
+};
+
+<span class="comment">// Preserve the current surface transform.</span>
+<span class="kw">let</span> <span class="ident">transform</span> <span class="op">=</span> <span class="ident">caps</span>.<span class="ident">current_transform</span>;
+
+<span class="comment">// Use the first available format.</span>
+<span class="kw">let</span> (<span class="ident">format</span>, <span class="ident">color_space</span>) <span class="op">=</span> <span class="ident">caps</span>.<span class="ident">supported_formats</span>[<span class="number">0</span>];</pre></div>
+<p>Then, call <a href="struct.Swapchain.html#method.new"><code>Swapchain::new()</code></a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="comment">// The created swapchain will be used as a color attachment for rendering.</span>
+<span class="kw">let</span> <span class="ident">usage</span> <span class="op">=</span> <span class="ident">ImageUsage</span> {
+    <span class="ident">color_attachment</span>: <span class="bool-val">true</span>,
+    .. <span class="ident">ImageUsage</span>::<span class="ident">none</span>()
+};
+
+<span class="kw">let</span> <span class="ident">sharing_mode</span> <span class="op">=</span> <span class="ident">SharingMode</span>::<span class="ident">Exclusive</span>(<span class="ident">present_queue</span>.<span class="ident">family</span>().<span class="ident">id</span>());
+
+<span class="comment">// Create the swapchain and its buffers.</span>
+<span class="kw">let</span> (<span class="ident">swapchain</span>, <span class="ident">buffers</span>) <span class="op">=</span> <span class="ident">Swapchain</span>::<span class="ident">new</span>(
+    <span class="comment">// Create the swapchain in this `device`&#39;s memory.</span>
+    <span class="ident">device</span>,
+    <span class="comment">// The surface where the images will be presented.</span>
+    <span class="ident">surface</span>,
+    <span class="comment">// How many buffers to use in the swapchain.</span>
+    <span class="ident">buffers_count</span>,
+    <span class="comment">// The format of the images.</span>
+    <span class="ident">format</span>,
+    <span class="comment">// The size of each image.</span>
+    <span class="ident">dimensions</span>,
+    <span class="comment">// How many layers each image has.</span>
+    <span class="number">1</span>,
+    <span class="comment">// What the images are going to be used for.</span>
+    <span class="ident">usage</span>,
+    <span class="comment">// Describes which queues will interact with the swapchain.</span>
+    <span class="ident">sharing_mode</span>,
+    <span class="comment">// What transformation to use with the surface.</span>
+    <span class="ident">surface_transform</span>,
+    <span class="comment">// How to handle the alpha channel.</span>
+    <span class="ident">composite_alpha</span>,
+    <span class="comment">// How to present images.</span>
+    <span class="ident">present_mode</span>,
+    <span class="comment">// Clip the parts of the buffer which aren&#39;t visible.</span>
+    <span class="bool-val">true</span>,
+    <span class="comment">// No previous swapchain.</span>
+    <span class="prelude-val">None</span>
+)<span class="question-mark">?</span>;
+</pre></div>
+<p>Creating a swapchain not only returns the swapchain object, but also all the images that belong
+to it.</p>
+<h2 id="acquiring-and-presenting-images" class="section-header"><a href="#acquiring-and-presenting-images">Acquiring and presenting images</a></h2>
+<p>Once you created a swapchain and retrieved all the images that belong to it (see previous
+section), you can draw on it. This is done in three steps:</p>
+<ul>
+<li>Call <code>swapchain::acquire_next_image</code>. This function will return the index of the image
+(within the list returned by <code>Swapchain::new</code>) that is available to draw, plus a future
+representing the moment when the GPU will gain access to that image.</li>
+<li>Draw on that image just like you would draw to any other image (see the documentation of
+the <code>pipeline</code> module). You need to chain the draw after the future that was returned by
+<code>acquire_next_image</code>.</li>
+<li>Call <code>Swapchain::present</code> with the same index and by chaining the futures, in order to tell
+the implementation that you are finished drawing to the image and that it can queue a
+command to present the image on the screen after the draw operations are finished.</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">swapchain</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">sync</span>::<span class="ident">GpuFuture</span>;
+<span class="comment">// let mut (swapchain, images) = Swapchain::new(...);</span>
+<span class="kw">loop</span> {
+    <span class="kw">let</span> (<span class="ident">image_num</span>, <span class="ident">acquire_future</span>)
+        <span class="op">=</span> <span class="ident">swapchain</span>::<span class="ident">acquire_next_image</span>(<span class="ident">swapchain</span>.<span class="ident">clone</span>(), <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
+
+    <span class="comment">// The command_buffer contains the draw commands that modify the framebuffer</span>
+    <span class="comment">// constructed from images[image_num]</span>
+    <span class="ident">acquire_future</span>
+        .<span class="ident">then_execute</span>(<span class="ident">queue</span>.<span class="ident">clone</span>(), <span class="ident">command_buffer</span>).<span class="ident">unwrap</span>()
+        .<span class="ident">then_swapchain_present</span>(<span class="ident">queue</span>.<span class="ident">clone</span>(), <span class="ident">swapchain</span>.<span class="ident">clone</span>(), <span class="ident">image_num</span>)
+        .<span class="ident">then_signal_fence_and_flush</span>().<span class="ident">unwrap</span>();
+}</pre></div>
+<h2 id="recreating-a-swapchain" class="section-header"><a href="#recreating-a-swapchain">Recreating a swapchain</a></h2>
+<p>In some situations, the swapchain will become invalid by itself. This includes for example when
+the window is resized (as the images of the swapchain will no longer match the window's) or,
+on Android, when the application went to the background and goes back to the foreground.</p>
+<p>In this situation, acquiring a swapchain image or presenting it will return an error. Rendering
+to an image of that swapchain will not produce any error, but may or may not work. To continue
+rendering, you will need to <em>recreate</em> the swapchain by creating a new swapchain and passing
+as last parameter the old swapchain.</p>
+<p>TODO: suboptimal stuff</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">swapchain</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">swapchain</span>::<span class="ident">AcquireError</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">sync</span>::<span class="ident">GpuFuture</span>;
+
+<span class="comment">// let mut swapchain = Swapchain::new(...);</span>
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">recreate_swapchain</span> <span class="op">=</span> <span class="bool-val">false</span>;
+
+<span class="kw">loop</span> {
+    <span class="kw">if</span> <span class="ident">recreate_swapchain</span> {
+        <span class="ident">swapchain</span> <span class="op">=</span> <span class="ident">swapchain</span>.<span class="number">0</span>.<span class="ident">recreate_with_dimension</span>([<span class="number">1024</span>, <span class="number">768</span>]).<span class="ident">unwrap</span>();
+        <span class="ident">recreate_swapchain</span> <span class="op">=</span> <span class="bool-val">false</span>;
+    }
+
+    <span class="kw">let</span> (<span class="kw-2">ref</span> <span class="ident">swapchain</span>, <span class="kw-2">ref</span> <span class="ident">_images</span>) <span class="op">=</span> <span class="ident">swapchain</span>;
+
+    <span class="kw">let</span> (<span class="ident">index</span>, <span class="ident">acq_future</span>) <span class="op">=</span> <span class="kw">match</span> <span class="ident">swapchain</span>::<span class="ident">acquire_next_image</span>(<span class="ident">swapchain</span>.<span class="ident">clone</span>(), <span class="prelude-val">None</span>) {
+        <span class="prelude-val">Ok</span>(<span class="ident">r</span>) <span class="op">=&gt;</span> <span class="ident">r</span>,
+        <span class="prelude-val">Err</span>(<span class="ident">AcquireError</span>::<span class="ident">OutOfDate</span>) <span class="op">=&gt;</span> { <span class="ident">recreate_swapchain</span> <span class="op">=</span> <span class="bool-val">true</span>; <span class="kw">continue</span>; },
+        <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">err</span>)
+    };
+
+    <span class="comment">// ...</span>
+
+    <span class="kw">let</span> <span class="ident">final_future</span> <span class="op">=</span> <span class="ident">acq_future</span>
+        <span class="comment">// .then_execute(...)</span>
+        .<span class="ident">then_swapchain_present</span>(<span class="ident">queue</span>.<span class="ident">clone</span>(), <span class="ident">swapchain</span>.<span class="ident">clone</span>(), <span class="ident">index</span>)
+        .<span class="ident">then_signal_fence_and_flush</span>().<span class="ident">unwrap</span>(); <span class="comment">// TODO: PresentError?</span>
+}</pre></div>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table><tr class='module-item'><td><a class="mod" href="display/index.html" title='vulkano::swapchain::display mod'>display</a></td><td class='docblock-short'><p>Allows you to create surfaces that fill a whole display, outside of the windowing system.</p>
+</td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.AcquiredImage.html" title='vulkano::swapchain::AcquiredImage struct'>AcquiredImage</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="struct" href="struct.Capabilities.html" title='vulkano::swapchain::Capabilities struct'>Capabilities</a></td><td class='docblock-short'><p>The capabilities of a surface when used by a physical device.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.PresentFuture.html" title='vulkano::swapchain::PresentFuture struct'>PresentFuture</a></td><td class='docblock-short'><p>Represents a swapchain image being presented on the screen.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.PresentRegion.html" title='vulkano::swapchain::PresentRegion struct'>PresentRegion</a></td><td class='docblock-short'><p>Represents a region on an image.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.RectangleLayer.html" title='vulkano::swapchain::RectangleLayer struct'>RectangleLayer</a></td><td class='docblock-short'><p>Represents a rectangular region on an image layer.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SupportedCompositeAlpha.html" title='vulkano::swapchain::SupportedCompositeAlpha struct'>SupportedCompositeAlpha</a></td><td class='docblock-short'><p>List of supported composite alpha modes.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SupportedCompositeAlphaIter.html" title='vulkano::swapchain::SupportedCompositeAlphaIter struct'>SupportedCompositeAlphaIter</a></td><td class='docblock-short'><p>Enumeration of the <code>CompositeAlpha</code> that are supported.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SupportedPresentModes.html" title='vulkano::swapchain::SupportedPresentModes struct'>SupportedPresentModes</a></td><td class='docblock-short'><p>List of <code>PresentMode</code>s that are supported.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SupportedPresentModesIter.html" title='vulkano::swapchain::SupportedPresentModesIter struct'>SupportedPresentModesIter</a></td><td class='docblock-short'><p>Enumeration of the <code>PresentMode</code>s that are supported.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SupportedSurfaceTransforms.html" title='vulkano::swapchain::SupportedSurfaceTransforms struct'>SupportedSurfaceTransforms</a></td><td class='docblock-short'><p>List of supported composite alpha modes.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SupportedSurfaceTransformsIter.html" title='vulkano::swapchain::SupportedSurfaceTransformsIter struct'>SupportedSurfaceTransformsIter</a></td><td class='docblock-short'><p>Enumeration of the <code>SurfaceTransform</code> that are supported.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.Surface.html" title='vulkano::swapchain::Surface struct'>Surface</a></td><td class='docblock-short'><p>Represents a surface on the screen.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.Swapchain.html" title='vulkano::swapchain::Swapchain struct'>Swapchain</a></td><td class='docblock-short'><p>Contains the swapping system and the images that can be shown on a surface.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SwapchainAcquireFuture.html" title='vulkano::swapchain::SwapchainAcquireFuture struct'>SwapchainAcquireFuture</a></td><td class='docblock-short'><p>Represents the moment when the GPU will have access to a swapchain image.</p>
+</td></tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table><tr class='module-item'><td><a class="enum" href="enum.AcquireError.html" title='vulkano::swapchain::AcquireError enum'>AcquireError</a></td><td class='docblock-short'><p>Error that can happen when calling <code>acquire_next_image</code>.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.CapabilitiesError.html" title='vulkano::swapchain::CapabilitiesError enum'>CapabilitiesError</a></td><td class='docblock-short'><p>Error that can happen when retrieving a surface's capabilities.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.ColorSpace.html" title='vulkano::swapchain::ColorSpace enum'>ColorSpace</a></td><td class='docblock-short'><p>How the presentation engine should interpret the data.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.CompositeAlpha.html" title='vulkano::swapchain::CompositeAlpha enum'>CompositeAlpha</a></td><td class='docblock-short'><p>How the alpha values of the pixels of the window are treated.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.PresentMode.html" title='vulkano::swapchain::PresentMode enum'>PresentMode</a></td><td class='docblock-short'><p>The way presenting a swapchain is accomplished.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.SurfaceCreationError.html" title='vulkano::swapchain::SurfaceCreationError enum'>SurfaceCreationError</a></td><td class='docblock-short'><p>Error that can happen when creating a debug callback.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.SurfaceTransform.html" title='vulkano::swapchain::SurfaceTransform enum'>SurfaceTransform</a></td><td class='docblock-short'><p>A transformation to apply to the image before showing it on the screen.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.SwapchainCreationError.html" title='vulkano::swapchain::SwapchainCreationError enum'>SwapchainCreationError</a></td><td class='docblock-short'><p>Error that can happen when creation a swapchain.</p>
+</td></tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table><tr class='module-item'><td><a class="fn" href="fn.acquire_next_image.html" title='vulkano::swapchain::acquire_next_image fn'>acquire_next_image</a></td><td class='docblock-short'><p>Tries to take ownership of an image in order to draw on it.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.acquire_next_image_raw.html" title='vulkano::swapchain::acquire_next_image_raw fn'>acquire_next_image_raw</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td><td class='docblock-short'><p>Unsafe variant of <code>acquire_next_image</code>.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.present.html" title='vulkano::swapchain::present fn'>present</a></td><td class='docblock-short'><p>Presents an image on the screen.</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.present_incremental.html" title='vulkano::swapchain::present_incremental fn'>present_incremental</a></td><td class='docblock-short'><p>Same as <code>swapchain::present</code>, except it allows specifying a present region.
+Areas outside the present region may be ignored by Vulkan in order to optimize presentation.</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "vulkano";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

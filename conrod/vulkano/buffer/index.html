@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `buffer` mod in crate `vulkano`."><meta name="keywords" content="rust, rustlang, rust-lang, buffer"><title>vulkano::buffer - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../vulkano/index.html'><img src='https://raw.githubusercontent.com/vulkano-rs/vulkano/master/logo.png' alt='logo' width='100'></a><p class='location'>Module buffer</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#reexports">Re-exports</a></li><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'><a href='../index.html'>vulkano</a></p><script>window.sidebarCurrent = {name: 'buffer', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/vulkano/buffer/mod.rs.html#10-102' title='goto source code'>[src]</a></span><span class='in-band'>Module <a href='../index.html'>vulkano</a>::<wbr><a class="mod" href=''>buffer</a></span></h1><div class='docblock'><p>Location in memory that contains data.</p>
+<p>A Vulkan buffer is very similar to a buffer that you would use in programming languages in
+general, in the sense that it is a location in memory that contains data. The difference
+between a Vulkan buffer and a regular buffer is that the content of a Vulkan buffer is
+accessible from the GPU.</p>
+<h1 id="various-kinds-of-buffers" class="section-header"><a href="#various-kinds-of-buffers">Various kinds of buffers</a></h1>
+<p>The low level implementation of a buffer is <a href="sys/struct.UnsafeBuffer.html"><code>UnsafeBuffer</code></a>.
+This type makes it possible to use all the features that Vulkan is capable of, but as its name
+tells it is unsafe to use.</p>
+<p>Instead you are encouraged to use one of the high-level wrappers that vulkano provides. Which
+wrapper to use depends on the way you are going to use the buffer:</p>
+<ul>
+<li>A <a href="device_local/struct.DeviceLocalBuffer.html"><code>DeviceLocalBuffer</code></a> designates a buffer
+usually located in video memory and whose content can't be directly accessed by your
+application. Accessing this buffer from the GPU is generally faster compared to accessing a
+CPU-accessible buffer.</li>
+<li>An <a href="immutable/struct.ImmutableBuffer.html"><code>ImmutableBuffer</code></a> designates a buffer in video
+memory and whose content can only be written at creation. Compared to <code>DeviceLocalBuffer</code>,
+this buffer requires less CPU processing because we don't need to keep track of the reads
+and writes.</li>
+<li>A <a href="cpu_pool/struct.CpuBufferPool.html"><code>CpuBufferPool</code></a> is a ring buffer that can be used to
+transfer data between the CPU and the GPU at a high rate.</li>
+<li>A <a href="cpu_access/struct.CpuAccessibleBuffer.html"><code>CpuAccessibleBuffer</code></a> is a simple buffer that
+can be used to prototype. It may be removed from vulkano in the far future.</li>
+</ul>
+<p>Here is a quick way to choose which buffer to use. Do you often need to read or write
+the content of the buffer? If so, use a <code>CpuBufferPool</code>. Otherwise, do you need to be able to
+modify the content of the buffer after its initialization? If so, use a <code>DeviceLocalBuffer</code>.
+If no to both questions, use an <code>ImmutableBuffer</code>.</p>
+<p>When deciding how your buffer is going to be used, don't forget that sometimes the best
+solution is to manipulate multiple buffers instead. For example if you need to update a buffer's
+content only from time to time, it may be a good idea to simply recreate a new <code>ImmutableBuffer</code>
+every time.
+Another example: if a buffer is under constant access by the GPU but you need to
+read its content on the CPU from time to time, it may be a good idea to use a
+<code>DeviceLocalBuffer</code> as the main buffer and a <code>CpuBufferPool</code> for when you need to read it.
+Then whenever you need to read the main buffer, ask the GPU to copy from the device-local
+buffer to the CPU buffer pool, and read the CPU buffer pool instead.</p>
+<h1 id="buffers-usage" class="section-header"><a href="#buffers-usage">Buffers usage</a></h1>
+<p>When you create a buffer object, you have to specify its <em>usage</em>. In other words, you have to
+specify the way it is going to be used. Trying to use a buffer in a way that wasn't specified
+when you created it will result in a runtime error.</p>
+<p>You can use buffers for the following purposes:</p>
+<ul>
+<li>Can contain arbitrary data that can be transferred from/to other buffers and images.</li>
+<li>Can be read and modified from a shader.</li>
+<li>Can be used as a source of vertices and indices.</li>
+<li>Can be used as a source of list of models for draw indirect commands.</li>
+</ul>
+<p>Accessing a buffer from a shader can be done in the following ways:</p>
+<ul>
+<li>As a uniform buffer. Uniform buffers are read-only.</li>
+<li>As a storage buffer. Storage buffers can be read and written.</li>
+<li>As a uniform texel buffer. Contrary to a uniform buffer, the data is interpreted by the
+GPU and can be for example normalized.</li>
+<li>As a storage texel buffer. Additionally, some data formats can be modified with atomic
+operations.</li>
+</ul>
+<p>Using uniform/storage texel buffers requires creating a <em>buffer view</em>. See the <code>view</code> module
+for how to create a buffer view.</p>
+</div><h2 id='reexports' class='section-header'><a href="#reexports">Re-exports</a></h2>
+<table><tr><td><code>pub use self::cpu_access::<a class="struct" href="../../vulkano/buffer/cpu_access/struct.CpuAccessibleBuffer.html" title="struct vulkano::buffer::cpu_access::CpuAccessibleBuffer">CpuAccessibleBuffer</a>;</code></td></tr><tr><td><code>pub use self::cpu_pool::<a class="struct" href="../../vulkano/buffer/cpu_pool/struct.CpuBufferPool.html" title="struct vulkano::buffer::cpu_pool::CpuBufferPool">CpuBufferPool</a>;</code></td></tr><tr><td><code>pub use self::device_local::<a class="struct" href="../../vulkano/buffer/device_local/struct.DeviceLocalBuffer.html" title="struct vulkano::buffer::device_local::DeviceLocalBuffer">DeviceLocalBuffer</a>;</code></td></tr><tr><td><code>pub use self::immutable::<a class="struct" href="../../vulkano/buffer/immutable/struct.ImmutableBuffer.html" title="struct vulkano::buffer::immutable::ImmutableBuffer">ImmutableBuffer</a>;</code></td></tr><tr><td><code>pub use self::sys::<a class="enum" href="../../vulkano/buffer/sys/enum.BufferCreationError.html" title="enum vulkano::buffer::sys::BufferCreationError">BufferCreationError</a>;</code></td></tr><tr><td><code>pub use self::view::<a class="struct" href="../../vulkano/buffer/view/struct.BufferView.html" title="struct vulkano::buffer::view::BufferView">BufferView</a>;</code></td></tr><tr><td><code>pub use self::view::<a class="trait" href="../../vulkano/buffer/view/trait.BufferViewRef.html" title="trait vulkano::buffer::view::BufferViewRef">BufferViewRef</a>;</code></td></tr></table><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table><tr class='module-item'><td><a class="mod" href="cpu_access/index.html" title='vulkano::buffer::cpu_access mod'>cpu_access</a></td><td class='docblock-short'><p>Buffer whose content is accessible to the CPU.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="cpu_pool/index.html" title='vulkano::buffer::cpu_pool mod'>cpu_pool</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="mod" href="device_local/index.html" title='vulkano::buffer::device_local mod'>device_local</a></td><td class='docblock-short'><p>Buffer whose content is read-written by the GPU only.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="immutable/index.html" title='vulkano::buffer::immutable mod'>immutable</a></td><td class='docblock-short'><p>Buffer that is written once then read for as long as it is alive.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="sys/index.html" title='vulkano::buffer::sys mod'>sys</a></td><td class='docblock-short'><p>Low level implementation of buffers.</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="view/index.html" title='vulkano::buffer::view mod'>view</a></td><td class='docblock-short'><p>View of a buffer, in order to use it as a uniform texel buffer or storage texel buffer.</p>
+</td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.BufferInner.html" title='vulkano::buffer::BufferInner struct'>BufferInner</a></td><td class='docblock-short'><p>Inner information about a buffer.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.BufferSlice.html" title='vulkano::buffer::BufferSlice struct'>BufferSlice</a></td><td class='docblock-short'><p>A subpart of a buffer.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.BufferUsage.html" title='vulkano::buffer::BufferUsage struct'>BufferUsage</a></td><td class='docblock-short'><p>Describes how a buffer is going to be used. This is <strong>not</strong> just an optimization.</p>
+</td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table><tr class='module-item'><td><a class="trait" href="trait.BufferAccess.html" title='vulkano::buffer::BufferAccess trait'>BufferAccess</a></td><td class='docblock-short'><p>Trait for objects that represent a way for the GPU to have access to a buffer or a slice of a
+buffer.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.TypedBufferAccess.html" title='vulkano::buffer::TypedBufferAccess trait'>TypedBufferAccess</a></td><td class='docblock-short'><p>Extension trait for <code>BufferAccess</code>. Indicates the type of the content of the buffer.</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "vulkano";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

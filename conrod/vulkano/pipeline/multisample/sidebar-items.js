@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Multisample","State of the multisampling."]]});

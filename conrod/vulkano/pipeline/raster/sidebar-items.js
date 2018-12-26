@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CullMode","Specifies the culling mode."],["DepthBiasControl",""],["FrontFace","Specifies which triangle orientation corresponds to the front or the triangle."],["PolygonMode",""]],"struct":[["DepthBias",""],["Rasterization","State of the rasterizer."]]});

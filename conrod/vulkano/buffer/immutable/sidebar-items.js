@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ImmutableBuffer","Buffer that is written once then read for as long as it is alive."],["ImmutableBufferInitialization","Access to the immutable buffer that can be used for the initial upload."]]});

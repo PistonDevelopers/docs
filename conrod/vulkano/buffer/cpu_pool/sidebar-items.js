@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CpuBufferPool","Ring buffer from which \"sub-buffers\" can be individually allocated."],["CpuBufferPoolChunk","A subbuffer allocated from a `CpuBufferPool`."],["CpuBufferPoolSubbuffer","A subbuffer allocated from a `CpuBufferPool`."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BufferCreationError","Error that can happen when creating a buffer."]],"struct":[["SparseLevel",""],["UnsafeBuffer","Data storage in a GPU-accessible location."]]});

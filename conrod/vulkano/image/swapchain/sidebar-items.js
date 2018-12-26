@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SwapchainImage","An image that is part of a swapchain."]]});

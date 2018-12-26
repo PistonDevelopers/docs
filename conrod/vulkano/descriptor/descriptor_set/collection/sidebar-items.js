@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["DescriptorSetsCollection","A collection of descriptor set objects."]]});

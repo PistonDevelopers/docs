@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `sync` mod in crate `vulkano`."><meta name="keywords" content="rust, rustlang, rust-lang, sync"><title>vulkano::sync - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../vulkano/index.html'><img src='https://raw.githubusercontent.com/vulkano-rs/vulkano/master/logo.png' alt='logo' width='100'></a><p class='location'>Module sync</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'><a href='../index.html'>vulkano</a></p><script>window.sidebarCurrent = {name: 'sync', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/vulkano/sync/mod.rs.html#10-168' title='goto source code'>[src]</a></span><span class='in-band'>Module <a href='../index.html'>vulkano</a>::<wbr><a class="mod" href=''>sync</a></span></h1><div class='docblock'><p>Synchronization on the GPU.</p>
+<p>Just like for CPU code, you have to ensure that buffers and images are not accessed mutably by
+multiple GPU queues simultaneously and that they are not accessed mutably by the CPU and by the
+GPU simultaneously.</p>
+<p>This safety is enforced at runtime by vulkano but it is not magic and you will require some
+knowledge if you want to avoid errors.</p>
+<h1 id="futures" class="section-header"><a href="#futures">Futures</a></h1>
+<p>Whenever you ask the GPU to start an operation by using a function of the vulkano library (for
+example executing a command buffer), this function will return a <em>future</em>. A future is an
+object that implements <a href="trait.GpuFuture.html">the <code>GpuFuture</code> trait</a> and that represents the
+point in time when this operation is over.</p>
+<p>No function in vulkano immediately sends an operation to the GPU (with the exception of some
+unsafe low-level functions). Instead they return a future that is in the pending state. Before
+the GPU actually starts doing anything, you have to <em>flush</em> the future by calling the <code>flush()</code>
+method or one of its derivatives.</p>
+<p>Futures serve several roles:</p>
+<ul>
+<li>Futures can be used to build dependencies between operations and makes it possible to ask
+that an operation starts only after a previous operation is finished.</li>
+<li>Submitting an operation to the GPU is a costly operation. By chaining multiple operations
+with futures you will submit them all at once instead of one by one, thereby reducing this
+cost.</li>
+<li>Futures keep alive the resources and objects used by the GPU so that they don't get destroyed
+while they are still in use.</li>
+</ul>
+<p>The last point means that you should keep futures alive in your program for as long as their
+corresponding operation is potentially still being executed by the GPU. Dropping a future
+earlier will block the current thread (after flushing, if necessary) until the GPU has finished
+the operation, which is usually not what you want.</p>
+<p>If you write a function that submits an operation to the GPU in your program, you are
+encouraged to let this function return the corresponding future and let the caller handle it.
+This way the caller will be able to chain multiple futures together and decide when it wants to
+keep the future alive or drop it.</p>
+<h1 id="executing-an-operation-after-a-future" class="section-header"><a href="#executing-an-operation-after-a-future">Executing an operation after a future</a></h1>
+<p>Respecting the order of operations on the GPU is important, as it is what <em>proves</em> vulkano that
+what you are doing is indeed safe. For example if you submit two operations that modify the
+same buffer, then you need to execute one after the other instead of submitting them
+independently. Failing to do so would mean that these two operations could potentially execute
+simultaneously on the GPU, which would be unsafe.</p>
+<p>This is done by calling one of the methods of the <code>GpuFuture</code> trait. For example calling
+<code>prev_future.then_execute(command_buffer)</code> takes ownership of <code>prev_future</code> and will make sure
+to only start executing <code>command_buffer</code> after the moment corresponding to <code>prev_future</code>
+happens. The object returned by the <code>then_execute</code> function is itself a future that corresponds
+to the moment when the execution of <code>command_buffer</code> ends.</p>
+<h2 id="between-two-different-gpu-queues" class="section-header"><a href="#between-two-different-gpu-queues">Between two different GPU queues</a></h2>
+<p>When you want to perform an operation after another operation on two different queues, you
+<strong>must</strong> put a <em>semaphore</em> between them. Failure to do so would result in a runtime error.
+Adding a semaphore is a simple as replacing <code>prev_future.then_execute(...)</code> with
+<code>prev_future.then_signal_semaphore().then_execute(...)</code>.</p>
+<blockquote>
+<p><strong>Note</strong>: A common use-case is using a transfer queue (ie. a queue that is only capable of
+performing transfer operations) to write data to a buffer, then read that data from the
+rendering queue.</p>
+</blockquote>
+<p>What happens when you do so is that the first queue will execute the first set of operations
+(represented by <code>prev_future</code> in the example), then put a semaphore in the signalled state.
+Meanwhile the second queue blocks (if necessary) until that same semaphore gets signalled, and
+then only will execute the second set of operations.</p>
+<p>Since you want to avoid blocking the second queue as much as possible, you probably want to
+flush the operation to the first queue as soon as possible. This can easily be done by calling
+<code>then_signal_semaphore_and_flush()</code> instead of <code>then_signal_semaphore()</code>.</p>
+<h2 id="between-several-different-gpu-queues" class="section-header"><a href="#between-several-different-gpu-queues">Between several different GPU queues</a></h2>
+<p>The <code>then_signal_semaphore()</code> method is appropriate when you perform an operation in one queue,
+and want to see the result in another queue. However in some situations you want to start
+multiple operations on several different queues.</p>
+<p>TODO: this is not yet implemented</p>
+<h1 id="fences" class="section-header"><a href="#fences">Fences</a></h1>
+<p>A <code>Fence</code> is an object that is used to signal the CPU when an operation on the GPU is finished.</p>
+<p>Signalling a fence is done by calling <code>then_signal_fence()</code> on a future. Just like semaphores,
+you are encouraged to use <code>then_signal_fence_and_flush()</code> instead.</p>
+<p>Signalling a fence is kind of a &quot;terminator&quot; to a chain of futures.</p>
+<p>TODO: lots of problems with how to use fences
+TODO: talk about fence + semaphore simultaneously
+TODO: talk about using fences to clean up</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.AccessFlagBits.html" title='vulkano::sync::AccessFlagBits struct'>AccessFlagBits</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="struct" href="struct.Event.html" title='vulkano::sync::Event struct'>Event</a></td><td class='docblock-short'><p>Used to block the GPU execution until an event on the CPU occurs.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.Fence.html" title='vulkano::sync::Fence struct'>Fence</a></td><td class='docblock-short'><p>A fence is used to know when a command buffer submission has finished its execution.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.FenceSignalFuture.html" title='vulkano::sync::FenceSignalFuture struct'>FenceSignalFuture</a></td><td class='docblock-short'><p>Represents a fence being signaled after a previous event.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.JoinFuture.html" title='vulkano::sync::JoinFuture struct'>JoinFuture</a></td><td class='docblock-short'><p>Two futures joined into one.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.NowFuture.html" title='vulkano::sync::NowFuture struct'>NowFuture</a></td><td class='docblock-short'><p>A dummy future that represents &quot;now&quot;.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.PipelineStages.html" title='vulkano::sync::PipelineStages struct'>PipelineStages</a></td><td class='docblock-short'></td></tr><tr class='module-item'><td><a class="struct" href="struct.Semaphore.html" title='vulkano::sync::Semaphore struct'>Semaphore</a></td><td class='docblock-short'><p>Used to provide synchronization between command buffers during their execution.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.SemaphoreSignalFuture.html" title='vulkano::sync::SemaphoreSignalFuture struct'>SemaphoreSignalFuture</a></td><td class='docblock-short'><p>Represents a semaphore being signaled after a previous event.</p>
+</td></tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table><tr class='module-item'><td><a class="enum" href="enum.AccessCheckError.html" title='vulkano::sync::AccessCheckError enum'>AccessCheckError</a></td><td class='docblock-short'><p>Error that can happen when checking whether we have access to a resource.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.AccessError.html" title='vulkano::sync::AccessError enum'>AccessError</a></td><td class='docblock-short'><p>Access to a resource was denied.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.FenceWaitError.html" title='vulkano::sync::FenceWaitError enum'>FenceWaitError</a></td><td class='docblock-short'><p>Error that can be returned when waiting on a fence.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.FlushError.html" title='vulkano::sync::FlushError enum'>FlushError</a></td><td class='docblock-short'><p>Error that can happen when creating a graphics pipeline.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.Sharing.html" title='vulkano::sync::Sharing enum'>Sharing</a></td><td class='docblock-short'><p>Declares in which queue(s) a resource can be used.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.SharingMode.html" title='vulkano::sync::SharingMode enum'>SharingMode</a></td><td class='docblock-short'><p>Declares in which queue(s) a resource can be used.</p>
+</td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table><tr class='module-item'><td><a class="trait" href="trait.GpuFuture.html" title='vulkano::sync::GpuFuture trait'>GpuFuture</a></td><td class='docblock-short'><p>Represents an event that will happen on the GPU in the future.</p>
+</td></tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table><tr class='module-item'><td><a class="fn" href="fn.now.html" title='vulkano::sync::now fn'>now</a></td><td class='docblock-short'><p>Builds a future that represents &quot;now&quot;.</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "vulkano";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

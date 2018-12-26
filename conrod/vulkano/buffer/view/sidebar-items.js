@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BufferViewCreationError","Error that can happen when creating a buffer view."]],"struct":[["BufferView","Represents a way for the GPU to interpret buffer data. See the documentation of the `view` module."]],"trait":[["BufferViewRef",""]]});

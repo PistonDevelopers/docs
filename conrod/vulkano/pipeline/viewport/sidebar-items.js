@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ViewportsState","List of viewports and scissors that are used when creating a graphics pipeline object."]],"struct":[["Scissor","State of a single scissor box."],["Viewport","State of a single viewport."]]});

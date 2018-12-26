@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["QueryPoolCreationError","Error that can happen when creating a buffer."],["QueryType",""]],"struct":[["OcclusionQueriesPool",""],["QueryPipelineStatisticFlags",""],["UnsafeQueriesRange",""],["UnsafeQuery",""],["UnsafeQueryPool",""]]});

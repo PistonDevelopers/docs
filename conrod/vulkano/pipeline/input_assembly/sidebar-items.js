@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["IndexType","An enumeration of all valid index types."],["PrimitiveTopology","Describes how vertices must be grouped together to form primitives."]],"struct":[["InputAssembly","How the input assembly stage should behave."]],"trait":[["Index","Trait for types that can be used as indices by the GPU."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["StandardCommandPool","Standard implementation of a command pool."],["StandardCommandPoolAlloc","Command buffer allocated from a `StandardCommandPool`."],["StandardCommandPoolBuilder","Command buffer allocated from a `StandardCommandPool` and that is currently being built."]]});

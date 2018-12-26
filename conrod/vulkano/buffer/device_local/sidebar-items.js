@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DeviceLocalBuffer","Buffer whose content is in device-local memory."]]});

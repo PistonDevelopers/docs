@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `framebuffer` mod in crate `vulkano`."><meta name="keywords" content="rust, rustlang, rust-lang, framebuffer"><title>vulkano::framebuffer - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../vulkano/index.html'><img src='https://raw.githubusercontent.com/vulkano-rs/vulkano/master/logo.png' alt='logo' width='100'></a><p class='location'>Module framebuffer</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'><a href='../index.html'>vulkano</a></p><script>window.sidebarCurrent = {name: 'framebuffer', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/vulkano/framebuffer/mod.rs.html#10-140' title='goto source code'>[src]</a></span><span class='in-band'>Module <a href='../index.html'>vulkano</a>::<wbr><a class="mod" href=''>framebuffer</a></span></h1><div class='docblock'><p>Targets on which your draw commands are executed.</p>
+<h1 id="render-passes-and-framebuffers" class="section-header"><a href="#render-passes-and-framebuffers">Render passes and framebuffers</a></h1>
+<p>There are two concepts in Vulkan:</p>
+<ul>
+<li>A <em>render pass</em> describes the target which you are going to render to. It is a collection
+of descriptions of one or more attachments (ie. image that are rendered to), and of one or
+multiples subpasses. The render pass contains the format and number of samples of each
+attachment, and the attachments that are attached to each subpass. They are represented
+in vulkano with the <code>RenderPass</code> object.</li>
+<li>A <em>framebuffer</em> contains the list of actual images that are attached. It is created from a
+render pass and has to match its characteristics. They are represented in vulkano with the
+<code>Framebuffer</code> object.</li>
+</ul>
+<p>Render passes are typically created at initialization only (for example during a loading
+screen) because they can be costly, while framebuffers can be created and destroyed either at
+initialization or during the frame.</p>
+<p>Consequently you can create graphics pipelines from a render pass object alone.
+A <code>Framebuffer</code> object is only needed when you actually add draw commands to a command buffer.</p>
+<h1 id="render-passes" class="section-header"><a href="#render-passes">Render passes</a></h1>
+<p>In vulkano a render pass is represented by the <code>RenderPass</code> struct. This struct has a template
+parameter that contains the description of the render pass. The <code>RenderPassAbstract</code> trait is
+implemented on all instances of <code>RenderPass&lt;_&gt;</code> and makes it easier to store render passes
+without having to explicitly write its type.</p>
+<p>The template parameter of the <code>RenderPass</code> struct must implement the <code>RenderPassDesc</code> trait.
+In order to create a render pass, you can create an object that implements this trait, then
+call the <code>build_render_pass</code> method on it.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">framebuffer</span>::<span class="ident">EmptySinglePassRenderPassDesc</span>;
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">framebuffer</span>::<span class="ident">RenderPassDesc</span>;
+
+<span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">EmptySinglePassRenderPassDesc</span>;
+<span class="kw">let</span> <span class="ident">render_pass</span> <span class="op">=</span> <span class="ident">desc</span>.<span class="ident">build_render_pass</span>(<span class="ident">device</span>.<span class="ident">clone</span>()).<span class="ident">unwrap</span>();
+<span class="comment">// The type of `render_pass` is `RenderPass&lt;EmptySinglePassRenderPassDesc&gt;`.</span></pre></div>
+<p>This example creates a render pass with no attachment and one single subpass that doesn't draw
+on anything. While it's sometimes useful, most of the time it's not what you want.</p>
+<p>The easiest way to create a &quot;real&quot; render pass is to use the <code>single_pass_renderpass!</code> macro.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">vulkano</span>::<span class="ident">format</span>::<span class="ident">Format</span>;
+
+<span class="kw">let</span> <span class="ident">render_pass</span> <span class="op">=</span> <span class="macro">single_pass_renderpass</span><span class="macro">!</span>(<span class="ident">device</span>.<span class="ident">clone</span>(),
+    <span class="ident">attachments</span>: {
+        <span class="comment">// `foo` is a custom name we give to the first and only attachment.</span>
+        <span class="ident">foo</span>: {
+            <span class="ident">load</span>: <span class="ident">Clear</span>,
+            <span class="ident">store</span>: <span class="ident">Store</span>,
+            <span class="ident">format</span>: <span class="ident">Format</span>::<span class="ident">R8G8B8A8Unorm</span>,
+            <span class="ident">samples</span>: <span class="number">1</span>,
+        }
+    },
+    <span class="ident">pass</span>: {
+        <span class="ident">color</span>: [<span class="ident">foo</span>],       <span class="comment">// Repeat the attachment name here.</span>
+        <span class="ident">depth_stencil</span>: {}
+    }
+).<span class="ident">unwrap</span>();</pre></div>
+<p>See the documentation of the macro for more details. TODO: put link here</p>
+<p>Once a <code>RenderPass&lt;_&gt;</code> struct is created, it implements the same render-pass-related traits as
+its template parameter.</p>
+<h1 id="framebuffers" class="section-header"><a href="#framebuffers">Framebuffers</a></h1>
+<p>See <a href="struct.Framebuffer.html">the documentation of the <code>Framebuffer</code> struct</a> for information
+about how to create a framebuffer.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.AttachmentDescription.html" title='vulkano::framebuffer::AttachmentDescription struct'>AttachmentDescription</a></td><td class='docblock-short'><p>Describes an attachment that will be used in a render pass.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.EmptySinglePassRenderPassDesc.html" title='vulkano::framebuffer::EmptySinglePassRenderPassDesc struct'>EmptySinglePassRenderPassDesc</a></td><td class='docblock-short'><p>Description of an empty render pass.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.Framebuffer.html" title='vulkano::framebuffer::Framebuffer struct'>Framebuffer</a></td><td class='docblock-short'><p>Contains a render pass and the image views that are attached to it.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.FramebufferBuilder.html" title='vulkano::framebuffer::FramebufferBuilder struct'>FramebufferBuilder</a></td><td class='docblock-short'><p>Prototype of a framebuffer.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.FramebufferSys.html" title='vulkano::framebuffer::FramebufferSys struct'>FramebufferSys</a></td><td class='docblock-short'><p>Opaque object that represents the internals of a framebuffer.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.PassDependencyDescription.html" title='vulkano::framebuffer::PassDependencyDescription struct'>PassDependencyDescription</a></td><td class='docblock-short'><p>Describes a dependency between two passes of a render pass.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.PassDescription.html" title='vulkano::framebuffer::PassDescription struct'>PassDescription</a></td><td class='docblock-short'><p>Describes one of the passes of a render pass.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.RenderPass.html" title='vulkano::framebuffer::RenderPass struct'>RenderPass</a></td><td class='docblock-short'><p>Defines the layout of multiple subpasses.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.RenderPassDescAttachments.html" title='vulkano::framebuffer::RenderPassDescAttachments struct'>RenderPassDescAttachments</a></td><td class='docblock-short'><p>Iterator to the attachments of a <code>RenderPassDesc</code>.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.RenderPassDescDependencies.html" title='vulkano::framebuffer::RenderPassDescDependencies struct'>RenderPassDescDependencies</a></td><td class='docblock-short'><p>Iterator to the subpass dependencies of a <code>RenderPassDesc</code>.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.RenderPassDescSubpasses.html" title='vulkano::framebuffer::RenderPassDescSubpasses struct'>RenderPassDescSubpasses</a></td><td class='docblock-short'><p>Iterator to the subpasses of a <code>RenderPassDesc</code>.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.RenderPassSys.html" title='vulkano::framebuffer::RenderPassSys struct'>RenderPassSys</a></td><td class='docblock-short'><p>Opaque object that represents the render pass' internals.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.Subpass.html" title='vulkano::framebuffer::Subpass struct'>Subpass</a></td><td class='docblock-short'><p>Represents a subpass within a <code>RenderPassAbstract</code> object.</p>
+</td></tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table><tr class='module-item'><td><a class="enum" href="enum.FramebufferCreationError.html" title='vulkano::framebuffer::FramebufferCreationError enum'>FramebufferCreationError</a></td><td class='docblock-short'><p>Error that can happen when creating a framebuffer object.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.IncompatibleRenderPassAttachmentError.html" title='vulkano::framebuffer::IncompatibleRenderPassAttachmentError enum'>IncompatibleRenderPassAttachmentError</a></td><td class='docblock-short'><p>Error that can happen when an image is not compatible with a render pass attachment slot.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.LoadOp.html" title='vulkano::framebuffer::LoadOp enum'>LoadOp</a></td><td class='docblock-short'><p>Describes what the implementation should do with an attachment at the start of the subpass.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.RenderPassCreationError.html" title='vulkano::framebuffer::RenderPassCreationError enum'>RenderPassCreationError</a></td><td class='docblock-short'><p>Error that can happen when creating a compute pipeline.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.StoreOp.html" title='vulkano::framebuffer::StoreOp enum'>StoreOp</a></td><td class='docblock-short'><p>Describes what the implementation should do with an attachment after all the subpasses have
+completed.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.SubpassContents.html" title='vulkano::framebuffer::SubpassContents enum'>SubpassContents</a></td><td class='docblock-short'><p>Describes what a subpass in a command buffer will contain.</p>
+</td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table><tr class='module-item'><td><a class="trait" href="trait.AttachmentsList.html" title='vulkano::framebuffer::AttachmentsList trait'>AttachmentsList</a></td><td class='docblock-short'><p>A list of attachments.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.FramebufferAbstract.html" title='vulkano::framebuffer::FramebufferAbstract trait'>FramebufferAbstract</a></td><td class='docblock-short'><p>Trait for objects that contain a Vulkan framebuffer object.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.RenderPassAbstract.html" title='vulkano::framebuffer::RenderPassAbstract trait'>RenderPassAbstract</a></td><td class='docblock-short'><p>Trait for objects that contain a Vulkan render pass object.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.RenderPassCompatible.html" title='vulkano::framebuffer::RenderPassCompatible trait'>RenderPassCompatible</a></td><td class='docblock-short'><p>Trait implemented on render pass objects to check whether they are compatible
+with another render pass.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.RenderPassDesc.html" title='vulkano::framebuffer::RenderPassDesc trait'>RenderPassDesc</a></td><td class='docblock-short'><p>Trait for objects that contain the description of a render pass.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.RenderPassDescClearValues.html" title='vulkano::framebuffer::RenderPassDescClearValues trait'>RenderPassDescClearValues</a></td><td class='docblock-short'><p>Extension trait for <code>RenderPassDesc</code>. Defines which types are allowed as a list of clear values.</p>
+</td></tr><tr class='module-item'><td><a class="trait" href="trait.RenderPassSubpassInterface.html" title='vulkano::framebuffer::RenderPassSubpassInterface trait'>RenderPassSubpassInterface</a></td><td class='docblock-short'><p>Extension trait for <code>RenderPassDesc</code> that checks whether a subpass of this render pass accepts
+the output of a fragment shader.</p>
+</td></tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table><tr class='module-item'><td><a class="fn" href="fn.ensure_image_view_compatible.html" title='vulkano::framebuffer::ensure_image_view_compatible fn'>ensure_image_view_compatible</a></td><td class='docblock-short'><p>Checks whether the given image view is allowed to be the nth attachment of the given render
+pass.</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "vulkano";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

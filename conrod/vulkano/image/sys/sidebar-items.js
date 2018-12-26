@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ImageCreationError","Error that can happen when creating an instance."]],"struct":[["LinearLayout","Describes the memory layout of an image with linear tiling."],["UnsafeImage","A storage for pixels or arbitrary data."],["UnsafeImageView",""]]});
