@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error",""],["Event",""],["Request",""],["State","types of states on the toplevel"]],"struct":[["ZwlrForeignToplevelHandleV1",""]],"trait":[["RequestsTrait",""]]});
