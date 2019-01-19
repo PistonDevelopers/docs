@@ -47,3 +47,4 @@ sourcesIndex["stb_truetype"] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex["syn"] = {"name":"","dirs":[{"name":"gen","dirs":[],"files":["gen_helper.rs"]}],"files":["attr.rs","buffer.rs","data.rs","derive.rs","error.rs","export.rs","expr.rs","ext.rs","generics.rs","group.rs","ident.rs","keyword.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","path.rs","print.rs","punctuated.rs","span.rs","spanned.rs","thread.rs","token.rs","ty.rs"]};
 sourcesIndex["tiff"] = {"name":"","dirs":[{"name":"decoder","dirs":[],"files":["ifd.rs","mod.rs","stream.rs"]}],"files":["error.rs","lib.rs"]};
 sourcesIndex["unicode_xid"] = {"name":"","dirs":[],"files":["lib.rs","tables.rs"]};
+createSourceSidebar();
