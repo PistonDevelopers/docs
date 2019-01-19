@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwpPrimarySelectionOfferV1",""]],"trait":[["RequestsTrait",""]]});

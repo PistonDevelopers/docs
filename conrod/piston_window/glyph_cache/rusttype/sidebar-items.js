@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["GlyphCache","A struct used for caching rendered font."]]});
