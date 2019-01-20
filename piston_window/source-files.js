@@ -61,7 +61,7 @@ sourcesIndex["percent_encoding"] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex["piston"] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex["piston_window"] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex["png"] = {"name":"","dirs":[{"name":"decoder","dirs":[],"files":["mod.rs","stream.rs"]}],"files":["chunk.rs","common.rs","crc.rs","encoder.rs","filter.rs","lib.rs","traits.rs","utils.rs"]};
-sourcesIndex["proc_macro2"] = {"name":"","dirs":[],"files":["lib.rs","stable.rs","strnom.rs","unstable.rs"]};
+sourcesIndex["proc_macro2"] = {"name":"","dirs":[],"files":["fallback.rs","lib.rs","strnom.rs","wrapper.rs"]};
 sourcesIndex["quote"] = {"name":"","dirs":[],"files":["ext.rs","lib.rs","to_tokens.rs"]};
 sourcesIndex["rand"] = {"name":"","dirs":[{"name":"distributions","dirs":[],"files":["bernoulli.rs","binomial.rs","cauchy.rs","dirichlet.rs","exponential.rs","float.rs","gamma.rs","integer.rs","mod.rs","normal.rs","other.rs","pareto.rs","poisson.rs","triangular.rs","uniform.rs","unit_circle.rs","unit_sphere.rs","utils.rs","weibull.rs","weighted.rs","ziggurat_tables.rs"]},{"name":"prng","dirs":[],"files":["mod.rs"]},{"name":"rngs","dirs":[{"name":"adapter","dirs":[],"files":["mod.rs","read.rs","reseeding.rs"]}],"files":["entropy.rs","jitter.rs","mock.rs","mod.rs","small.rs","std.rs","thread.rs"]},{"name":"seq","dirs":[],"files":["index.rs","mod.rs"]}],"files":["deprecated.rs","lib.rs","prelude.rs"]};
 sourcesIndex["rand_chacha"] = {"name":"","dirs":[],"files":["chacha.rs","lib.rs"]};
@@ -106,3 +106,4 @@ sourcesIndex["winit"] = {"name":"","dirs":[{"name":"os","dirs":[],"files":["mod.
 sourcesIndex["x11_dl"] = {"name":"","dirs":[],"files":["dpms.rs","error.rs","glx.rs","internal.rs","keysym.rs","lib.rs","link.rs","xcursor.rs","xf86vmode.rs","xfixes.rs","xft.rs","xinerama.rs","xinput.rs","xinput2.rs","xlib.rs","xlib_xcb.rs","xmd.rs","xmu.rs","xrandr.rs","xrecord.rs","xrender.rs","xss.rs","xt.rs","xtest.rs"]};
 sourcesIndex["xdg"] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex["xml"] = {"name":"","dirs":[{"name":"reader","dirs":[{"name":"parser","dirs":[],"files":["inside_cdata.rs","inside_closing_tag_name.rs","inside_comment.rs","inside_declaration.rs","inside_doctype.rs","inside_opening_tag.rs","inside_processing_instruction.rs","inside_reference.rs","mod.rs","outside_tag.rs"]}],"files":["config.rs","error.rs","events.rs","lexer.rs","mod.rs"]},{"name":"writer","dirs":[],"files":["config.rs","emitter.rs","events.rs","mod.rs"]}],"files":["attribute.rs","common.rs","escape.rs","lib.rs","macros.rs","name.rs","namespace.rs","util.rs"]};
+createSourceSidebar();

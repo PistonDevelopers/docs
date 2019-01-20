@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwlrScreencopyManagerV1",""]],"trait":[["RequestsTrait",""]]});
+initSidebarItems({"constant":[["REQ_CAPTURE_OUTPUT_REGION_SINCE","The minimal object version supporting this request"],["REQ_CAPTURE_OUTPUT_SINCE","The minimal object version supporting this request"],["REQ_DESTROY_SINCE","The minimal object version supporting this request"]],"enum":[["Event",""],["Request",""]],"struct":[["ZwlrScreencopyManagerV1",""]],"trait":[["RequestsTrait",""]]});

@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Event",""],["Request",""]],"struct":[["ZwpIdleInhibitorV1",""]],"trait":[["RequestsTrait",""]]});
+initSidebarItems({"constant":[["REQ_DESTROY_SINCE","The minimal object version supporting this request"]],"enum":[["Event",""],["Request",""]],"struct":[["ZwpIdleInhibitorV1",""]],"trait":[["RequestsTrait",""]]});
