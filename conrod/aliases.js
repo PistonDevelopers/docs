@@ -91,7 +91,6 @@ ALIASES["stb_truetype"] = {};
 ALIASES["syn"] = {};
 ALIASES["texture"] = {};
 ALIASES["unicode_xid"] = {};
-ALIASES["unreachable"] = {};
 ALIASES["vecmath"] = {};
 ALIASES["viewport"] = {};
 ALIASES["vk_sys"] = {};
