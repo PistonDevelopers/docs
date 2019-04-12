@@ -35,6 +35,7 @@ ALIASES["glutin"] = {};
 ALIASES["graphics"] = {};
 ALIASES["half"] = {};
 ALIASES["input"] = {};
+ALIASES["instant"] = {};
 ALIASES["interpolation"] = {};
 ALIASES["lazy_static"] = {};
 ALIASES["libc"] = {};
