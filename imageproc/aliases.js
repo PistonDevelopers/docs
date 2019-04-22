@@ -49,7 +49,6 @@ ALIASES["rand_xorshift"] = {};
 ALIASES["rayon"] = {};
 ALIASES["rayon_core"] = {};
 ALIASES["rusttype"] = {};
-ALIASES["safe_transmute"] = {};
 ALIASES["scoped_threadpool"] = {};
 ALIASES["scopeguard"] = {};
 ALIASES["stb_truetype"] = {};
