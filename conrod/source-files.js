@@ -2,7 +2,7 @@ var N = null;var sourcesIndex = {};
 sourcesIndex["andrew"] = {"name":"","dirs":[{"name":"shapes","files":["mod.rs","rectangle.rs"]},{"name":"text","files":["fontconfig.rs","mod.rs"]}],"files":["lib.rs","line.rs"]};
 sourcesIndex["approx"] = {"name":"","files":["abs_diff_eq.rs","lib.rs","macros.rs","relative_eq.rs","ulps_eq.rs"]};
 sourcesIndex["arrayvec"] = {"name":"","files":["array.rs","array_string.rs","char.rs","errors.rs","lib.rs","maybe_uninit.rs","range.rs"]};
-sourcesIndex["backtrace"] = {"name":"","dirs":[{"name":"backtrace","files":["libunwind.rs","mod.rs"]},{"name":"symbolize","files":["libbacktrace.rs","mod.rs"]}],"files":["capture.rs","dylib.rs","lib.rs","types.rs"]};
+sourcesIndex["backtrace"] = {"name":"","dirs":[{"name":"backtrace","files":["libunwind.rs","mod.rs"]},{"name":"symbolize","files":["libbacktrace.rs","mod.rs"]}],"files":["capture.rs","lib.rs","types.rs"]};
 sourcesIndex["backtrace_sys"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["bitflags"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["byteorder"] = {"name":"","files":["io.rs","lib.rs"]};
