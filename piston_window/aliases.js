@@ -30,6 +30,7 @@ ALIASES["gl"] = {};
 ALIASES["glutin"] = {};
 ALIASES["glutin_window"] = {};
 ALIASES["graphics"] = {};
+ALIASES["graphics_api_version"] = {};
 ALIASES["image"] = {};
 ALIASES["inflate"] = {};
 ALIASES["input"] = {};
