@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["KerningMode",""]],"struct":[["Face",""],["LoadFlag",""]]});
+initSidebarItems({"enum":[["KerningMode",""]],"struct":[["Face",""],["LoadFlag",""],["StyleFlag",""]]});
