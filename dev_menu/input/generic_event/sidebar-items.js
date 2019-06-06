@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["GenericEvent","Implemented by all events"]]});
+initSidebarItems({"trait":[["GenericEvent","Implemented by all events."]]});
