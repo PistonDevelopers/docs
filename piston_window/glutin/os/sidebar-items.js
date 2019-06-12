@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["unix",""]],"trait":[["GlContextExt","Platform-specific extensions for OpenGL contexts."]]});
+initSidebarItems({"mod":[["unix","Platform-specific methods for unix."]],"trait":[["ContextTraitExt","Platform-specific extensions for OpenGL [`Context`]s."]]});
