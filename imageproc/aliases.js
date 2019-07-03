@@ -9,6 +9,7 @@ ALIASES["color_quant"] = {};
 ALIASES["conv"] = {};
 ALIASES["crossbeam_deque"] = {};
 ALIASES["crossbeam_epoch"] = {};
+ALIASES["crossbeam_queue"] = {};
 ALIASES["crossbeam_utils"] = {};
 ALIASES["custom_derive"] = {};
 ALIASES["deflate"] = {};
