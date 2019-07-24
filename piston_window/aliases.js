@@ -9,6 +9,7 @@ ALIASES["cfg_if"] = {};
 ALIASES["color_quant"] = {};
 ALIASES["crossbeam_deque"] = {};
 ALIASES["crossbeam_epoch"] = {};
+ALIASES["crossbeam_queue"] = {};
 ALIASES["crossbeam_utils"] = {};
 ALIASES["deflate"] = {};
 ALIASES["derivative"] = {};
