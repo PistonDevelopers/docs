@@ -7,6 +7,7 @@ ALIASES["bitflags"] = {};
 ALIASES["byteorder"] = {};
 ALIASES["cfg_if"] = {};
 ALIASES["color_quant"] = {};
+ALIASES["crc32fast"] = {};
 ALIASES["crossbeam_deque"] = {};
 ALIASES["crossbeam_epoch"] = {};
 ALIASES["crossbeam_queue"] = {};
