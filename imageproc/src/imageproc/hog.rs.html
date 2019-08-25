@@ -706,28 +706,14 @@
 <span id="706">706</span>
 <span id="707">707</span>
 <span id="708">708</span>
-<span id="709">709</span>
-<span id="710">710</span>
-<span id="711">711</span>
-<span id="712">712</span>
-<span id="713">713</span>
-<span id="714">714</span>
-<span id="715">715</span>
-<span id="716">716</span>
-<span id="717">717</span>
-<span id="718">718</span>
-<span id="719">719</span>
-<span id="720">720</span>
-<span id="721">721</span>
-<span id="722">722</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! [HoG features](https://en.wikipedia.org/wiki/Histogram_of_oriented_gradients)</span>
 <span class="doccomment">//! and helpers for visualizing them.</span>
 
-<span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GenericImage</span>, <span class="ident">GrayImage</span>, <span class="ident">ImageBuffer</span>, <span class="ident">Luma</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">gradients</span>::{<span class="ident">horizontal_sobel</span>, <span class="ident">vertical_sobel</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">definitions</span>::{<span class="ident">Clamp</span>, <span class="ident">Image</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">gradients</span>::{<span class="ident">horizontal_sobel</span>, <span class="ident">vertical_sobel</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">math</span>::<span class="ident">l2_norm</span>;
+<span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GenericImage</span>, <span class="ident">GrayImage</span>, <span class="ident">ImageBuffer</span>, <span class="ident">Luma</span>};
 <span class="kw">use</span> <span class="ident">num</span>::<span class="ident">Zero</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">f32</span>;
 
@@ -791,11 +777,15 @@
             <span class="ident">options</span>,
         ));
         <span class="kw">let</span> (<span class="ident">blocks_wide</span>, <span class="ident">blocks_high</span>) <span class="op">=</span> <span class="macro">r#try</span><span class="macro">!</span>(<span class="self">Self</span>::<span class="ident">checked_block_dimensions</span>(
+            <span class="ident">cells_wide</span>, <span class="ident">cells_high</span>, <span class="ident">options</span>,
+        ));
+        <span class="prelude-val">Ok</span>(<span class="ident">HogSpec</span> {
+            <span class="ident">options</span>,
             <span class="ident">cells_wide</span>,
             <span class="ident">cells_high</span>,
-            <span class="ident">options</span>,
-        ));
-        <span class="prelude-val">Ok</span>(<span class="ident">HogSpec</span> { <span class="ident">options</span>, <span class="ident">cells_wide</span>, <span class="ident">cells_high</span>, <span class="ident">blocks_wide</span>, <span class="ident">blocks_high</span> })
+            <span class="ident">blocks_wide</span>,
+            <span class="ident">blocks_high</span>,
+        })
     }
 
     <span class="kw">fn</span> <span class="ident">invalid_options_message</span>(<span class="ident">errors</span>: <span class="kw-2">&amp;</span>[<span class="ident">String</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
@@ -812,15 +802,13 @@
         <span class="kw">if</span> <span class="ident">width</span> <span class="op">%</span> <span class="ident">options</span>.<span class="ident">cell_side</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
             <span class="ident">errors</span>.<span class="ident">push</span>(<span class="macro">format</span><span class="macro">!</span>(
                 <span class="string">&quot;cell side {} does not evenly divide width {}&quot;</span>,
-                <span class="ident">options</span>.<span class="ident">cell_side</span>,
-                <span class="ident">width</span>
+                <span class="ident">options</span>.<span class="ident">cell_side</span>, <span class="ident">width</span>
             ));
         }
         <span class="kw">if</span> <span class="ident">height</span> <span class="op">%</span> <span class="ident">options</span>.<span class="ident">cell_side</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
             <span class="ident">errors</span>.<span class="ident">push</span>(<span class="macro">format</span><span class="macro">!</span>(
                 <span class="string">&quot;cell side {} does not evenly divide height {}&quot;</span>,
-                <span class="ident">options</span>.<span class="ident">cell_side</span>,
-                <span class="ident">height</span>
+                <span class="ident">options</span>.<span class="ident">cell_side</span>, <span class="ident">height</span>
             ));
         }
         <span class="kw">if</span> <span class="op">!</span><span class="ident">errors</span>.<span class="ident">is_empty</span>() {
@@ -840,33 +828,21 @@
         <span class="kw">if</span> (<span class="ident">cells_wide</span> <span class="op">-</span> <span class="ident">options</span>.<span class="ident">block_side</span>) <span class="op">%</span> <span class="ident">options</span>.<span class="ident">block_stride</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
             <span class="ident">errors</span>.<span class="ident">push</span>(<span class="macro">format</span><span class="macro">!</span>(
                 <span class="string">&quot;block stride {} does not evenly divide (cells wide {} - block side {})&quot;</span>,
-                <span class="ident">options</span>.<span class="ident">block_stride</span>,
-                <span class="ident">cells_wide</span>,
-                <span class="ident">options</span>.<span class="ident">block_side</span>
+                <span class="ident">options</span>.<span class="ident">block_stride</span>, <span class="ident">cells_wide</span>, <span class="ident">options</span>.<span class="ident">block_side</span>
             ));
         }
         <span class="kw">if</span> (<span class="ident">cells_high</span> <span class="op">-</span> <span class="ident">options</span>.<span class="ident">block_side</span>) <span class="op">%</span> <span class="ident">options</span>.<span class="ident">block_stride</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
             <span class="ident">errors</span>.<span class="ident">push</span>(<span class="macro">format</span><span class="macro">!</span>(
                 <span class="string">&quot;block stride {} does not evenly divide (cells high {} - block side {})&quot;</span>,
-                <span class="ident">options</span>.<span class="ident">block_stride</span>,
-                <span class="ident">cells_high</span>,
-                <span class="ident">options</span>.<span class="ident">block_side</span>
+                <span class="ident">options</span>.<span class="ident">block_stride</span>, <span class="ident">cells_high</span>, <span class="ident">options</span>.<span class="ident">block_side</span>
             ));
         }
         <span class="kw">if</span> <span class="op">!</span><span class="ident">errors</span>.<span class="ident">is_empty</span>() {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="self">Self</span>::<span class="ident">invalid_options_message</span>(<span class="kw-2">&amp;</span><span class="ident">errors</span>));
         }
         <span class="prelude-val">Ok</span>((
-            <span class="ident">num_blocks</span>(
-                <span class="ident">cells_wide</span>,
-                <span class="ident">options</span>.<span class="ident">block_side</span>,
-                <span class="ident">options</span>.<span class="ident">block_stride</span>,
-            ),
-            <span class="ident">num_blocks</span>(
-                <span class="ident">cells_high</span>,
-                <span class="ident">options</span>.<span class="ident">block_side</span>,
-                <span class="ident">options</span>.<span class="ident">block_stride</span>,
-            ),
+            <span class="ident">num_blocks</span>(<span class="ident">cells_wide</span>, <span class="ident">options</span>.<span class="ident">block_side</span>, <span class="ident">options</span>.<span class="ident">block_stride</span>),
+            <span class="ident">num_blocks</span>(<span class="ident">cells_high</span>, <span class="ident">options</span>.<span class="ident">block_side</span>, <span class="ident">options</span>.<span class="ident">block_stride</span>),
         ))
     }
 
@@ -940,14 +916,12 @@
 <span class="doccomment">/// Computes the HoG descriptor of an image. Assumes that the spec and grid</span>
 <span class="doccomment">/// dimensions are consistent.</span>
 <span class="kw">fn</span> <span class="ident">hog_descriptor_from_hist_grid</span>(<span class="ident">grid</span>: <span class="ident">View3d</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">f32</span><span class="op">&gt;</span>, <span class="ident">spec</span>: <span class="ident">HogSpec</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span> {
-
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">descriptor</span> <span class="op">=</span> <span class="ident">Array3d</span>::<span class="ident">new</span>(<span class="ident">spec</span>.<span class="ident">block_grid_lengths</span>());
     {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">block_view</span> <span class="op">=</span> <span class="ident">descriptor</span>.<span class="ident">view_mut</span>();
 
         <span class="kw">for</span> <span class="ident">by</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">spec</span>.<span class="ident">blocks_high</span> {
             <span class="kw">for</span> <span class="ident">bx</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">spec</span>.<span class="ident">blocks_wide</span> {
-
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">block_data</span> <span class="op">=</span> <span class="ident">block_view</span>.<span class="ident">inner_slice_mut</span>(<span class="ident">bx</span>, <span class="ident">by</span>);
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">block</span> <span class="op">=</span> <span class="ident">View3d</span>::<span class="ident">from_raw</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">block_data</span>, <span class="ident">spec</span>.<span class="ident">block_internal_lengths</span>());
 
@@ -1133,9 +1107,8 @@
     <span class="ident">I</span>: <span class="ident">GenericImage</span>,
     <span class="ident">I</span>::<span class="ident">Pixel</span>: <span class="lifetime">&#39;static</span>,
 {
-
-    <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">drawing</span>::<span class="ident">draw_line_segment_mut</span>;
+    <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
 
     <span class="kw">let</span> (<span class="ident">width</span>, <span class="ident">height</span>) <span class="op">=</span> <span class="ident">image</span>.<span class="ident">dimensions</span>();
     <span class="kw">let</span> <span class="ident">scale</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="ident">width</span>, <span class="ident">height</span>) <span class="kw">as</span> <span class="ident">f32</span> <span class="op">/</span> <span class="number">2f32</span>;
@@ -1334,7 +1307,6 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_hog_descriptor_from_hist_grid</span>() {
-
         <span class="comment">// A grid of cells 3 wide and 2 high. Each cell contains a histogram of 2 items.</span>
         <span class="comment">// There are two blocks, the left covering the leftmost 2x2 region, and the</span>
         <span class="comment">// right covering the rightmost 2x2 region. These regions overlap by one cell column.</span>
