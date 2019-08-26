@@ -1133,6 +1133,22 @@
 <span id="1133">1133</span>
 <span id="1134">1134</span>
 <span id="1135">1135</span>
+<span id="1136">1136</span>
+<span id="1137">1137</span>
+<span id="1138">1138</span>
+<span id="1139">1139</span>
+<span id="1140">1140</span>
+<span id="1141">1141</span>
+<span id="1142">1142</span>
+<span id="1143">1143</span>
+<span id="1144">1144</span>
+<span id="1145">1145</span>
+<span id="1146">1146</span>
+<span id="1147">1147</span>
+<span id="1148">1148</span>
+<span id="1149">1149</span>
+<span id="1150">1150</span>
+<span id="1151">1151</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Geometric transformations of images. This includes rotations, translation, and general</span>
 <span class="doccomment">//! projective transformations.</span>
@@ -1140,9 +1156,9 @@
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">definitions</span>::{<span class="ident">Clamp</span>, <span class="ident">Image</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">math</span>::<span class="ident">cast</span>;
 <span class="kw">use</span> <span class="ident">conv</span>::<span class="ident">ValueInto</span>;
-<span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GenericImage</span>, <span class="ident">GenericImageView</span>, <span class="ident">ImageBuffer</span>, <span class="ident">Pixel</span>};
+<span class="kw">use</span> <span class="ident">image</span>::{<span class="ident">GenericImageView</span>, <span class="ident">ImageBuffer</span>, <span class="ident">Pixel</span>};
 <span class="kw">use</span> <span class="ident">rayon</span>::<span class="ident">prelude</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Mul</span>;
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">cmp</span>, <span class="ident">ops</span>::<span class="ident">Mul</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">enum</span> <span class="ident">TransformationClass</span> {
@@ -1462,22 +1478,38 @@
 <span class="kw">where</span>
     <span class="ident">P</span>: <span class="ident">Pixel</span> <span class="op">+</span> <span class="lifetime">&#39;static</span>,
 {
-    <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
-
     <span class="kw">let</span> (<span class="ident">width</span>, <span class="ident">height</span>) <span class="op">=</span> <span class="ident">image</span>.<span class="ident">dimensions</span>();
+    <span class="kw">let</span> (<span class="ident">tx</span>, <span class="ident">ty</span>) <span class="op">=</span> <span class="ident">t</span>;
+    <span class="kw">let</span> (<span class="ident">w</span>, <span class="ident">h</span>) <span class="op">=</span> (<span class="ident">width</span> <span class="kw">as</span> <span class="ident">i32</span>, <span class="ident">height</span> <span class="kw">as</span> <span class="ident">i32</span>);
+    <span class="kw">let</span> <span class="ident">num_channels</span> <span class="op">=</span> <span class="ident">P</span>::<span class="ident">CHANNEL_COUNT</span> <span class="kw">as</span> <span class="ident">usize</span>;
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">out</span> <span class="op">=</span> <span class="ident">ImageBuffer</span>::<span class="ident">new</span>(<span class="ident">width</span>, <span class="ident">height</span>);
 
-    <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> <span class="ident">width</span> <span class="kw">as</span> <span class="ident">i32</span>;
-    <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="ident">height</span> <span class="kw">as</span> <span class="ident">i32</span>;
-
     <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">height</span> {
-        <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">width</span> {
-            <span class="kw">let</span> <span class="ident">x_in</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="number">0</span>, <span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">i32</span> <span class="op">-</span> <span class="ident">t</span>.<span class="number">0</span>, <span class="ident">w</span> <span class="op">-</span> <span class="number">1</span>));
-            <span class="kw">let</span> <span class="ident">y_in</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="number">0</span>, <span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span> <span class="op">-</span> <span class="ident">t</span>.<span class="number">1</span>, <span class="ident">h</span> <span class="op">-</span> <span class="number">1</span>));
-            <span class="comment">// (x_in, y_in) and (x, y) are guaranteed to be in bounds</span>
-            <span class="kw">unsafe</span> {
-                <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x_in</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">y_in</span> <span class="kw">as</span> <span class="ident">u32</span>);
-                <span class="ident">out</span>.<span class="ident">unsafe_put_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">p</span>);
+        <span class="kw">let</span> <span class="ident">y_in</span> <span class="op">=</span> <span class="ident">cmp</span>::<span class="ident">max</span>(<span class="number">0</span>, <span class="ident">cmp</span>::<span class="ident">min</span>(<span class="ident">y</span> <span class="kw">as</span> <span class="ident">i32</span> <span class="op">-</span> <span class="ident">ty</span>, <span class="ident">h</span> <span class="op">-</span> <span class="number">1</span>));
+
+        <span class="kw">if</span> <span class="ident">tx</span> <span class="op">&gt;</span> <span class="number">0</span> {
+            <span class="kw">let</span> <span class="ident">p_min</span> <span class="op">=</span> <span class="kw-2">*</span><span class="ident">image</span>.<span class="ident">get_pixel</span>(<span class="number">0</span>, <span class="ident">y_in</span> <span class="kw">as</span> <span class="ident">u32</span>);
+            <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">tx</span>.<span class="ident">min</span>(<span class="ident">w</span>) {
+                <span class="ident">out</span>.<span class="ident">put_pixel</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">y</span>, <span class="ident">p_min</span>);
+            }
+
+            <span class="kw">if</span> <span class="ident">tx</span> <span class="op">&lt;</span> <span class="ident">w</span> {
+                <span class="kw">let</span> <span class="ident">in_base</span> <span class="op">=</span> (<span class="ident">y_in</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">*</span> <span class="ident">width</span> <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">*</span> <span class="ident">num_channels</span>;
+                <span class="kw">let</span> <span class="ident">out_base</span> <span class="op">=</span> (<span class="ident">y</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">*</span> <span class="ident">width</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">+</span> (<span class="ident">tx</span> <span class="kw">as</span> <span class="ident">usize</span>)) <span class="op">*</span> <span class="ident">num_channels</span>;
+                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> (<span class="ident">w</span> <span class="op">-</span> <span class="ident">tx</span>) <span class="kw">as</span> <span class="ident">usize</span> <span class="op">*</span> <span class="ident">num_channels</span>;
+                (<span class="kw-2">*</span><span class="ident">out</span>)[<span class="ident">out_base</span>..][..<span class="ident">len</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span>(<span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">image</span>)[<span class="ident">in_base</span>..][..<span class="ident">len</span>]);
+            }
+        } <span class="kw">else</span> {
+            <span class="kw">let</span> <span class="ident">p_max</span> <span class="op">=</span> <span class="kw-2">*</span><span class="ident">image</span>.<span class="ident">get_pixel</span>(<span class="ident">width</span> <span class="op">-</span> <span class="number">1</span>, <span class="ident">y_in</span> <span class="kw">as</span> <span class="ident">u32</span>);
+            <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> (<span class="ident">w</span> <span class="op">+</span> <span class="ident">tx</span>).<span class="ident">max</span>(<span class="number">0</span>)..<span class="ident">w</span> {
+                <span class="ident">out</span>.<span class="ident">put_pixel</span>(<span class="ident">x</span> <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">y</span>, <span class="ident">p_max</span>);
+            }
+
+            <span class="kw">if</span> <span class="ident">w</span> <span class="op">+</span> <span class="ident">tx</span> <span class="op">&gt;</span> <span class="number">0</span> {
+                <span class="kw">let</span> <span class="ident">in_base</span> <span class="op">=</span> (<span class="ident">y_in</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">*</span> <span class="ident">width</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">-</span> (<span class="ident">tx</span> <span class="kw">as</span> <span class="ident">usize</span>)) <span class="op">*</span> <span class="ident">num_channels</span>;
+                <span class="kw">let</span> <span class="ident">out_base</span> <span class="op">=</span> (<span class="ident">y</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">*</span> <span class="ident">width</span> <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">*</span> <span class="ident">num_channels</span>;
+                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> (<span class="ident">w</span> <span class="op">+</span> <span class="ident">tx</span>) <span class="kw">as</span> <span class="ident">usize</span> <span class="op">*</span> <span class="ident">num_channels</span>;
+                (<span class="kw-2">*</span><span class="ident">out</span>)[<span class="ident">out_base</span>..][..<span class="ident">len</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span>(<span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">image</span>)[<span class="ident">in_base</span>..][..<span class="ident">len</span>]);
             }
         }
     }
