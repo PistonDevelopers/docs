@@ -354,6 +354,25 @@
 <span id="354">354</span>
 <span id="355">355</span>
 <span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Functions for computing gradients of image intensities.</span>
 
@@ -564,15 +583,34 @@
     <span class="comment">// This would be more concise using itertools::multizip over image pixels, but that increased runtime by around 20%</span>
     <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">height</span> {
         <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">width</span> {
+            <span class="comment">// JUSTIFICATION</span>
+            <span class="comment">//  Benefit</span>
+            <span class="comment">//      Using checked indexing here makes this sobel_gradients 1.1x slower,</span>
+            <span class="comment">//      as measured by bench_sobel_gradients</span>
+            <span class="comment">//  Correctness</span>
+            <span class="comment">//      x and y are in bounds for image by construction,</span>
+            <span class="comment">//      vertical and horizontal are the result of calling filter3x3 on image,</span>
+            <span class="comment">//      and filter3x3 returns an image of the same size as its input</span>
+            <span class="kw">let</span> (<span class="ident">h</span>, <span class="ident">v</span>) <span class="op">=</span> <span class="kw">unsafe</span> {
+                (
+                    <span class="ident">horizontal</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>),
+                    <span class="ident">vertical</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>),
+                )
+            };
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">ChannelMap</span>::<span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>::<span class="ident">black</span>();
+
+            <span class="kw">for</span> (<span class="ident">h</span>, <span class="ident">v</span>, <span class="ident">p</span>) <span class="kw">in</span> <span class="ident">multizip</span>((<span class="ident">h</span>.<span class="ident">channels</span>(), <span class="ident">v</span>.<span class="ident">channels</span>(), <span class="ident">p</span>.<span class="ident">channels_mut</span>())) {
+                <span class="kw-2">*</span><span class="ident">p</span> <span class="op">=</span> <span class="ident">gradient_magnitude</span>(<span class="kw-2">*</span><span class="ident">h</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="kw-2">*</span><span class="ident">v</span> <span class="kw">as</span> <span class="ident">f32</span>);
+            }
+
+            <span class="comment">// JUSTIFICATION</span>
+            <span class="comment">//  Benefit</span>
+            <span class="comment">//      Using checked indexing here makes this sobel_gradients 1.1x slower,</span>
+            <span class="comment">//      as measured by bench_sobel_gradients</span>
+            <span class="comment">//  Correctness</span>
+            <span class="comment">//      x and y are in bounds for image by construction,</span>
+            <span class="comment">//      and out has the same dimensions</span>
             <span class="kw">unsafe</span> {
-                <span class="kw">let</span> <span class="ident">h</span> <span class="op">=</span> <span class="ident">horizontal</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>);
-                <span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">vertical</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>);
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">ChannelMap</span>::<span class="op">&lt;</span><span class="ident">P</span>, <span class="ident">u16</span><span class="op">&gt;</span>::<span class="ident">black</span>();
-
-                <span class="kw">for</span> (<span class="ident">h</span>, <span class="ident">v</span>, <span class="ident">p</span>) <span class="kw">in</span> <span class="ident">multizip</span>((<span class="ident">h</span>.<span class="ident">channels</span>(), <span class="ident">v</span>.<span class="ident">channels</span>(), <span class="ident">p</span>.<span class="ident">channels_mut</span>())) {
-                    <span class="kw-2">*</span><span class="ident">p</span> <span class="op">=</span> <span class="ident">gradient_magnitude</span>(<span class="kw-2">*</span><span class="ident">h</span> <span class="kw">as</span> <span class="ident">f32</span>, <span class="kw-2">*</span><span class="ident">v</span> <span class="kw">as</span> <span class="ident">f32</span>);
-                }
-
                 <span class="ident">out</span>.<span class="ident">unsafe_put_pixel</span>(<span class="ident">x</span>, <span class="ident">y</span>, <span class="ident">f</span>(<span class="ident">p</span>));
             }
         }
