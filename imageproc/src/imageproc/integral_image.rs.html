@@ -598,6 +598,20 @@
 <span id="598">598</span>
 <span id="599">599</span>
 <span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Functions for computing [integral images](https://en.wikipedia.org/wiki/Summed_area_table)</span>
 <span class="doccomment">//! and running sums of rows and columns.</span>
@@ -997,6 +1011,7 @@
     <span class="comment">// TODO: faster, more formats</span>
     <span class="kw">let</span> (<span class="ident">width</span>, <span class="ident">height</span>) <span class="op">=</span> <span class="ident">image</span>.<span class="ident">dimensions</span>();
     <span class="macro">assert</span><span class="macro">!</span>(
+        <span class="comment">// assertion 1</span>
         <span class="ident">buffer</span>.<span class="ident">len</span>() <span class="op">&gt;</span><span class="op">=</span> <span class="ident">height</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">+</span> <span class="number">2</span> <span class="op">*</span> <span class="ident">padding</span> <span class="kw">as</span> <span class="ident">usize</span>,
         <span class="string">&quot;Buffer length {} is less than {} + 2 * {}&quot;</span>,
         <span class="ident">buffer</span>.<span class="ident">len</span>(),
@@ -1004,29 +1019,42 @@
         <span class="ident">padding</span>
     );
     <span class="macro">assert</span><span class="macro">!</span>(
+        <span class="comment">// assertion 2</span>
         <span class="ident">column</span> <span class="op">&lt;</span> <span class="ident">width</span>,
         <span class="string">&quot;column out of bounds: {} &gt;= {}&quot;</span>,
         <span class="ident">column</span>,
         <span class="ident">width</span>
     );
-    <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">height</span> <span class="op">&gt;</span> <span class="number">0</span>, <span class="string">&quot;image is empty&quot;</span>);
+    <span class="macro">assert</span><span class="macro">!</span>(
+        <span class="comment">// assertion 3</span>
+        <span class="ident">height</span> <span class="op">&gt;</span> <span class="number">0</span>,
+        <span class="string">&quot;image is empty&quot;</span>
+    );
 
+    <span class="kw">let</span> <span class="ident">first</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">get_pixel</span>(<span class="ident">column</span>, <span class="number">0</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u32</span>;
+    <span class="kw">let</span> <span class="ident">last</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">get_pixel</span>(<span class="ident">column</span>, <span class="ident">height</span> <span class="op">-</span> <span class="number">1</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u32</span>;
+
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="number">0</span>;
+
+    <span class="kw">for</span> <span class="ident">b</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>[..<span class="ident">padding</span> <span class="kw">as</span> <span class="ident">usize</span>] {
+        <span class="ident">sum</span> <span class="op">+</span><span class="op">=</span> <span class="ident">first</span>;
+        <span class="kw-2">*</span><span class="ident">b</span> <span class="op">=</span> <span class="ident">sum</span>;
+    }
+    <span class="comment">// JUSTIFICATION:</span>
+    <span class="comment">//  Benefit</span>
+    <span class="comment">//      Using checked indexing here makes this function take 1.8x longer, as measured by bench_column_running_sum</span>
+    <span class="comment">//  Correctness</span>
+    <span class="comment">//      column is in bounds due to assertion 2.</span>
+    <span class="comment">//      height + padding - 1 &lt; buffer.len() due to assertions 1 and 3.</span>
     <span class="kw">unsafe</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">padding</span> {
-            <span class="ident">sum</span> <span class="op">+</span><span class="op">=</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">column</span>, <span class="number">0</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u32</span>;
-            <span class="kw-2">*</span><span class="ident">buffer</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">y</span> <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">=</span> <span class="ident">sum</span>;
-        }
-
         <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">height</span> {
             <span class="ident">sum</span> <span class="op">+</span><span class="op">=</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">column</span>, <span class="ident">y</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u32</span>;
-            <span class="kw-2">*</span><span class="ident">buffer</span>.<span class="ident">get_unchecked_mut</span>((<span class="ident">y</span> <span class="op">+</span> <span class="ident">padding</span>) <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">=</span> <span class="ident">sum</span>;
+            <span class="kw-2">*</span><span class="ident">buffer</span>.<span class="ident">get_unchecked_mut</span>(<span class="ident">y</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">+</span> <span class="ident">padding</span> <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">=</span> <span class="ident">sum</span>;
         }
-
-        <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">padding</span> {
-            <span class="ident">sum</span> <span class="op">+</span><span class="op">=</span> <span class="ident">image</span>.<span class="ident">unsafe_get_pixel</span>(<span class="ident">column</span>, <span class="ident">height</span> <span class="op">-</span> <span class="number">1</span>)[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u32</span>;
-            <span class="kw-2">*</span><span class="ident">buffer</span>.<span class="ident">get_unchecked_mut</span>((<span class="ident">y</span> <span class="op">+</span> <span class="ident">height</span> <span class="op">+</span> <span class="ident">padding</span>) <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">=</span> <span class="ident">sum</span>;
-        }
+    }
+    <span class="kw">for</span> <span class="ident">b</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>[<span class="ident">padding</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">+</span> <span class="ident">height</span> <span class="kw">as</span> <span class="ident">usize</span>..] {
+        <span class="ident">sum</span> <span class="op">+</span><span class="op">=</span> <span class="ident">last</span>;
+        <span class="kw-2">*</span><span class="ident">b</span> <span class="op">=</span> <span class="ident">sum</span>;
     }
 }
 
