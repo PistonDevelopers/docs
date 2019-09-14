@@ -6,5 +6,4 @@ implementors["rusttype"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

@@ -6,5 +6,4 @@ implementors["shader_version"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

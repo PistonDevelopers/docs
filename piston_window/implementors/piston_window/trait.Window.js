@@ -6,5 +6,4 @@ implementors["piston_window"] = [{text:"impl&lt;W&gt; <a class=\"trait\" href=\"
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

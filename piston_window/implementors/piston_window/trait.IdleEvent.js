@@ -6,5 +6,4 @@ implementors["piston_window"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

@@ -6,5 +6,4 @@ implementors["glutin_window"] = [{text:"impl <a class=\"trait\" href=\"window/tr
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

@@ -6,5 +6,4 @@ implementors["wayland_commons"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

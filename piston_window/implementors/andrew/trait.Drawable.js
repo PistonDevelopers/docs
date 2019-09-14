@@ -6,5 +6,4 @@ implementors["andrew"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

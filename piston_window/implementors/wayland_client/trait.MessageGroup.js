@@ -6,5 +6,4 @@ implementors["wayland_client"] = [{text:"impl <a class=\"trait\" href=\"wayland_
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

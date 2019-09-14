@@ -7,5 +7,4 @@ implementors["gfx_device_gl"] = [{text:"impl <a class=\"trait\" href=\"gfx_core/
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

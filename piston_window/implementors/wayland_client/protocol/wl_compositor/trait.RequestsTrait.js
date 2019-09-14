@@ -6,5 +6,4 @@ implementors["wayland_client"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

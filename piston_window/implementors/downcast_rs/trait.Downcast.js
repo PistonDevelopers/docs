@@ -6,5 +6,4 @@ implementors["downcast_rs"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

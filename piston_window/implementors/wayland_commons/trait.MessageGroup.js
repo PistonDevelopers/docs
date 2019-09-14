@@ -7,5 +7,4 @@ implementors["wayland_protocols"] = [{text:"impl <a class=\"trait\" href=\"wayla
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

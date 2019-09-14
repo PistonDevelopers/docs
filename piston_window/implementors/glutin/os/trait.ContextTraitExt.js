@@ -6,5 +6,4 @@ implementors["glutin"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

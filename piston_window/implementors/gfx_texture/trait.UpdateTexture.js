@@ -6,5 +6,4 @@ implementors["gfx_texture"] = [{text:"impl&lt;F, R, C&gt; <a class=\"trait\" hre
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

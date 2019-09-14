@@ -6,5 +6,4 @@ implementors["event_loop"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

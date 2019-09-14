@@ -6,5 +6,4 @@ implementors["winit"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

@@ -6,5 +6,4 @@ implementors["line_drawing"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

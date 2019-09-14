@@ -6,5 +6,4 @@ implementors["gfx_graphics"] = [{text:"impl&lt;'a, R, C&gt; <a class=\"trait\" h
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

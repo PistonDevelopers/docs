@@ -6,5 +6,4 @@ implementors["crossbeam_epoch"] = [{text:"impl&lt;T&gt; <a class=\"trait\" href=
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()
