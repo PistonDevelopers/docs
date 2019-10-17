@@ -6,5 +6,4 @@ implementors["float"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

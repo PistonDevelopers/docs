@@ -1,7 +1,6 @@
 var ALIASES = {};
 ALIASES["bitflags"] = {};
 ALIASES["cfg_if"] = {};
-ALIASES["derivative"] = {};
 ALIASES["draw_state"] = {};
 ALIASES["float"] = {};
 ALIASES["freetype"] = {};
@@ -13,8 +12,4 @@ ALIASES["gfx_text"] = {};
 ALIASES["libc"] = {};
 ALIASES["libz_sys"] = {};
 ALIASES["log"] = {};
-ALIASES["proc_macro2"] = {};
-ALIASES["quote"] = {};
-ALIASES["syn"] = {};
-ALIASES["unicode_xid"] = {};
 ALIASES["vecmath"] = {};
