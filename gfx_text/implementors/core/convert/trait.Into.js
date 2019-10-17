@@ -6,5 +6,4 @@ implementors["gfx_core"] = [{text:"impl <a class=\"trait\" href=\"https://doc.ru
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

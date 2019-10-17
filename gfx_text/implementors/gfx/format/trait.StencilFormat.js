@@ -6,5 +6,4 @@ implementors["gfx"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()
