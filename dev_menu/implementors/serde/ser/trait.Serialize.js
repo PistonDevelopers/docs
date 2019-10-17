@@ -6,5 +6,4 @@ implementors["input"] = [{text:"impl <a class=\"trait\" href=\"serde/ser/trait.S
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

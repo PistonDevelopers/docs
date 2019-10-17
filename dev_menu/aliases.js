@@ -1,7 +1,6 @@
 var ALIASES = {};
 ALIASES["bitflags"] = {};
 ALIASES["cfg_if"] = {};
-ALIASES["derivative"] = {};
 ALIASES["dev_menu"] = {};
 ALIASES["draw_state"] = {};
 ALIASES["float"] = {};

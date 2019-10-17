@@ -6,5 +6,4 @@ implementors["freetype_sys"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

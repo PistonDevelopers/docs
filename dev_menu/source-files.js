@@ -1,7 +1,6 @@
 var N = null;var sourcesIndex = {};
 sourcesIndex["bitflags"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["cfg_if"] = {"name":"","files":["lib.rs"]};
-sourcesIndex["derivative"] = {"name":"","files":["ast.rs","attr.rs","bound.rs","clone.rs","cmp.rs","debug.rs","default.rs","hash.rs","lib.rs","matcher.rs","utils.rs"]};
 sourcesIndex["dev_menu"] = {"name":"","files":["lib.rs","menu.rs","menu_item.rs"]};
 sourcesIndex["draw_state"] = {"name":"","files":["lib.rs","preset.rs","state.rs","target.rs"]};
 sourcesIndex["float"] = {"name":"","files":["lib.rs"]};
@@ -12,7 +11,7 @@ sourcesIndex["gfx_core"] = {"name":"","files":["buffer.rs","command.rs","dummy.r
 sourcesIndex["gfx_debug_draw"] = {"name":"","files":["debug_renderer.rs","lib.rs","line_renderer.rs","utils.rs"]};
 sourcesIndex["gfx_text"] = {"name":"","files":["font.rs","lib.rs"]};
 sourcesIndex["input"] = {"name":"","files":["after_render.rs","button.rs","close.rs","controller.rs","cursor.rs","event_id.rs","focus.rs","generic_event.rs","idle.rs","keyboard.rs","lib.rs","mouse.rs","render.rs","resize.rs","text.rs","touch.rs","update.rs"]};
-sourcesIndex["libc"] = {"name":"","dirs":[{"name":"unix","dirs":[{"name":"linux_like","dirs":[{"name":"linux","dirs":[{"name":"gnu","dirs":[{"name":"b64","dirs":[{"name":"x86_64","files":["mod.rs","not_x32.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["fixed_width_ints.rs","lib.rs","macros.rs"]};
+sourcesIndex["libc"] = {"name":"","dirs":[{"name":"unix","dirs":[{"name":"linux_like","dirs":[{"name":"linux","dirs":[{"name":"gnu","dirs":[{"name":"b64","dirs":[{"name":"x86_64","files":["align.rs","mod.rs","not_x32.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["fixed_width_ints.rs","lib.rs","macros.rs"]};
 sourcesIndex["libz_sys"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["log"] = {"name":"","files":["lib.rs","macros.rs"]};
 sourcesIndex["proc_macro2"] = {"name":"","files":["fallback.rs","lib.rs","strnom.rs","wrapper.rs"]};
