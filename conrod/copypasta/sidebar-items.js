@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["nop_clipboard",""],["wayland_clipboard",""],["x11_clipboard",""]],"trait":[["ClipboardProvider","Trait for clipboard access"]],"type":[["ClipboardContext",""]]});

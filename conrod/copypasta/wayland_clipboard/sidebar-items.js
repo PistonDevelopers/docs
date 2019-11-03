@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["create_clipboards",""],["create_clipboards_from_external",""]],"struct":[["Clipboard",""],["Primary",""]]});
