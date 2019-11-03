@@ -8,5 +8,4 @@ implementors["smallvec"] = [{text:"impl&lt;A:&nbsp;<a class=\"trait\" href=\"sma
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

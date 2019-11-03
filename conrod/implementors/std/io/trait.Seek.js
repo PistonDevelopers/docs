@@ -6,5 +6,4 @@ implementors["smithay_client_toolkit"] = [{text:"impl <a class=\"trait\" href=\"
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

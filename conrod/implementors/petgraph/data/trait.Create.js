@@ -6,5 +6,4 @@ implementors["petgraph"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

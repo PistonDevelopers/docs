@@ -6,5 +6,4 @@ implementors["nix"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

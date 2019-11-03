@@ -6,5 +6,4 @@ implementors["num_bigint"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

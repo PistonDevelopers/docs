@@ -13,5 +13,4 @@ implementors["rand_xorshift"] = [{text:"impl <a class=\"trait\" href=\"rand_core
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

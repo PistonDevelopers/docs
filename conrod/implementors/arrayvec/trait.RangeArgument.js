@@ -6,5 +6,4 @@ implementors["arrayvec"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

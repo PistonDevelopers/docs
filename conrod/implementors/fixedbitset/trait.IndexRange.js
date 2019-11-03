@@ -6,5 +6,4 @@ implementors["fixedbitset"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

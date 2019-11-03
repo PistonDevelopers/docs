@@ -6,5 +6,4 @@ implementors["glium"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

@@ -6,5 +6,4 @@ implementors["conrod_piston"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

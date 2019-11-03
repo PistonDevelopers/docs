@@ -6,5 +6,4 @@ implementors["ordermap"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

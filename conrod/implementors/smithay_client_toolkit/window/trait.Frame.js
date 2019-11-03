@@ -6,5 +6,4 @@ implementors["smithay_client_toolkit"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

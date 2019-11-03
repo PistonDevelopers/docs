@@ -6,5 +6,4 @@ implementors["wayland_protocols"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

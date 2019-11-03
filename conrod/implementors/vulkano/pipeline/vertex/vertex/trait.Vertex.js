@@ -6,5 +6,4 @@ implementors["conrod_vulkano"] = [{text:"impl <a class=\"trait\" href=\"vulkano/
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

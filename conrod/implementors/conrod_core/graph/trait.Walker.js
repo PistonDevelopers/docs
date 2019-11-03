@@ -6,5 +6,4 @@ implementors["conrod_core"] = [{text:"impl <a class=\"trait\" href=\"conrod_core
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

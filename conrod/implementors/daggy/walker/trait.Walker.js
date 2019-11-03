@@ -6,5 +6,4 @@ implementors["daggy"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

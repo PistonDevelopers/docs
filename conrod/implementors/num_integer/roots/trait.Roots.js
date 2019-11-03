@@ -6,5 +6,4 @@ implementors["num_bigint"] = [{text:"impl <a class=\"trait\" href=\"num_integer/
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

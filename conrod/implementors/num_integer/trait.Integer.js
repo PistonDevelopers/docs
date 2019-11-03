@@ -7,5 +7,4 @@ implementors["num_integer"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()

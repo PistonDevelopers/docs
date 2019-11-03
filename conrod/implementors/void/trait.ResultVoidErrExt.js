@@ -6,5 +6,4 @@ implementors["void"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()
