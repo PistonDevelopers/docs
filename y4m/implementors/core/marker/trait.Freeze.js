@@ -6,5 +6,4 @@ implementors["y4m"] = [{text:"impl Freeze for <a class=\"struct\" href=\"y4m/str
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()
