@@ -13,7 +13,6 @@ sourcesIndex["crossbeam_epoch"] = {"name":"","dirs":[{"name":"sync","files":["li
 sourcesIndex["crossbeam_queue"] = {"name":"","files":["array_queue.rs","err.rs","lib.rs","seg_queue.rs"]};
 sourcesIndex["crossbeam_utils"] = {"name":"","dirs":[{"name":"atomic","files":["atomic_cell.rs","consume.rs","mod.rs","seq_lock.rs"]},{"name":"sync","files":["mod.rs","parker.rs","sharded_lock.rs","wait_group.rs"]}],"files":["backoff.rs","cache_padded.rs","lib.rs","thread.rs"]};
 sourcesIndex["deflate"] = {"name":"","files":["bit_reverse.rs","bitstream.rs","chained_hash_table.rs","checksum.rs","compress.rs","compression_options.rs","deflate_state.rs","encoder_state.rs","huffman_lengths.rs","huffman_table.rs","input_buffer.rs","length_encode.rs","lib.rs","lz77.rs","lzvalue.rs","matching.rs","output_writer.rs","rle.rs","stored_block.rs","writer.rs","zlib.rs"]};
-sourcesIndex["derivative"] = {"name":"","files":["ast.rs","attr.rs","bound.rs","clone.rs","cmp.rs","debug.rs","default.rs","hash.rs","lib.rs","matcher.rs","utils.rs"]};
 sourcesIndex["dlib"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["downcast_rs"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["draw_state"] = {"name":"","files":["lib.rs","preset.rs","state.rs","target.rs"]};

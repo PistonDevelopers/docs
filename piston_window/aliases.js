@@ -13,7 +13,6 @@ ALIASES["crossbeam_epoch"] = {};
 ALIASES["crossbeam_queue"] = {};
 ALIASES["crossbeam_utils"] = {};
 ALIASES["deflate"] = {};
-ALIASES["derivative"] = {};
 ALIASES["dlib"] = {};
 ALIASES["downcast_rs"] = {};
 ALIASES["draw_state"] = {};
