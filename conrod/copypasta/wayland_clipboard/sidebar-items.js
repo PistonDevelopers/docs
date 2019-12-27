@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["create_clipboards",""],["create_clipboards_from_external",""]],"struct":[["Clipboard",""],["Primary",""]]});
+initSidebarItems({"fn":[["create_clipboards",""],["create_clipboards_from_external","Create new clipboard from a raw display pointer."]],"struct":[["Clipboard",""],["Primary",""]]});
