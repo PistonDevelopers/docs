@@ -6,5 +6,4 @@ implementors["resize"] = [];
             } else {
                 window.pending_implementors = implementors;
             }
-        
-})()
+        })()
