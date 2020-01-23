@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["core",""]],"trait":[["Colorful","Support `&str` and `String`, you can use `\"text\".red()` and `s.red()` for s:String"],["ExtraColorInterface",""]]});

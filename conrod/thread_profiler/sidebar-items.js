@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["register_thread_with_profiler","Registers the current thread with the global profiler."],["write_profile","Writes the global profile to a specific file."]],"macro":[["profile_scope",""]]});

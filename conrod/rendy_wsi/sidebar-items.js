@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["SwapchainError","Error creating a new swapchain."]],"struct":[["NextImages","Represents acquire frames that will be presented next."],["Surface","Rendering target bound to window."],["Target","Rendering target bound to window. With swapchain created."]]});

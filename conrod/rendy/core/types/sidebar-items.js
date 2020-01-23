@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["vertex","Built-in vertex formats."]],"struct":[["Layout","Pipeline layout"],["SetLayout","Set layout"]]});

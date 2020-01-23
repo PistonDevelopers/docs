@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["conrod_rendy"] = [{"text":"impl&lt;B&gt; <a class=\"trait\" href=\"conrod_core/mesh/trait.ImageDimensions.html\" title=\"trait conrod_core::mesh::ImageDimensions\">ImageDimensions</a> for <a class=\"struct\" href=\"conrod_rendy/struct.UiTexture.html\" title=\"struct conrod_rendy::UiTexture\">UiTexture</a>&lt;B&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;B: <a class=\"trait\" href=\"gfx_hal/trait.Backend.html\" title=\"trait gfx_hal::Backend\">Backend</a>,&nbsp;</span>","synthetic":false,"types":["conrod_rendy::UiTexture"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
