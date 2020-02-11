@@ -18,10 +18,4 @@ implementors["walkdir"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.r
 implementors["winit"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/iterator/trait.Iterator.html\" title=\"trait core::iter::traits::iterator::Iterator\">Iterator</a> for <a class=\"struct\" href=\"winit/struct.AvailableMonitorsIter.html\" title=\"struct winit::AvailableMonitorsIter\">AvailableMonitorsIter</a>","synthetic":false,"types":["winit::window::AvailableMonitorsIter"]}];
 implementors["xdg"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/iterator/trait.Iterator.html\" title=\"trait core::iter::traits::iterator::Iterator\">Iterator</a> for <a class=\"struct\" href=\"xdg/struct.FileFindIterator.html\" title=\"struct xdg::FileFindIterator\">FileFindIterator</a>","synthetic":false,"types":["xdg::FileFindIterator"]}];
 implementors["xml"] = [{"text":"impl&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/iterator/trait.Iterator.html\" title=\"trait core::iter::traits::iterator::Iterator\">Iterator</a> for <a class=\"struct\" href=\"xml/namespace/struct.NamespaceStackMappings.html\" title=\"struct xml::namespace::NamespaceStackMappings\">NamespaceStackMappings</a>&lt;'a&gt;","synthetic":false,"types":["xml::namespace::NamespaceStackMappings"]},{"text":"impl&lt;R:&nbsp;<a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/iterator/trait.Iterator.html\" title=\"trait core::iter::traits::iterator::Iterator\">Iterator</a> for <a class=\"struct\" href=\"xml/reader/struct.Events.html\" title=\"struct xml::reader::Events\">Events</a>&lt;R&gt;","synthetic":false,"types":["xml::reader::Events"]}];
-
-            if (window.register_implementors) {
-                window.register_implementors(implementors);
-            } else {
-                window.pending_implementors = implementors;
-            }
-        })()
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -5,10 +5,4 @@ implementors["lzw"] = [{"text":"impl&lt;W:&nbsp;<a class=\"trait\" href=\"https:
 implementors["png"] = [{"text":"impl&lt;'a, W:&nbsp;<a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"png/struct.StreamWriter.html\" title=\"struct png::StreamWriter\">StreamWriter</a>&lt;'a, W&gt;","synthetic":false,"types":["png::encoder::StreamWriter"]}];
 implementors["smallvec"] = [{"text":"impl&lt;A:&nbsp;<a class=\"trait\" href=\"smallvec/trait.Array.html\" title=\"trait smallvec::Array\">Array</a>&lt;Item = <a class=\"primitive\" href=\"https://doc.rust-lang.org/nightly/std/primitive.u8.html\">u8</a>&gt;&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"smallvec/struct.SmallVec.html\" title=\"struct smallvec::SmallVec\">SmallVec</a>&lt;A&gt;","synthetic":false,"types":["smallvec::SmallVec"]}];
 implementors["smithay_client_toolkit"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"smithay_client_toolkit/data_device/struct.WritePipe.html\" title=\"struct smithay_client_toolkit::data_device::WritePipe\">WritePipe</a>","synthetic":false,"types":["smithay_client_toolkit::data_device::data_source::WritePipe"]},{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"smithay_client_toolkit/utils/struct.MemPool.html\" title=\"struct smithay_client_toolkit::utils::MemPool\">MemPool</a>","synthetic":false,"types":["smithay_client_toolkit::utils::mempool::MemPool"]}];
-
-            if (window.register_implementors) {
-                window.register_implementors(implementors);
-            } else {
-                window.pending_implementors = implementors;
-            }
-        })()
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

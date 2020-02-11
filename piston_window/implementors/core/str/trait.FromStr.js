@@ -7,10 +7,4 @@ implementors["ordered_float"] = [{"text":"impl&lt;T:&nbsp;<a class=\"trait\" hre
 implementors["proc_macro2"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html\" title=\"trait core::str::FromStr\">FromStr</a> for <a class=\"struct\" href=\"proc_macro2/struct.TokenStream.html\" title=\"struct proc_macro2::TokenStream\">TokenStream</a>","synthetic":false,"types":["proc_macro2::TokenStream"]}];
 implementors["shader_version"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html\" title=\"trait core::str::FromStr\">FromStr</a> for <a class=\"enum\" href=\"shader_version/opengl/enum.OpenGL.html\" title=\"enum shader_version::opengl::OpenGL\">OpenGL</a>","synthetic":false,"types":["shader_version::opengl::OpenGL"]},{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html\" title=\"trait core::str::FromStr\">FromStr</a> for <a class=\"enum\" href=\"shader_version/glsl/enum.GLSL.html\" title=\"enum shader_version::glsl::GLSL\">GLSL</a>","synthetic":false,"types":["shader_version::glsl::GLSL"]}];
 implementors["xml"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/str/trait.FromStr.html\" title=\"trait core::str::FromStr\">FromStr</a> for <a class=\"struct\" href=\"xml/name/struct.OwnedName.html\" title=\"struct xml::name::OwnedName\">OwnedName</a>","synthetic":false,"types":["xml::name::OwnedName"]}];
-
-            if (window.register_implementors) {
-                window.register_implementors(implementors);
-            } else {
-                window.pending_implementors = implementors;
-            }
-        })()
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
