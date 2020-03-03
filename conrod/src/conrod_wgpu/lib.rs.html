@@ -1,0 +1,1263 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `backends/conrod_wgpu/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../conrod_wgpu/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
+<span id="623">623</span>
+<span id="624">624</span>
+<span id="625">625</span>
+<span id="626">626</span>
+<span id="627">627</span>
+<span id="628">628</span>
+<span id="629">629</span>
+<span id="630">630</span>
+</pre><div class="example-wrap"><pre class="rust ">
+<span class="kw">use</span> <span class="ident">conrod_core</span>::{
+    <span class="ident">image</span>,
+    <span class="ident">mesh</span>::{<span class="self">self</span>, <span class="ident">Mesh</span>},
+    <span class="ident">render</span>,
+    <span class="ident">text</span>::<span class="ident">rt</span>,
+    <span class="ident">Rect</span>, <span class="ident">Scalar</span>,
+};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
+
+<span class="doccomment">/// A loaded wgpu texture and it&#39;s width/height</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Image</span> {
+    <span class="doccomment">/// The immutable image type, represents the data loaded onto the GPU.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Uses a dynamic format for flexibility on the kinds of images that might be loaded.</span>
+    <span class="kw">pub</span> <span class="ident">texture</span>: <span class="ident">wgpu</span>::<span class="ident">Texture</span>,
+    <span class="doccomment">/// The format of the `texture`.</span>
+    <span class="kw">pub</span> <span class="ident">texture_format</span>: <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span>,
+    <span class="doccomment">/// The width of the image.</span>
+    <span class="kw">pub</span> <span class="ident">width</span>: <span class="ident">u32</span>,
+    <span class="doccomment">/// The height of the image.</span>
+    <span class="kw">pub</span> <span class="ident">height</span>: <span class="ident">u32</span>,
+}
+
+<span class="doccomment">/// The data associated with a single vertex.</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">PartialEq</span>, <span class="ident">PartialOrd</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Vertex</span> {
+    <span class="doccomment">/// The normalised position of the vertex within vector space.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [-1.0, 1.0] is the leftmost, bottom position of the display.</span>
+    <span class="doccomment">/// [1.0, -1.0] is the rightmost, top position of the display.</span>
+    <span class="kw">pub</span> <span class="ident">position</span>: [<span class="ident">f32</span>; <span class="number">2</span>],
+    <span class="doccomment">/// The coordinates of the texture used by this `Vertex`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [0.0, 0.0] is the leftmost, top position of the texture.</span>
+    <span class="doccomment">/// [1.0, 1.0] is the rightmost, bottom position of the texture.</span>
+    <span class="kw">pub</span> <span class="ident">tex_coords</span>: [<span class="ident">f32</span>; <span class="number">2</span>],
+    <span class="doccomment">/// Linear sRGB with an alpha channel.</span>
+    <span class="kw">pub</span> <span class="ident">rgba</span>: [<span class="ident">f32</span>; <span class="number">4</span>],
+    <span class="doccomment">/// The mode with which the `Vertex` will be drawn within the fragment shader.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// `0` for rendering text.</span>
+    <span class="doccomment">/// `1` for rendering an image.</span>
+    <span class="doccomment">/// `2` for rendering non-textured 2D geometry.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If any other value is given, the fragment shader will not output any color.</span>
+    <span class="kw">pub</span> <span class="ident">mode</span>: <span class="ident">u32</span>,
+}
+
+<span class="doccomment">/// A helper type aimed at simplifying the rendering of conrod primitives via wgpu.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Renderer</span> {
+    <span class="ident">_vs_mod</span>: <span class="ident">wgpu</span>::<span class="ident">ShaderModule</span>,
+    <span class="ident">_fs_mod</span>: <span class="ident">wgpu</span>::<span class="ident">ShaderModule</span>,
+    <span class="ident">bind_group_layout</span>: <span class="ident">wgpu</span>::<span class="ident">BindGroupLayout</span>,
+    <span class="ident">render_pipeline</span>: <span class="ident">wgpu</span>::<span class="ident">RenderPipeline</span>,
+    <span class="ident">glyph_cache_tex</span>: <span class="ident">wgpu</span>::<span class="ident">Texture</span>,
+    <span class="ident">_default_image_tex</span>: <span class="ident">wgpu</span>::<span class="ident">Texture</span>,
+    <span class="ident">default_bind_group</span>: <span class="ident">wgpu</span>::<span class="ident">BindGroup</span>,
+    <span class="ident">sampler</span>: <span class="ident">wgpu</span>::<span class="ident">Sampler</span>,
+    <span class="ident">mesh</span>: <span class="ident">Mesh</span>,
+    <span class="comment">// In order to support a dynamic number of images we maintain a unique bind group for each.</span>
+    <span class="ident">bind_groups</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">image</span>::<span class="ident">Id</span>, <span class="ident">wgpu</span>::<span class="ident">BindGroup</span><span class="op">&gt;</span>,
+}
+
+<span class="doccomment">/// An command for uploading an individual glyph.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">GlyphCacheCommand</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// The CPU buffer containing the pixel data.</span>
+    <span class="kw">pub</span> <span class="ident">glyph_cache_pixel_buffer</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>],
+    <span class="doccomment">/// The GPU image to which the glyphs are cached.</span>
+    <span class="kw">pub</span> <span class="ident">glyph_cache_texture</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">wgpu</span>::<span class="ident">Texture</span>,
+    <span class="doccomment">/// The width of the texture.</span>
+    <span class="kw">pub</span> <span class="ident">width</span>: <span class="ident">u32</span>,
+    <span class="doccomment">/// The height of the texture.</span>
+    <span class="kw">pub</span> <span class="ident">height</span>: <span class="ident">u32</span>,
+}
+
+<span class="doccomment">/// A render produced by the `Renderer::render` method.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Render</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="ident">pipeline</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">wgpu</span>::<span class="ident">RenderPipeline</span>,
+    <span class="kw">pub</span> <span class="ident">vertex_buffer</span>: <span class="ident">wgpu</span>::<span class="ident">Buffer</span>,
+    <span class="kw">pub</span> <span class="ident">commands</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">RenderPassCommand</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+}
+
+<span class="doccomment">/// A draw command that maps directly to the `wgpu::CommandEncoder` method. By returning</span>
+<span class="doccomment">/// `RenderPassCommand`s, we can avoid consuming the entire `AutoCommandBufferBuilder` itself which might</span>
+<span class="doccomment">/// not always be available from APIs that wrap Vulkan.</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">RenderPassCommand</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Specify the rectangle to which drawing should be cropped.</span>
+    <span class="ident">SetScissor</span> {
+        <span class="ident">top_left</span>: [<span class="ident">u32</span>; <span class="number">2</span>],
+        <span class="ident">dimensions</span>: [<span class="ident">u32</span>; <span class="number">2</span>],
+    },
+    <span class="doccomment">/// Draw the specified range of vertices.</span>
+    <span class="ident">Draw</span> { <span class="ident">vertex_range</span>: <span class="ident">std</span>::<span class="ident">ops</span>::<span class="ident">Range</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> },
+    <span class="doccomment">/// A new image requires drawing and in turn a new bind group requires setting.</span>
+    <span class="ident">SetBindGroup</span> { <span class="ident">bind_group</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">wgpu</span>::<span class="ident">BindGroup</span> },
+}
+
+<span class="kw">const</span> <span class="ident">GLYPH_TEX_FORMAT</span>: <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span>::<span class="ident">R8Unorm</span>;
+<span class="kw">const</span> <span class="ident">DEFAULT_IMAGE_TEX_FORMAT</span>: <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span>::<span class="ident">R8Unorm</span>;
+
+<span class="kw">impl</span> <span class="ident">mesh</span>::<span class="ident">ImageDimensions</span> <span class="kw">for</span> <span class="ident">Image</span> {
+    <span class="kw">fn</span> <span class="ident">dimensions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> [<span class="ident">u32</span>; <span class="number">2</span>] {
+        [<span class="self">self</span>.<span class="ident">width</span>, <span class="self">self</span>.<span class="ident">height</span>]
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Renderer</span> {
+    <span class="doccomment">/// Construct a new `Renderer`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
+        <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>,
+        <span class="ident">msaa_samples</span>: <span class="ident">u32</span>,
+        <span class="ident">dst_format</span>: <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">glyph_cache_dims</span> <span class="op">=</span> <span class="ident">mesh</span>::<span class="ident">DEFAULT_GLYPH_CACHE_DIMS</span>;
+        <span class="self">Self</span>::<span class="ident">with_glyph_cache_dimensions</span>(<span class="ident">device</span>, <span class="ident">msaa_samples</span>, <span class="ident">dst_format</span>, <span class="ident">glyph_cache_dims</span>)
+    }
+
+    <span class="doccomment">/// Create a renderer with a specific size for the glyph cache.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_glyph_cache_dimensions</span>(
+        <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>,
+        <span class="ident">msaa_samples</span>: <span class="ident">u32</span>,
+        <span class="ident">dst_format</span>: <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span>,
+        <span class="ident">glyph_cache_dims</span>: [<span class="ident">u32</span>; <span class="number">2</span>],
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">glyph_cache_dims</span>[<span class="number">0</span>] <span class="op">%</span> <span class="number">256</span>,
+            <span class="number">0</span>,
+            <span class="string">&quot;wgpu glyph cache width must be multiple of 256&quot;</span>
+        );
+
+        <span class="comment">// The mesh for converting primitives into vertices.</span>
+        <span class="kw">let</span> <span class="ident">mesh</span> <span class="op">=</span> <span class="ident">Mesh</span>::<span class="ident">with_glyph_cache_dimensions</span>(<span class="ident">glyph_cache_dims</span>);
+
+        <span class="comment">// Load shader modules.</span>
+        <span class="kw">let</span> <span class="ident">vs</span> <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;shaders/vert.spv&quot;</span>);
+        <span class="kw">let</span> <span class="ident">vs_spirv</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">read_spirv</span>(<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Cursor</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">vs</span>[..]))
+            .<span class="ident">expect</span>(<span class="string">&quot;failed to read hard-coded SPIRV&quot;</span>);
+        <span class="kw">let</span> <span class="ident">vs_mod</span> <span class="op">=</span> <span class="ident">device</span>.<span class="ident">create_shader_module</span>(<span class="kw-2">&amp;</span><span class="ident">vs_spirv</span>);
+        <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="macro">include_bytes</span><span class="macro">!</span>(<span class="string">&quot;shaders/frag.spv&quot;</span>);
+        <span class="kw">let</span> <span class="ident">fs_spirv</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">read_spirv</span>(<span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Cursor</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">fs</span>[..]))
+            .<span class="ident">expect</span>(<span class="string">&quot;failed to read hard-coded SPIRV&quot;</span>);
+        <span class="kw">let</span> <span class="ident">fs_mod</span> <span class="op">=</span> <span class="ident">device</span>.<span class="ident">create_shader_module</span>(<span class="kw-2">&amp;</span><span class="ident">fs_spirv</span>);
+
+        <span class="comment">// Create the glyph cache texture.</span>
+        <span class="kw">let</span> <span class="ident">glyph_cache_tex_desc</span> <span class="op">=</span> <span class="ident">glyph_cache_tex_desc</span>(<span class="ident">glyph_cache_dims</span>);
+        <span class="kw">let</span> <span class="ident">glyph_cache_tex</span> <span class="op">=</span> <span class="ident">device</span>.<span class="ident">create_texture</span>(<span class="kw-2">&amp;</span><span class="ident">glyph_cache_tex_desc</span>);
+
+        <span class="comment">// Create the sampler for sampling from the glyph cache and image textures.</span>
+        <span class="kw">let</span> <span class="ident">sampler_desc</span> <span class="op">=</span> <span class="ident">sampler_desc</span>();
+        <span class="kw">let</span> <span class="ident">sampler</span> <span class="op">=</span> <span class="ident">device</span>.<span class="ident">create_sampler</span>(<span class="kw-2">&amp;</span><span class="ident">sampler_desc</span>);
+
+        <span class="comment">// Create the render pipeline.</span>
+        <span class="kw">let</span> <span class="ident">bind_group_layout</span> <span class="op">=</span> <span class="ident">bind_group_layout</span>(<span class="ident">device</span>);
+        <span class="kw">let</span> <span class="ident">pipeline_layout</span> <span class="op">=</span> <span class="ident">pipeline_layout</span>(<span class="ident">device</span>, <span class="kw-2">&amp;</span><span class="ident">bind_group_layout</span>);
+        <span class="kw">let</span> <span class="ident">render_pipeline</span> <span class="op">=</span> <span class="ident">render_pipeline</span>(
+            <span class="ident">device</span>,
+            <span class="kw-2">&amp;</span><span class="ident">pipeline_layout</span>,
+            <span class="kw-2">&amp;</span><span class="ident">vs_mod</span>,
+            <span class="kw-2">&amp;</span><span class="ident">fs_mod</span>,
+            <span class="ident">dst_format</span>,
+            <span class="ident">msaa_samples</span>,
+        );
+
+        <span class="comment">// Create the default image that is bound to `image_texture` along with a default bind</span>
+        <span class="comment">// group for use in the case that there are no user supplied images.</span>
+        <span class="kw">let</span> <span class="ident">default_image_tex_desc</span> <span class="op">=</span> <span class="ident">default_image_tex_desc</span>();
+        <span class="kw">let</span> <span class="ident">default_image_tex</span> <span class="op">=</span> <span class="ident">device</span>.<span class="ident">create_texture</span>(<span class="kw-2">&amp;</span><span class="ident">default_image_tex_desc</span>);
+        <span class="kw">let</span> <span class="ident">default_bind_group</span> <span class="op">=</span> <span class="ident">bind_group</span>(
+            <span class="ident">device</span>,
+            <span class="kw-2">&amp;</span><span class="ident">bind_group_layout</span>,
+            <span class="kw-2">&amp;</span><span class="ident">glyph_cache_tex</span>,
+            <span class="kw-2">&amp;</span><span class="ident">sampler</span>,
+            <span class="kw-2">&amp;</span><span class="ident">default_image_tex</span>,
+        );
+
+        <span class="comment">// The empty set of bind groups to be associated with user images.</span>
+        <span class="kw">let</span> <span class="ident">bind_groups</span> <span class="op">=</span> <span class="ident">Default</span>::<span class="ident">default</span>();
+
+        <span class="self">Self</span> {
+            <span class="ident">_vs_mod</span>: <span class="ident">vs_mod</span>,
+            <span class="ident">_fs_mod</span>: <span class="ident">fs_mod</span>,
+            <span class="ident">glyph_cache_tex</span>,
+            <span class="ident">_default_image_tex</span>: <span class="ident">default_image_tex</span>,
+            <span class="ident">default_bind_group</span>,
+            <span class="ident">sampler</span>,
+            <span class="ident">bind_group_layout</span>,
+            <span class="ident">bind_groups</span>,
+            <span class="ident">render_pipeline</span>,
+            <span class="ident">mesh</span>,
+        }
+    }
+
+    <span class="doccomment">/// Produce an `Iterator` yielding `Command`s.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">commands</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">mesh</span>::<span class="ident">Commands</span> {
+        <span class="self">self</span>.<span class="ident">mesh</span>.<span class="ident">commands</span>()
+    }
+
+    <span class="doccomment">/// Fill the inner vertex and command buffers by translating the given `primitives`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This method may return an `Option&lt;GlyphCacheCommand&gt;`, in which case the user should use</span>
+    <span class="doccomment">/// the contained `glyph_cpu_buffer_pool` to write the pixel data to the GPU, and then use a</span>
+    <span class="doccomment">/// `copy_buffer_to_image` command to write the data to the given `glyph_cache_texture` image.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">fill</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">P</span><span class="op">&gt;</span>(
+        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>,
+        <span class="ident">image_map</span>: <span class="kw-2">&amp;</span><span class="ident">image</span>::<span class="ident">Map</span><span class="op">&lt;</span><span class="ident">Image</span><span class="op">&gt;</span>,
+        <span class="ident">viewport</span>: [<span class="ident">f32</span>; <span class="number">4</span>],
+        <span class="ident">scale_factor</span>: <span class="ident">f64</span>,
+        <span class="ident">primitives</span>: <span class="ident">P</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">GlyphCacheCommand</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">rt</span>::<span class="ident">gpu_cache</span>::<span class="ident">CacheWriteErr</span><span class="op">&gt;</span>
+    <span class="kw">where</span>
+        <span class="ident">P</span>: <span class="ident">render</span>::<span class="ident">PrimitiveWalker</span>,
+    {
+        <span class="comment">// Convert the given primitives into vertices.</span>
+        <span class="kw">let</span> [<span class="ident">vp_l</span>, <span class="ident">vp_t</span>, <span class="ident">vp_r</span>, <span class="ident">vp_b</span>] <span class="op">=</span> <span class="ident">viewport</span>;
+        <span class="kw">let</span> <span class="ident">lt</span> <span class="op">=</span> [<span class="ident">vp_l</span> <span class="kw">as</span> <span class="ident">Scalar</span>, <span class="ident">vp_t</span> <span class="kw">as</span> <span class="ident">Scalar</span>];
+        <span class="kw">let</span> <span class="ident">rb</span> <span class="op">=</span> [<span class="ident">vp_r</span> <span class="kw">as</span> <span class="ident">Scalar</span>, <span class="ident">vp_b</span> <span class="kw">as</span> <span class="ident">Scalar</span>];
+        <span class="kw">let</span> <span class="ident">viewport</span> <span class="op">=</span> <span class="ident">Rect</span>::<span class="ident">from_corners</span>(<span class="ident">lt</span>, <span class="ident">rb</span>);
+        <span class="kw">let</span> <span class="ident">fill</span> <span class="op">=</span> <span class="self">self</span>
+            .<span class="ident">mesh</span>
+            .<span class="ident">fill</span>(<span class="ident">viewport</span>, <span class="ident">scale_factor</span>, <span class="ident">image_map</span>, <span class="ident">primitives</span>)<span class="question-mark">?</span>;
+
+        <span class="comment">// Check whether or not we need a glyph cache update.</span>
+        <span class="kw">let</span> <span class="ident">glyph_cache_cmd</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">fill</span>.<span class="ident">glyph_cache_requires_upload</span> {
+            <span class="bool-val">false</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
+            <span class="bool-val">true</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> (<span class="ident">width</span>, <span class="ident">height</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">mesh</span>.<span class="ident">glyph_cache</span>().<span class="ident">dimensions</span>();
+                <span class="prelude-val">Some</span>(<span class="ident">GlyphCacheCommand</span> {
+                    <span class="ident">glyph_cache_pixel_buffer</span>: <span class="self">self</span>.<span class="ident">mesh</span>.<span class="ident">glyph_cache_pixel_buffer</span>(),
+                    <span class="ident">glyph_cache_texture</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">glyph_cache_tex</span>,
+                    <span class="ident">width</span>,
+                    <span class="ident">height</span>,
+                })
+            }
+        };
+        <span class="prelude-val">Ok</span>(<span class="ident">glyph_cache_cmd</span>)
+    }
+
+    <span class="doccomment">/// Converts the inner list of `Command`s generated via `fill` to a list of</span>
+    <span class="doccomment">/// `RenderPassCommand`s that are easily digestible by a `wgpu::RenderPass` produced by a</span>
+    <span class="doccomment">/// `wgpu::CommandEncoder`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">render</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>, <span class="ident">image_map</span>: <span class="kw-2">&amp;</span><span class="ident">image</span>::<span class="ident">Map</span><span class="op">&lt;</span><span class="ident">Image</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Render</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">commands</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[];
+
+        <span class="comment">// Ensure we have a descriptor set ready for each image in the map and no more.</span>
+        <span class="self">self</span>.<span class="ident">bind_groups</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="ident">k</span>, <span class="kw">_</span><span class="op">|</span> <span class="ident">image_map</span>.<span class="ident">contains_key</span>(<span class="ident">k</span>));
+        <span class="kw">for</span> (<span class="ident">id</span>, <span class="ident">img</span>) <span class="kw">in</span> <span class="ident">image_map</span>.<span class="ident">iter</span>() {
+            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">bind_groups</span>.<span class="ident">contains_key</span>(<span class="ident">id</span>) {
+                <span class="kw">continue</span>;
+            }
+            <span class="kw">let</span> <span class="ident">bind_group</span> <span class="op">=</span> <span class="ident">bind_group</span>(
+                <span class="ident">device</span>,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">bind_group_layout</span>,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">glyph_cache_tex</span>,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">sampler</span>,
+                <span class="kw-2">&amp;</span><span class="ident">img</span>.<span class="ident">texture</span>,
+            );
+            <span class="self">self</span>.<span class="ident">bind_groups</span>.<span class="ident">insert</span>(<span class="kw-2">*</span><span class="ident">id</span>, <span class="ident">bind_group</span>);
+        }
+
+        <span class="comment">// Prepare a single vertex buffer containing all vertices for all geometry.</span>
+        <span class="kw">let</span> <span class="ident">vertices</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">mesh</span>.<span class="ident">vertices</span>();
+        <span class="kw">let</span> <span class="ident">vertices</span> <span class="op">=</span> <span class="ident">conv_vertex_buffer</span>(<span class="ident">vertices</span>);
+        <span class="kw">let</span> <span class="ident">vertex_buffer</span> <span class="op">=</span> <span class="ident">device</span>
+            .<span class="ident">create_buffer_mapped</span>(<span class="ident">vertices</span>.<span class="ident">len</span>(), <span class="ident">wgpu</span>::<span class="ident">BufferUsage</span>::<span class="ident">VERTEX</span>)
+            .<span class="ident">fill_from_slice</span>(<span class="ident">vertices</span>);
+
+        <span class="comment">// Keep track of the currently set bind group.</span>
+        <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>)]</span>
+        <span class="kw">enum</span> <span class="ident">BindGroup</span> {
+            <span class="ident">Default</span>,
+            <span class="ident">Image</span>(<span class="ident">image</span>::<span class="ident">Id</span>),
+        }
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">bind_group</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+
+        <span class="kw">for</span> <span class="ident">command</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">mesh</span>.<span class="ident">commands</span>() {
+            <span class="kw">match</span> <span class="ident">command</span> {
+                <span class="comment">// Update the `scizzor` before continuing to draw.</span>
+                <span class="ident">mesh</span>::<span class="ident">Command</span>::<span class="ident">Scizzor</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="kw">let</span> <span class="ident">top_left</span> <span class="op">=</span> [<span class="ident">s</span>.<span class="ident">top_left</span>[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">u32</span>, <span class="ident">s</span>.<span class="ident">top_left</span>[<span class="number">1</span>] <span class="kw">as</span> <span class="ident">u32</span>];
+                    <span class="kw">let</span> <span class="ident">dimensions</span> <span class="op">=</span> <span class="ident">s</span>.<span class="ident">dimensions</span>;
+                    <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">RenderPassCommand</span>::<span class="ident">SetScissor</span> {
+                        <span class="ident">top_left</span>,
+                        <span class="ident">dimensions</span>,
+                    };
+                    <span class="ident">commands</span>.<span class="ident">push</span>(<span class="ident">cmd</span>);
+                }
+
+                <span class="comment">// Draw to the target with the given `draw` command.</span>
+                <span class="ident">mesh</span>::<span class="ident">Command</span>::<span class="ident">Draw</span>(<span class="ident">draw</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="ident">draw</span> {
+                    <span class="comment">// Draw text and plain 2D geometry.</span>
+                    <span class="ident">mesh</span>::<span class="ident">Draw</span>::<span class="ident">Plain</span>(<span class="ident">vertex_range</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">let</span> <span class="ident">vertex_count</span> <span class="op">=</span> <span class="ident">vertex_range</span>.<span class="ident">len</span>();
+                        <span class="kw">if</span> <span class="ident">vertex_count</span> <span class="op">&lt;</span><span class="op">=</span> <span class="number">0</span> {
+                            <span class="kw">continue</span>;
+                        }
+                        <span class="comment">// Ensure a bind group is set.</span>
+                        <span class="kw">if</span> <span class="ident">bind_group</span>.<span class="ident">is_none</span>() {
+                            <span class="ident">bind_group</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">BindGroup</span>::<span class="ident">Default</span>);
+                            <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">RenderPassCommand</span>::<span class="ident">SetBindGroup</span> {
+                                <span class="ident">bind_group</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">default_bind_group</span>,
+                            };
+                            <span class="ident">commands</span>.<span class="ident">push</span>(<span class="ident">cmd</span>);
+                        }
+                        <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">RenderPassCommand</span>::<span class="ident">Draw</span> {
+                            <span class="ident">vertex_range</span>: <span class="ident">vertex_range</span>.<span class="ident">start</span> <span class="kw">as</span> <span class="ident">u32</span>..<span class="ident">vertex_range</span>.<span class="ident">end</span> <span class="kw">as</span> <span class="ident">u32</span>,
+                        };
+                        <span class="ident">commands</span>.<span class="ident">push</span>(<span class="ident">cmd</span>);
+                    }
+
+                    <span class="comment">// Draw an image whose texture data lies within the `image_map` at the</span>
+                    <span class="comment">// given `id`.</span>
+                    <span class="ident">mesh</span>::<span class="ident">Draw</span>::<span class="ident">Image</span>(<span class="ident">image_id</span>, <span class="ident">vertex_range</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">let</span> <span class="ident">vertex_count</span> <span class="op">=</span> <span class="ident">vertex_range</span>.<span class="ident">len</span>();
+                        <span class="kw">if</span> <span class="ident">vertex_count</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+                            <span class="kw">continue</span>;
+                        }
+                        <span class="comment">// Ensure the bind group matches this image.</span>
+                        <span class="kw">let</span> <span class="ident">expected_bind_group</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">BindGroup</span>::<span class="ident">Image</span>(<span class="ident">image_id</span>));
+                        <span class="kw">if</span> <span class="ident">bind_group</span> <span class="op">!</span><span class="op">=</span> <span class="ident">expected_bind_group</span> {
+                            <span class="ident">bind_group</span> <span class="op">=</span> <span class="ident">expected_bind_group</span>;
+                            <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">RenderPassCommand</span>::<span class="ident">SetBindGroup</span> {
+                                <span class="ident">bind_group</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">bind_groups</span>[<span class="kw-2">&amp;</span><span class="ident">image_id</span>],
+                            };
+                            <span class="ident">commands</span>.<span class="ident">push</span>(<span class="ident">cmd</span>);
+                        }
+                        <span class="kw">let</span> <span class="ident">cmd</span> <span class="op">=</span> <span class="ident">RenderPassCommand</span>::<span class="ident">Draw</span> {
+                            <span class="ident">vertex_range</span>: <span class="ident">vertex_range</span>.<span class="ident">start</span> <span class="kw">as</span> <span class="ident">u32</span>..<span class="ident">vertex_range</span>.<span class="ident">end</span> <span class="kw">as</span> <span class="ident">u32</span>,
+                        };
+                        <span class="ident">commands</span>.<span class="ident">push</span>(<span class="ident">cmd</span>);
+                    }
+                },
+            }
+        }
+
+        <span class="ident">Render</span> {
+            <span class="ident">pipeline</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">render_pipeline</span>,
+            <span class="ident">vertex_buffer</span>,
+            <span class="ident">commands</span>,
+        }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">GlyphCacheCommand</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Creates a buffer on the GPU loaded with the updated pixel data.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Created with `BufferUsage::COPY_SRC`, ready to be copied to the texture.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// TODO: In the future, we should consider re-using the same buffer and writing to it via</span>
+    <span class="doccomment">/// `Buffer::map_write_async`. When asking about how to ensure that the write completes before</span>
+    <span class="doccomment">/// the following `copy_buffer_to_texture` command, I was advised to just create a new buffer</span>
+    <span class="doccomment">/// each time instead for now.</span>
+    <span class="doccomment">/// EDIT:</span>
+    <span class="doccomment">/// &gt; if you try to map an existing buffer, it will give it to you only after all the gpu use</span>
+    <span class="doccomment">/// &gt; of the buffer is over. So you can&#39;t do it every frame reasonably</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_buffer</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">Buffer</span> {
+        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">glyph_cache_pixel_buffer</span>.<span class="ident">len</span>();
+        <span class="ident">device</span>
+            .<span class="ident">create_buffer_mapped</span>(<span class="ident">len</span>, <span class="ident">wgpu</span>::<span class="ident">BufferUsage</span>::<span class="ident">COPY_SRC</span>)
+            .<span class="ident">fill_from_slice</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">glyph_cache_pixel_buffer</span>)
+    }
+
+    <span class="doccomment">/// Create the copy view ready for copying the pixel data to the texture.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">buffer_copy_view</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;b</span> <span class="ident">wgpu</span>::<span class="ident">Buffer</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">BufferCopyView</span><span class="op">&lt;</span><span class="lifetime">&#39;b</span><span class="op">&gt;</span> {
+        <span class="ident">wgpu</span>::<span class="ident">BufferCopyView</span> {
+            <span class="ident">buffer</span>,
+            <span class="ident">offset</span>: <span class="number">0</span>,
+            <span class="ident">row_pitch</span>: <span class="self">self</span>.<span class="ident">width</span>,
+            <span class="ident">image_height</span>: <span class="self">self</span>.<span class="ident">height</span>,
+        }
+    }
+
+    <span class="doccomment">/// Create the texture copy view ready for receiving the pixel data from the buffer.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">texture_copy_view</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">TextureCopyView</span> {
+        <span class="ident">wgpu</span>::<span class="ident">TextureCopyView</span> {
+            <span class="ident">texture</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">glyph_cache_texture</span>,
+            <span class="ident">mip_level</span>: <span class="number">0</span>,
+            <span class="ident">array_layer</span>: <span class="number">0</span>,
+            <span class="ident">origin</span>: <span class="ident">wgpu</span>::<span class="ident">Origin3d</span>::<span class="ident">ZERO</span>,
+        }
+    }
+
+    <span class="doccomment">/// Encode the command for copying the buffer&#39;s pixel data to the glyph cache texture.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encode</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">buffer</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Buffer</span>, <span class="ident">encoder</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">wgpu</span>::<span class="ident">CommandEncoder</span>) {
+        <span class="kw">let</span> <span class="ident">buffer_copy_view</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">buffer_copy_view</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>);
+        <span class="kw">let</span> <span class="ident">texture_copy_view</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">texture_copy_view</span>();
+        <span class="kw">let</span> <span class="ident">extent</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">extent</span>();
+        <span class="ident">encoder</span>.<span class="ident">copy_buffer_to_texture</span>(<span class="ident">buffer_copy_view</span>, <span class="ident">texture_copy_view</span>, <span class="ident">extent</span>);
+    }
+
+    <span class="doccomment">/// The extent required for the copy command.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">extent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">Extent3d</span> {
+        <span class="ident">wgpu</span>::<span class="ident">Extent3d</span> {
+            <span class="ident">width</span>: <span class="self">self</span>.<span class="ident">width</span>,
+            <span class="ident">height</span>: <span class="self">self</span>.<span class="ident">height</span>,
+            <span class="ident">depth</span>: <span class="number">1</span>,
+        }
+    }
+
+    <span class="doccomment">/// Short-hand for `create_buffer` and `encode` in succession.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">load_buffer_and_encode</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>, <span class="ident">e</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">wgpu</span>::<span class="ident">CommandEncoder</span>) {
+        <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_buffer</span>(<span class="kw-2">&amp;</span><span class="ident">device</span>);
+        <span class="self">self</span>.<span class="ident">encode</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>, <span class="ident">e</span>);
+    }
+}
+
+<span class="kw">fn</span> <span class="ident">glyph_cache_tex_desc</span>([<span class="ident">width</span>, <span class="ident">height</span>]: [<span class="ident">u32</span>; <span class="number">2</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">TextureDescriptor</span> {
+    <span class="kw">let</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">1</span>;
+    <span class="kw">let</span> <span class="ident">texture_extent</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">Extent3d</span> {
+        <span class="ident">width</span>,
+        <span class="ident">height</span>,
+        <span class="ident">depth</span>,
+    };
+    <span class="ident">wgpu</span>::<span class="ident">TextureDescriptor</span> {
+        <span class="ident">size</span>: <span class="ident">texture_extent</span>,
+        <span class="ident">array_layer_count</span>: <span class="number">1</span>,
+        <span class="ident">mip_level_count</span>: <span class="number">1</span>,
+        <span class="ident">sample_count</span>: <span class="number">1</span>,
+        <span class="ident">dimension</span>: <span class="ident">wgpu</span>::<span class="ident">TextureDimension</span>::<span class="ident">D2</span>,
+        <span class="ident">format</span>: <span class="ident">GLYPH_TEX_FORMAT</span>,
+        <span class="ident">usage</span>: <span class="ident">wgpu</span>::<span class="ident">TextureUsage</span>::<span class="ident">SAMPLED</span> <span class="op">|</span> <span class="ident">wgpu</span>::<span class="ident">TextureUsage</span>::<span class="ident">COPY_DST</span>,
+    }
+}
+
+<span class="kw">fn</span> <span class="ident">default_image_tex_desc</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">TextureDescriptor</span> {
+    <span class="kw">let</span> <span class="ident">width</span> <span class="op">=</span> <span class="number">64</span>;
+    <span class="kw">let</span> <span class="ident">height</span> <span class="op">=</span> <span class="number">64</span>;
+    <span class="kw">let</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">1</span>;
+    <span class="kw">let</span> <span class="ident">texture_extent</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">Extent3d</span> {
+        <span class="ident">width</span>,
+        <span class="ident">height</span>,
+        <span class="ident">depth</span>,
+    };
+    <span class="ident">wgpu</span>::<span class="ident">TextureDescriptor</span> {
+        <span class="ident">size</span>: <span class="ident">texture_extent</span>,
+        <span class="ident">array_layer_count</span>: <span class="number">1</span>,
+        <span class="ident">mip_level_count</span>: <span class="number">1</span>,
+        <span class="ident">sample_count</span>: <span class="number">1</span>,
+        <span class="ident">dimension</span>: <span class="ident">wgpu</span>::<span class="ident">TextureDimension</span>::<span class="ident">D2</span>,
+        <span class="ident">format</span>: <span class="ident">DEFAULT_IMAGE_TEX_FORMAT</span>,
+        <span class="ident">usage</span>: <span class="ident">wgpu</span>::<span class="ident">TextureUsage</span>::<span class="ident">SAMPLED</span>,
+    }
+}
+
+<span class="kw">fn</span> <span class="ident">sampler_desc</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">SamplerDescriptor</span> {
+    <span class="ident">wgpu</span>::<span class="ident">SamplerDescriptor</span> {
+        <span class="ident">address_mode_u</span>: <span class="ident">wgpu</span>::<span class="ident">AddressMode</span>::<span class="ident">ClampToEdge</span>,
+        <span class="ident">address_mode_v</span>: <span class="ident">wgpu</span>::<span class="ident">AddressMode</span>::<span class="ident">ClampToEdge</span>,
+        <span class="ident">address_mode_w</span>: <span class="ident">wgpu</span>::<span class="ident">AddressMode</span>::<span class="ident">ClampToEdge</span>,
+        <span class="ident">mag_filter</span>: <span class="ident">wgpu</span>::<span class="ident">FilterMode</span>::<span class="ident">Linear</span>,
+        <span class="ident">min_filter</span>: <span class="ident">wgpu</span>::<span class="ident">FilterMode</span>::<span class="ident">Linear</span>,
+        <span class="ident">mipmap_filter</span>: <span class="ident">wgpu</span>::<span class="ident">FilterMode</span>::<span class="ident">Linear</span>,
+        <span class="ident">lod_min_clamp</span>: <span class="op">-</span><span class="number">100.0</span>,
+        <span class="ident">lod_max_clamp</span>: <span class="number">100.0</span>,
+        <span class="ident">compare_function</span>: <span class="ident">wgpu</span>::<span class="ident">CompareFunction</span>::<span class="ident">Always</span>,
+    }
+}
+
+<span class="kw">fn</span> <span class="ident">bind_group_layout</span>(<span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">BindGroupLayout</span> {
+    <span class="kw">let</span> <span class="ident">glyph_cache_texture_binding</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">BindGroupLayoutBinding</span> {
+        <span class="ident">binding</span>: <span class="number">0</span>,
+        <span class="ident">visibility</span>: <span class="ident">wgpu</span>::<span class="ident">ShaderStage</span>::<span class="ident">FRAGMENT</span>,
+        <span class="ident">ty</span>: <span class="ident">wgpu</span>::<span class="ident">BindingType</span>::<span class="ident">SampledTexture</span> {
+            <span class="ident">multisampled</span>: <span class="bool-val">false</span>,
+            <span class="ident">dimension</span>: <span class="ident">wgpu</span>::<span class="ident">TextureViewDimension</span>::<span class="ident">D2</span>,
+        },
+    };
+    <span class="kw">let</span> <span class="ident">sampler_binding</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">BindGroupLayoutBinding</span> {
+        <span class="ident">binding</span>: <span class="number">1</span>,
+        <span class="ident">visibility</span>: <span class="ident">wgpu</span>::<span class="ident">ShaderStage</span>::<span class="ident">FRAGMENT</span>,
+        <span class="ident">ty</span>: <span class="ident">wgpu</span>::<span class="ident">BindingType</span>::<span class="ident">Sampler</span>,
+    };
+    <span class="kw">let</span> <span class="ident">image_texture_binding</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">BindGroupLayoutBinding</span> {
+        <span class="ident">binding</span>: <span class="number">2</span>,
+        <span class="ident">visibility</span>: <span class="ident">wgpu</span>::<span class="ident">ShaderStage</span>::<span class="ident">FRAGMENT</span>,
+        <span class="ident">ty</span>: <span class="ident">wgpu</span>::<span class="ident">BindingType</span>::<span class="ident">SampledTexture</span> {
+            <span class="ident">multisampled</span>: <span class="bool-val">false</span>,
+            <span class="ident">dimension</span>: <span class="ident">wgpu</span>::<span class="ident">TextureViewDimension</span>::<span class="ident">D2</span>,
+        },
+    };
+    <span class="kw">let</span> <span class="ident">bindings</span> <span class="op">=</span> <span class="kw-2">&amp;</span>[
+        <span class="ident">glyph_cache_texture_binding</span>,
+        <span class="ident">sampler_binding</span>,
+        <span class="ident">image_texture_binding</span>,
+    ];
+    <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">BindGroupLayoutDescriptor</span> { <span class="ident">bindings</span> };
+    <span class="ident">device</span>.<span class="ident">create_bind_group_layout</span>(<span class="kw-2">&amp;</span><span class="ident">desc</span>)
+}
+
+<span class="kw">fn</span> <span class="ident">bind_group</span>(
+    <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>,
+    <span class="ident">layout</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">BindGroupLayout</span>,
+    <span class="ident">glyph_cache_tex</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Texture</span>,
+    <span class="ident">sampler</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Sampler</span>,
+    <span class="ident">image</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Texture</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">BindGroup</span> {
+    <span class="comment">// Glyph cache texture view.</span>
+    <span class="kw">let</span> <span class="ident">glyph_cache_tex_view</span> <span class="op">=</span> <span class="ident">glyph_cache_tex</span>.<span class="ident">create_default_view</span>();
+    <span class="kw">let</span> <span class="ident">glyph_cache_tex_binding</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">Binding</span> {
+        <span class="ident">binding</span>: <span class="number">0</span>,
+        <span class="ident">resource</span>: <span class="ident">wgpu</span>::<span class="ident">BindingResource</span>::<span class="ident">TextureView</span>(<span class="kw-2">&amp;</span><span class="ident">glyph_cache_tex_view</span>),
+    };
+
+    <span class="comment">// Sampler binding.</span>
+    <span class="kw">let</span> <span class="ident">sampler_binding</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">Binding</span> {
+        <span class="ident">binding</span>: <span class="number">1</span>,
+        <span class="ident">resource</span>: <span class="ident">wgpu</span>::<span class="ident">BindingResource</span>::<span class="ident">Sampler</span>(<span class="kw-2">&amp;</span><span class="ident">sampler</span>),
+    };
+
+    <span class="comment">// Image texture view.</span>
+    <span class="kw">let</span> <span class="ident">image_tex_view</span> <span class="op">=</span> <span class="ident">image</span>.<span class="ident">create_default_view</span>();
+    <span class="kw">let</span> <span class="ident">image_tex_binding</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">Binding</span> {
+        <span class="ident">binding</span>: <span class="number">2</span>,
+        <span class="ident">resource</span>: <span class="ident">wgpu</span>::<span class="ident">BindingResource</span>::<span class="ident">TextureView</span>(<span class="kw-2">&amp;</span><span class="ident">image_tex_view</span>),
+    };
+
+    <span class="kw">let</span> <span class="ident">bindings</span> <span class="op">=</span> <span class="kw-2">&amp;</span>[<span class="ident">glyph_cache_tex_binding</span>, <span class="ident">sampler_binding</span>, <span class="ident">image_tex_binding</span>];
+    <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">BindGroupDescriptor</span> { <span class="ident">layout</span>, <span class="ident">bindings</span> };
+    <span class="ident">device</span>.<span class="ident">create_bind_group</span>(<span class="kw-2">&amp;</span><span class="ident">desc</span>)
+}
+
+<span class="kw">fn</span> <span class="ident">pipeline_layout</span>(
+    <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>,
+    <span class="ident">bind_group_layout</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">BindGroupLayout</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">PipelineLayout</span> {
+    <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">PipelineLayoutDescriptor</span> {
+        <span class="ident">bind_group_layouts</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">bind_group_layout</span>],
+    };
+    <span class="ident">device</span>.<span class="ident">create_pipeline_layout</span>(<span class="kw-2">&amp;</span><span class="ident">desc</span>)
+}
+
+<span class="kw">fn</span> <span class="ident">vertex_attrs</span>() <span class="op">-</span><span class="op">&gt;</span> [<span class="ident">wgpu</span>::<span class="ident">VertexAttributeDescriptor</span>; <span class="number">4</span>] {
+    <span class="kw">let</span> <span class="ident">position_offset</span> <span class="op">=</span> <span class="number">0</span>;
+    <span class="kw">let</span> <span class="ident">position_size</span> <span class="op">=</span> <span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span>[<span class="ident">f32</span>; <span class="number">2</span>]<span class="op">&gt;</span>() <span class="kw">as</span> <span class="ident">wgpu</span>::<span class="ident">BufferAddress</span>;
+    <span class="kw">let</span> <span class="ident">tex_coords_offset</span> <span class="op">=</span> <span class="ident">position_offset</span> <span class="op">+</span> <span class="ident">position_size</span>;
+    <span class="kw">let</span> <span class="ident">tex_coords_size</span> <span class="op">=</span> <span class="ident">position_size</span>;
+    <span class="kw">let</span> <span class="ident">rgba_offset</span> <span class="op">=</span> <span class="ident">tex_coords_offset</span> <span class="op">+</span> <span class="ident">tex_coords_size</span>;
+    <span class="kw">let</span> <span class="ident">rgba_size</span> <span class="op">=</span> <span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span>[<span class="ident">f32</span>; <span class="number">4</span>]<span class="op">&gt;</span>() <span class="kw">as</span> <span class="ident">wgpu</span>::<span class="ident">BufferAddress</span>;
+    <span class="kw">let</span> <span class="ident">mode_offset</span> <span class="op">=</span> <span class="ident">rgba_offset</span> <span class="op">+</span> <span class="ident">rgba_size</span>;
+    [
+        <span class="comment">// position</span>
+        <span class="ident">wgpu</span>::<span class="ident">VertexAttributeDescriptor</span> {
+            <span class="ident">format</span>: <span class="ident">wgpu</span>::<span class="ident">VertexFormat</span>::<span class="ident">Float2</span>,
+            <span class="ident">offset</span>: <span class="ident">position_offset</span>,
+            <span class="ident">shader_location</span>: <span class="number">0</span>,
+        },
+        <span class="comment">// tex_coords</span>
+        <span class="ident">wgpu</span>::<span class="ident">VertexAttributeDescriptor</span> {
+            <span class="ident">format</span>: <span class="ident">wgpu</span>::<span class="ident">VertexFormat</span>::<span class="ident">Float2</span>,
+            <span class="ident">offset</span>: <span class="ident">tex_coords_offset</span>,
+            <span class="ident">shader_location</span>: <span class="number">1</span>,
+        },
+        <span class="comment">// rgba</span>
+        <span class="ident">wgpu</span>::<span class="ident">VertexAttributeDescriptor</span> {
+            <span class="ident">format</span>: <span class="ident">wgpu</span>::<span class="ident">VertexFormat</span>::<span class="ident">Float4</span>,
+            <span class="ident">offset</span>: <span class="ident">rgba_offset</span>,
+            <span class="ident">shader_location</span>: <span class="number">2</span>,
+        },
+        <span class="comment">// mode</span>
+        <span class="ident">wgpu</span>::<span class="ident">VertexAttributeDescriptor</span> {
+            <span class="ident">format</span>: <span class="ident">wgpu</span>::<span class="ident">VertexFormat</span>::<span class="ident">Uint</span>,
+            <span class="ident">offset</span>: <span class="ident">mode_offset</span>,
+            <span class="ident">shader_location</span>: <span class="number">3</span>,
+        },
+    ]
+}
+
+<span class="kw">fn</span> <span class="ident">render_pipeline</span>(
+    <span class="ident">device</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">Device</span>,
+    <span class="ident">layout</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">PipelineLayout</span>,
+    <span class="ident">vs_mod</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">ShaderModule</span>,
+    <span class="ident">fs_mod</span>: <span class="kw-2">&amp;</span><span class="ident">wgpu</span>::<span class="ident">ShaderModule</span>,
+    <span class="ident">dst_format</span>: <span class="ident">wgpu</span>::<span class="ident">TextureFormat</span>,
+    <span class="ident">msaa_samples</span>: <span class="ident">u32</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">wgpu</span>::<span class="ident">RenderPipeline</span> {
+    <span class="kw">let</span> <span class="ident">vs_desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">ProgrammableStageDescriptor</span> {
+        <span class="ident">module</span>: <span class="kw-2">&amp;</span><span class="ident">vs_mod</span>,
+        <span class="ident">entry_point</span>: <span class="string">&quot;main&quot;</span>,
+    };
+    <span class="kw">let</span> <span class="ident">fs_desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">ProgrammableStageDescriptor</span> {
+        <span class="ident">module</span>: <span class="kw-2">&amp;</span><span class="ident">fs_mod</span>,
+        <span class="ident">entry_point</span>: <span class="string">&quot;main&quot;</span>,
+    };
+    <span class="kw">let</span> <span class="ident">raster_desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">RasterizationStateDescriptor</span> {
+        <span class="ident">front_face</span>: <span class="ident">wgpu</span>::<span class="ident">FrontFace</span>::<span class="ident">Ccw</span>,
+        <span class="ident">cull_mode</span>: <span class="ident">wgpu</span>::<span class="ident">CullMode</span>::<span class="prelude-val">None</span>,
+        <span class="ident">depth_bias</span>: <span class="number">0</span>,
+        <span class="ident">depth_bias_slope_scale</span>: <span class="number">0.0</span>,
+        <span class="ident">depth_bias_clamp</span>: <span class="number">0.0</span>,
+    };
+    <span class="kw">let</span> <span class="ident">color_state_desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">ColorStateDescriptor</span> {
+        <span class="ident">format</span>: <span class="ident">dst_format</span>,
+        <span class="ident">color_blend</span>: <span class="ident">wgpu</span>::<span class="ident">BlendDescriptor</span> {
+            <span class="ident">src_factor</span>: <span class="ident">wgpu</span>::<span class="ident">BlendFactor</span>::<span class="ident">SrcAlpha</span>,
+            <span class="ident">dst_factor</span>: <span class="ident">wgpu</span>::<span class="ident">BlendFactor</span>::<span class="ident">OneMinusSrcAlpha</span>,
+            <span class="ident">operation</span>: <span class="ident">wgpu</span>::<span class="ident">BlendOperation</span>::<span class="ident">Add</span>,
+        },
+        <span class="ident">alpha_blend</span>: <span class="ident">wgpu</span>::<span class="ident">BlendDescriptor</span> {
+            <span class="ident">src_factor</span>: <span class="ident">wgpu</span>::<span class="ident">BlendFactor</span>::<span class="ident">One</span>,
+            <span class="ident">dst_factor</span>: <span class="ident">wgpu</span>::<span class="ident">BlendFactor</span>::<span class="ident">OneMinusSrcAlpha</span>,
+            <span class="ident">operation</span>: <span class="ident">wgpu</span>::<span class="ident">BlendOperation</span>::<span class="ident">Add</span>,
+        },
+        <span class="ident">write_mask</span>: <span class="ident">wgpu</span>::<span class="ident">ColorWrite</span>::<span class="ident">ALL</span>,
+    };
+    <span class="kw">let</span> <span class="ident">vertex_attrs</span> <span class="op">=</span> <span class="ident">vertex_attrs</span>();
+    <span class="kw">let</span> <span class="ident">vertex_buffer_desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">VertexBufferDescriptor</span> {
+        <span class="ident">stride</span>: <span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">Vertex</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="ident">wgpu</span>::<span class="ident">BufferAddress</span>,
+        <span class="ident">step_mode</span>: <span class="ident">wgpu</span>::<span class="ident">InputStepMode</span>::<span class="ident">Vertex</span>,
+        <span class="ident">attributes</span>: <span class="kw-2">&amp;</span><span class="ident">vertex_attrs</span>[..],
+    };
+    <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">wgpu</span>::<span class="ident">RenderPipelineDescriptor</span> {
+        <span class="ident">layout</span>,
+        <span class="ident">vertex_stage</span>: <span class="ident">vs_desc</span>,
+        <span class="ident">fragment_stage</span>: <span class="prelude-val">Some</span>(<span class="ident">fs_desc</span>),
+        <span class="ident">rasterization_state</span>: <span class="prelude-val">Some</span>(<span class="ident">raster_desc</span>),
+        <span class="ident">primitive_topology</span>: <span class="ident">wgpu</span>::<span class="ident">PrimitiveTopology</span>::<span class="ident">TriangleList</span>,
+        <span class="ident">color_states</span>: <span class="kw-2">&amp;</span>[<span class="ident">color_state_desc</span>],
+        <span class="ident">depth_stencil_state</span>: <span class="prelude-val">None</span>,
+        <span class="ident">index_format</span>: <span class="ident">wgpu</span>::<span class="ident">IndexFormat</span>::<span class="ident">Uint16</span>,
+        <span class="ident">vertex_buffers</span>: <span class="kw-2">&amp;</span>[<span class="ident">vertex_buffer_desc</span>],
+        <span class="ident">sample_count</span>: <span class="ident">msaa_samples</span>,
+        <span class="ident">sample_mask</span>: <span class="op">!</span><span class="number">0</span>,
+        <span class="ident">alpha_to_coverage_enabled</span>: <span class="bool-val">false</span>,
+    };
+    <span class="ident">device</span>.<span class="ident">create_render_pipeline</span>(<span class="kw-2">&amp;</span><span class="ident">desc</span>)
+}
+
+<span class="kw">fn</span> <span class="ident">conv_vertex_buffer</span>(<span class="ident">buffer</span>: <span class="kw-2">&amp;</span>[<span class="ident">mesh</span>::<span class="ident">Vertex</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">Vertex</span>] {
+    <span class="kw">unsafe</span> { <span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">buffer</span>) }
+}
+</pre></div>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "conrod_wgpu";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>
