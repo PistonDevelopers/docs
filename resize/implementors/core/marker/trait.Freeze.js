@@ -1,9 +1,3 @@
 (function() {var implementors = {};
 implementors["resize"] = [{"text":"impl Freeze for <a class=\"struct\" href=\"resize/struct.Filter.html\" title=\"struct resize::Filter\">Filter</a>","synthetic":true,"types":["resize::Filter"]},{"text":"impl&lt;Pixel&gt; Freeze for <a class=\"struct\" href=\"resize/struct.Resizer.html\" title=\"struct resize::Resizer\">Resizer</a>&lt;Pixel&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;Pixel: Freeze,&nbsp;</span>","synthetic":true,"types":["resize::Resizer"]},{"text":"impl Freeze for <a class=\"enum\" href=\"resize/enum.Type.html\" title=\"enum resize::Type\">Type</a>","synthetic":true,"types":["resize::Type"]},{"text":"impl Freeze for <a class=\"struct\" href=\"resize/Pixel/struct.Gray8.html\" title=\"struct resize::Pixel::Gray8\">Gray8</a>","synthetic":true,"types":["resize::Pixel::Gray8"]},{"text":"impl Freeze for <a class=\"struct\" href=\"resize/Pixel/struct.Gray16.html\" title=\"struct resize::Pixel::Gray16\">Gray16</a>","synthetic":true,"types":["resize::Pixel::Gray16"]},{"text":"impl Freeze for <a class=\"struct\" href=\"resize/Pixel/struct.RGB24.html\" title=\"struct resize::Pixel::RGB24\">RGB24</a>","synthetic":true,"types":["resize::Pixel::RGB24"]},{"text":"impl Freeze for <a class=\"struct\" href=\"resize/Pixel/struct.RGB48.html\" title=\"struct resize::Pixel::RGB48\">RGB48</a>","synthetic":true,"types":["resize::Pixel::RGB48"]},{"text":"impl Freeze for <a class=\"struct\" href=\"resize/Pixel/struct.RGBA.html\" title=\"struct resize::Pixel::RGBA\">RGBA</a>","synthetic":true,"types":["resize::Pixel::RGBA"]},{"text":"impl Freeze for <a class=\"struct\" href=\"resize/Pixel/struct.RGBA64.html\" title=\"struct resize::Pixel::RGBA64\">RGBA64</a>","synthetic":true,"types":["resize::Pixel::RGBA64"]}];
-
-            if (window.register_implementors) {
-                window.register_implementors(implementors);
-            } else {
-                window.pending_implementors = implementors;
-            }
-        })()
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
