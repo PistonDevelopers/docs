@@ -8,7 +8,6 @@ ALIASES["backtrace"] = {};
 ALIASES["backtrace_sys"] = {};
 ALIASES["bitflags"] = {};
 ALIASES["byteorder"] = {};
-ALIASES["c2_chacha"] = {};
 ALIASES["calloop"] = {};
 ALIASES["cfg_if"] = {};
 ALIASES["colorful"] = {};
