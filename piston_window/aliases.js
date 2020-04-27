@@ -2,7 +2,6 @@ var ALIASES = {};
 ALIASES["adler32"] = {};
 ALIASES["andrew"] = {};
 ALIASES["approx"] = {};
-ALIASES["arrayvec"] = {};
 ALIASES["bitflags"] = {};
 ALIASES["bytemuck"] = {};
 ALIASES["byteorder"] = {};

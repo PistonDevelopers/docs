@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/xml-rs-0.8.0/src/reader/lexer.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lexer.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../xml/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/xml-rs-0.8.3/src/reader/lexer.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lexer.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../xml/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -842,6 +842,28 @@
 <span id="842">842</span>
 <span id="843">843</span>
 <span id="844">844</span>
+<span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
+<span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
+<span id="860">860</span>
+<span id="861">861</span>
+<span id="862">862</span>
+<span id="863">863</span>
+<span id="864">864</span>
+<span id="865">865</span>
+<span id="866">866</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Contains simple lexer for XML documents.</span>
 <span class="doccomment">//!</span>
@@ -996,6 +1018,8 @@
     <span class="ident">CommentStarted</span>,
     <span class="doccomment">/// Triggered on &#39;&lt;!D&#39; up to &#39;&lt;!DOCTYPE&#39;</span>
     <span class="ident">DoctypeStarted</span>(<span class="ident">DoctypeStartedSubstate</span>),
+    <span class="doccomment">/// Triggered after DoctypeStarted to handle sub elements</span>
+    <span class="ident">DoctypeFinishing</span>(<span class="ident">u8</span>),
     <span class="doccomment">/// Triggered on &#39;&lt;![&#39; up to &#39;&lt;![CDATA&#39;</span>
     <span class="ident">CDataStarted</span>(<span class="ident">CDataStartedSubstate</span>),
     <span class="doccomment">/// Triggered on &#39;?&#39;</span>
@@ -1168,7 +1192,8 @@
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">st</span> {
             <span class="ident">State</span>::<span class="ident">TagStarted</span> <span class="op">|</span> <span class="ident">State</span>::<span class="ident">CommentOrCDataOrDoctypeStarted</span> <span class="op">|</span>
             <span class="ident">State</span>::<span class="ident">CommentStarted</span> <span class="op">|</span> <span class="ident">State</span>::<span class="ident">CDataStarted</span>(<span class="kw">_</span>)<span class="op">|</span> <span class="ident">State</span>::<span class="ident">DoctypeStarted</span>(<span class="kw">_</span>) <span class="op">|</span>
-            <span class="ident">State</span>::<span class="ident">CommentClosing</span>(<span class="ident">ClosingSubstate</span>::<span class="ident">Second</span>)  <span class="op">=</span><span class="op">&gt;</span>
+            <span class="ident">State</span>::<span class="ident">CommentClosing</span>(<span class="ident">ClosingSubstate</span>::<span class="ident">Second</span>) <span class="op">|</span>
+            <span class="ident">State</span>::<span class="ident">DoctypeFinishing</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="prelude-val">Err</span>(<span class="self">self</span>.<span class="ident">error</span>(<span class="string">&quot;Unexpected end of stream&quot;</span>)),
             <span class="ident">State</span>::<span class="ident">ProcessingInstructionClosing</span> <span class="op">=</span><span class="op">&gt;</span>
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;?&#39;</span>))),
@@ -1211,6 +1236,7 @@
             <span class="ident">State</span>::<span class="ident">CommentStarted</span>                 <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">comment_started</span>(<span class="ident">c</span>),
             <span class="ident">State</span>::<span class="ident">CDataStarted</span>(<span class="ident">s</span>)                <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">cdata_started</span>(<span class="ident">c</span>, <span class="ident">s</span>),
             <span class="ident">State</span>::<span class="ident">DoctypeStarted</span>(<span class="ident">s</span>)              <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">doctype_started</span>(<span class="ident">c</span>, <span class="ident">s</span>),
+            <span class="ident">State</span>::<span class="ident">DoctypeFinishing</span>(<span class="ident">d</span>)            <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">doctype_finishing</span>(<span class="ident">c</span>, <span class="ident">d</span>),
             <span class="ident">State</span>::<span class="ident">ProcessingInstructionClosing</span>   <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">processing_instruction_closing</span>(<span class="ident">c</span>),
             <span class="ident">State</span>::<span class="ident">EmptyTagClosing</span>                <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">empty_element_closing</span>(<span class="ident">c</span>),
             <span class="ident">State</span>::<span class="ident">CommentClosing</span>(<span class="ident">s</span>)              <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">comment_closing</span>(<span class="ident">c</span>, <span class="ident">s</span>),
@@ -1316,8 +1342,18 @@
             <span class="ident">DOC</span>    ; <span class="string">&#39;T&#39;</span> ; <span class="ident">DOCT</span>   ; <span class="string">&quot;&lt;!DOC&quot;</span>,
             <span class="ident">DOCT</span>   ; <span class="string">&#39;Y&#39;</span> ; <span class="ident">DOCTY</span>  ; <span class="string">&quot;&lt;!DOCT&quot;</span>,
             <span class="ident">DOCTY</span>  ; <span class="string">&#39;P&#39;</span> ; <span class="ident">DOCTYP</span> ; <span class="string">&quot;&lt;!DOCTY&quot;</span>;
-            <span class="ident">DOCTYP</span> ; <span class="string">&#39;E&#39;</span> ; <span class="string">&quot;&lt;!DOCTYP&quot;</span> ; <span class="self">self</span>.<span class="ident">move_to_with</span>(<span class="ident">State</span>::<span class="ident">Normal</span>, <span class="ident">Token</span>::<span class="ident">DoctypeStart</span>)
+            <span class="ident">DOCTYP</span> ; <span class="string">&#39;E&#39;</span> ; <span class="string">&quot;&lt;!DOCTYP&quot;</span> ; <span class="self">self</span>.<span class="ident">move_to_with</span>(<span class="ident">State</span>::<span class="ident">DoctypeFinishing</span>(<span class="number">1</span>), <span class="ident">Token</span>::<span class="ident">DoctypeStart</span>)
         )
+    }
+
+    <span class="doccomment">/// State used while awaiting the closing bracket for the &lt;!DOCTYPE tag</span>
+    <span class="kw">fn</span> <span class="ident">doctype_finishing</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">c</span>: <span class="ident">char</span>, <span class="ident">d</span>: <span class="ident">u8</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span> {
+        <span class="kw">match</span> <span class="ident">c</span> {
+            <span class="string">&#39;&lt;&#39;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">move_to</span>(<span class="ident">State</span>::<span class="ident">DoctypeFinishing</span>(<span class="ident">d</span> <span class="op">+</span> <span class="number">1</span>)),
+            <span class="string">&#39;&gt;&#39;</span> <span class="kw">if</span> <span class="ident">d</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">move_to_with</span>(<span class="ident">State</span>::<span class="ident">Normal</span>, <span class="ident">Token</span>::<span class="ident">TagEnd</span>),
+            <span class="string">&#39;&gt;&#39;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">move_to</span>(<span class="ident">State</span>::<span class="ident">DoctypeFinishing</span>(<span class="ident">d</span> <span class="op">-</span> <span class="number">1</span>)),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+        }
     }
 
     <span class="doccomment">/// Encountered &#39;?&#39;</span>
@@ -1530,14 +1566,22 @@
             <span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;a&#39;</span>)
             <span class="ident">Token</span>::<span class="ident">TagEnd</span>
             <span class="ident">Token</span>::<span class="ident">DoctypeStart</span>
+            <span class="ident">Token</span>::<span class="ident">TagEnd</span>
             <span class="ident">Token</span>::<span class="ident">Whitespace</span>(<span class="string">&#39; &#39;</span>)
+        );
+        <span class="macro">assert_none</span><span class="macro">!</span>(<span class="kw">for</span> <span class="ident">lex</span> <span class="ident">and</span> <span class="ident">buf</span>)
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">doctype_with_internal_subset_test</span>() {
+        <span class="kw">let</span> (<span class="kw-2">mut</span> <span class="ident">lex</span>, <span class="kw-2">mut</span> <span class="ident">buf</span>) <span class="op">=</span> <span class="ident">make_lex_and_buf</span>(
+            <span class="string">r#&quot;&lt;a&gt;&lt;!DOCTYPE ab[&lt;!ELEMENT ba&gt; ]&gt; &quot;#</span>
+        );
+        <span class="macro">assert_oks</span><span class="macro">!</span>(<span class="kw">for</span> <span class="ident">lex</span> <span class="ident">and</span> <span class="ident">buf</span> ;
+            <span class="ident">Token</span>::<span class="ident">OpeningTagStart</span>
             <span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;a&#39;</span>)
-            <span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;b&#39;</span>)
-            <span class="ident">Token</span>::<span class="ident">Whitespace</span>(<span class="string">&#39; &#39;</span>)
-            <span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;x&#39;</span>)
-            <span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;x&#39;</span>)
-            <span class="ident">Token</span>::<span class="ident">Whitespace</span>(<span class="string">&#39; &#39;</span>)
-            <span class="ident">Token</span>::<span class="ident">Character</span>(<span class="string">&#39;z&#39;</span>)
+            <span class="ident">Token</span>::<span class="ident">TagEnd</span>
+            <span class="ident">Token</span>::<span class="ident">DoctypeStart</span>
             <span class="ident">Token</span>::<span class="ident">TagEnd</span>
             <span class="ident">Token</span>::<span class="ident">Whitespace</span>(<span class="string">&#39; &#39;</span>)
         );
