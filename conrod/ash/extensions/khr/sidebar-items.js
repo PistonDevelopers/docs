@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["AndroidSurface",""],["DisplaySwapchain",""],["Surface",""],["Swapchain",""],["WaylandSurface",""],["Win32Surface",""],["XcbSurface",""],["XlibSurface",""]]});
+initSidebarItems({"struct":[["AndroidSurface",""],["Display",""],["DisplaySwapchain",""],["ExternalMemoryFd",""],["PushDescriptor",""],["RayTracing",""],["Surface",""],["Swapchain",""],["TimelineSemaphore",""],["WaylandSurface",""],["Win32Surface",""],["XcbSurface",""],["XlibSurface",""]]});

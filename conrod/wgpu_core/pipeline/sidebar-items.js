@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ComputePipeline",""],["ComputePipelineDescriptor",""],["PipelineFlags",""],["ProgrammableStageDescriptor",""],["RenderPipeline",""],["RenderPipelineDescriptor",""],["ShaderModule",""],["ShaderModuleDescriptor",""],["VertexBufferLayoutDescriptor",""],["VertexStateDescriptor",""]]});

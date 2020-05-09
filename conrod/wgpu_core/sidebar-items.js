@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["read_spirv","Safely read SPIR-V"]],"macro":[["gfx_select",""]],"mod":[["backend",""],["binding_model",""],["command",""],["conv",""],["device",""],["hub",""],["id",""],["instance",""],["pipeline",""],["power",""],["resource",""],["swap_chain","Swap chain management."],["track",""]],"struct":[["RefCount",""],["U32Array",""]],"type":[["RawString",""]]});

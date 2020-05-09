@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["MAX_COLOR_TARGETS",""],["MAX_MIP_LEVELS",""],["MAX_VERTEX_BUFFERS",""]],"fn":[["all_buffer_stages",""],["all_image_stages",""]],"struct":[["Device",""]],"type":[["BufferMapReadCallback",""],["BufferMapWriteCallback",""]]});
