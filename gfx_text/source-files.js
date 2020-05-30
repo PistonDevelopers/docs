@@ -8,6 +8,5 @@ sourcesIndex["gfx"] = {"name":"","dirs":[{"name":"macros","files":["mod.rs","pso
 sourcesIndex["gfx_core"] = {"name":"","files":["buffer.rs","command.rs","dummy.rs","factory.rs","format.rs","handle.rs","lib.rs","mapping.rs","memory.rs","pso.rs","shade.rs","texture.rs"]};
 sourcesIndex["gfx_text"] = {"name":"","files":["font.rs","lib.rs"]};
 sourcesIndex["libc"] = {"name":"","dirs":[{"name":"unix","dirs":[{"name":"linux_like","dirs":[{"name":"linux","dirs":[{"name":"gnu","dirs":[{"name":"b64","dirs":[{"name":"x86_64","files":["align.rs","mod.rs","not_x32.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["fixed_width_ints.rs","lib.rs","macros.rs"]};
-sourcesIndex["libz_sys"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["log"] = {"name":"","files":["lib.rs","macros.rs"]};
 createSourceSidebar();
