@@ -10,7 +10,6 @@ sourcesIndex["gfx_core"] = {"name":"","files":["buffer.rs","command.rs","dummy.r
 sourcesIndex["gfx_debug_draw"] = {"name":"","files":["debug_renderer.rs","lib.rs","line_renderer.rs","utils.rs"]};
 sourcesIndex["gfx_text"] = {"name":"","files":["font.rs","lib.rs"]};
 sourcesIndex["libc"] = {"name":"","dirs":[{"name":"unix","dirs":[{"name":"linux_like","dirs":[{"name":"linux","dirs":[{"name":"gnu","dirs":[{"name":"b64","dirs":[{"name":"x86_64","files":["align.rs","mod.rs","not_x32.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["mod.rs"]}],"files":["align.rs","mod.rs"]}],"files":["fixed_width_ints.rs","lib.rs","macros.rs"]};
-sourcesIndex["libz_sys"] = {"name":"","files":["lib.rs"]};
 sourcesIndex["log"] = {"name":"","files":["lib.rs","macros.rs"]};
 sourcesIndex["vecmath"] = {"name":"","files":["lib.rs","traits.rs"]};
 createSourceSidebar();
