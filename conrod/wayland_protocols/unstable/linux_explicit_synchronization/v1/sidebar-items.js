@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["c_interfaces","C interfaces for this protocol"],["client","Client-side API of this protocol"]]});
+initSidebarItems({"mod":[["client","Client-side API of this protocol"]]});
