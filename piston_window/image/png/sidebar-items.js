@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["PNGEncoder","PNG encoder"],["PNGReader","PNG Reader"],["PngDecoder","PNG decoder"]]});
+initSidebarItems({"enum":[["CompressionType","Compression level of a PNG encoder. The default setting is `Fast`."],["FilterType","Filter algorithms used to process image data to improve compression."]],"struct":[["ApngDecoder","An [`AnimationDecoder`] adapter of [`PngDecoder`]."],["PNGEncoder","PNG encoder"],["PNGReader","PNG Reader"],["PngDecoder","PNG decoder"]]});
