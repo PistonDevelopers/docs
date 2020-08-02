@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["y4m"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"enum\" href=\"y4m/enum.Error.html\" title=\"enum y4m::Error\">Error</a>","synthetic":false,"types":["y4m::Error"]},{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"enum\" href=\"y4m/enum.ParseError.html\" title=\"enum y4m::ParseError\">ParseError</a>","synthetic":false,"types":["y4m::ParseError"]}];
+implementors["y4m"] = [{"text":"impl Error for Error","synthetic":false,"types":[]},{"text":"impl Error for ParseError","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
