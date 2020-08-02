@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["wayland_client"] = [{"text":"impl <a class=\"trait\" href=\"calloop/sources/trait.EventSource.html\" title=\"trait calloop::sources::EventSource\">EventSource</a> for <a class=\"struct\" href=\"wayland_client/struct.EventQueue.html\" title=\"struct wayland_client::EventQueue\">EventQueue</a>","synthetic":false,"types":["wayland_client::event_queue::EventQueue"]}];
+implementors["wayland_client"] = [{"text":"impl EventSource for EventQueue","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
