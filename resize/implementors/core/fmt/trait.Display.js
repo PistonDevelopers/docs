@@ -1,0 +1,4 @@
+(function() {var implementors = {};
+implementors["bytemuck"] = [{"text":"impl Display for PodCastError","synthetic":false,"types":[]}];
+implementors["rgb"] = [{"text":"impl&lt;T:&nbsp;Display&gt; Display for RGB&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T:&nbsp;Display&gt; Display for BGR&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T:&nbsp;Display, A:&nbsp;Display&gt; Display for RGBA&lt;T, A&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T:&nbsp;Display, A:&nbsp;Display&gt; Display for BGRA&lt;T, A&gt;","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
