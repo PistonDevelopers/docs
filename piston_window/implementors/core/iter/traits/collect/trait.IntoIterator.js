@@ -1,4 +1,5 @@
 (function() {var implementors = {};
+implementors["crossbeam_channel"] = [{"text":"impl&lt;'a, T&gt; IntoIterator for &amp;'a Receiver&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; IntoIterator for Receiver&lt;T&gt;","synthetic":false,"types":[]}];
 implementors["image"] = [{"text":"impl&lt;R:&nbsp;BufRead&gt; IntoIterator for HdrDecoder&lt;R&gt;","synthetic":false,"types":[]}];
 implementors["proc_macro2"] = [{"text":"impl IntoIterator for TokenStream","synthetic":false,"types":[]}];
 implementors["smallvec"] = [{"text":"impl&lt;A:&nbsp;Array&gt; IntoIterator for SmallVec&lt;A&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'a, A:&nbsp;Array&gt; IntoIterator for &amp;'a SmallVec&lt;A&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'a, A:&nbsp;Array&gt; IntoIterator for &amp;'a mut SmallVec&lt;A&gt;","synthetic":false,"types":[]}];

@@ -1,7 +1,7 @@
 (function() {var implementors = {};
+implementors["crossbeam_channel"] = [{"text":"impl&lt;T&gt; Drop for Sender&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Drop for Receiver&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'_&gt; Drop for SelectedOperation&lt;'_&gt;","synthetic":false,"types":[]}];
 implementors["crossbeam_deque"] = [{"text":"impl&lt;T&gt; Drop for Injector&lt;T&gt;","synthetic":false,"types":[]}];
 implementors["crossbeam_epoch"] = [{"text":"impl&lt;T&gt; Drop for Owned&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl Drop for LocalHandle","synthetic":false,"types":[]},{"text":"impl Drop for Guard","synthetic":false,"types":[]}];
-implementors["crossbeam_queue"] = [{"text":"impl&lt;T&gt; Drop for ArrayQueue&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Drop for SegQueue&lt;T&gt;","synthetic":false,"types":[]}];
 implementors["crossbeam_utils"] = [{"text":"impl&lt;'a, T:&nbsp;?Sized&gt; Drop for ShardedLockWriteGuard&lt;'a, T&gt;","synthetic":false,"types":[]},{"text":"impl Drop for WaitGroup","synthetic":false,"types":[]}];
 implementors["deflate"] = [{"text":"impl&lt;W:&nbsp;Write&gt; Drop for DeflateEncoder&lt;W&gt;","synthetic":false,"types":[]},{"text":"impl&lt;W:&nbsp;Write&gt; Drop for ZlibEncoder&lt;W&gt;","synthetic":false,"types":[]}];
 implementors["gfx_core"] = [{"text":"impl&lt;'a, R:&nbsp;Resources&gt; Drop for AccessGuard&lt;'a, R&gt;","synthetic":false,"types":[]}];
