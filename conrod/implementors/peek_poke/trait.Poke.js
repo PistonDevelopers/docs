@@ -1,5 +1,0 @@
-(function() {var implementors = {};
-implementors["peek_poke"] = [];
-implementors["wgpu_core"] = [{"text":"impl&lt;T&gt; Poke for Rect&lt;T&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: Poke,&nbsp;</span>","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Poke for Id&lt;T&gt;","synthetic":false,"types":[]}];
-implementors["wgpu_types"] = [{"text":"impl Poke for LoadOp","synthetic":false,"types":[]},{"text":"impl Poke for StoreOp","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Poke for RenderPassColorAttachmentDescriptorBase&lt;T&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: Poke,<br>&nbsp;&nbsp;&nbsp;&nbsp;Option&lt;T&gt;: Poke,&nbsp;</span>","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Poke for RenderPassDepthStencilAttachmentDescriptorBase&lt;T&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: Poke,&nbsp;</span>","synthetic":false,"types":[]},{"text":"impl Poke for Color","synthetic":false,"types":[]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

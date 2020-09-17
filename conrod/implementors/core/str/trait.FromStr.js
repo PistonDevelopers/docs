@@ -10,5 +10,6 @@ implementors["ordered_float"] = [{"text":"impl&lt;T:&nbsp;Float + FromStr&gt; Fr
 implementors["proc_macro2"] = [{"text":"impl FromStr for TokenStream","synthetic":false,"types":[]}];
 implementors["rendy_core"] = [{"text":"impl FromStr for Backend","synthetic":false,"types":[]}];
 implementors["serde_json"] = [{"text":"impl FromStr for Number","synthetic":false,"types":[]},{"text":"impl FromStr for Value","synthetic":false,"types":[]}];
+implementors["tracing_core"] = [{"text":"impl FromStr for Level","synthetic":false,"types":[]},{"text":"impl FromStr for LevelFilter","synthetic":false,"types":[]}];
 implementors["xml"] = [{"text":"impl FromStr for OwnedName","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
