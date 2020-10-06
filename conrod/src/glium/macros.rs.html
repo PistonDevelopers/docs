@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glium-0.24.0/src/macros.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>macros.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/glium-0.28.0/src/macros.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>macros.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
 <link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../glium/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
                 <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
@@ -628,13 +628,6 @@
 <span id="625">625</span>
 <span id="626">626</span>
 <span id="627">627</span>
-<span id="628">628</span>
-<span id="629">629</span>
-<span id="630">630</span>
-<span id="631">631</span>
-<span id="632">632</span>
-<span id="633">633</span>
-<span id="634">634</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Defines useful macros for glium usage.</span>
 
@@ -715,6 +708,10 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// The parameters must be the name of the struct and the names of its fields.</span>
 <span class="doccomment">///</span>
+<span class="doccomment">/// ## Safety</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// You must not use this macro on any struct with fields that cannot be zeroed.</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// ## Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```</span>
@@ -731,6 +728,12 @@
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">///</span>
+<span class="doccomment">/// ## Naming convention</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// When it comes to using to using your vertex array in a shader you must make sure that all your attribute variables *match* the field names in the struct you are calling calling this macro for.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// So, if you have a `vertex_position` atribute/input in your shader, a field named `vertex_position` must be present in the struct. Ohterwise the drawing functions will panic.</span>
+<span class="doccomment">///</span>
 <span class="attribute">#[<span class="ident">macro_export</span>]</span>
 <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">implement_vertex</span> {
     (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span>:<span class="ident">ident</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>:<span class="ident">ident</span>),<span class="op">+</span>) <span class="op">=</span><span class="op">&gt;</span> (
@@ -745,26 +748,17 @@
                     $(
                         (
                             <span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="macro">stringify</span><span class="macro">!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>)),
+                            <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro">__glium_offset_of</span><span class="macro">!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>),
                             {
-                                <span class="comment">// calculate the offset of the struct fields</span>
-                                <span class="kw">let</span> <span class="ident">dummy</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">uninitialized</span>() };
-                                <span class="kw">let</span> <span class="ident">offset</span>: <span class="ident">usize</span> <span class="op">=</span> {
-                                    <span class="kw">let</span> <span class="ident">dummy_ref</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">dummy</span>;
-                                    <span class="kw">let</span> <span class="ident">field_ref</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">dummy</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>;
-                                    (<span class="ident">field_ref</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="ident">usize</span>) <span class="op">-</span> (<span class="ident">dummy_ref</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="ident">usize</span>)
-                                };
-                                <span class="comment">// NOTE: `glium::vertex::Vertex` requires `$struct_name` to have `Copy` trait</span>
-                                <span class="comment">// `Copy` excludes `Drop`, so we don&#39;t have to `std::mem::forget(dummy)`</span>
-                                <span class="ident">offset</span>
-                            },
-                            {
-                                <span class="kw">fn</span> <span class="ident">attr_type_of_val</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">Attribute</span><span class="op">&gt;</span>(<span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>)
+                                <span class="comment">// Obtain the type of the $field_name field of $struct_name and</span>
+                                <span class="comment">// call get_type on it.</span>
+                                <span class="kw">fn</span> <span class="ident">attr_type_of_val</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">Attribute</span><span class="op">&gt;</span>(<span class="kw">_</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">T</span><span class="op">&gt;</span>)
                                     <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">AttributeType</span>
                                 {
                                     <span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">Attribute</span><span class="op">&gt;</span>::<span class="ident">get_type</span>()
                                 }
-                                <span class="kw">let</span> <span class="ident">dummy</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="number">0usize</span>) };
-                                <span class="ident">attr_type_of_val</span>(<span class="kw-2">&amp;</span><span class="ident">dummy</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>)
+                                <span class="kw">let</span> <span class="ident">field_option</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span><span class="op">&gt;</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="kw-2">&amp;</span><span class="ident">v</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>);
+                                <span class="ident">attr_type_of_val</span>(<span class="ident">field_option</span>)
                             },
                             <span class="bool-val">false</span>
                         )
@@ -786,20 +780,17 @@
                     $(
                         (
                             <span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="macro">stringify</span><span class="macro">!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>)),
+                            <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro">__glium_offset_of</span><span class="macro">!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>),
                             {
-                                <span class="kw">let</span> <span class="ident">dummy</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="number">0usize</span>) };
-                                <span class="kw">let</span> <span class="ident">dummy_field</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">dummy</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>;
-                                <span class="kw">let</span> <span class="ident">dummy_field</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">dummy_field</span>) };
-                                <span class="ident">dummy_field</span>
-                            },
-                            {
-                                <span class="kw">fn</span> <span class="ident">attr_type_of_val</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">Attribute</span><span class="op">&gt;</span>(<span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>)
+                                <span class="comment">// Obtain the type of the $field_name field of $struct_name and</span>
+                                <span class="comment">// call get_type on it.</span>
+                                <span class="kw">fn</span> <span class="ident">attr_type_of_val</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">Attribute</span><span class="op">&gt;</span>(<span class="kw">_</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">T</span><span class="op">&gt;</span>)
                                     <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">AttributeType</span>
                                 {
                                     <span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">vertex</span>::<span class="ident">Attribute</span><span class="op">&gt;</span>::<span class="ident">get_type</span>()
                                 }
-                                <span class="kw">let</span> <span class="ident">dummy</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="number">0usize</span>) };
-                                <span class="ident">attr_type_of_val</span>(<span class="kw-2">&amp;</span><span class="ident">dummy</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>)
+                                <span class="kw">let</span> <span class="ident">field_option</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span><span class="op">&gt;</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="kw-2">&amp;</span><span class="ident">v</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>);
+                                <span class="ident">attr_type_of_val</span>(<span class="ident">field_option</span>)
                             },
                             {
                                 <span class="macro-nonterminal">$</span><span class="macro-nonterminal">should_normalize</span>
@@ -859,7 +850,7 @@
                     <span class="kw">let</span> <span class="ident">storage</span> <span class="op">=</span> <span class="ident">storage</span>.<span class="ident">into_boxed_slice</span>();
                     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">storage</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span><span class="op">&lt;</span>$(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">gs</span>)<span class="kw-2">*</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">mem</span>::<span class="ident">transmute</span>(<span class="ident">storage</span>) };
 
-                    <span class="macro">try</span><span class="macro">!</span>(<span class="ident">f</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">storage</span>));
+                    <span class="ident">f</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">storage</span>)<span class="question-mark">?</span>;
                     <span class="prelude-val">Ok</span>(<span class="ident">storage</span>)
                 }
 
@@ -1019,16 +1010,13 @@
                 }
 
                 <span class="kw">fn</span> <span class="ident">build_layout</span>(<span class="ident">base_offset</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">program</span>::<span class="ident">BlockLayout</span> {
-                    <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">mem</span>;
                     <span class="kw">use</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">program</span>::<span class="ident">BlockLayout</span>;
 
-                    <span class="kw">fn</span> <span class="ident">layout_from_ty</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">uniforms</span>::<span class="ident">UniformBlock</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>, <span class="ident">base_offset</span>: <span class="ident">usize</span>)
+                    <span class="kw">fn</span> <span class="ident">layout_from_ty</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">uniforms</span>::<span class="ident">UniformBlock</span> <span class="op">+</span> <span class="question-mark">?</span><span class="ident">Sized</span><span class="op">&gt;</span>(<span class="kw">_</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">T</span><span class="op">&gt;</span>, <span class="ident">base_offset</span>: <span class="ident">usize</span>)
                                                                          <span class="op">-</span><span class="op">&gt;</span> <span class="ident">BlockLayout</span>
                     {
                         <span class="op">&lt;</span><span class="ident">T</span> <span class="kw">as</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">uniforms</span>::<span class="ident">UniformBlock</span><span class="op">&gt;</span>::<span class="ident">build_layout</span>(<span class="ident">base_offset</span>)
                     }
-
-                    <span class="kw">let</span> <span class="ident">dummy</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">mem</span>::<span class="ident">zeroed</span>() };
 
                     <span class="ident">BlockLayout</span>::<span class="ident">Struct</span> {
                         <span class="ident">members</span>: <span class="macro">vec</span><span class="macro">!</span>[
@@ -1036,11 +1024,9 @@
                                 (
                                     <span class="macro">stringify</span><span class="macro">!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>).<span class="ident">to_owned</span>(),
                                     {
-                                        <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> {
-                                            <span class="kw">let</span> <span class="ident">dummy_field</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">dummy</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>;
-                                            <span class="ident">dummy_field</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> () <span class="kw">as</span> <span class="ident">usize</span>
-                                        };
-                                        <span class="ident">layout_from_ty</span>(<span class="kw-2">&amp;</span><span class="ident">dummy</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>, <span class="ident">offset</span> <span class="op">+</span> <span class="ident">base_offset</span>)
+                                        <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro">__glium_offset_of</span><span class="macro">!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>);
+                                        <span class="kw">let</span> <span class="ident">field_option</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">struct_name</span><span class="op">&gt;</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="kw-2">&amp;</span><span class="ident">v</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field_name</span>);
+                                        <span class="ident">layout_from_ty</span>(<span class="ident">field_option</span>, <span class="ident">offset</span> <span class="op">+</span> <span class="ident">base_offset</span>)
                                     }
                                 ),
                             )<span class="op">+</span>
@@ -1076,7 +1062,7 @@
 <span class="doccomment">/// # #[macro_use]</span>
 <span class="doccomment">/// # extern crate glium;</span>
 <span class="doccomment">/// # fn main() {</span>
-<span class="doccomment">/// # let display: glium::Display = unsafe { std::mem::uninitialized() };</span>
+<span class="doccomment">/// # let display: glium::Display = unsafe { std::mem::MaybeUninit::uninit().assume_init() };</span>
 <span class="doccomment">/// let program = program!(&amp;display,</span>
 <span class="doccomment">///     300 =&gt; {</span>
 <span class="doccomment">///         vertex: r#&quot;</span>

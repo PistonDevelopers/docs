@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.21.13/src/socket.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>socket.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `/home/travis/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.28.0/src/socket.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>socket.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
 <link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../wayland_commons/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
                 <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
@@ -662,16 +662,21 @@
 <span id="659">659</span>
 <span id="660">660</span>
 <span id="661">661</span>
+<span id="662">662</span>
+<span id="663">663</span>
+<span id="664">664</span>
+<span id="665">665</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Wayland socket manipulation</span>
 
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">io</span>::{<span class="ident">AsRawFd</span>, <span class="ident">FromRawFd</span>, <span class="ident">IntoRawFd</span>, <span class="ident">RawFd</span>};
 
-<span class="kw">use</span> <span class="ident">nix</span>::<span class="ident">sys</span>::<span class="ident">socket</span>;
-<span class="kw">use</span> <span class="ident">nix</span>::<span class="ident">sys</span>::<span class="ident">uio</span>;
-<span class="kw">use</span> <span class="ident">nix</span>::<span class="prelude-ty">Result</span> <span class="kw">as</span> <span class="ident">NixResult</span>;
+<span class="kw">use</span> <span class="ident">nix</span>::{
+    <span class="ident">sys</span>::{<span class="ident">socket</span>, <span class="ident">uio</span>},
+    <span class="prelude-ty">Result</span> <span class="kw">as</span> <span class="ident">NixResult</span>,
+};
 
-<span class="kw">use</span> <span class="ident">wire</span>::{<span class="ident">ArgumentType</span>, <span class="ident">Message</span>, <span class="ident">MessageParseError</span>, <span class="ident">MessageWriteError</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">wire</span>::{<span class="ident">ArgumentType</span>, <span class="ident">Message</span>, <span class="ident">MessageParseError</span>, <span class="ident">MessageWriteError</span>};
 
 <span class="doccomment">/// Maximum number of FD that can be sent in a single socket message</span>
 <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MAX_FDS_OUT</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">28</span>;
@@ -697,7 +702,7 @@
     <span class="doccomment">/// end may lose some data.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">send_msg</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">bytes</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">fds</span>: <span class="kw-2">&amp;</span>[<span class="ident">RawFd</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">NixResult</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">iov</span> <span class="op">=</span> [<span class="ident">uio</span>::<span class="ident">IoVec</span>::<span class="ident">from_slice</span>(<span class="ident">bytes</span>)];
-        <span class="kw">if</span> <span class="ident">fds</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">0</span> {
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">fds</span>.<span class="ident">is_empty</span>() {
             <span class="kw">let</span> <span class="ident">cmsgs</span> <span class="op">=</span> [<span class="ident">socket</span>::<span class="ident">ControlMessage</span>::<span class="ident">ScmRights</span>(<span class="ident">fds</span>)];
             <span class="ident">socket</span>::<span class="ident">sendmsg</span>(<span class="self">self</span>.<span class="ident">fd</span>, <span class="kw-2">&amp;</span><span class="ident">iov</span>, <span class="kw-2">&amp;</span><span class="ident">cmsgs</span>, <span class="ident">socket</span>::<span class="ident">MsgFlags</span>::<span class="ident">MSG_DONTWAIT</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
         } <span class="kw">else</span> {
@@ -721,14 +726,13 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cmsg</span> <span class="op">=</span> <span class="macro">cmsg_space</span><span class="macro">!</span>([<span class="ident">RawFd</span>; <span class="ident">MAX_FDS_OUT</span>]);
         <span class="kw">let</span> <span class="ident">iov</span> <span class="op">=</span> [<span class="ident">uio</span>::<span class="ident">IoVec</span>::<span class="ident">from_mut_slice</span>(<span class="ident">buffer</span>)];
 
-        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">socket</span>::<span class="ident">recvmsg</span>(<span class="self">self</span>.<span class="ident">fd</span>, <span class="kw-2">&amp;</span><span class="ident">iov</span>[..], <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">cmsg</span>), <span class="ident">socket</span>::<span class="ident">MsgFlags</span>::<span class="ident">MSG_DONTWAIT</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span>
+            <span class="ident">socket</span>::<span class="ident">recvmsg</span>(<span class="self">self</span>.<span class="ident">fd</span>, <span class="kw-2">&amp;</span><span class="ident">iov</span>[..], <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">cmsg</span>), <span class="ident">socket</span>::<span class="ident">MsgFlags</span>::<span class="ident">MSG_DONTWAIT</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fd_count</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="kw">let</span> <span class="ident">received_fds</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">cmsgs</span>().<span class="ident">flat_map</span>(<span class="op">|</span><span class="ident">cmsg</span><span class="op">|</span> {
-            <span class="kw">match</span> <span class="ident">cmsg</span> {
-                <span class="ident">socket</span>::<span class="ident">ControlMessageOwned</span>::<span class="ident">ScmRights</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s</span>,
-                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Vec</span>::<span class="ident">new</span>(),
-            }
+        <span class="kw">let</span> <span class="ident">received_fds</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">cmsgs</span>().<span class="ident">flat_map</span>(<span class="op">|</span><span class="ident">cmsg</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">cmsg</span> {
+            <span class="ident">socket</span>::<span class="ident">ControlMessageOwned</span>::<span class="ident">ScmRights</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Vec</span>::<span class="ident">new</span>(),
         });
         <span class="kw">for</span> (<span class="ident">fd</span>, <span class="ident">place</span>) <span class="kw">in</span> <span class="ident">received_fds</span>.<span class="ident">zip</span>(<span class="ident">fds</span>.<span class="ident">iter_mut</span>()) {
             <span class="ident">fd_count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
@@ -780,7 +784,7 @@
     <span class="doccomment">/// Wrap a Socket into a Buffered Socket</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">socket</span>: <span class="ident">Socket</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">BufferedSocket</span> {
         <span class="ident">BufferedSocket</span> {
-            <span class="ident">socket</span>: <span class="ident">socket</span>,
+            <span class="ident">socket</span>,
             <span class="ident">in_data</span>: <span class="ident">Buffer</span>::<span class="ident">new</span>(<span class="number">2</span> <span class="op">*</span> <span class="ident">MAX_BYTES_OUT</span> <span class="op">/</span> <span class="number">4</span>), <span class="comment">// Incoming buffers are twice as big in order to be</span>
             <span class="ident">in_fds</span>: <span class="ident">Buffer</span>::<span class="ident">new</span>(<span class="number">2</span> <span class="op">*</span> <span class="ident">MAX_FDS_OUT</span>),        <span class="comment">// able to store leftover data if needed</span>
             <span class="ident">out_data</span>: <span class="ident">Buffer</span>::<span class="ident">new</span>(<span class="ident">MAX_BYTES_OUT</span> <span class="op">/</span> <span class="number">4</span>),
@@ -804,9 +808,15 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">flush</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">NixResult</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         {
             <span class="kw">let</span> <span class="ident">words</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">out_data</span>.<span class="ident">get_contents</span>();
-            <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="ident">words</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">u8</span>, <span class="ident">words</span>.<span class="ident">len</span>() <span class="op">*</span> <span class="number">4</span>) };
+            <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+                ::<span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="ident">words</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">u8</span>, <span class="ident">words</span>.<span class="ident">len</span>() <span class="op">*</span> <span class="number">4</span>)
+            };
             <span class="kw">let</span> <span class="ident">fds</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">out_fds</span>.<span class="ident">get_contents</span>();
             <span class="self">self</span>.<span class="ident">socket</span>.<span class="ident">send_msg</span>(<span class="ident">bytes</span>, <span class="ident">fds</span>)<span class="question-mark">?</span>;
+            <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="ident">fd</span> <span class="kw">in</span> <span class="ident">fds</span> {
+                <span class="comment">// once the fds are sent, we can close them</span>
+                <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> ::<span class="ident">nix</span>::<span class="ident">unistd</span>::<span class="ident">close</span>(<span class="ident">fd</span>);
+            }
         }
         <span class="self">self</span>.<span class="ident">out_data</span>.<span class="ident">clear</span>();
         <span class="self">self</span>.<span class="ident">out_fds</span>.<span class="ident">clear</span>();
@@ -868,8 +878,9 @@
         <span class="comment">// receive a message</span>
         <span class="kw">let</span> (<span class="ident">in_bytes</span>, <span class="ident">in_fds</span>) <span class="op">=</span> {
             <span class="kw">let</span> <span class="ident">words</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">in_data</span>.<span class="ident">get_writable_storage</span>();
-            <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span>
-                <span class="kw">unsafe</span> { ::<span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(<span class="ident">words</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>, <span class="ident">words</span>.<span class="ident">len</span>() <span class="op">*</span> <span class="number">4</span>) };
+            <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+                ::<span class="ident">std</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(<span class="ident">words</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>, <span class="ident">words</span>.<span class="ident">len</span>() <span class="op">*</span> <span class="number">4</span>)
+            };
             <span class="kw">let</span> <span class="ident">fds</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">in_fds</span>.<span class="ident">get_writable_storage</span>();
             <span class="self">self</span>.<span class="ident">socket</span>.<span class="ident">rcv_msg</span>(<span class="ident">bytes</span>, <span class="ident">fds</span>)<span class="question-mark">?</span>
         };
@@ -878,8 +889,7 @@
             <span class="kw">return</span> <span class="prelude-val">Err</span>(::<span class="ident">nix</span>::<span class="ident">Error</span>::<span class="ident">Sys</span>(::<span class="ident">nix</span>::<span class="ident">errno</span>::<span class="ident">Errno</span>::<span class="ident">EPIPE</span>));
         }
         <span class="comment">// advance the storage</span>
-        <span class="self">self</span>.<span class="ident">in_data</span>
-            .<span class="ident">advance</span>(<span class="ident">in_bytes</span> <span class="op">/</span> <span class="number">4</span> <span class="op">+</span> <span class="kw">if</span> <span class="ident">in_bytes</span> <span class="op">%</span> <span class="number">4</span> <span class="op">&gt;</span> <span class="number">0</span> { <span class="number">1</span> } <span class="kw">else</span> { <span class="number">0</span> });
+        <span class="self">self</span>.<span class="ident">in_data</span>.<span class="ident">advance</span>(<span class="ident">in_bytes</span> <span class="op">/</span> <span class="number">4</span> <span class="op">+</span> <span class="kw">if</span> <span class="ident">in_bytes</span> <span class="op">%</span> <span class="number">4</span> <span class="op">&gt;</span> <span class="number">0</span> { <span class="number">1</span> } <span class="kw">else</span> { <span class="number">0</span> });
         <span class="self">self</span>.<span class="ident">in_fds</span>.<span class="ident">advance</span>(<span class="ident">in_fds</span>);
         <span class="prelude-val">Ok</span>(())
     }
@@ -910,7 +920,7 @@
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">MessageParseError</span>::<span class="ident">MissingData</span>);
             }
             <span class="kw">let</span> <span class="ident">object_id</span> <span class="op">=</span> <span class="ident">data</span>[<span class="number">0</span>];
-            <span class="kw">let</span> <span class="ident">opcode</span> <span class="op">=</span> (<span class="ident">data</span>[<span class="number">1</span>] <span class="op">&amp;</span> <span class="number">0x0000FFFF</span>) <span class="kw">as</span> <span class="ident">u16</span>;
+            <span class="kw">let</span> <span class="ident">opcode</span> <span class="op">=</span> (<span class="ident">data</span>[<span class="number">1</span>] <span class="op">&amp;</span> <span class="number">0x0000_FFFF</span>) <span class="kw">as</span> <span class="ident">u16</span>;
             <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">sig</span>) <span class="op">=</span> <span class="ident">signature</span>(<span class="ident">object_id</span>, <span class="ident">opcode</span>) {
                 <span class="kw">match</span> <span class="ident">Message</span>::<span class="ident">from_raw</span>(<span class="ident">data</span>, <span class="ident">sig</span>, <span class="ident">fds</span>) {
                     <span class="prelude-val">Ok</span>((<span class="ident">msg</span>, <span class="ident">rest_data</span>, <span class="ident">rest_fds</span>)) <span class="op">=</span><span class="op">&gt;</span> {
@@ -1034,11 +1044,7 @@
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Copy</span> <span class="op">+</span> <span class="ident">Default</span><span class="op">&gt;</span> <span class="ident">Buffer</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">size</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Buffer</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-        <span class="ident">Buffer</span> {
-            <span class="ident">storage</span>: <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">T</span>::<span class="ident">default</span>(); <span class="ident">size</span>],
-            <span class="ident">occupied</span>: <span class="number">0</span>,
-            <span class="ident">offset</span>: <span class="number">0</span>,
-        }
+        <span class="ident">Buffer</span> { <span class="ident">storage</span>: <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">T</span>::<span class="ident">default</span>(); <span class="ident">size</span>], <span class="ident">occupied</span>: <span class="number">0</span>, <span class="ident">offset</span>: <span class="number">0</span> }
     }
 
     <span class="doccomment">/// Check if this buffer has content to read</span>
@@ -1093,9 +1099,11 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">tests</span> {
     <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
-    <span class="kw">use</span> <span class="ident">wire</span>::{<span class="ident">Argument</span>, <span class="ident">ArgumentType</span>, <span class="ident">Message</span>};
+    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">wire</span>::{<span class="ident">Argument</span>, <span class="ident">ArgumentType</span>, <span class="ident">Message</span>};
 
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">ffi</span>::<span class="ident">CString</span>;
+
+    <span class="kw">use</span> <span class="ident">smallvec</span>::<span class="ident">smallvec</span>;
 
     <span class="kw">fn</span> <span class="ident">same_file</span>(<span class="ident">a</span>: <span class="ident">RawFd</span>, <span class="ident">b</span>: <span class="ident">RawFd</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
         <span class="kw">let</span> <span class="ident">stat1</span> <span class="op">=</span> ::<span class="ident">nix</span>::<span class="ident">sys</span>::<span class="ident">stat</span>::<span class="ident">fstat</span>(<span class="ident">a</span>).<span class="ident">unwrap</span>();
@@ -1125,11 +1133,11 @@
         <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">Message</span> {
             <span class="ident">sender_id</span>: <span class="number">42</span>,
             <span class="ident">opcode</span>: <span class="number">7</span>,
-            <span class="ident">args</span>: <span class="macro">vec</span><span class="macro">!</span>[
+            <span class="ident">args</span>: <span class="macro">smallvec</span><span class="macro">!</span>[
                 <span class="ident">Argument</span>::<span class="ident">Uint</span>(<span class="number">3</span>),
                 <span class="ident">Argument</span>::<span class="ident">Fixed</span>(<span class="op">-</span><span class="number">89</span>),
-                <span class="ident">Argument</span>::<span class="ident">Str</span>(<span class="ident">CString</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;I like trains!&quot;</span>[..]).<span class="ident">unwrap</span>()),
-                <span class="ident">Argument</span>::<span class="ident">Array</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>]),
+                <span class="ident">Argument</span>::<span class="ident">Str</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">CString</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;I like trains!&quot;</span>[..]).<span class="ident">unwrap</span>())),
+                <span class="ident">Argument</span>::<span class="ident">Array</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>].<span class="ident">into</span>()),
                 <span class="ident">Argument</span>::<span class="ident">Object</span>(<span class="number">88</span>),
                 <span class="ident">Argument</span>::<span class="ident">NewId</span>(<span class="number">56</span>),
                 <span class="ident">Argument</span>::<span class="ident">Int</span>(<span class="op">-</span><span class="number">25</span>),
@@ -1178,7 +1186,7 @@
         <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">Message</span> {
             <span class="ident">sender_id</span>: <span class="number">42</span>,
             <span class="ident">opcode</span>: <span class="number">7</span>,
-            <span class="ident">args</span>: <span class="macro">vec</span><span class="macro">!</span>[
+            <span class="ident">args</span>: <span class="macro">smallvec</span><span class="macro">!</span>[
                 <span class="ident">Argument</span>::<span class="ident">Fd</span>(<span class="number">1</span>), <span class="comment">// stdin</span>
                 <span class="ident">Argument</span>::<span class="ident">Fd</span>(<span class="number">0</span>), <span class="comment">// stdout</span>
             ],
@@ -1219,15 +1227,15 @@
             <span class="ident">Message</span> {
                 <span class="ident">sender_id</span>: <span class="number">42</span>,
                 <span class="ident">opcode</span>: <span class="number">0</span>,
-                <span class="ident">args</span>: <span class="macro">vec</span><span class="macro">!</span>[
+                <span class="ident">args</span>: <span class="macro">smallvec</span><span class="macro">!</span>[
                     <span class="ident">Argument</span>::<span class="ident">Int</span>(<span class="number">42</span>),
-                    <span class="ident">Argument</span>::<span class="ident">Str</span>(<span class="ident">CString</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;I like trains&quot;</span>[..]).<span class="ident">unwrap</span>()),
+                    <span class="ident">Argument</span>::<span class="ident">Str</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">CString</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;I like trains&quot;</span>[..]).<span class="ident">unwrap</span>())),
                 ],
             },
             <span class="ident">Message</span> {
                 <span class="ident">sender_id</span>: <span class="number">42</span>,
                 <span class="ident">opcode</span>: <span class="number">1</span>,
-                <span class="ident">args</span>: <span class="macro">vec</span><span class="macro">!</span>[
+                <span class="ident">args</span>: <span class="macro">smallvec</span><span class="macro">!</span>[
                     <span class="ident">Argument</span>::<span class="ident">Fd</span>(<span class="number">1</span>), <span class="comment">// stdin</span>
                     <span class="ident">Argument</span>::<span class="ident">Fd</span>(<span class="number">0</span>), <span class="comment">// stdout</span>
                 ],
@@ -1235,7 +1243,7 @@
             <span class="ident">Message</span> {
                 <span class="ident">sender_id</span>: <span class="number">42</span>,
                 <span class="ident">opcode</span>: <span class="number">2</span>,
-                <span class="ident">args</span>: <span class="macro">vec</span><span class="macro">!</span>[
+                <span class="ident">args</span>: <span class="macro">smallvec</span><span class="macro">!</span>[
                     <span class="ident">Argument</span>::<span class="ident">Uint</span>(<span class="number">3</span>),
                     <span class="ident">Argument</span>::<span class="ident">Fd</span>(<span class="number">2</span>), <span class="comment">// stderr</span>
                 ],
@@ -1287,9 +1295,9 @@
         <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">Message</span> {
             <span class="ident">sender_id</span>: <span class="number">2</span>,
             <span class="ident">opcode</span>: <span class="number">0</span>,
-            <span class="ident">args</span>: <span class="macro">vec</span><span class="macro">!</span>[
+            <span class="ident">args</span>: <span class="macro">smallvec</span><span class="macro">!</span>[
                 <span class="ident">Argument</span>::<span class="ident">Uint</span>(<span class="number">18</span>),
-                <span class="ident">Argument</span>::<span class="ident">Str</span>(<span class="ident">CString</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;wl_shell&quot;</span>[..]).<span class="ident">unwrap</span>()),
+                <span class="ident">Argument</span>::<span class="ident">Str</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">CString</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;wl_shell&quot;</span>[..]).<span class="ident">unwrap</span>())),
                 <span class="ident">Argument</span>::<span class="ident">Uint</span>(<span class="number">1</span>),
             ],
         };
