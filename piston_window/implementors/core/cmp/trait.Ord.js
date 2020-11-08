@@ -1,7 +1,7 @@
 (function() {var implementors = {};
 implementors["andrew"] = [{"text":"impl Ord for Sides","synthetic":false,"types":[]}];
 implementors["byteorder"] = [{"text":"impl Ord for BigEndian","synthetic":false,"types":[]},{"text":"impl Ord for LittleEndian","synthetic":false,"types":[]}];
-implementors["crossbeam_epoch"] = [{"text":"impl&lt;'g, T&gt; Ord for Shared&lt;'g, T&gt;","synthetic":false,"types":[]}];
+implementors["crossbeam_epoch"] = [{"text":"impl&lt;T:&nbsp;?Sized + Pointable, '_&gt; Ord for Shared&lt;'_, T&gt;","synthetic":false,"types":[]}];
 implementors["deflate"] = [{"text":"impl Ord for Compression","synthetic":false,"types":[]},{"text":"impl Ord for MatchingType","synthetic":false,"types":[]}];
 implementors["draw_state"] = [{"text":"impl Ord for FrontFace","synthetic":false,"types":[]},{"text":"impl Ord for CullFace","synthetic":false,"types":[]},{"text":"impl Ord for MultiSample","synthetic":false,"types":[]},{"text":"impl Ord for Comparison","synthetic":false,"types":[]},{"text":"impl Ord for StencilOp","synthetic":false,"types":[]},{"text":"impl Ord for StencilSide","synthetic":false,"types":[]},{"text":"impl Ord for Stencil","synthetic":false,"types":[]},{"text":"impl Ord for Depth","synthetic":false,"types":[]},{"text":"impl Ord for Equation","synthetic":false,"types":[]},{"text":"impl Ord for BlendValue","synthetic":false,"types":[]},{"text":"impl Ord for Factor","synthetic":false,"types":[]},{"text":"impl Ord for BlendChannel","synthetic":false,"types":[]},{"text":"impl Ord for ColorMask","synthetic":false,"types":[]},{"text":"impl Ord for Mirror","synthetic":false,"types":[]}];
 implementors["either"] = [{"text":"impl&lt;L:&nbsp;Ord, R:&nbsp;Ord&gt; Ord for Either&lt;L, R&gt;","synthetic":false,"types":[]}];

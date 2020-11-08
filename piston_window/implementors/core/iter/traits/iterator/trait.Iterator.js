@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["crossbeam_channel"] = [{"text":"impl&lt;'a, T&gt; Iterator for Iter&lt;'a, T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'a, T&gt; Iterator for TryIter&lt;'a, T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Iterator for IntoIter&lt;T&gt;","synthetic":false,"types":[]}];
+implementors["crossbeam_channel"] = [{"text":"impl&lt;T, '_&gt; Iterator for Iter&lt;'_, T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T, '_&gt; Iterator for TryIter&lt;'_, T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; Iterator for IntoIter&lt;T&gt;","synthetic":false,"types":[]}];
 implementors["either"] = [{"text":"impl&lt;L, R&gt; Iterator for Either&lt;L, R&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;L: Iterator,<br>&nbsp;&nbsp;&nbsp;&nbsp;R: Iterator&lt;Item = L::Item&gt;,&nbsp;</span>","synthetic":false,"types":[]}];
 implementors["gfx_core"] = [{"text":"impl&lt;'a, R:&nbsp;Resources&gt; Iterator for AccessGuardBuffers&lt;'a, R&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'a, R:&nbsp;Resources&gt; Iterator for AccessGuardBuffersChain&lt;'a, R&gt;","synthetic":false,"types":[]}];
 implementors["graphics"] = [{"text":"impl Iterator for GridCells","synthetic":false,"types":[]}];

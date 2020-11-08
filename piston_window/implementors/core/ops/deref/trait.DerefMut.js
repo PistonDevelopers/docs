@@ -1,6 +1,6 @@
 (function() {var implementors = {};
-implementors["crossbeam_epoch"] = [{"text":"impl&lt;T&gt; DerefMut for Owned&lt;T&gt;","synthetic":false,"types":[]}];
-implementors["crossbeam_utils"] = [{"text":"impl&lt;T&gt; DerefMut for CachePadded&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'a, T:&nbsp;?Sized&gt; DerefMut for ShardedLockWriteGuard&lt;'a, T&gt;","synthetic":false,"types":[]}];
+implementors["crossbeam_epoch"] = [{"text":"impl&lt;T:&nbsp;?Sized + Pointable&gt; DerefMut for Owned&lt;T&gt;","synthetic":false,"types":[]}];
+implementors["crossbeam_utils"] = [{"text":"impl&lt;T&gt; DerefMut for CachePadded&lt;T&gt;","synthetic":false,"types":[]},{"text":"impl&lt;T:&nbsp;?Sized, '_&gt; DerefMut for ShardedLockWriteGuard&lt;'_, T&gt;","synthetic":false,"types":[]}];
 implementors["either"] = [{"text":"impl&lt;L, R&gt; DerefMut for Either&lt;L, R&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;L: DerefMut,<br>&nbsp;&nbsp;&nbsp;&nbsp;R: DerefMut&lt;Target = L::Target&gt;,&nbsp;</span>","synthetic":false,"types":[]}];
 implementors["gfx_core"] = [{"text":"impl&lt;'a, R:&nbsp;Resources, T:&nbsp;'a + Copy&gt; DerefMut for Writer&lt;'a, R, T&gt;","synthetic":false,"types":[]}];
 implementors["image"] = [{"text":"impl&lt;P, Container&gt; DerefMut for ImageBuffer&lt;P, Container&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;P: Pixel + 'static,<br>&nbsp;&nbsp;&nbsp;&nbsp;P::Subpixel: 'static,<br>&nbsp;&nbsp;&nbsp;&nbsp;Container: Deref&lt;Target = [P::Subpixel]&gt; + DerefMut,&nbsp;</span>","synthetic":false,"types":[]}];

@@ -1,5 +1,5 @@
 (function() {var implementors = {};
-implementors["crossbeam_epoch"] = [{"text":"impl&lt;T&gt; AsMut&lt;T&gt; for Owned&lt;T&gt;","synthetic":false,"types":[]}];
+implementors["crossbeam_epoch"] = [{"text":"impl&lt;T:&nbsp;?Sized + Pointable&gt; AsMut&lt;T&gt; for Owned&lt;T&gt;","synthetic":false,"types":[]}];
 implementors["either"] = [{"text":"impl&lt;L, R&gt; AsMut&lt;str&gt; for Either&lt;L, R&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;L: AsMut&lt;str&gt;,<br>&nbsp;&nbsp;&nbsp;&nbsp;R: AsMut&lt;str&gt;,&nbsp;</span>","synthetic":false,"types":[]},{"text":"impl&lt;L, R, Target&gt; AsMut&lt;Target&gt; for Either&lt;L, R&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;L: AsMut&lt;Target&gt;,<br>&nbsp;&nbsp;&nbsp;&nbsp;R: AsMut&lt;Target&gt;,&nbsp;</span>","synthetic":false,"types":[]},{"text":"impl&lt;L, R, Target&gt; AsMut&lt;[Target]&gt; for Either&lt;L, R&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;L: AsMut&lt;[Target]&gt;,<br>&nbsp;&nbsp;&nbsp;&nbsp;R: AsMut&lt;[Target]&gt;,&nbsp;</span>","synthetic":false,"types":[]}];
 implementors["memmap"] = [{"text":"impl AsMut&lt;[u8]&gt; for MmapMut","synthetic":false,"types":[]}];
 implementors["ordered_float"] = [{"text":"impl&lt;T:&nbsp;Float&gt; AsMut&lt;T&gt; for OrderedFloat&lt;T&gt;","synthetic":false,"types":[]}];
