@@ -1,4 +1,5 @@
 (function() {var implementors = {};
+implementors["ab_glyph_rasterizer"] = [{"text":"impl Sub&lt;Point&gt; for Point","synthetic":false,"types":[]}];
 implementors["andrew"] = [{"text":"impl Sub&lt;Sides&gt; for Sides","synthetic":false,"types":[]}];
 implementors["draw_state"] = [{"text":"impl Sub&lt;ColorMask&gt; for ColorMask","synthetic":false,"types":[]},{"text":"impl Sub&lt;Mirror&gt; for Mirror","synthetic":false,"types":[]}];
 implementors["gfx_core"] = [{"text":"impl Sub&lt;Access&gt; for Access","synthetic":false,"types":[]},{"text":"impl Sub&lt;Bind&gt; for Bind","synthetic":false,"types":[]},{"text":"impl Sub&lt;Usage&gt; for Usage","synthetic":false,"types":[]},{"text":"impl Sub&lt;DepthStencilFlags&gt; for DepthStencilFlags","synthetic":false,"types":[]}];

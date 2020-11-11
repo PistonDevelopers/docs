@@ -29,6 +29,7 @@ implementors["serde"] = [{"text":"impl Display for Error","synthetic":false,"typ
 implementors["shader_version"] = [{"text":"impl Display for ParseOpenGLError","synthetic":false,"types":[]},{"text":"impl Display for ParseGLSLError","synthetic":false,"types":[]}];
 implementors["syn"] = [{"text":"impl Display for Lifetime","synthetic":false,"types":[]},{"text":"impl Display for LitInt","synthetic":false,"types":[]},{"text":"impl Display for LitFloat","synthetic":false,"types":[]},{"text":"impl&lt;'a&gt; Display for ParseBuffer&lt;'a&gt;","synthetic":false,"types":[]},{"text":"impl Display for Error","synthetic":false,"types":[]}];
 implementors["tiff"] = [{"text":"impl Display for TiffFormatError","synthetic":false,"types":[]},{"text":"impl Display for TiffUnsupportedError","synthetic":false,"types":[]},{"text":"impl Display for TiffError","synthetic":false,"types":[]}];
+implementors["ttf_parser"] = [{"text":"impl Display for Tag","synthetic":false,"types":[]}];
 implementors["void"] = [{"text":"impl Display for Void","synthetic":false,"types":[]}];
 implementors["walkdir"] = [{"text":"impl Display for Error","synthetic":false,"types":[]}];
 implementors["wayland_client"] = [{"text":"impl Display for ConnectError","synthetic":false,"types":[]},{"text":"impl Display for GlobalError","synthetic":false,"types":[]}];
