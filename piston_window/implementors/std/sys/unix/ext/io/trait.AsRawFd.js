@@ -1,5 +1,8 @@
 (function() {var implementors = {};
-implementors["nix"] = [{"text":"impl AsRawFd for Dir","synthetic":false,"types":[]},{"text":"impl AsRawFd for PtyMaster","synthetic":false,"types":[]},{"text":"impl AsRawFd for SignalFd","synthetic":false,"types":[]},{"text":"impl AsRawFd for Inotify","synthetic":false,"types":[]}];
+implementors["calloop"] = [{"text":"impl AsRawFd for Fd","synthetic":false,"types":[]}];
+implementors["mio"] = [{"text":"impl AsRawFd for Poll","synthetic":false,"types":[]},{"text":"impl AsRawFd for TcpStream","synthetic":false,"types":[]},{"text":"impl AsRawFd for TcpListener","synthetic":false,"types":[]},{"text":"impl AsRawFd for UdpSocket","synthetic":false,"types":[]}];
+implementors["net2"] = [{"text":"impl AsRawFd for TcpBuilder","synthetic":false,"types":[]},{"text":"impl AsRawFd for UdpBuilder","synthetic":false,"types":[]}];
+implementors["nix"] = [{"text":"impl AsRawFd for Dir","synthetic":false,"types":[]},{"text":"impl AsRawFd for PtyMaster","synthetic":false,"types":[]},{"text":"impl AsRawFd for SignalFd","synthetic":false,"types":[]},{"text":"impl AsRawFd for Inotify","synthetic":false,"types":[]},{"text":"impl AsRawFd for TimerFd","synthetic":false,"types":[]}];
 implementors["same_file"] = [{"text":"impl AsRawFd for Handle","synthetic":false,"types":[]}];
 implementors["smithay_client_toolkit"] = [{"text":"impl AsRawFd for ReadPipe","synthetic":false,"types":[]},{"text":"impl AsRawFd for WritePipe","synthetic":false,"types":[]}];
 implementors["wayland_commons"] = [{"text":"impl AsRawFd for Socket","synthetic":false,"types":[]}];
