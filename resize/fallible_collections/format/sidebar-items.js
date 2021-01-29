@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["try_format","Take a max capacity a try allocating a string with it."]]});

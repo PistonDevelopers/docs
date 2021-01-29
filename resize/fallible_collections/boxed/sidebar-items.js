@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["TryBox","TryBox is a thin wrapper around alloc::boxed::Box to provide support for fallible allocation."]],"trait":[["FallibleBox","trait to implement Fallible Box"]]});

@@ -1,3 +1,4 @@
 (function() {var implementors = {};
-implementors["rgb"] = [{"text":"impl&lt;T&gt; Deref for Gray&lt;T&gt;","synthetic":false,"types":[]}];
+implementors["fallible_collections"] = [{"text":"impl&lt;T&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"fallible_collections/vec/struct.TryVec.html\" title=\"struct fallible_collections::vec::TryVec\">TryVec</a>&lt;T&gt;","synthetic":false,"types":["fallible_collections::vec::TryVec"]}];
+implementors["rgb"] = [{"text":"impl&lt;T&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"rgb/alt/struct.Gray.html\" title=\"struct rgb::alt::Gray\">Gray</a>&lt;T&gt;","synthetic":false,"types":["rgb::alt::Gray"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

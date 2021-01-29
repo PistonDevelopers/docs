@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Iter",""],["IterMut",""],["TryVec","TryVec is a thin wrapper around alloc::vec::Vec to provide support for fallible allocation."]],"trait":[["FallibleVec","trait implementing all fallible methods on vec"],["TryCollect",""],["TryFromIterator",""]]});
