@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Gray","Grayscale. Use `.0` or `*` (deref) to access the value."],["RGB","The RGB pixel"],["RGBA","The RGBA pixel"]],"trait":[["PixelFormat","Use `Pixel` presets to specify pixel format."]]});
