@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["bitflags","cfg_if","dev_menu","draw_state","float","freetype","freetype_sys","gfx","gfx_core","gfx_debug_draw","gfx_text","input","libc","log","proc_macro2","quote","serde","serde_derive","syn","unicode_xid","vecmath","viewport"];
