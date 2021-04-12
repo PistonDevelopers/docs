@@ -182,14 +182,14 @@
 <span class="doccomment">//! of event is not file descriptor, but rather an userspace source</span>
 <span class="doccomment">//! (like an other thread).</span>
 
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">os</span>::<span class="ident">unix</span>::<span class="ident">io</span>::<span class="ident">RawFd</span>, <span class="ident">sync</span>::<span class="ident">Arc</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">os::unix::io::RawFd</span>, <span class="ident">sync::Arc</span>};
 
 <span class="kw">use</span> <span class="ident">nix</span>::{
-    <span class="ident">fcntl</span>::<span class="ident">OFlag</span>,
+    <span class="ident">fcntl::OFlag</span>,
     <span class="ident">unistd</span>::{<span class="ident">close</span>, <span class="ident">pipe2</span>, <span class="ident">read</span>, <span class="ident">write</span>},
 };
 
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">generic</span>::{<span class="ident">Fd</span>, <span class="ident">Generic</span>};
+<span class="kw">use</span> <span class="kw">super</span><span class="ident">::generic</span>::{<span class="ident">Fd</span>, <span class="ident">Generic</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">no_nix_err</span>, <span class="ident">EventSource</span>, <span class="ident">Interest</span>, <span class="ident">Mode</span>, <span class="ident">Poll</span>, <span class="ident">Readiness</span>, <span class="ident">Token</span>};
 
 <span class="doccomment">/// Create a new ping event source</span>
@@ -197,13 +197,13 @@
 <span class="doccomment">/// you are given a `Ping` instance, which can be cloned and used to ping the</span>
 <span class="doccomment">/// event loop, and a `PingSource`, which you can isnert in your event loop to</span>
 <span class="doccomment">/// receive the pings.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">make_ping</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">Ping</span>, <span class="ident">PingSource</span>)<span class="op">&gt;</span> {
-    <span class="kw">let</span> (<span class="ident">read</span>, <span class="ident">write</span>) <span class="op">=</span> <span class="ident">pipe2</span>(<span class="ident">OFlag</span>::<span class="ident">O_CLOEXEC</span> <span class="op">|</span> <span class="ident">OFlag</span>::<span class="ident">O_NONBLOCK</span>).<span class="ident">map_err</span>(<span class="ident">no_nix_err</span>)<span class="question-mark">?</span>;
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">make_ping</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::io::Result</span><span class="op">&lt;</span>(<span class="ident">Ping</span>, <span class="ident">PingSource</span>)<span class="op">&gt;</span> {
+    <span class="kw">let</span> (<span class="ident">read</span>, <span class="ident">write</span>) <span class="op">=</span> <span class="ident">pipe2</span>(<span class="ident">OFlag::O_CLOEXEC</span> <span class="op">|</span> <span class="ident">OFlag::O_NONBLOCK</span>).<span class="ident">map_err</span>(<span class="ident">no_nix_err</span>)<span class="question-mark">?</span>;
     <span class="kw">let</span> <span class="ident">source</span> <span class="op">=</span> <span class="ident">PingSource</span> {
-        <span class="ident">pipe</span>: <span class="ident">Generic</span>::<span class="ident">from_fd</span>(<span class="ident">read</span>, <span class="ident">Interest</span>::<span class="ident">Readable</span>, <span class="ident">Mode</span>::<span class="ident">Level</span>),
+        <span class="ident">pipe</span>: <span class="ident">Generic::from_fd</span>(<span class="ident">read</span>, <span class="ident">Interest::Readable</span>, <span class="ident">Mode::Level</span>),
     };
     <span class="kw">let</span> <span class="ident">ping</span> <span class="op">=</span> <span class="ident">Ping</span> {
-        <span class="ident">pipe</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">CloseOnDrop</span>(<span class="ident">write</span>)),
+        <span class="ident">pipe</span>: <span class="ident">Arc::new</span>(<span class="ident">CloseOnDrop</span>(<span class="ident">write</span>)),
     };
     <span class="prelude-val">Ok</span>((<span class="ident">ping</span>, <span class="ident">source</span>))
 }
@@ -225,9 +225,9 @@
         <span class="ident">readiness</span>: <span class="ident">Readiness</span>,
         <span class="ident">token</span>: <span class="ident">Token</span>,
         <span class="kw-2">mut</span> <span class="ident">callback</span>: <span class="ident">C</span>,
-    ) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::io::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">C</span>: <span class="ident">FnMut</span>(<span class="self">Self</span>::<span class="ident">Event</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span>::<span class="ident">Metadata</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">Ret</span>,
+        <span class="ident">C</span>: <span class="ident">FnMut</span>(<span class="self">Self</span><span class="ident">::Event</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="ident">::Metadata</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span><span class="ident">::Ret</span>,
     {
         <span class="self">self</span>.<span class="ident">pipe</span>
             .<span class="ident">process_events</span>(<span class="ident">readiness</span>, <span class="ident">token</span>, <span class="op">|</span><span class="kw">_</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Fd</span>(<span class="ident">fd</span>)<span class="op">|</span> {
@@ -239,7 +239,7 @@
                         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">read_something</span> <span class="op">=</span> <span class="bool-val">true</span>,
                         <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> {
                             <span class="kw">let</span> <span class="ident">e</span> <span class="op">=</span> <span class="ident">no_nix_err</span>(<span class="ident">e</span>);
-                            <span class="kw">if</span> <span class="ident">e</span>.<span class="ident">kind</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">WouldBlock</span> {
+                            <span class="kw">if</span> <span class="ident">e</span>.<span class="ident">kind</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">std::io::ErrorKind::WouldBlock</span> {
                                 <span class="kw">break</span>;
                             <span class="comment">// nothing more to read</span>
                             } <span class="kw">else</span> {
@@ -256,15 +256,15 @@
             })
     }
 
-    <span class="kw">fn</span> <span class="ident">register</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">poll</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Poll</span>, <span class="ident">token</span>: <span class="ident">Token</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">register</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">poll</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Poll</span>, <span class="ident">token</span>: <span class="ident">Token</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::io::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">pipe</span>.<span class="ident">register</span>(<span class="ident">poll</span>, <span class="ident">token</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">reregister</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">poll</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Poll</span>, <span class="ident">token</span>: <span class="ident">Token</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">reregister</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">poll</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Poll</span>, <span class="ident">token</span>: <span class="ident">Token</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::io::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">pipe</span>.<span class="ident">reregister</span>(<span class="ident">poll</span>, <span class="ident">token</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">unregister</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">poll</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Poll</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">unregister</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">poll</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Poll</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::io::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">pipe</span>.<span class="ident">unregister</span>(<span class="ident">poll</span>)
     }
 }
@@ -272,7 +272,7 @@
 <span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">PingSource</span> {
     <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">close</span>(<span class="self">self</span>.<span class="ident">pipe</span>.<span class="ident">file</span>.<span class="number">0</span>) {
-            <span class="ident">log</span>::<span class="macro">warn</span><span class="macro">!</span>(<span class="string">&quot;[calloop] Failed to close read ping: {:?}&quot;</span>, <span class="ident">e</span>);
+            <span class="macro">log::warn!</span>(<span class="string">&quot;[calloop] Failed to close read ping: {:?}&quot;</span>, <span class="ident">e</span>);
         }
     }
 }
@@ -290,7 +290,7 @@
     <span class="doccomment">/// Send a ping to the `PingSource`</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ping</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">write</span>(<span class="self">self</span>.<span class="ident">pipe</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span>[<span class="number">0u8</span>]) {
-            <span class="ident">log</span>::<span class="macro">warn</span><span class="macro">!</span>(<span class="string">&quot;[calloop] Failed to write a ping: {:?}&quot;</span>, <span class="ident">e</span>);
+            <span class="macro">log::warn!</span>(<span class="string">&quot;[calloop] Failed to write a ping: {:?}&quot;</span>, <span class="ident">e</span>);
         }
     }
 }
@@ -300,7 +300,7 @@
 <span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">CloseOnDrop</span> {
     <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">close</span>(<span class="self">self</span>.<span class="number">0</span>) {
-            <span class="ident">log</span>::<span class="macro">warn</span><span class="macro">!</span>(<span class="string">&quot;[calloop] Failed to close write ping: {:?}&quot;</span>, <span class="ident">e</span>);
+            <span class="macro">log::warn!</span>(<span class="string">&quot;[calloop] Failed to close write ping: {:?}&quot;</span>, <span class="ident">e</span>);
         }
     }
 }
@@ -311,7 +311,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">ping</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">event_loop</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="ident">EventLoop</span>::<span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span>::<span class="ident">new</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">event_loop</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::EventLoop</span>::<span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span><span class="ident">::new</span>().<span class="ident">unwrap</span>();
 
         <span class="kw">let</span> (<span class="ident">ping</span>, <span class="ident">source</span>) <span class="op">=</span> <span class="ident">make_ping</span>().<span class="ident">unwrap</span>();
 
@@ -324,16 +324,16 @@
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">dispatched</span> <span class="op">=</span> <span class="bool-val">false</span>;
         <span class="ident">event_loop</span>
-            .<span class="ident">dispatch</span>(<span class="ident">std</span>::<span class="ident">time</span>::<span class="ident">Duration</span>::<span class="ident">from_millis</span>(<span class="number">0</span>), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">dispatched</span>)
+            .<span class="ident">dispatch</span>(<span class="ident">std::time::Duration::from_millis</span>(<span class="number">0</span>), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">dispatched</span>)
             .<span class="ident">unwrap</span>();
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">dispatched</span>);
+        <span class="macro">assert!</span>(<span class="ident">dispatched</span>);
 
         <span class="comment">// Ping has been drained an no longer generates events</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">dispatched</span> <span class="op">=</span> <span class="bool-val">false</span>;
         <span class="ident">event_loop</span>
-            .<span class="ident">dispatch</span>(<span class="ident">std</span>::<span class="ident">time</span>::<span class="ident">Duration</span>::<span class="ident">from_millis</span>(<span class="number">0</span>), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">dispatched</span>)
+            .<span class="ident">dispatch</span>(<span class="ident">std::time::Duration::from_millis</span>(<span class="number">0</span>), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">dispatched</span>)
             .<span class="ident">unwrap</span>();
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">dispatched</span>);
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">dispatched</span>);
     }
 }
 </pre></div>

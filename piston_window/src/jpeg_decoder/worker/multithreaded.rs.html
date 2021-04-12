@@ -95,12 +95,12 @@
 <span class="doccomment">//! and allow scaling to more cores.</span>
 <span class="doccomment">//! However, that would be more complex, so we use this as a starting point.</span>
 
-<span class="kw">use</span> <span class="ident">decoder</span>::<span class="ident">MAX_COMPONENTS</span>;
-<span class="kw">use</span> <span class="ident">error</span>::<span class="prelude-ty">Result</span>;
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">mem</span>, <span class="ident">sync</span>::<span class="ident">mpsc</span>::{<span class="self">self</span>, <span class="ident">Sender</span>}};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">thread</span>;
+<span class="kw">use</span> <span class="ident">decoder::MAX_COMPONENTS</span>;
+<span class="kw">use</span> <span class="ident">error::Result</span>;
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">mem</span>, <span class="ident">sync::mpsc</span>::{<span class="self">self</span>, <span class="ident">Sender</span>}};
+<span class="kw">use</span> <span class="ident">std::thread</span>;
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">RowData</span>, <span class="ident">Worker</span>};
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">immediate</span>::<span class="ident">ImmediateWorker</span>;
+<span class="kw">use</span> <span class="kw">super</span><span class="ident">::immediate::ImmediateWorker</span>;
 
 <span class="kw">enum</span> <span class="ident">WorkerMsg</span> {
     <span class="ident">Start</span>(<span class="ident">RowData</span>),
@@ -127,46 +127,46 @@
         <span class="comment">// we do the &quot;take out value and put it back in once we&#39;re done&quot; dance here</span>
         <span class="comment">// and in all other message-passing methods because there&#39;s not that many rows</span>
         <span class="comment">// and this should be cheaper than spawning MAX_COMPONENTS many threads up front</span>
-        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">component</span>], <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
-        <span class="ident">sender</span>.<span class="ident">send</span>(<span class="ident">WorkerMsg</span>::<span class="ident">Start</span>(<span class="ident">row_data</span>)).<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>);
+        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">mem::replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">component</span>], <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
+        <span class="ident">sender</span>.<span class="ident">send</span>(<span class="ident">WorkerMsg::Start</span>(<span class="ident">row_data</span>)).<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>);
         <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">component</span>] <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">sender</span>);
         <span class="prelude-val">Ok</span>(())
     }
     <span class="kw">fn</span> <span class="ident">append_row</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">row</span>: (<span class="ident">usize</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;</span>)) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">component</span> <span class="op">=</span> <span class="ident">row</span>.<span class="number">0</span>;
-        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">component</span>], <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
-        <span class="ident">sender</span>.<span class="ident">send</span>(<span class="ident">WorkerMsg</span>::<span class="ident">AppendRow</span>(<span class="ident">row</span>.<span class="number">1</span>)).<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>);
+        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">mem::replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">component</span>], <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
+        <span class="ident">sender</span>.<span class="ident">send</span>(<span class="ident">WorkerMsg::AppendRow</span>(<span class="ident">row</span>.<span class="number">1</span>)).<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>);
         <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">component</span>] <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">sender</span>);
         <span class="prelude-val">Ok</span>(())
     }
     <span class="kw">fn</span> <span class="ident">get_result</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">tx</span>, <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">mpsc</span>::<span class="ident">channel</span>();
-        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">index</span>], <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
-        <span class="ident">sender</span>.<span class="ident">send</span>(<span class="ident">WorkerMsg</span>::<span class="ident">GetResult</span>(<span class="ident">tx</span>)).<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>);
+        <span class="kw">let</span> (<span class="ident">tx</span>, <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">mpsc::channel</span>();
+        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">mem::replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">senders</span>[<span class="ident">index</span>], <span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
+        <span class="ident">sender</span>.<span class="ident">send</span>(<span class="ident">WorkerMsg::GetResult</span>(<span class="ident">tx</span>)).<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>);
         <span class="prelude-val">Ok</span>(<span class="ident">rx</span>.<span class="ident">recv</span>().<span class="ident">expect</span>(<span class="string">&quot;jpeg-decoder worker thread error&quot;</span>))
     }
 }
 
 <span class="kw">fn</span> <span class="ident">spawn_worker_thread</span>(<span class="ident">component</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Sender</span><span class="op">&lt;</span><span class="ident">WorkerMsg</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">thread_builder</span> <span class="op">=</span> <span class="ident">thread</span>::<span class="ident">Builder</span>::<span class="ident">new</span>().<span class="ident">name</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;worker thread for component {}&quot;</span>, <span class="ident">component</span>));
-    <span class="kw">let</span> (<span class="ident">tx</span>, <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">mpsc</span>::<span class="ident">channel</span>();
+    <span class="kw">let</span> <span class="ident">thread_builder</span> <span class="op">=</span> <span class="ident">thread::Builder::new</span>().<span class="ident">name</span>(<span class="macro">format!</span>(<span class="string">&quot;worker thread for component {}&quot;</span>, <span class="ident">component</span>));
+    <span class="kw">let</span> (<span class="ident">tx</span>, <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">mpsc::channel</span>();
 
     <span class="ident">thread_builder</span>.<span class="ident">spawn</span>(<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">worker</span> <span class="op">=</span> <span class="ident">ImmediateWorker</span>::<span class="ident">new_immediate</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">worker</span> <span class="op">=</span> <span class="ident">ImmediateWorker::new_immediate</span>();
 
         <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">message</span>) <span class="op">=</span> <span class="ident">rx</span>.<span class="ident">recv</span>() {
             <span class="kw">match</span> <span class="ident">message</span> {
-                <span class="ident">WorkerMsg</span>::<span class="ident">Start</span>(<span class="kw-2">mut</span> <span class="ident">data</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">WorkerMsg::Start</span>(<span class="kw-2">mut</span> <span class="ident">data</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="comment">// we always set component index to 0 for worker threads</span>
                     <span class="comment">// because they only ever handle one per thread and we don&#39;t want them</span>
                     <span class="comment">// to attempt to access nonexistent components</span>
                     <span class="ident">data</span>.<span class="ident">index</span> <span class="op">=</span> <span class="number">0</span>;
                     <span class="ident">worker</span>.<span class="ident">start_immediate</span>(<span class="ident">data</span>);
                 },
-                <span class="ident">WorkerMsg</span>::<span class="ident">AppendRow</span>(<span class="ident">row</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">WorkerMsg::AppendRow</span>(<span class="ident">row</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="ident">worker</span>.<span class="ident">append_row_immediate</span>((<span class="number">0</span>, <span class="ident">row</span>));
                 },
-                <span class="ident">WorkerMsg</span>::<span class="ident">GetResult</span>(<span class="ident">chan</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">WorkerMsg::GetResult</span>(<span class="ident">chan</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">chan</span>.<span class="ident">send</span>(<span class="ident">worker</span>.<span class="ident">get_result_immediate</span>(<span class="number">0</span>));
                     <span class="kw">break</span>;
                 },
